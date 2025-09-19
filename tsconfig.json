@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "esnext",
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "baseUrl": "src/",
+    "paths": {
+      "@/*": [
+        "app/*"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "jest.config.ts"
+  ]
+}
