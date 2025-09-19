@@ -1,6 +1,8 @@
 import { defineConfig } from "vite";
 import path from "path";
 
+const __dirname = path.resolve();
+
 export default defineConfig({
     resolve: {
         alias: {

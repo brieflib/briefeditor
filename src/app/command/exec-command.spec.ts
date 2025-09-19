@@ -10,8 +10,8 @@ describe("Wrap in tag", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<strong>bold bolditalic</strong>italic";
 
-        let range = new Range();
-        range.setStart(toWrap.firstChild!.firstChild as Node, 5);
+        const range = new Range();
+        range.setStart(toWrap.firstChild?.firstChild as Node, 5);
         range.setEnd(toWrap.lastChild as Node, 4);
 
         // (getRange as jest.Mock).mockReturnValue(range);

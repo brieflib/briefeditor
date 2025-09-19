@@ -24,7 +24,11 @@ export function findLeaves(element: Node, leafElements: Node[] = []) {
     return leafElements;
 }
 
-export function findLeafParents(leafElement: Node, findTill: HTMLElement, leaf: Leaf = new Leaf(leafElement.textContent)) {
+export function findLeafParents(leafElement: Node | null | undefined, findTill: HTMLElement, leaf: Leaf = new Leaf(leafElement?.textContent)) {
+    if (!leafElement) {
+        return;
+    }
+
     const parent = leafElement.parentElement;
     if (getSchema(leafElement.nodeName).includes(Display.SelfClose)) {
         leaf.parents.push(leafElement.nodeName);
@@ -36,7 +40,11 @@ export function findLeafParents(leafElement: Node, findTill: HTMLElement, leaf: 
     return leaf;
 }
 
-export function sortTags(toSort: string[]) {
+export function sortTags(toSort: string[] | undefined) {
+    if (!toSort) {
+        return [];
+    }
+
     return toSort
         .map(tag => ({
             name: tag,
@@ -49,11 +57,11 @@ export function sortTags(toSort: string[]) {
 
 export function getLeavesWithTheSameFirstParent(leaves: Leaf[]): Leaf[] {
     const leavesWithTheSameFirstParent: Leaf[] = [];
-    const parent: string = leaves[0]!.parents[0]!;
+    const parent: string | undefined = leaves[0]?.parents[0];
 
-    for (let i = 0; i < leaves.length; i++) {
-        if (parent === leaves[i]!.parents[0]) {
-            leavesWithTheSameFirstParent.push(leaves[i]!);
+    for (const leaf of leaves) {
+        if (parent === leaf?.parents[0]) {
+            leavesWithTheSameFirstParent.push(leaf);
         } else {
             break;
         }
@@ -62,17 +70,17 @@ export function getLeavesWithTheSameFirstParent(leaves: Leaf[]): Leaf[] {
     return leavesWithTheSameFirstParent;
 }
 
-export function collapseLeaves(leaves: Leaf[], container: Node = document.createElement("DIV")) {
-    if (leaves.length === 0 || container.nodeType === Node.TEXT_NODE) {
+export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Node = document.createElement("DIV")) {
+    if (!leaves || leaves.length === 0 || container.nodeType === Node.TEXT_NODE) {
         return container;
     }
 
     const duplicateParents = getLeavesWithTheSameFirstParent(leaves);
-    const parentNode = duplicateParents[0]!.parents[0]!;
+    const parentNode = duplicateParents[0]?.parents[0];
     const otherNodes = leaves.filter((leaf, index) => !duplicateParents[index]);
 
     for (const duplicate of duplicateParents) {
-        duplicate.parents.shift()!;
+        duplicate.parents.shift();
     }
 
     let element;
@@ -83,15 +91,15 @@ export function collapseLeaves(leaves: Leaf[], container: Node = document.create
     }
     // Self close node
     if (parentNode && getSchema(parentNode).includes(Display.SelfClose)) {
-        for (const leaf of duplicateParents) {
+        duplicateParents.forEach(() => {
             element = document.createElement(parentNode);
             container.appendChild(element);
-        }
+        });
     }
     // Text
     if (!parentNode) {
         for (const leaf of duplicateParents) {
-            element = document.createTextNode(leaf.text!);
+            element = document.createTextNode(leaf.text ?? "");
             container.appendChild(element);
         }
     }

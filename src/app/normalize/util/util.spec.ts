@@ -7,20 +7,20 @@ test("Should find all leaves", () => {
 
     const leaves = findLeaves(toTransform);
 
-    expect(leaves[0]!.textContent).toBe("bold ");
-    expect(leaves[1]!.textContent).toBe("bolditalic");
-    expect(leaves[2]!.textContent).toBe("ital");
-    expect(leaves[3]!.textContent).toBe("ic");
+    expect(leaves[0]?.textContent).toBe("bold ");
+    expect(leaves[1]?.textContent).toBe("bolditalic");
+    expect(leaves[2]?.textContent).toBe("ital");
+    expect(leaves[3]?.textContent).toBe("ic");
 });
 
 test("Should find all leaf's parents", () => {
     const toTransform = document.createElement("div");
     toTransform.innerHTML = "<strong>bold </strong><em><strong>bolditalic</strong>ital</em>ic";
 
-    const leaf = findLeafParents(toTransform.childNodes[1]!.firstChild!.firstChild!, toTransform);
+    const leaf = findLeafParents(toTransform.childNodes[1]?.firstChild?.firstChild, toTransform);
 
-    expect(leaf.text).toBe("bolditalic");
-    expect(leaf.parents).toStrictEqual(["STRONG", "EM"]);
+    expect(leaf?.text).toBe("bolditalic");
+    expect(leaf?.parents).toStrictEqual(["STRONG", "EM"]);
 });
 
 test("Should sort tags", () => {

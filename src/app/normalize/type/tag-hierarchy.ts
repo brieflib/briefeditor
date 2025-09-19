@@ -5,7 +5,7 @@ export interface TagHierarchy {
 
 const max = Number.MAX_SAFE_INTEGER;
 
-const tagHierarchy: Map<string, number> = new Map();
+const tagHierarchy: Map<string, number> = new Map<string, number>();
 tagHierarchy.set("UL", max);
 tagHierarchy.set("LI", max);
 tagHierarchy.set("STRONG", 1);
