@@ -40,5 +40,13 @@ describe("Should normalize tags", () => {
         const normalized = normalize(toNormalize);
         expect(normalized.innerHTML).toBe("<strong>bold </strong><br><br><strong>bolditalic</strong>");
     });
+
+    test("Should leave href property", () => {
+        const toNormalize = document.createElement("div");
+        toNormalize.innerHTML = "<strong>bold<a href=\"http://briefeditor.com\">briefeditor</a></strong>";
+
+        const normalized = normalize(toNormalize);
+        expect(normalized.innerHTML).toBe("<strong>bold<a href=\"http://briefeditor.com\">briefeditor</a></strong>");
+    });
 })
 

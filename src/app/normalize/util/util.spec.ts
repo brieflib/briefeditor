@@ -1,4 +1,10 @@
-import {collapseLeaves, findLeafParents, findLeaves, getLeavesWithTheSameFirstParent, sortTags} from "@/normalize/util/util";
+import {
+    collapseLeaves,
+    findLeafParents,
+    findLeaves,
+    getLeavesWithTheSameFirstParent,
+    sortTags
+} from "@/normalize/util/util";
 import {Leaf} from "@/normalize/type/leaf";
 
 test("Should find all leaves", () => {
@@ -20,23 +26,23 @@ test("Should find all leaf's parents", () => {
     const leaf = findLeafParents(toTransform.childNodes[1]?.firstChild?.firstChild, toTransform);
 
     expect(leaf?.text).toBe("bolditalic");
-    expect(leaf?.parents).toStrictEqual(["STRONG", "EM"]);
+    expect(leaf?.parents.map(parent => parent.nodeName)).toStrictEqual(["STRONG", "EM"]);
 });
 
 test("Should sort tags", () => {
-    const tags = ["STRONG", "STRONG", "UL", "LI", "EM", "SPAN"];
+    const leaf = createLeaf("", ["STRONG", "STRONG", "UL", "LI", "EM", "SPAN"]);
 
-    const sorted = sortTags(tags);
+    const sorted = sortTags(leaf.parents);
 
-    expect(sorted).toStrictEqual(["UL", "LI", "STRONG", "EM", "SPAN"]);
+    expect(sorted.map(parent => parent.nodeName)).toStrictEqual(["UL", "LI", "STRONG", "STRONG", "EM", "SPAN"]);
 });
 
 describe("Find leaves with same first parent", () => {
     test("Find two STRONG tags", () => {
         const toFind: Leaf[] = [];
-        toFind.push({text: "first", parents: ["STRONG", "EM", "DIV", "SPAN"]});
-        toFind.push({text: "second", parents: ["STRONG", "EM", "SPAN"]});
-        toFind.push({text: "third", parents: ["EM", "DIV"]});
+        toFind.push(createLeaf("first", ["STRONG", "EM", "DIV", "SPAN"]));
+        toFind.push(createLeaf("second", ["STRONG", "EM", "SPAN"]));
+        toFind.push(createLeaf("third", ["EM", "DIV"]));
 
         const leaves = getLeavesWithTheSameFirstParent(toFind);
 
@@ -47,9 +53,9 @@ describe("Find leaves with same first parent", () => {
 
     test("Find all tags", () => {
         const toFind: Leaf[] = [];
-        toFind.push({text: "first", parents: ["STRONG", "EM", "DIV", "SPAN"]});
-        toFind.push({text: "second", parents: ["EM", "CUSTOM"]});
-        toFind.push({text: "third", parents: ["EM", "DIV"]});
+        toFind.push(createLeaf("first", ["STRONG", "EM", "DIV", "SPAN"]));
+        toFind.push(createLeaf("second", ["EM", "CUSTOM"]));
+        toFind.push(createLeaf("third", ["EM", "DIV"]));
 
         const leaves = getLeavesWithTheSameFirstParent(toFind);
 
@@ -59,7 +65,7 @@ describe("Find leaves with same first parent", () => {
 
     test("Find one STRONG tag from one element array", () => {
         const toFind: Leaf[] = [];
-        toFind.push({text: "first", parents: ["STRONG", "EM", "DIV", "SPAN"]});
+        toFind.push(createLeaf("first", ["STRONG", "EM", "DIV", "SPAN"]));
 
         const leaves = getLeavesWithTheSameFirstParent(toFind);
 
@@ -69,9 +75,9 @@ describe("Find leaves with same first parent", () => {
 
     test("Find one STRONG tag from three element array", () => {
         const toFind: Leaf[] = [];
-        toFind.push({text: "first", parents: ["STRONG"]});
-        toFind.push({text: "second", parents: ["SPAN"]});
-        toFind.push({text: "third", parents: ["STRONG"]});
+        toFind.push(createLeaf("first", ["STRONG"]));
+        toFind.push(createLeaf("second", ["SPAN"]));
+        toFind.push(createLeaf("third", ["STRONG"]));
 
         const leaves = getLeavesWithTheSameFirstParent(toFind);
 
@@ -83,9 +89,9 @@ describe("Find leaves with same first parent", () => {
 describe("Should collapse duplicate tags", () => {
     test("Should collapse duplicate EM tags", () => {
         const toCollapse: Leaf[] = [];
-        toCollapse.push({text: "first", parents: ["STRONG", "EM", "DIV", "SPAN"]});
-        toCollapse.push({text: "second", parents: ["EM", "SPAN"]});
-        toCollapse.push({text: "third", parents: ["EM", "DIV"]});
+        toCollapse.push(createLeaf("first", ["STRONG", "EM", "DIV", "SPAN"]));
+        toCollapse.push(createLeaf("second", ["EM", "SPAN"]));
+        toCollapse.push(createLeaf("third", ["EM", "DIV"]));
 
         const collapsed = collapseLeaves(toCollapse) as HTMLElement;
 
@@ -94,9 +100,9 @@ describe("Should collapse duplicate tags", () => {
 
     test("Should collapse duplicate STRONG and EM tags", () => {
         const toCollapse: Leaf[] = [];
-        toCollapse.push({text: "first", parents: ["STRONG", "EM", "DIV", "SPAN"]});
-        toCollapse.push({text: "second", parents: ["STRONG", "EM", "SPAN"]});
-        toCollapse.push({text: "third", parents: ["STRONG", "DIV"]});
+        toCollapse.push(createLeaf("first", ["STRONG", "EM", "DIV", "SPAN"]));
+        toCollapse.push(createLeaf("second", ["STRONG", "EM", "SPAN"]));
+        toCollapse.push(createLeaf("third", ["STRONG", "DIV"]));
 
         const collapsed = collapseLeaves(toCollapse) as HTMLElement;
 
@@ -105,8 +111,8 @@ describe("Should collapse duplicate tags", () => {
 
     test("Should collapse duplicate STRONG", () => {
         const toCollapse: Leaf[] = [];
-        toCollapse.push({text: "first ", parents: ["STRONG"]});
-        toCollapse.push({text: "second", parents: ["STRONG"]});
+        toCollapse.push(createLeaf("first ", ["STRONG"]));
+        toCollapse.push(createLeaf("second", ["STRONG"]));
 
         const collapsed = collapseLeaves(toCollapse) as HTMLElement;
 
@@ -115,9 +121,9 @@ describe("Should collapse duplicate tags", () => {
 
     test("Should not collapse", () => {
         const toCollapse: Leaf[] = [];
-        toCollapse.push({text: "first", parents: ["STRONG"]});
-        toCollapse.push({text: "second", parents: ["SPAN"]});
-        toCollapse.push({text: "third", parents: ["STRONG"]});
+        toCollapse.push(createLeaf("first", ["STRONG"]));
+        toCollapse.push(createLeaf("second", ["SPAN"]));
+        toCollapse.push(createLeaf("third", ["STRONG"]));
 
         const collapsed = collapseLeaves(toCollapse) as HTMLElement;
 
@@ -126,13 +132,23 @@ describe("Should collapse duplicate tags", () => {
 
     test("Should not collapse duplicate BR", () => {
         const toCollapse: Leaf[] = [];
-        toCollapse.push({text: "first", parents: ["STRONG"]});
-        toCollapse.push({text: "", parents: ["BR"]});
-        toCollapse.push({text: "", parents: ["BR"]});
-        toCollapse.push({text: "third", parents: ["STRONG"]});
+        toCollapse.push(createLeaf("first", ["STRONG"]));
+        toCollapse.push(createLeaf("", ["BR"]));
+        toCollapse.push(createLeaf("", ["BR"]));
+        toCollapse.push(createLeaf("third", ["STRONG"]));
 
         const collapsed = collapseLeaves(toCollapse) as HTMLElement;
 
         expect(collapsed.innerHTML).toBe("<strong>first</strong><br><br><strong>third</strong>");
     });
 });
+
+function createLeaf(text: string, nodeNames: string[]) {
+    const elements: HTMLElement[] = [];
+
+    for (const nodeName of nodeNames) {
+        elements.push(document.createElement(nodeName));
+    }
+
+    return new Leaf(text, elements);
+}

@@ -1,4 +1,5 @@
 export interface TagHierarchy {
+    element: HTMLElement,
     name: string,
     priority: number
 }

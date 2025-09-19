@@ -30,37 +30,38 @@ export function findLeafParents(leafElement: Node | null | undefined, findTill: 
     }
 
     const parent = leafElement.parentElement;
-    if (getSchema(leafElement.nodeName).includes(Display.SelfClose)) {
-        leaf.parents.push(leafElement.nodeName);
+    if (getSchema(leafElement as HTMLElement).includes(Display.SelfClose)) {
+        leaf.addParent(leafElement);
     }
     if (parent && parent !== findTill) {
-        leaf.parents.push(parent.nodeName);
+        leaf.addParent(parent);
         findLeafParents(parent, findTill, leaf);
     }
     return leaf;
 }
 
-export function sortTags(toSort: string[] | undefined) {
+export function sortTags(toSort: HTMLElement[] | undefined) {
     if (!toSort) {
         return [];
     }
 
     return toSort
-        .map(tag => ({
-            name: tag,
-            priority: tagHierarchy.get(tag) ?? -1
+        .map(element => ({
+            element: element,
+            name: element.nodeName,
+            priority: tagHierarchy.get(element.nodeName) ?? -1
         } as TagHierarchy))
         .sort((first, second) => second.priority - first.priority)
-        .map(item => item.name)
+        .map(item => item.element)
         .filter((value, index, self) => self.indexOf(value) === index);
 }
 
 export function getLeavesWithTheSameFirstParent(leaves: Leaf[]): Leaf[] {
     const leavesWithTheSameFirstParent: Leaf[] = [];
-    const parent: string | undefined = leaves[0]?.parents[0];
+    const parent: string | undefined = leaves[0]?.parents[0]?.nodeName;
 
     for (const leaf of leaves) {
-        if (parent === leaf?.parents[0]) {
+        if (parent === leaf?.parents[0]?.nodeName) {
             leavesWithTheSameFirstParent.push(leaf);
         } else {
             break;
@@ -76,28 +77,22 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
     }
 
     const duplicateParents = getLeavesWithTheSameFirstParent(leaves);
-    const parentNode = duplicateParents[0]?.parents[0];
     const otherNodes = leaves.filter((leaf, index) => !duplicateParents[index]);
 
-    for (const duplicate of duplicateParents) {
-        duplicate.parents.shift();
-    }
-
     let element;
+    for (const duplicate of duplicateParents) {
+        element = duplicate.parents.shift();
+        // Self close node
+        if (element && getSchema(element).includes(Display.SelfClose)) {
+            container.appendChild(element);
+        }
+    }
     // Node
-    if (parentNode && !getSchema(parentNode).includes(Display.SelfClose)) {
-        element = document.createElement(parentNode);
+    if (element && !getSchema(element).includes(Display.SelfClose)) {
         container.appendChild(element);
     }
-    // Self close node
-    if (parentNode && getSchema(parentNode).includes(Display.SelfClose)) {
-        duplicateParents.forEach(() => {
-            element = document.createElement(parentNode);
-            container.appendChild(element);
-        });
-    }
     // Text
-    if (!parentNode) {
+    if (!element) {
         for (const leaf of duplicateParents) {
             element = document.createTextNode(leaf.text ?? "");
             container.appendChild(element);
