@@ -1,6 +1,6 @@
 import {Leaf} from "@/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/normalize/type/tag-hierarchy";
-import getSchema, {Display} from "@/normalize/type/schema";
+import {Display, isSchemaContain} from "@/normalize/type/schema";
 
 export function findLeaves(element: Node, leafElements: Node[] = []) {
     if (!element) {
@@ -30,7 +30,7 @@ export function findLeafParents(leafElement: Node | null | undefined, findTill: 
     }
 
     const parent = leafElement.parentElement;
-    if (getSchema(leafElement as HTMLElement).includes(Display.SelfClose)) {
+    if (isSchemaContain(leafElement as HTMLElement,[Display.SelfClose])) {
         leaf.addParent(leafElement);
     }
     if (parent && parent !== findTill) {
@@ -80,15 +80,18 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
     const otherNodes = leaves.filter((leaf, index) => !duplicateParents[index]);
 
     let element;
+
     for (const duplicate of duplicateParents) {
         element = duplicate.parents.shift();
-        // Self close node
-        if (element && getSchema(element).includes(Display.SelfClose)) {
+        // Node to duplicate
+        if (element && isSchemaContain(element, [Display.SelfClose, Display.NotCollapse])) {
             container.appendChild(element);
+            element.appendChild(document.createTextNode(duplicate.text ?? ""));
+            duplicate.text = null;
         }
     }
     // Node
-    if (element && !getSchema(element).includes(Display.SelfClose)) {
+    if (element && !isSchemaContain(element, [Display.SelfClose, Display.NotCollapse])) {
         container.appendChild(element);
     }
     // Text

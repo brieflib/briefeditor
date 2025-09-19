@@ -19,18 +19,18 @@ describe("Should normalize tags", () => {
 
     test("Should collapse similar tags", () => {
         const toNormalize = document.createElement("div");
-        toNormalize.innerHTML = "<strong>bold </strong><strong>bolditalic</strong>";
+        toNormalize.innerHTML = "<strong>bold </strong><strong>strong</strong>";
 
         const normalized = normalize(toNormalize);
-        expect(normalized.innerHTML).toBe("<strong>bold bolditalic</strong>");
+        expect(normalized.innerHTML).toBe("<strong>bold strong</strong>");
     });
 
     test("Should be the same", () => {
         const toNormalize = document.createElement("div");
-        toNormalize.innerHTML = "<strong>bold </strong><span>span</span><strong>bolditalic</strong>";
+        toNormalize.innerHTML = "<strong>bold </strong><span>span</span><strong>strong</strong>";
 
         const normalized = normalize(toNormalize);
-        expect(normalized.innerHTML).toBe("<strong>bold </strong><span>span</span><strong>bolditalic</strong>");
+        expect(normalized.innerHTML).toBe("<strong>bold </strong><span>span</span><strong>strong</strong>");
     });
 
     test("Should honor double br", () => {
@@ -43,10 +43,10 @@ describe("Should normalize tags", () => {
 
     test("Should leave href property", () => {
         const toNormalize = document.createElement("div");
-        toNormalize.innerHTML = "<strong>bold<a href=\"http://briefeditor.com\">briefeditor</a></strong>";
+        toNormalize.innerHTML = "<strong>bold<a href=\"http://www.briefeditor.com\">brief</a><a href=\"http://briefeditor.com\">editor</a>te<em>xt</em></strong>";
 
         const normalized = normalize(toNormalize);
-        expect(normalized.innerHTML).toBe("<strong>bold<a href=\"http://briefeditor.com\">briefeditor</a></strong>");
+        expect(normalized.innerHTML).toBe("<strong>bold<a href=\"http://www.briefeditor.com\">brief</a><a href=\"http://briefeditor.com\">editor</a>te<em>xt</em></strong>");
     });
 })
 
