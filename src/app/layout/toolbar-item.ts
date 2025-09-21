@@ -1,9 +1,9 @@
 import toolbarItemCss from "@/layout/css/toolbar-item.css?inline=true";
-import strong from "@/layout/svg/strong.svg";
 import {setCss} from "@/layout/util/util";
 
 class ToolbarItem extends HTMLElement {
-    iconMap: Map<string, string> = new Map<string, string>();
+    private icon: HTMLElement;
+    private className: string;
 
     constructor() {
         super();
@@ -12,22 +12,23 @@ class ToolbarItem extends HTMLElement {
         this.shadowRoot.innerHTML = `
           <div id="toolbar-item"></div>
         `;
-
-        this.fillIconMap();
-    }
-
-    fillIconMap() {
-        this.iconMap.set("strong", strong);
     }
 
     setItem(iconName, callback) {
-        const imgElement = document.createElement("img");
-        imgElement.className = "icon";
-        const icon = this.iconMap.get(iconName);
-        if (icon) {
-            imgElement.src = icon;
-            imgElement.onclick = callback;
-            this.shadowRoot.getElementById("toolbar-item").appendChild(imgElement);
+        const icon = document.createElement("div");
+        icon.className = iconName;
+        icon.onclick = callback;
+        this.shadowRoot.getElementById("toolbar-item").appendChild(icon);
+
+        this.icon = icon;
+        this.className = iconName;
+    }
+
+    setActive(isActive: boolean) {
+        if (isActive) {
+            this.icon.className = this.className + " active";
+        } else {
+            this.icon.className = this.className;
         }
     }
 }

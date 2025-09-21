@@ -12,6 +12,8 @@
 }
 
 .content-editable-toolbar {
+    display: flex;
+
     height: 40px;
     width: 100%;
 

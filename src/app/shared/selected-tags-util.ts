@@ -17,8 +17,9 @@ export function getSelectedLeaves() {
 
     const range = getRange();
 
-    if (range.startContainer === range.endContainer) {
-        return [range.startContainer];
+    const sameElement = getSameElementSelected(range);
+    if (sameElement) {
+        return [sameElement];
     }
 
     const walker = document.createTreeWalker(
@@ -49,5 +50,21 @@ function getParentTags(leaf: Node, findTill: HTMLElement, parents: string[] = []
     }
 
     return parents;
+}
+
+function getSameElementSelected(range: Range) {
+    if (range.startContainer === range.endContainer) {
+        return range.startContainer;
+    }
+
+    if (range.startContainer.textContent?.length === range.startOffset && range.endContainer.textContent?.length === range.endOffset) {
+        return range.endContainer;
+    }
+
+    if (range.startOffset === 0 && range.endOffset === 0) {
+        return range.startContainer;
+    }
+
+    return null;
 }
 
