@@ -1,3 +1,5 @@
+import {Display, isSchemaContain} from "@/normalize/type/schema";
+
 export class Leaf {
     constructor(element: Node | null = null, parent: HTMLElement[] = []) {
         this.element = element;
@@ -29,5 +31,13 @@ export class Leaf {
 
     public getElement() {
         return this.element;
+    }
+
+    public isLeafPresent() {
+        if (!this.element) {
+            return false;
+        }
+
+        return isSchemaContain(this.element, [Display.SelfClose]) || !!this.getText();
     }
 }

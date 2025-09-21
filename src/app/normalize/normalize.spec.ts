@@ -67,3 +67,11 @@ describe("Should remove tags", () => {
         expect(removed.innerHTML).toBe("<strong><i><u>bold bolditalic</u></i></strong><span><u>par</u></span><div><u>lorem</u></div>text");
     });
 });
+
+test("Should remove empty tags", () => {
+    const toRemove = document.createElement("div");
+    toRemove.innerHTML = "<p>text<ul><li></li></ul></p>";
+
+    const normalized = normalize(toRemove);
+    expect(normalized.innerHTML).toBe("<p>text</p>");
+});

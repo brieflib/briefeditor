@@ -23,7 +23,7 @@ function wrap(tag: string) {
     cloneRange.insertNode(tagElement);
 }
 
-function unwrap(tag: string) {
+export function unwrap(tag: string) {
     const range: Range = getRange();
     const cloneRange: Range = range.cloneRange();
     const documentFragment: DocumentFragment = range.extractContents();
