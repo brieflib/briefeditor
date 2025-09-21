@@ -2,29 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"/>
-    <link rel="icon" type="image/svg+xml" href="/vite.svg"/>
+    <link rel="icon" type="image/svg+xml" href="/asset/svg/icon.svg"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Vite + TS</title>
+    <title>Brief Editor</title>
 </head>
 <body>
-<div contenteditable="true" id="content">
-    <p><strong><u><i>bold bolditalic</i>par</u></strong>italic text</p>
-    <br>
-    <strong>bold bolditalic</strong>italic
-    <br>
-    <u id="u"><i>bold -bolditalic</i><s>par</s></u>italic-text
-    <br>
-    <ul><li>list</li><ul><li>nested</li></ul></ul>
-    <br>
-    1) <ul><li>li</li><ul><li>inserted</li></ul><li>st</li><ul><li>nested</li></ul></ul>
-    <br>
-    2) <ul><li>li</li><li>inserted</li><li>st</li><li>nested</li></ul>
 
-    <table><tr><td>1</td><td>1</td></tr></table>
-</div>
+<div contenteditable="true"><p>Write text here</p></div>
 
-<button id="button">B</button>
+<script type="module">
+    import Editor from "/src/app/editor.ts";
 
-<script type="module" src="/src/app/editor.ts"></script>
+    new Editor(document.querySelector("[contenteditable='true']"));
+</script>
 </body>
 </html>

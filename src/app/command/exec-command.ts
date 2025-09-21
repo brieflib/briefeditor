@@ -1,19 +1,23 @@
 import {Action, Command} from "@/command/type/command";
 import {getRange} from "@/shared/range-util";
-import {removeTag} from "@/normalize/normalize";
+import normalize, {removeTag} from "@/normalize/normalize";
 import {getFirstLevelElement} from "@/command/util/util";
+import {getSharedTags} from "@/shared/selected-tags-util";
 
-export default function execCommand(command: Command) {
-    if (command.action === Action.Wrap) {
-        wrap(command.tag);
-    }
+export default function execCommand(command: Command, contentEditable: HTMLElement) {
+    if (command.action === Action.Tag) {
+        const sharedTags: string[] | undefined = getSharedTags(contentEditable);
+        const tag = command.tag.toUpperCase();
 
-    if (command.action === Action.Unwrap) {
-        unwrap(command.tag);
+        if (sharedTags && sharedTags.includes(tag)) {
+            unwrap(tag, contentEditable);
+        } else {
+            wrap(tag, contentEditable);
+        }
     }
 }
 
-function wrap(tag: string) {
+function wrap(tag: string, contentEditable: HTMLElement) {
     const range: Range = getRange();
     const cloneRange: Range = range.cloneRange();
     const documentFragment: DocumentFragment = range.extractContents();
@@ -21,9 +25,12 @@ function wrap(tag: string) {
     const tagElement = document.createElement(tag);
     tagElement.appendChild(documentFragment);
     cloneRange.insertNode(tagElement);
+
+    const firstLevel = getFirstLevelElement(contentEditable, tagElement);
+    firstLevel.innerHTML = normalize(firstLevel).innerHTML;
 }
 
-export function unwrap(tag: string) {
+export function unwrap(tag: string, contentEditable: HTMLElement) {
     const range: Range = getRange();
     const cloneRange: Range = range.cloneRange();
     const documentFragment: DocumentFragment = range.extractContents();
@@ -32,11 +39,6 @@ export function unwrap(tag: string) {
     wrapper.appendChild(documentFragment);
     cloneRange.insertNode(wrapper);
 
-    const root = document.getElementById("content");
-    if (!root) {
-        return;
-    }
-    const firstLevel = getFirstLevelElement(root, wrapper);
+    const firstLevel = getFirstLevelElement(contentEditable, wrapper);
     firstLevel.innerHTML = removeTag(firstLevel, wrapper, tag).innerHTML;
-    console.log(firstLevel.innerHTML);
 }

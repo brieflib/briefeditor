@@ -1,6 +1,5 @@
 export enum Action {
-    Wrap = "Wrap",
-    Unwrap = "Unwrap"
+    Tag = "Tag"
 }
 
 export interface Command {

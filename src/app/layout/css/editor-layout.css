@@ -1,0 +1,57 @@
+.content-editable-flex {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.content-editable-container {
+    width: 80%;
+    max-width: 1200px;
+    height: 90vh;
+    padding: 40px;
+}
+
+.content-editable-toolbar {
+    height: 40px;
+    width: 100%;
+
+    box-sizing: border-box;
+
+    border-top: 1px solid gray;
+    border-left: 1px solid gray;
+    border-right: 1px solid gray;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.content-editable-scroll {
+    height: 100%;
+    overflow: scroll;
+
+    border-left: 1px solid gray;
+    border-right: 1px solid gray;
+    border-bottom: 1px solid gray;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+.content-editable {
+    padding: 20px;
+    padding-top: 40px;
+}
+
+.content-editable {
+    font-family: "InstrumentSans", sans-serif;
+}
+
+.content-editable:focus {
+    outline: none;
+}
+
+.content-editable strong {
+    font-weight: bold;
+}
+
+.content-editable em {
+    font-style: italic;
+}

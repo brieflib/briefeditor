@@ -1,7 +1,6 @@
 import {Leaf} from "@/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/normalize/type/schema";
-import {getLeafNodes} from "@/shared/node-util";
 
 export function setLeafParents(leafElement: Node | null | undefined, findTill: HTMLElement, leaf: Leaf = new Leaf()) {
     if (!leafElement) {
@@ -9,7 +8,7 @@ export function setLeafParents(leafElement: Node | null | undefined, findTill: H
     }
 
     const parent = leafElement.parentElement;
-    if (isSchemaContain(leafElement as HTMLElement,[Display.SelfClose])) {
+    if (isSchemaContain(leafElement as HTMLElement, [Display.SelfClose])) {
         leaf.addParent(leafElement);
     }
     if (parent && parent !== findTill) {
@@ -33,7 +32,7 @@ export function sortLeafParents(toSort: Leaf | undefined) {
         } as TagHierarchy))
         .sort((first, second) => second.priority - first.priority)
         .map(item => item.element)
-        .filter((value, index, self) => self.indexOf(value) === index);
+        .filter((value, index, self) => self.map(s => s.nodeName).indexOf(value.nodeName) === index);
     toSort.setParents(sortedParents);
 
     return toSort;
@@ -91,6 +90,28 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
     collapseLeaves(duplicateParents, element);
 
     return container;
+}
+
+export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
+    if (!element) {
+        return leafNodes;
+    }
+
+    if (element.nodeType === Node.TEXT_NODE) {
+        leafNodes.push(element);
+        return leafNodes;
+    }
+
+    if (element.childNodes.length === 0) {
+        leafNodes.push(element);
+        return leafNodes;
+    }
+
+    for (const child of element.childNodes) {
+        getLeafNodes(child, leafNodes);
+    }
+
+    return leafNodes;
 }
 
 export function filterLeafParents(leaf: Leaf | null | undefined, element: Node, excludeTags: string[]) {

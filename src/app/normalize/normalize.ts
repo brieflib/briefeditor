@@ -1,6 +1,5 @@
-import {collapseLeaves, filterLeafParents, setLeafParents, sortLeafParents} from "@/normalize/util/util";
+import {collapseLeaves, filterLeafParents, getLeafNodes, setLeafParents, sortLeafParents} from "@/normalize/util/util";
 import {Leaf} from "@/normalize/type/leaf";
-import {getLeafNodes} from "@/shared/node-util";
 
 export default function normalize(normalizeFrom: HTMLElement) {
     const leaves = getLeafNodes(normalizeFrom)

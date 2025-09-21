@@ -2,9 +2,21 @@ import {
     collapseLeaves,
     setLeafParents,
     getLeavesWithTheSameFirstParent,
-    sortLeafParents, filterLeafParents
+    sortLeafParents, filterLeafParents, getLeafNodes
 } from "@/normalize/util/util";
 import {Leaf} from "@/normalize/type/leaf";
+
+test("Should find all leaves", () => {
+    const toTransform = document.createElement("div");
+    toTransform.innerHTML = "<strong>bold </strong><em><strong>bolditalic</strong>ital</em>ic";
+
+    const leaves = getLeafNodes(toTransform);
+
+    expect(leaves[0]?.textContent).toBe("bold ");
+    expect(leaves[1]?.textContent).toBe("bolditalic");
+    expect(leaves[2]?.textContent).toBe("ital");
+    expect(leaves[3]?.textContent).toBe("ic");
+});
 
 test("Should find all leaf's parents", () => {
     const toTransform = document.createElement("div");
@@ -22,7 +34,7 @@ test("Should sort tags", () => {
 
     const sorted = sortLeafParents(leaf);
 
-    expect(sorted.getParents().map(parent => parent.nodeName)).toStrictEqual(["UL", "LI", "STRONG", "STRONG", "EM", "SPAN"]);
+    expect(sorted.getParents().map(parent => parent.nodeName)).toStrictEqual(["UL", "LI", "STRONG", "EM", "SPAN"]);
 });
 
 describe("Find leaves with same first parent", () => {

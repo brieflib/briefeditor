@@ -1,0 +1,7 @@
+@font-face {
+    font-family: "InstrumentSans";
+    src: url("/asset/font/InstrumentSans-Regular.ttf") format("ttf");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}

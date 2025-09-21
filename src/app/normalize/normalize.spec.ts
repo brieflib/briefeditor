@@ -41,6 +41,14 @@ describe("Should normalize tags", () => {
         expect(normalized.innerHTML).toBe("<strong>bold </strong><br><br><strong>bolditalic</strong>");
     });
 
+    test("Should delete duplicates", () => {
+        const toNormalize = document.createElement("div");
+        toNormalize.innerHTML = "<strong><strong>bold</strong></strong>";
+
+        const normalized = normalize(toNormalize);
+        expect(normalized.innerHTML).toBe("<strong>bold</strong>");
+    });
+
     test("Should preserve href property", () => {
         const toNormalize = document.createElement("div");
         toNormalize.innerHTML = "<strong>bold<a href=\"http://www.briefeditor.com\">brief</a><a href=\"http://briefeditor.com\">editor</a>te<em>xt</em></strong>";

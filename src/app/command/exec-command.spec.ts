@@ -19,7 +19,7 @@ describe("Unwrap tag", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        unwrap("STRONG");
+        unwrap("STRONG", toUnwrap);
 
         expect(toUnwrap.innerHTML).toBe("<p><strong><i><u>bold </u></i></strong><i><u>bolditalic</u></i><strong><u>par</u></strong>italic text</p>");
     });
