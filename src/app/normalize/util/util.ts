@@ -1,30 +1,9 @@
 import {Leaf} from "@/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/normalize/type/schema";
+import {getLeafNodes} from "@/shared/node-util";
 
-export function findLeaves(element: Node, leafElements: Node[] = []) {
-    if (!element) {
-        return leafElements;
-    }
-
-    if (element.nodeType === Node.TEXT_NODE) {
-        leafElements.push(element);
-        return leafElements;
-    }
-
-    if (element.childNodes.length === 0) {
-        leafElements.push(element);
-        return leafElements;
-    }
-
-    for (const child of element.childNodes) {
-        findLeaves(child, leafElements);
-    }
-
-    return leafElements;
-}
-
-export function findLeafParents(leafElement: Node | null | undefined, findTill: HTMLElement, leaf: Leaf = new Leaf(leafElement?.textContent)) {
+export function setLeafParents(leafElement: Node | null | undefined, findTill: HTMLElement, leaf: Leaf = new Leaf()) {
     if (!leafElement) {
         return;
     }
@@ -35,17 +14,18 @@ export function findLeafParents(leafElement: Node | null | undefined, findTill: 
     }
     if (parent && parent !== findTill) {
         leaf.addParent(parent);
-        findLeafParents(parent, findTill, leaf);
+        setLeafParents(parent, findTill, leaf);
     }
     return leaf;
 }
 
-export function sortTags(toSort: HTMLElement[] | undefined) {
+export function sortLeafParents(toSort: Leaf | undefined) {
     if (!toSort) {
-        return [];
+        return new Leaf();
     }
 
-    return toSort
+    const sortedParents = toSort
+        .getParents()
         .map(element => ({
             element: element,
             name: element.nodeName,
@@ -54,14 +34,17 @@ export function sortTags(toSort: HTMLElement[] | undefined) {
         .sort((first, second) => second.priority - first.priority)
         .map(item => item.element)
         .filter((value, index, self) => self.indexOf(value) === index);
+    toSort.setParents(sortedParents);
+
+    return toSort;
 }
 
 export function getLeavesWithTheSameFirstParent(leaves: Leaf[]): Leaf[] {
     const leavesWithTheSameFirstParent: Leaf[] = [];
-    const parent: string | undefined = leaves[0]?.parents[0]?.nodeName;
+    const parent: string | undefined = leaves[0]?.getParents()[0]?.nodeName;
 
     for (const leaf of leaves) {
-        if (parent === leaf?.parents[0]?.nodeName) {
+        if (parent === leaf?.getParents()[0]?.nodeName) {
             leavesWithTheSameFirstParent.push(leaf);
         } else {
             break;
@@ -82,12 +65,12 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
     let element;
 
     for (const duplicate of duplicateParents) {
-        element = duplicate.parents.shift();
+        element = duplicate.getParents().shift();
         // Node to duplicate
         if (element && isSchemaContain(element, [Display.SelfClose, Display.NotCollapse])) {
             container.appendChild(element);
-            element.appendChild(document.createTextNode(duplicate.text ?? ""));
-            duplicate.text = null;
+            element.appendChild(document.createTextNode(duplicate.getText() ?? ""));
+            duplicate.setElement(null);
         }
     }
     // Node
@@ -97,7 +80,7 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
     // Text
     if (!element) {
         for (const leaf of duplicateParents) {
-            element = document.createTextNode(leaf.text ?? "");
+            element = document.createTextNode(leaf.getText() ?? "");
             container.appendChild(element);
         }
     }
@@ -108,4 +91,19 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
     collapseLeaves(duplicateParents, element);
 
     return container;
+}
+
+export function filterLeafParents(leaf: Leaf | null | undefined, element: Node, excludeTags: string[]) {
+    if (leaf) {
+        for (const toFilter of getLeafNodes(element)) {
+            if (leaf.getElement() === toFilter) {
+                if (leaf.getParents()) {
+                    leaf.setParents(leaf.getParents()
+                        .filter(parent => !excludeTags.includes(parent.nodeName)));
+                }
+            }
+        }
+    }
+
+    return leaf;
 }

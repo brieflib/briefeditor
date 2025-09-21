@@ -1,10 +1,20 @@
-import {collapseLeaves, findLeafParents, findLeaves, sortTags} from "@/normalize/util/util";
+import {collapseLeaves, filterLeafParents, setLeafParents, sortLeafParents} from "@/normalize/util/util";
 import {Leaf} from "@/normalize/type/leaf";
+import {getLeafNodes} from "@/shared/node-util";
 
 export default function normalize(normalizeFrom: HTMLElement) {
-    const leaves = findLeaves(normalizeFrom)
-        .map(leaf => findLeafParents(leaf, normalizeFrom))
-        .map(leaf => (new Leaf(leaf?.text, sortTags(leaf?.parents))));
+    const leaves = getLeafNodes(normalizeFrom)
+        .map(node => setLeafParents(node, normalizeFrom, new Leaf(node)))
+        .map(leaf => sortLeafParents(leaf));
+
+    return collapseLeaves(leaves) as HTMLElement;
+}
+
+export function removeTag(container: HTMLElement, element: Node, tag: string) {
+    const leaves = getLeafNodes(container)
+        .map(node => setLeafParents(node, container, new Leaf(node)))
+        .filter(leaf => filterLeafParents(leaf, element, [tag, "DELETED"]))
+        .map(leaf => sortLeafParents(leaf));
 
     return collapseLeaves(leaves) as HTMLElement;
 }

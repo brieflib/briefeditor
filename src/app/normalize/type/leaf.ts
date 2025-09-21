@@ -1,13 +1,33 @@
 export class Leaf {
-    constructor(text: string | null | undefined, parent: HTMLElement[] = []) {
-        this.text = text;
+    constructor(element: Node | null = null, parent: HTMLElement[] = []) {
+        this.element = element;
         this.parents = parent;
     }
 
-    text: string | null | undefined;
-    parents: HTMLElement[];
+    private element: Node | null;
+    private parents: HTMLElement[];
 
     public addParent(parent: Node) {
         this.parents.push(parent.cloneNode(false) as HTMLElement);
+    }
+
+    public getParents() {
+        return this.parents;
+    }
+
+    public setParents(parents: HTMLElement[]) {
+        this.parents = parents;
+    }
+
+    public getText() {
+        return this.element?.textContent;
+    }
+
+    public setElement(element: Node | null) {
+        this.element = element;
+    }
+
+    public getElement() {
+        return this.element;
     }
 }

@@ -1,40 +1,28 @@
 import {
     collapseLeaves,
-    findLeafParents,
-    findLeaves,
+    setLeafParents,
     getLeavesWithTheSameFirstParent,
-    sortTags
+    sortLeafParents, filterLeafParents
 } from "@/normalize/util/util";
 import {Leaf} from "@/normalize/type/leaf";
-
-test("Should find all leaves", () => {
-    const toTransform = document.createElement("div");
-    toTransform.innerHTML = "<strong>bold </strong><em><strong>bolditalic</strong>ital</em>ic";
-
-    const leaves = findLeaves(toTransform);
-
-    expect(leaves[0]?.textContent).toBe("bold ");
-    expect(leaves[1]?.textContent).toBe("bolditalic");
-    expect(leaves[2]?.textContent).toBe("ital");
-    expect(leaves[3]?.textContent).toBe("ic");
-});
 
 test("Should find all leaf's parents", () => {
     const toTransform = document.createElement("div");
     toTransform.innerHTML = "<strong>bold </strong><em><strong>bolditalic</strong>ital</em>ic";
 
-    const leaf = findLeafParents(toTransform.childNodes[1]?.firstChild?.firstChild, toTransform);
+    const node = toTransform.childNodes[1]?.firstChild?.firstChild;
+    const leaf = setLeafParents(node, toTransform, new Leaf(node));
 
-    expect(leaf?.text).toBe("bolditalic");
-    expect(leaf?.parents.map(parent => parent.nodeName)).toStrictEqual(["STRONG", "EM"]);
+    expect(leaf?.getText()).toBe("bolditalic");
+    expect(leaf?.getParents().map(parent => parent.nodeName)).toStrictEqual(["STRONG", "EM"]);
 });
 
 test("Should sort tags", () => {
     const leaf = createLeaf("", ["STRONG", "STRONG", "UL", "LI", "EM", "SPAN"]);
 
-    const sorted = sortTags(leaf.parents);
+    const sorted = sortLeafParents(leaf);
 
-    expect(sorted.map(parent => parent.nodeName)).toStrictEqual(["UL", "LI", "STRONG", "STRONG", "EM", "SPAN"]);
+    expect(sorted.getParents().map(parent => parent.nodeName)).toStrictEqual(["UL", "LI", "STRONG", "STRONG", "EM", "SPAN"]);
 });
 
 describe("Find leaves with same first parent", () => {
@@ -143,6 +131,14 @@ describe("Should collapse duplicate tags", () => {
     });
 });
 
+test("Should remove leaf's parents", () => {
+    const element = document.createTextNode("text");
+    const leaf = createLeafFromNode(element, ["STRONG", "SPAN", "DELETED"]);
+
+    const filtered = filterLeafParents(leaf, element, ["STRONG", "DELETED"]);
+    expect(filtered?.getParents().map(parent => parent.nodeName)).toStrictEqual(["SPAN"])
+});
+
 function createLeaf(text: string, nodeNames: string[]) {
     const elements: HTMLElement[] = [];
 
@@ -150,5 +146,16 @@ function createLeaf(text: string, nodeNames: string[]) {
         elements.push(document.createElement(nodeName));
     }
 
-    return new Leaf(text, elements);
+    const element = document.createTextNode(text);
+    return new Leaf(element, elements);
+}
+
+function createLeafFromNode(element: Node, nodeNames: string[]) {
+    const elements: HTMLElement[] = [];
+
+    for (const nodeName of nodeNames) {
+        elements.push(document.createElement(nodeName));
+    }
+
+    return new Leaf(element, elements);
 }
