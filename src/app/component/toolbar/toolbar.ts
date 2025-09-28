@@ -1,4 +1,4 @@
-import EditorLayout from "@/component/editor/editor-layout";
+import Editor from "@/component/editor/editor";
 import ToolbarItem from "@/component/toolbar-item/toolbar-item";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
@@ -6,12 +6,12 @@ import {getSharedTags} from "@/core/selection/selection";
 
 export default class Toolbar {
     private contentEditable: HTMLElement;
-    private editorLayout: EditorLayout;
+    private editorLayout: Editor;
     private items: Map<string, ToolbarItem> = new Map<string, ToolbarItem>;
 
-    constructor(contentEditable: HTMLElement, editorLayout: EditorLayout) {
+    constructor(contentEditable: HTMLElement, editor: Editor) {
         this.contentEditable = contentEditable;
-        this.editorLayout = editorLayout;
+        this.editorLayout = editor;
 
         this.addToolbarItems();
 

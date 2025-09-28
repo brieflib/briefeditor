@@ -1,13 +1,29 @@
-import "@/component/editor/asset/reset.css";
-import "@/component/editor/asset/global.css";
-import "@/component/editor/editor-layout";
-import EditorLayout from "@/component/editor/editor-layout";
-import Toolbar from "@/component/toolbar/toolbar";
+import "@/component/editor/asset/editor.css"
+import ToolbarItem from "@/component/toolbar-item/toolbar-item";
 
-export default class Editor {
+class Editor extends HTMLElement {
     constructor(contentEditable: HTMLElement) {
-        const editorLayout = document.createElement("editor-layout") as EditorLayout;
-        editorLayout.init(contentEditable);
-        new Toolbar(contentEditable, editorLayout);
+        super();
+
+        this.innerHTML = `
+          <div class="content-editable-flex">
+            <div class="content-editable-container">
+                <div class="content-editable-toolbar" id="toolbar"></div>
+                <div class="content-editable-scroll" id="content"></div>
+            </div>
+          </div>
+        `;
+
+        contentEditable.after(this);
+        contentEditable.className = "content-editable";
+        document.getElementById("content").appendChild(contentEditable);
+    }
+
+    addToolbarItem(toolbarItem: ToolbarItem) {
+        document.getElementById("toolbar").appendChild(toolbarItem);
     }
 }
+
+customElements.define("editor-layout", Editor);
+
+export default Editor;
