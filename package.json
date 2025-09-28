@@ -1,5 +1,5 @@
 {
-  "name": "brief-editor",
+  "name": "briefeditor",
   "version": "1.0.0",
   "description": "Minimal WYSIWYG text editor for the web with no dependencies",
   "license": "ISC",
