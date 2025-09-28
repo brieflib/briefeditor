@@ -1,5 +1,5 @@
 import {getRange} from "@/shared/range-util";
-import {unwrap} from "@/command/exec-command";
+import {unwrap, wrap} from "@/command/exec-command";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -15,29 +15,29 @@ describe("Unwrap tag", () => {
 
         const range = new Range();
         range.setStart(toUnwrap.querySelector("p > strong > u > i")?.firstChild as Node, "bold ".length);
-        range.setEnd(toUnwrap.querySelector("p > strong > u > i")?.firstChild as Node, "bold bolditalic".length);
+        range.setEnd(toUnwrap.querySelector("p > strong > u")?.lastChild as Node, "pa".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
         unwrap("STRONG", toUnwrap);
 
-        expect(toUnwrap.innerHTML).toBe("<p><strong><i><u>bold </u></i></strong><i><u>bolditalic</u></i><strong><u>par</u></strong>italic text</p>");
+        expect(toUnwrap.innerHTML).toBe("<p><strong><i><u>bold </u></i></strong><i><u>bolditalic</u></i><u>pa</u><strong><u>r</u></strong>italic text</p>");
     });
 });
 
-// describe("Wrap in tag", () => {
-//     test("Should wrap selection in italic", () => {
-//         const toWrap = document.createElement("div");
-//         toWrap.innerHTML = "<strong>bold bolditalic</strong>italic";
-//
-//         const range = new Range();
-//         range.setStart(toWrap.firstChild?.firstChild as Node, 5);
-//         range.setEnd(toWrap.lastChild as Node, 4);
-//
-//         (getRange as jest.Mock).mockReturnValue(range);
-//
-//         wrap("em");
-//
-//         expect(toWrap.innerHTML).toBe("<strong>bold </strong><em><strong>bolditalic</strong>ital</em>ic");
-//     });
-// });
+describe("Wrap in tag", () => {
+    test("Should wrap selection in italic", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<p><strong>Wri</strong>te text here</p>";
+
+        const range = new Range();
+        range.setStart(toWrap.querySelector("p > strong")?.firstChild as Node, "Wri".length);
+        range.setEnd(toWrap.querySelector("p")?.lastChild as Node, "to".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        wrap("em", toWrap);
+
+        expect(toWrap.innerHTML).toBe("<p><strong>Wri</strong><em>te</em> text here</p>");
+    });
+});

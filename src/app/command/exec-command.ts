@@ -17,13 +17,14 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
     }
 }
 
-function wrap(tag: string, contentEditable: HTMLElement) {
+export function wrap(tag: string, contentEditable: HTMLElement) {
     const range: Range = getRange();
     const cloneRange: Range = range.cloneRange();
     const documentFragment: DocumentFragment = range.extractContents();
 
     const tagElement = document.createElement(tag);
     tagElement.appendChild(documentFragment);
+    cloneRange.deleteContents();
     cloneRange.insertNode(tagElement);
 
     const firstLevel = getFirstLevelElement(contentEditable, tagElement);
@@ -37,6 +38,7 @@ export function unwrap(tag: string, contentEditable: HTMLElement) {
 
     const wrapper = document.createElement("DELETED");
     wrapper.appendChild(documentFragment);
+    cloneRange.deleteContents();
     cloneRange.insertNode(wrapper);
 
     const firstLevel = getFirstLevelElement(contentEditable, wrapper);

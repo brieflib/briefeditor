@@ -9,22 +9,21 @@ export function getSharedTags(findTill: HTMLElement) {
         shared.push(parents);
     }
 
-    return shared[0]?.filter(element => shared.every(arr => arr.includes(element)));
+    return shared[0]?.filter(element => shared.every(arr => arr.includes(element))) ?? [];
 }
 
 export function getSelectedLeaves() {
-    const nodes: Node[] = [];
+    const textNodes: Node[] = [];
 
     const range = getRange();
 
-    const sameElement = getSameElementSelected(range);
-    if (sameElement) {
-        return [sameElement];
+    if (range.startContainer === range.endContainer) {
+        return [range.startContainer];
     }
 
     const walker = document.createTreeWalker(
         range.commonAncestorContainer,
-        NodeFilter.SHOW_ALL,
+        NodeFilter.SHOW_TEXT,
         {
             acceptNode: function (node) {
                 return range.intersectsNode(node) ?
@@ -35,10 +34,18 @@ export function getSelectedLeaves() {
     );
 
     while (walker.nextNode()) {
-        nodes.push(walker.currentNode);
+        textNodes.push(walker.currentNode);
     }
 
-    return nodes.filter(node => node.nodeType === Node.TEXT_NODE);
+    if (textNodes.length > 1 && range.endOffset === 0) {
+        textNodes.pop();
+    }
+
+    if (textNodes.length > 1 && range.startContainer.textContent?.length === range.startOffset) {
+        textNodes.shift();
+    }
+
+    return textNodes;
 }
 
 function getParentTags(leaf: Node, findTill: HTMLElement, parents: string[] = []) {
@@ -51,20 +58,3 @@ function getParentTags(leaf: Node, findTill: HTMLElement, parents: string[] = []
 
     return parents;
 }
-
-function getSameElementSelected(range: Range) {
-    if (range.startContainer === range.endContainer) {
-        return range.startContainer;
-    }
-
-    if (range.startContainer.textContent?.length === range.startOffset && range.endContainer.textContent?.length === range.endOffset) {
-        return range.endContainer;
-    }
-
-    if (range.startOffset === 0 && range.endOffset === 0) {
-        return range.startContainer;
-    }
-
-    return null;
-}
-
