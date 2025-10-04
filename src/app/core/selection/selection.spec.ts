@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import {getSharedTags} from "@/core/selection/selection";
+import {getSelectedFirstLevels, getSharedTags} from "@/core/selection/selection";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -70,4 +70,23 @@ describe("Shared tags", () => {
 
         expect(shared).toStrictEqual(["STRONG", "P"]);
     });
+});
+
+test("Should find first level elements arranged by selection", () => {
+    const toFind = document.createElement("div");
+    toFind.innerHTML = "<p><strong>bolditalic</strong></p><p>paragraph</p>text";
+    document.body.appendChild(toFind);
+
+    const range = new Range();
+    const allParagraphs = toFind.querySelectorAll("p");
+    const start = allParagraphs[0]?.querySelector("strong")?.firstChild;
+    range.setStart(start as Node, "bold".length);
+    const end = toFind.lastChild;
+    range.setEnd(end as Node, "te".length);
+
+    (getRange as jest.Mock).mockReturnValue(range);
+
+    const firstLevel = getSelectedFirstLevels(toFind);
+
+    expect(firstLevel).toStrictEqual([allParagraphs[0], allParagraphs[1], end]);
 });

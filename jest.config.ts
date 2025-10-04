@@ -2,7 +2,7 @@ import type {Config} from "jest";
 
 const config: Config = {
     clearMocks: true,
-    testEnvironment: 'jsdom',
+    testEnvironment: "jsdom",
     coverageProvider: "jsdom",
     preset: "ts-jest",
     moduleNameMapper:

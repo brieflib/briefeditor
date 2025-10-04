@@ -10,10 +10,10 @@ export default function normalize(normalizeFrom: HTMLElement) {
     return collapseLeaves(leaves) as HTMLElement;
 }
 
-export function removeTag(container: HTMLElement, element: Node, tag: string) {
+export function removeTag(container: HTMLElement, removeTagFrom: Node, tag: string) {
     const leaves = getLeafNodes(container)
         .map(node => setLeafParents(node, container, new Leaf(node)))
-        .filter(leaf => filterLeafParents(leaf, element, [tag, "DELETED"]))
+        .filter(leaf => filterLeafParents(leaf, removeTagFrom, [tag, "DELETED"]))
         .filter(leaf => leaf?.isLeafPresent())
         .map(leaf => sortLeafParents(leaf));
 

@@ -46,3 +46,22 @@ export function getParentTags(leaf: Node, findTill: HTMLElement, parents: string
 
     return parents;
 }
+
+export function GetElementsBetween(start: HTMLElement, end: HTMLElement): HTMLElement[] {
+    const between: HTMLElement[] = [];
+    if (start === end) {
+        between.push(start);
+        return between;
+    }
+
+    while (start !== end) {
+        between.push(start);
+        if (!start.nextSibling) {
+            return between;
+        }
+        start = start.nextSibling as HTMLElement;
+    }
+    between.push(end);
+
+    return between;
+}

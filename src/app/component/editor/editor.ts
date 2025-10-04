@@ -1,4 +1,6 @@
 import "@/component/editor/asset/editor.css"
+import {CallbackIcon} from "@/component/toolbar-icon/type/callback-icon";
+import EmptyIcon from "@/component/toolbar-icon/empty-icon";
 
 class Editor extends HTMLElement {
     constructor(contentEditable: HTMLElement) {
@@ -18,7 +20,7 @@ class Editor extends HTMLElement {
         document.getElementById("content").appendChild(contentEditable);
     }
 
-    addToolbarItem(toolbarIcon: ToolbarIcon) {
+    addToolbarItem(toolbarIcon: HTMLElement) {
         document.getElementById("toolbar").appendChild(toolbarIcon);
     }
 }

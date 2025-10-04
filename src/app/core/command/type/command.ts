@@ -1,5 +1,6 @@
 export enum Action {
-    Tag = "Tag"
+    Tag = "Tag",
+    FirstLevel = "FirstLevel"
 }
 
 export interface Command {

@@ -1,7 +1,10 @@
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
+import {Icon} from "@/component/toolbar-icon/type/icon";
+import execCommand from "@/core/command/exec-command";
+import {Action} from "@/core/command/type/command";
 
-class BoldIcon extends HTMLElement implements ToolbarIcon {
+class BoldIcon extends HTMLElement implements Icon {
     private readonly button: HTMLElement | null;
 
     constructor() {
@@ -30,12 +33,15 @@ class BoldIcon extends HTMLElement implements ToolbarIcon {
         }
     }
 
-    setCallback(callback) {
+    setContentEditable(contentEditable: HTMLElement) {
         if (!this.button) {
             return;
         }
 
-        this.button.addEventListener("click", callback);
+        this.button.addEventListener("click", () => execCommand({
+            tag: "STRONG",
+            action: Action.Tag
+        }, contentEditable));
     }
 }
 

@@ -1,7 +1,10 @@
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
+import execCommand from "@/core/command/exec-command";
+import {Action} from "@/core/command/type/command";
+import {Icon} from "@/component/toolbar-icon/type/icon";
 
-class UnderlineIcon extends HTMLElement implements ToolbarIcon {
+class UnderlineIcon extends HTMLElement implements Icon {
     private readonly button: HTMLElement | null;
 
     constructor() {
@@ -30,12 +33,15 @@ class UnderlineIcon extends HTMLElement implements ToolbarIcon {
         }
     }
 
-    setCallback(callback) {
+    setContentEditable(contentEditable: HTMLElement) {
         if (!this.button) {
             return;
         }
 
-        this.button.addEventListener("click", callback);
+        this.button.addEventListener("click", () => execCommand({
+            tag: "U",
+            action: Action.Tag
+        }, contentEditable));
     }
 }
 

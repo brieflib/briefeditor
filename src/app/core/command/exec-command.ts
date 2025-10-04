@@ -1,8 +1,6 @@
 import {Action, Command} from "@/core/command/type/command";
-import {getRange} from "@/core/shared/range-util";
-import normalize, {removeTag} from "@/core/normalize/normalize";
-import {getFirstLevelElement} from "@/core/command/util/util";
-import {getSharedTags} from "@/core/selection/selection";
+import {changeFirstLevel, unwrap, wrap} from "@/core/command/util/util";
+import {getSelectedFirstLevels, getSharedTags} from "@/core/selection/selection";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
     if (command.action === Action.Tag) {
@@ -15,32 +13,22 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
             wrap(tag, contentEditable);
         }
     }
-}
 
-export function wrap(tag: string, contentEditable: HTMLElement) {
-    const range: Range = getRange();
-    const cloneRange: Range = range.cloneRange();
-    const documentFragment: DocumentFragment = range.extractContents();
+    if (command.action === Action.FirstLevel) {
+        const tag = command.tag.toUpperCase();
+        const firstLevels = getSelectedFirstLevels(contentEditable);
+        for (const firstLevel of firstLevels) {
+            if (firstLevel.nodeName === tag) {
+                changeFirstLevel("P", firstLevel);
+                return;
+            }
 
-    const tagElement = document.createElement(tag);
-    tagElement.appendChild(documentFragment);
-    cloneRange.deleteContents();
-    cloneRange.insertNode(tagElement);
+            if (["P", "H1", "H2", "H3"].includes(firstLevel.nodeName)) {
+                changeFirstLevel(tag, firstLevel);
+                return;
+            }
 
-    const firstLevel = getFirstLevelElement(contentEditable, tagElement);
-    firstLevel.innerHTML = normalize(firstLevel).innerHTML;
-}
-
-export function unwrap(tag: string, contentEditable: HTMLElement) {
-    const range: Range = getRange();
-    const cloneRange: Range = range.cloneRange();
-    const documentFragment: DocumentFragment = range.extractContents();
-
-    const wrapper = document.createElement("DELETED");
-    wrapper.appendChild(documentFragment);
-    cloneRange.deleteContents();
-    cloneRange.insertNode(wrapper);
-
-    const firstLevel = getFirstLevelElement(contentEditable, wrapper);
-    firstLevel.innerHTML = removeTag(firstLevel, wrapper, tag).innerHTML;
+            changeFirstLevel(tag, firstLevel, true);
+        }
+    }
 }

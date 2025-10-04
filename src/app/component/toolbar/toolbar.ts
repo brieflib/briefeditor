@@ -1,23 +1,22 @@
 import Editor from "@/component/editor/editor";
-import execCommand from "@/core/command/exec-command";
-import {Action} from "@/core/command/type/command";
 import BoldIcon from "@/component/toolbar-icon/bold-icon";
 import {getSharedTags} from "@/core/selection/selection";
 import ItalicIcon from "@/component/toolbar-icon/italic-icon";
 import UnderlineIcon from "@/component/toolbar-icon/underline-icon";
 import HeadingIcon from "@/component/toolbar-icon/heading-icon";
 import EmptyIcon from "@/component/toolbar-icon/empty-icon";
+import {Icon} from "@/component/toolbar-icon/type/icon";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;
     private editorLayout: Editor;
-    private items: ToolbarIcon[] = [];
+    private items: Icon[] = [];
 
     constructor(contentEditable: HTMLElement, editor: Editor) {
         this.contentEditable = contentEditable;
         this.editorLayout = editor;
 
-        this.addToolbarItems();
+        this.addToolbarIcons();
 
         document.addEventListener("selectionchange", () => {
             const sharedTags = getSharedTags(contentEditable);
@@ -27,43 +26,22 @@ export default class Toolbar {
         });
     }
 
-    private addToolbarItems() {
-        this.addBoldItem();
-        this.addItalicItem();
-        this.addUnderlineItem();
+    private addToolbarIcons() {
+        this.addIcon(new BoldIcon());
+        this.addIcon(new ItalicIcon());
+        this.addIcon(new UnderlineIcon());
         this.addEmptyItem();
-        this.addHeadingItem();
+        this.addIcon(new HeadingIcon());
     }
 
-    private addBoldItem() {
-        const item = new BoldIcon();
-        item.setCallback(() => execCommand({tag: "STRONG", action: Action.Tag}, this.contentEditable));
-        this.items.push(item);
-        this.editorLayout.addToolbarItem(item);
-    }
-
-    private addItalicItem() {
-        const item = new ItalicIcon();
-        item.setCallback(() => execCommand({tag: "EM", action: Action.Tag}, this.contentEditable));
-        this.items.push(item);
-        this.editorLayout.addToolbarItem(item);
-    }
-
-    private addUnderlineItem() {
-        const item = new UnderlineIcon();
-        item.setCallback(() => execCommand({tag: "U", action: Action.Tag}, this.contentEditable));
-        this.items.push(item);
-        this.editorLayout.addToolbarItem(item);
+    private addIcon(icon: Icon) {
+        icon.setContentEditable(this.contentEditable);
+        this.items.push(icon);
+        this.editorLayout.addToolbarItem(icon);
     }
 
     private addEmptyItem() {
         const item = new EmptyIcon();
-        this.editorLayout.addToolbarItem(item);
-    }
-
-    private addHeadingItem() {
-        const item = new HeadingIcon();
-        this.items.push(item);
         this.editorLayout.addToolbarItem(item);
     }
 }

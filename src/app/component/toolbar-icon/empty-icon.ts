@@ -1,7 +1,7 @@
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 
-class EmptyIcon extends HTMLElement implements ToolbarIcon {
+class EmptyIcon extends HTMLElement {
     private readonly button: HTMLElement | null;
 
     constructor() {
@@ -11,12 +11,6 @@ class EmptyIcon extends HTMLElement implements ToolbarIcon {
           <button type="button" class="empty-icon" id="button"></button>
         `;
         this.button = this.shadowRoot.getElementById("button");
-    }
-
-    setActive(tags: string[]) {
-    }
-
-    setCallback(callback) {
     }
 }
 
