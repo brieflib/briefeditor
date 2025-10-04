@@ -18,31 +18,15 @@
     width: 100%;
 
     box-sizing: border-box;
-
-    border-top: 1px solid gray;
-    border-left: 1px solid gray;
-    border-right: 1px solid gray;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
 }
 
 .content-editable-scroll {
     height: 100%;
     overflow: scroll;
-
-    border-left: 1px solid gray;
-    border-right: 1px solid gray;
-    border-bottom: 1px solid gray;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
 }
 
 .content-editable {
-    padding: 20px;
-    padding-top: 40px;
-}
-
-.content-editable {
+    padding: 20px 8px;
     font-family: "InstrumentSans", sans-serif;
 }
 

@@ -1,6 +1,5 @@
 import "/asset/reset.css";
 import "/asset/global.css";
-import "@/component/editor/editor";
 import Editor from "@/component/editor/editor";
 import Toolbar from "@/component/toolbar/toolbar";
 

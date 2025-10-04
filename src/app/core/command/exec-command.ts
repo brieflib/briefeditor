@@ -6,10 +6,10 @@ import {getSharedTags} from "@/core/selection/selection";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
     if (command.action === Action.Tag) {
-        const sharedTags: string[] | undefined = getSharedTags(contentEditable);
+        const sharedTags: string[] = getSharedTags(contentEditable);
         const tag = command.tag.toUpperCase();
 
-        if (sharedTags && sharedTags.includes(tag)) {
+        if (sharedTags.includes(tag)) {
             unwrap(tag, contentEditable);
         } else {
             wrap(tag, contentEditable);

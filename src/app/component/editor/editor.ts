@@ -1,5 +1,4 @@
 import "@/component/editor/asset/editor.css"
-import ToolbarItem from "@/component/toolbar-item/toolbar-item";
 
 class Editor extends HTMLElement {
     constructor(contentEditable: HTMLElement) {
@@ -19,8 +18,8 @@ class Editor extends HTMLElement {
         document.getElementById("content").appendChild(contentEditable);
     }
 
-    addToolbarItem(toolbarItem: ToolbarItem) {
-        document.getElementById("toolbar").appendChild(toolbarItem);
+    addToolbarItem(toolbarIcon: ToolbarIcon) {
+        document.getElementById("toolbar").appendChild(toolbarIcon);
     }
 }
 

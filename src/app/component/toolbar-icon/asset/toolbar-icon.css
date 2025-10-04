@@ -1,0 +1,36 @@
+.icon {
+    width: 28px;
+    height: 24px;
+    padding: 3px 5px;
+    cursor: pointer;
+
+    background: none;
+    border: none;
+    user-select: none;
+}
+
+.empty-icon {
+    width: 12px;
+    background: none;
+    border: none;
+}
+
+.stroke {
+    fill: none;
+    stroke: #444;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+}
+
+.icon-svg {
+    fill: #000;
+}
+
+.active .stroke {
+    stroke: #06c;
+}
+
+.active .fill {
+    fill: #06c;
+}
