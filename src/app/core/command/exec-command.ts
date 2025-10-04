@@ -1,8 +1,11 @@
 import {Action, Command} from "@/core/command/type/command";
 import {changeFirstLevel, unwrap, wrap} from "@/core/command/util/util";
 import {getSelectedFirstLevels, getSharedTags} from "@/core/selection/selection";
+import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
+    const cursorPosition = getSelectionOffset(contentEditable);
+
     if (command.action === Action.Tag) {
         const sharedTags: string[] = getSharedTags(contentEditable);
         const tag = command.tag.toUpperCase();
@@ -20,15 +23,18 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
         for (const firstLevel of firstLevels) {
             if (firstLevel.nodeName === tag) {
                 changeFirstLevel("P", firstLevel);
-                return;
+                continue;
             }
 
-            if (["P", "H1", "H2", "H3"].includes(firstLevel.nodeName)) {
+            if (["P", "H1", "H2", "H3", "H4", "H5"].includes(firstLevel.nodeName)) {
                 changeFirstLevel(tag, firstLevel);
-                return;
+                continue;
             }
 
             changeFirstLevel(tag, firstLevel, true);
         }
     }
+
+    contentEditable.focus();
+    setCursorPosition(contentEditable, cursorPosition);
 }
