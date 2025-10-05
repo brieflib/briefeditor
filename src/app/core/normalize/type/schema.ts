@@ -17,6 +17,7 @@ schema.set("H3", [Display.FirstLevel]);
 schema.set("H4", [Display.FirstLevel]);
 schema.set("H5", [Display.FirstLevel]);
 schema.set("H6", [Display.FirstLevel]);
+schema.set("BLOCKQUOTE", [Display.FirstLevel]);
 
 export function isSchemaContain(element: Node, contains: Display[]) {
     const display = schema.get(element.nodeName) ?? [];

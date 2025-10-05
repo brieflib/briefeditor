@@ -34,6 +34,10 @@
     stroke-width: 2;
 }
 
+.fill {
+    fill: #444;
+}
+
 .icon-svg {
     fill: #000;
 }

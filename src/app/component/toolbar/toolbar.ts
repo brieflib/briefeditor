@@ -6,6 +6,7 @@ import UnderlineIcon from "@/component/toolbar-icon/underline-icon";
 import HeadingIcon from "@/component/toolbar-icon/heading-icon";
 import EmptyIcon from "@/component/toolbar-icon/empty-icon";
 import {Icon} from "@/component/toolbar-icon/type/icon";
+import BlockquoteIcon from "@/component/toolbar-icon/blockquote-icon";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;
@@ -32,6 +33,7 @@ export default class Toolbar {
         this.addIcon(new UnderlineIcon());
         this.addEmptyItem();
         this.addIcon(new HeadingIcon());
+        this.addIcon(new BlockquoteIcon());
     }
 
     private addIcon(icon: Icon) {
