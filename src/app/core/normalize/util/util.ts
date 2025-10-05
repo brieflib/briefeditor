@@ -8,7 +8,7 @@ export function setLeafParents(leafElement: Node | null | undefined, findTill: H
     }
 
     const parent = leafElement.parentElement;
-    if (isSchemaContain(leafElement as HTMLElement, [Display.SelfClose])) {
+    if (isSchemaContain(leafElement, [Display.SelfClose])) {
         leaf.addParent(leafElement);
     }
     if (parent && parent !== findTill) {
@@ -38,7 +38,7 @@ export function sortLeafParents(toSort: Leaf | undefined) {
     return toSort;
 }
 
-export function getLeavesWithTheSameFirstParent(leaves: Leaf[]): Leaf[] {
+export function getLeavesWithTheSameClosestParent(leaves: Leaf[]): Leaf[] {
     const leavesWithTheSameFirstParent: Leaf[] = [];
     const parent: string | undefined = leaves[0]?.getParents()[0]?.nodeName;
 
@@ -58,8 +58,8 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
         return container;
     }
 
-    const duplicateParents = getLeavesWithTheSameFirstParent(leaves);
-    const otherNodes = leaves.filter((leaf, index) => !duplicateParents[index]);
+    const duplicateParents = getLeavesWithTheSameClosestParent(leaves);
+    const remainingNodes = leaves.filter((leaf, index) => !duplicateParents[index]);
 
     let element;
 
@@ -84,8 +84,8 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
         }
     }
 
-    if (otherNodes.length !== 0) {
-        collapseLeaves(otherNodes, container);
+    if (remainingNodes.length !== 0) {
+        collapseLeaves(remainingNodes, container);
     }
     collapseLeaves(duplicateParents, element);
 

@@ -1,7 +1,7 @@
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {createRange} from "@/core/cursor/util/util";
+import {createRange, isOutsideElement} from "@/core/cursor/util/util";
 
-export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition {
+export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition | null {
     const range: Range = window.getSelection().getRangeAt(0);
 
     const startRange: Range = range.cloneRange();
@@ -11,6 +11,10 @@ export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition
     const endRange: Range = range.cloneRange();
     endRange.selectNodeContents(contentEditable);
     endRange.setEnd(range.endContainer, range.endOffset);
+
+    if (isOutsideElement(contentEditable, range.startContainer, range.endContainer)) {
+        return null;
+    }
 
     return {
         startOffset: startRange.toString().length,

@@ -1,4 +1,5 @@
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
+import {getFirstLevelElement} from "@/core/shared/element-util";
 
 interface NodeOffset {
     node: HTMLElement | null,
@@ -11,7 +12,7 @@ export function createRange(contentEditable: HTMLElement, cursorPosition: Cursor
 
     const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset);
     const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset);
-console.log(start, end);
+
     if (start.node) {
         range.setStart(start.node, start.offset);
     } else {
@@ -51,4 +52,11 @@ export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: 
     }
 
     return {node: null, offset: 0};
+}
+
+export function isOutsideElement(element: HTMLElement, start: Node, end: Node): boolean {
+    const startParent = getFirstLevelElement(element, start as HTMLElement);
+    const endParent = getFirstLevelElement(element, end as HTMLElement);
+
+    return startParent.nodeName === "HTML" || endParent.nodeName === "HTML"
 }

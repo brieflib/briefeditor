@@ -1,15 +1,15 @@
 import {getRange} from "@/core/shared/range-util";
 import normalize, {removeTag} from "@/core/normalize/normalize";
 import {getFirstLevelElement} from "@/core/shared/element-util";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export function wrap(tag: string, contentEditable: HTMLElement) {
     const range: Range = getRange();
     const cloneRange: Range = range.cloneRange();
-    const documentFragment: DocumentFragment = range.extractContents();
+    const documentFragment: DocumentFragment = cloneRange.extractContents();
 
     const tagElement = document.createElement(tag);
     tagElement.appendChild(documentFragment);
-    cloneRange.deleteContents();
     cloneRange.insertNode(tagElement);
 
     const firstLevel = getFirstLevelElement(contentEditable, tagElement);
@@ -19,15 +19,18 @@ export function wrap(tag: string, contentEditable: HTMLElement) {
 export function unwrap(tag: string, contentEditable: HTMLElement) {
     const range: Range = getRange();
     const cloneRange: Range = range.cloneRange();
-    const documentFragment: DocumentFragment = range.extractContents();
+    const documentFragment: DocumentFragment = cloneRange.extractContents();
 
     const removeTagFrom = document.createElement("DELETED");
     removeTagFrom.appendChild(documentFragment);
-    cloneRange.deleteContents();
     cloneRange.insertNode(removeTagFrom);
 
     const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
-    firstLevel.innerHTML = removeTag(firstLevel, removeTagFrom, tag).innerHTML;
+    if (isSchemaContain(firstLevel, [Display.FirstLevel])) {
+        firstLevel.innerHTML = removeTag(firstLevel, removeTagFrom, tag).innerHTML;
+    } else {
+        contentEditable.innerHTML = removeTag(contentEditable, removeTagFrom, tag).innerHTML;
+    }
 }
 
 export function changeFirstLevel(tag: string, firstLevel: HTMLElement, isWrap?: boolean) {

@@ -1,7 +1,7 @@
 import {
     collapseLeaves,
     setLeafParents,
-    getLeavesWithTheSameFirstParent,
+    getLeavesWithTheSameClosestParent,
     sortLeafParents, filterLeafParents, getLeafNodes
 } from "@/core/normalize/util/util";
 import {Leaf} from "@/core/normalize/type/leaf";
@@ -44,7 +44,7 @@ describe("Find leaves with same first parent", () => {
         toFind.push(createLeaf("second", ["STRONG", "EM", "SPAN"]));
         toFind.push(createLeaf("third", ["EM", "DIV"]));
 
-        const leaves = getLeavesWithTheSameFirstParent(toFind);
+        const leaves = getLeavesWithTheSameClosestParent(toFind);
 
         expect(leaves[0]).toBe(toFind[0]);
         expect(leaves[1]).toBe(toFind[1]);
@@ -57,7 +57,7 @@ describe("Find leaves with same first parent", () => {
         toFind.push(createLeaf("second", ["EM", "CUSTOM"]));
         toFind.push(createLeaf("third", ["EM", "DIV"]));
 
-        const leaves = getLeavesWithTheSameFirstParent(toFind);
+        const leaves = getLeavesWithTheSameClosestParent(toFind);
 
         expect(leaves[0]).toBe(toFind[0]);
         expect(leaves.length).toBe(1);
@@ -67,7 +67,7 @@ describe("Find leaves with same first parent", () => {
         const toFind: Leaf[] = [];
         toFind.push(createLeaf("first", ["STRONG", "EM", "DIV", "SPAN"]));
 
-        const leaves = getLeavesWithTheSameFirstParent(toFind);
+        const leaves = getLeavesWithTheSameClosestParent(toFind);
 
         expect(leaves[0]).toBe(toFind[0]);
         expect(leaves.length).toBe(1);
@@ -79,7 +79,7 @@ describe("Find leaves with same first parent", () => {
         toFind.push(createLeaf("second", ["SPAN"]));
         toFind.push(createLeaf("third", ["STRONG"]));
 
-        const leaves = getLeavesWithTheSameFirstParent(toFind);
+        const leaves = getLeavesWithTheSameClosestParent(toFind);
 
         expect(leaves[0]).toBe(toFind[0]);
         expect(leaves.length).toBe(1);
