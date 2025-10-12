@@ -29,7 +29,7 @@ export function createRange(contentEditable: HTMLElement, cursorPosition: Cursor
 }
 
 export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: number): NodeOffset {
-    let position: number = 0;
+    let position = 0;
     const stack = [contentEditable];
     while (stack.length > 0) {
         const current: Node | undefined = stack.pop();

@@ -4,6 +4,6 @@ export enum Action {
 }
 
 export interface Command {
-    tag: string,
+    tag: string | string[],
     action: Action
 }

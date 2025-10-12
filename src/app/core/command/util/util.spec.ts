@@ -47,7 +47,7 @@ describe("Change first level", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<p>Paragraph</p>";
 
-        changeFirstLevel("H1", toWrap.querySelector("p") as HTMLElement);
+        changeFirstLevel(["H1"], toWrap.querySelector("p") as HTMLElement);
 
         expect(toWrap.innerHTML).toBe("<h1>Paragraph</h1>");
     });
@@ -56,17 +56,35 @@ describe("Change first level", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "Paragraph";
 
-        changeFirstLevel("H1", toWrap.firstChild as HTMLElement);
+        changeFirstLevel(["H1"], toWrap.firstChild as HTMLElement);
 
         expect(toWrap.innerHTML).toBe("<h1>Paragraph</h1>");
+    });
+
+    test("Should change text to ordered list", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "Paragraph";
+
+        changeFirstLevel(["UL", "LI"], toWrap.firstChild as HTMLElement);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>Paragraph</li></ul>");
     });
 
     test("Should wrap strong in heading", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<strong>Paragraph</strong>";
 
-        changeFirstLevel("H1", toWrap.querySelector("strong") as HTMLElement, true);
+        changeFirstLevel(["H1"], toWrap.querySelector("strong") as HTMLElement);
 
         expect(toWrap.innerHTML).toBe("<h1><strong>Paragraph</strong></h1>");
+    });
+
+    test("Should wrap strong in unordered list", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<p><strong>Paragraph</strong></p>";
+
+        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement);
+
+        expect(toWrap.innerHTML).toBe("<ul><li><strong>Paragraph</strong></li></ul>");
     });
 });

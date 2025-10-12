@@ -1,8 +1,7 @@
 import {Action, Command} from "@/core/command/type/command";
-import {changeFirstLevel, unwrap, wrap} from "@/core/command/util/util";
+import {changeFirstLevel, isFirstLevelsEqualToTags, unwrap, wrap} from "@/core/command/util/util";
 import {getSelectedFirstLevels, getSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
-import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
     const cursorPosition = getSelectionOffset(contentEditable);
@@ -12,7 +11,7 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
 
     if (command.action === Action.Tag) {
         const sharedTags: string[] = getSharedTags(contentEditable);
-        const tag = command.tag.toUpperCase();
+        const tag = (command.tag as string).toUpperCase();
 
         if (sharedTags.includes(tag)) {
             unwrap(tag, contentEditable);
@@ -22,20 +21,12 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
     }
 
     if (command.action === Action.FirstLevel) {
-        const tag = command.tag.toUpperCase();
+        const tags = (command.tag as string[]).map(tag => tag.toUpperCase());
         const firstLevels = getSelectedFirstLevels(contentEditable);
+
         for (const firstLevel of firstLevels) {
-            if (firstLevel.nodeName === tag) {
-                changeFirstLevel("P", firstLevel);
-                continue;
-            }
-
-            if (isSchemaContain(firstLevel, [Display.FirstLevel])) {
-                changeFirstLevel(tag, firstLevel);
-                continue;
-            }
-
-            changeFirstLevel(tag, firstLevel, true);
+            const isParagraph = isFirstLevelsEqualToTags(tags, firstLevels);
+            changeFirstLevel(isParagraph ? ["P"] : tags, firstLevel);
         }
     }
 

@@ -1,6 +1,4 @@
 import "@/component/editor/asset/editor.css"
-import {CallbackIcon} from "@/component/toolbar-icon/type/callback-icon";
-import EmptyIcon from "@/component/toolbar-icon/empty-icon";
 
 class Editor extends HTMLElement {
     constructor(contentEditable: HTMLElement) {

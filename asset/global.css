@@ -47,3 +47,11 @@ blockquote {
     margin-top: 5px;
     padding-left: 16px;
 }
+
+ul {
+    list-style: disc inside;
+}
+
+ul li {
+    margin-top: 8px;
+}

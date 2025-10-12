@@ -1,10 +1,10 @@
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
-import {Icon} from "@/component/toolbar-icon/type/icon";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
+import {Icon} from "@/component/toolbar-icon/type/icon";
 
-class BlockquoteIcon extends HTMLElement implements Icon {
+class UnorderedListIcon extends HTMLElement implements Icon {
     private readonly button: HTMLElement | null;
 
     constructor() {
@@ -12,11 +12,13 @@ class BlockquoteIcon extends HTMLElement implements Icon {
         initShadowRoot(this, toolbarIconCss);
         this.shadowRoot.innerHTML = `
           <button type="button" class="icon" id="button">
-            <svg viewBox="0 1 18 18">
-              <rect class="fill stroke" height="3" width="3" x="4" y="5"></rect>
-              <rect class="fill stroke" height="3" width="3" x="11" y="5"></rect>
-              <path class="fill stroke" d="M7,8c0,4.031-3,5-3,5"></path>
-              <path class="fill stroke" d="M14,8c0,4.031-3,5-3,5"></path>
+            <svg viewBox="0 0 18 18">
+                <line class="stroke" x1="6" x2="15" y1="4" y2="4"></line>
+                <line class="stroke" x1="6" x2="15" y1="9" y2="9"></line>
+                <line class="stroke" x1="6" x2="15" y1="14" y2="14"></line>
+                <line class="stroke" x1="3" x2="3" y1="4" y2="4"></line>
+                <line class="stroke" x1="3" x2="3" y1="9" y2="9"></line>
+                <line class="stroke" x1="3" x2="3" y1="14" y2="14"></line>
             </svg>
           </button>
         `;
@@ -28,7 +30,7 @@ class BlockquoteIcon extends HTMLElement implements Icon {
             return;
         }
 
-        if (tags.includes("BLOCKQUOTE")) {
+        if (tags.includes("UL")) {
             this.button.className = "icon active"
         } else {
             this.button.className = "icon"
@@ -40,13 +42,15 @@ class BlockquoteIcon extends HTMLElement implements Icon {
             return;
         }
 
-        this.button.addEventListener("click", () => execCommand({
-            tag: ["BLOCKQUOTE"],
-            action: Action.FirstLevel
-        }, contentEditable));
+        this.button.addEventListener("click", () => {
+            execCommand({
+                tag: ["UL", "LI"],
+                action: Action.FirstLevel
+            }, contentEditable);
+        });
     }
 }
 
-customElements.define("blockquote-icon", BlockquoteIcon);
+customElements.define("unordered-list-icon", UnorderedListIcon);
 
-export default BlockquoteIcon;
+export default UnorderedListIcon;
