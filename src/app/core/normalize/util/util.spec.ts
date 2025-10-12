@@ -1,8 +1,11 @@
 import {
     collapseLeaves,
-    setLeafParents,
+    filterLeafParents,
+    getLeafNodes,
     getLeavesWithTheSameClosestParent,
-    sortLeafParents, filterLeafParents, getLeafNodes
+    removeConsecutiveDuplicates,
+    setLeafParents,
+    sortLeafParents
 } from "@/core/normalize/util/util";
 import {Leaf} from "@/core/normalize/type/leaf";
 
@@ -26,7 +29,7 @@ test("Should find all leaf's parents", () => {
     const leaf = setLeafParents(node, toTransform, new Leaf(node));
 
     expect(leaf?.getText()).toBe("bolditalic");
-    expect(leaf?.getParents().map(parent => parent.nodeName)).toStrictEqual(["STRONG", "EM"]);
+    expect(leaf?.getParents().map(parent => parent.nodeName)).toStrictEqual(["EM", "STRONG"]);
 });
 
 test("Should sort tags", () => {
@@ -34,7 +37,15 @@ test("Should sort tags", () => {
 
     const sorted = sortLeafParents(leaf);
 
-    expect(sorted.getParents().map(parent => parent.nodeName)).toStrictEqual(["UL", "LI", "STRONG", "EM", "SPAN"]);
+    expect(sorted.getParents().map(parent => parent.nodeName)).toStrictEqual(["UL", "LI", "STRONG", "STRONG", "EM", "SPAN"]);
+});
+
+test("Should remove consecutive duplicates", () => {
+    const leaf = createLeaf("", ["STRONG", "STRONG", "UL", "LI", "EM", "SPAN", "SPAN"]);
+
+    leaf.setParents(removeConsecutiveDuplicates(leaf).getParents());
+
+    expect(leaf.getParents().map(parent => parent.nodeName)).toStrictEqual(["STRONG", "UL", "LI", "EM", "SPAN"]);
 });
 
 describe("Find leaves with same first parent", () => {

@@ -56,6 +56,45 @@ describe("Should normalize tags", () => {
         const normalized = normalize(toNormalize);
         expect(normalized.innerHTML).toBe("<strong>bold<a href=\"http://www.briefeditor.com\">brief</a><a href=\"http://briefeditor.com\">editor</a>te<em>xt</em></strong>");
     });
+
+    test("Should preserve nested ordered list", () => {
+        const toNormalize = document.createElement("div");
+        toNormalize.innerHTML = "<ul><li>Write<ul><li>text<strong>1</strong><strong>2</strong></li></ul></li></ul>";
+
+        const normalized = normalize(toNormalize);
+        expect(normalized.innerHTML).toBe("<ul><li>Write<ul><li>text<strong>12</strong></li></ul></li></ul>");
+    });
+
+    test("Should preserve table", () => {
+        const toNormalize = document.createElement("div");
+        const table = `
+        <table>
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>data</td>
+              <td>path to data files to <strong>supply</strong> the data that will be passed into templates.</td>
+            </tr>
+            <tr>
+              <td>engine</td>
+              <td>engine to be used for processing templates. Handlebars is the default.</td>
+            </tr>
+            <tr>
+              <td>ext</td>
+              <td>extension to be used for dest files.</td>
+            </tr>
+          </tbody>
+        </table>
+        `;
+        toNormalize.innerHTML = table;
+        const normalized = normalize(toNormalize);
+        expect(normalized.innerHTML).toBe(table);
+    });
 });
 
 describe("Should remove tags", () => {
@@ -63,16 +102,16 @@ describe("Should remove tags", () => {
         const toRemoveTag = document.createElement("div");
         toRemoveTag.innerHTML = "<strong><u><i>bold bolditalic</i>par</u></strong>text";
 
-        const removed = removeTag(toRemoveTag, toRemoveTag.firstChild?.firstChild?.childNodes[1] as Node, "STRONG");
-        expect(removed.innerHTML).toBe("<strong><i><u>bold bolditalic</u></i></strong><u>par</u>text");
+        const removed = removeTag(toRemoveTag, toRemoveTag.querySelector("strong > u")?.childNodes[1] as Node, "STRONG");
+        expect(removed.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><u>par</u>text");
     });
 
     test("Should remove strong and deleted tags", () => {
         const toRemove = document.createElement("div");
         toRemove.innerHTML = "<strong><u><i>bold bolditalic</i><deleted><span>par</span><div>lorem</div></deleted></u></strong>text";
 
-        const removed = removeTag(toRemove, toRemove.firstChild?.firstChild?.childNodes[1] as Node, "STRONG");
-        expect(removed.innerHTML).toBe("<strong><i><u>bold bolditalic</u></i></strong><span><u>par</u></span><div><u>lorem</u></div>text");
+        const removed = removeTag(toRemove, toRemove.querySelector("strong > u > deleted") as Node, "STRONG");
+        expect(removed.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><u><span>par</span><div>lorem</div></u>text");
     });
 });
 

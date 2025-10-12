@@ -7,13 +7,18 @@ export function setLeafParents(leafElement: Node | null | undefined, findTill: H
         return;
     }
 
+    const parents: HTMLElement[] = [];
     const parent = leafElement.parentElement;
-    if (isSchemaContain(leafElement, [Display.SelfClose])) {
-        leaf.addParent(leafElement);
+    if (leafElement && isSchemaContain(leafElement, [Display.SelfClose])) {
+        parents.unshift(leafElement as HTMLElement);
     }
     if (parent && parent !== findTill) {
-        leaf.addParent(parent);
+        parents.unshift(parent);
         setLeafParents(parent, findTill, leaf);
+    }
+
+    for (const add of parents) {
+        leaf.addParent(add);
     }
     return leaf;
 }
@@ -31,8 +36,7 @@ export function sortLeafParents(toSort: Leaf | undefined) {
             priority: tagHierarchy.get(element.nodeName) ?? -1
         } as TagHierarchy))
         .sort((first, second) => second.priority - first.priority)
-        .map(item => item.element)
-        .filter((value, index, self) => self.map(s => s.nodeName).indexOf(value.nodeName) === index);
+        .map(item => item.element);
     toSort.setParents(sortedParents);
 
     return toSort;
@@ -125,6 +129,31 @@ export function filterLeafParents(leaf: Leaf | null | undefined, element: Node, 
             }
         }
     }
+
+    return leaf;
+}
+
+export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
+    const parents = leaf.getParents();
+
+    if (parents.length === 0) {
+        return leaf;
+    }
+
+    const result: HTMLElement[] = [];
+
+    for (let i = 0; i < parents.length; i++) {
+        const parent = parents[i];
+        const nextParent = parents[i + 1];
+        if (parent && !nextParent) {
+            result.push(parent);
+        }
+        if (parent && nextParent && parent.nodeName !== nextParent.nodeName) {
+            result.push(parent);
+        }
+    }
+
+    leaf.setParents(result);
 
     return leaf;
 }

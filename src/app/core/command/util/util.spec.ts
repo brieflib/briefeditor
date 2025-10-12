@@ -21,7 +21,7 @@ describe("Unwrap tag", () => {
 
         unwrap("STRONG", toUnwrap);
 
-        expect(toUnwrap.innerHTML).toBe("<p><strong><i><u>bold </u></i></strong><i><u>bolditalic</u></i><u>pa</u><strong><u>r</u></strong>italic text</p>");
+        expect(toUnwrap.innerHTML).toBe("<p><strong><u><i>bold </i></u></strong><u><i>bolditalic</i>pa</u><strong><u>r</u></strong>italic text</p>");
     });
 });
 
