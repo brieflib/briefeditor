@@ -106,12 +106,21 @@ describe("Change first level", () => {
         expect(toWrap.innerHTML).toBe("<p>Paragraph</p>");
     });
 
-    test("Should wrap multiple elements to ordered list", () => {
+    test("Should wrap paragraph elements to ordered list", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<ul><li>Paragraph</li></ul><p>text</p>";
 
         changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
 
         expect(toWrap.innerHTML).toBe("<ul><li>Paragraph</li></ul><ul><li>text</li></ul>");
+    });
+
+    test("Should wrap one of the li to paragraph", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>text1</li><li>text2</li><li>text3</li></ul>";
+
+        changeFirstLevel(["P"], toWrap.querySelector("ul")?.childNodes[1] as HTMLElement, toWrap);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>text1</li></ul><p>text2</p><ul><li>text3</li></ul>");
     });
 });

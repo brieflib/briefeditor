@@ -33,20 +33,16 @@ export function unwrap(tag: string, contentEditable: HTMLElement) {
     }
 }
 
-export function changeFirstLevel(tags: string[], block: HTMLElement, container: HTMLElement) {
-    const firstLevel = getFirstLevelElement(container, block);
-    if (block.nodeType === Node.TEXT_NODE) {
-        replaceWithElement(tags, block, firstLevel, true);
+export function changeFirstLevel(tagsToAdd: string[], block: HTMLElement, contentEditable: HTMLElement) {
+    const firstLevel = getFirstLevelElement(contentEditable, block);
+    const isBlockFirstLevel = firstLevel === block;
+    const replace = addTagsToElement(tagsToAdd, block);
+    const tagsToDelete = getOfType([Display.FirstLevel, Display.List]).filter(item => !tagsToAdd.includes(item));
+    if (isBlockFirstLevel) {
+        replace.innerHTML = removeTag(replace, replace, tagsToDelete).innerHTML;
         return;
     }
-
-    block = replaceWithElement(tags, block, firstLevel, false);
-    const tagsToDelete = getOfType([Display.FirstLevel, Display.List]).filter(item => !tags.includes(item));
-    block.innerHTML = removeTag(block, block, tagsToDelete).innerHTML;
-    firstLevel.innerHTML = normalize(firstLevel).innerHTML;
-    if (firstLevel.children.length === 0) {
-        firstLevel.remove();
-    }
+    firstLevel.outerHTML = removeTag(contentEditable, replace, tagsToDelete).innerHTML;
 }
 
 export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElement[]) {
@@ -59,7 +55,7 @@ export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElemen
     return true;
 }
 
-function replaceWithElement(tags: string[], block: HTMLElement, firstLevel: HTMLElement, isText: boolean): HTMLElement {
+function addTagsToElement(tags: string[], block: HTMLElement): HTMLElement {
     const replace = document.createElement(tags[0] || "P");
 
     let lastChild;
@@ -72,13 +68,12 @@ function replaceWithElement(tags: string[], block: HTMLElement, firstLevel: HTML
     }
 
     let changeContent = lastChild ? lastChild : replace;
-    if (isText) {
+    if (block.nodeType === Node.TEXT_NODE) {
         changeContent.innerHTML = block.textContent;
     } else {
         changeContent.innerHTML = isSchemaContain(block, [Display.FirstLevel]) ? block.outerHTML : block.innerHTML;
     }
-
-    firstLevel.after(replace);
+    block.after(replace);
     block.remove();
 
     return replace;
