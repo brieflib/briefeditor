@@ -1,6 +1,6 @@
 import Editor from "@/component/editor/editor";
 import BoldIcon from "@/component/toolbar-icon/bold-icon";
-import {getSharedTags} from "@/core/selection/selection";
+import {getSelectedSharedTags} from "@/core/selection/selection";
 import ItalicIcon from "@/component/toolbar-icon/italic-icon";
 import UnderlineIcon from "@/component/toolbar-icon/underline-icon";
 import HeadingIcon from "@/component/toolbar-icon/heading-icon";
@@ -21,7 +21,7 @@ export default class Toolbar {
         this.addToolbarIcons();
 
         document.addEventListener("selectionchange", () => {
-            const sharedTags = getSharedTags(contentEditable);
+            const sharedTags = getSelectedSharedTags(contentEditable);
             for (const item of this.items) {
                 item.setActive(sharedTags);
             }

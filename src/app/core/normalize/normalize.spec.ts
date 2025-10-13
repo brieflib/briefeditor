@@ -59,10 +59,10 @@ describe("Should normalize tags", () => {
 
     test("Should preserve nested ordered list", () => {
         const toNormalize = document.createElement("div");
-        toNormalize.innerHTML = "<ul><li>Write<ul><li>text<strong>1</strong><strong>2</strong></li></ul></li></ul>";
+        toNormalize.innerHTML = "<ul><li>Write<ul><li>text<strong>1</strong><strong>2</strong></li><li>here</li></ul></li></ul>";
 
         const normalized = normalize(toNormalize);
-        expect(normalized.innerHTML).toBe("<ul><li>Write<ul><li>text<strong>12</strong></li></ul></li></ul>");
+        expect(normalized.innerHTML).toBe("<ul><li>Write<ul><li>text<strong>12</strong></li><li>here</li></ul></li></ul>");
     });
 
     test("Should preserve table", () => {
@@ -102,7 +102,7 @@ describe("Should remove tags", () => {
         const toRemoveTag = document.createElement("div");
         toRemoveTag.innerHTML = "<strong><u><i>bold bolditalic</i>par</u></strong>text";
 
-        const removed = removeTag(toRemoveTag, toRemoveTag.querySelector("strong > u")?.childNodes[1] as Node, "STRONG");
+        const removed = removeTag(toRemoveTag, toRemoveTag.querySelector("strong > u")?.childNodes[1] as Node, ["STRONG"]);
         expect(removed.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><u>par</u>text");
     });
 
@@ -110,8 +110,8 @@ describe("Should remove tags", () => {
         const toRemove = document.createElement("div");
         toRemove.innerHTML = "<strong><u><i>bold bolditalic</i><deleted><span>par</span><div>lorem</div></deleted></u></strong>text";
 
-        const removed = removeTag(toRemove, toRemove.querySelector("strong > u > deleted") as Node, "STRONG");
-        expect(removed.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><u><span>par</span><div>lorem</div></u>text");
+        const removed = removeTag(toRemove, toRemove.querySelector("strong > u > deleted") as Node, ["STRONG"]);
+        expect(removed.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><u><span>par</span></u><div><u>lorem</u></div>text");
     });
 });
 

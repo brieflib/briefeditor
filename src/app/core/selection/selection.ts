@@ -1,8 +1,7 @@
-import {GetElementsBetween, getParentTags, getSelectedLeaves} from "@/core/selection/util/util";
-import {getRange} from "@/core/shared/range-util";
-import {getFirstLevelElement} from "@/core/shared/element-util";
+import {getParentTags, getSelectedLeaves} from "@/core/selection/util/util";
+import {getBlockElement} from "@/core/shared/element-util";
 
-export function getSharedTags(findTill: HTMLElement) {
+export function getSelectedSharedTags(findTill: HTMLElement) {
     const leafNodes = getSelectedLeaves();
 
     const shared: string[][] = [];
@@ -14,11 +13,13 @@ export function getSharedTags(findTill: HTMLElement) {
     return shared[0]?.filter(element => shared.every(arr => arr.includes(element))) ?? [];
 }
 
-export function getSelectedFirstLevels(findTill: HTMLElement): HTMLElement[] {
-    const range = getRange();
+export function getSelectedBlocks(findTill: HTMLElement): HTMLElement[] {
+    const selected = [];
+    const leafNodes = getSelectedLeaves();
 
-    const startFirstLevel = getFirstLevelElement(findTill, range.startContainer as HTMLElement);
-    const endFirstLevel = getFirstLevelElement(findTill, range.endContainer as HTMLElement);
+    for (const leafNode of leafNodes) {
+        selected.push(getBlockElement(findTill, leafNode as HTMLElement))
+    }
 
-    return GetElementsBetween(startFirstLevel, endFirstLevel);
+    return selected;
 }

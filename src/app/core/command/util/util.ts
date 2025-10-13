@@ -27,23 +27,26 @@ export function unwrap(tag: string, contentEditable: HTMLElement) {
 
     const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
     if (isSchemaContain(firstLevel, [Display.FirstLevel])) {
-        firstLevel.innerHTML = removeTag(firstLevel, removeTagFrom, tag).innerHTML;
+        firstLevel.innerHTML = removeTag(firstLevel, removeTagFrom, [tag]).innerHTML;
     } else {
-        contentEditable.innerHTML = removeTag(contentEditable, removeTagFrom, tag).innerHTML;
+        contentEditable.innerHTML = removeTag(contentEditable, removeTagFrom, [tag]).innerHTML;
     }
 }
 
-export function changeFirstLevel(tags: string[], firstLevel: HTMLElement) {
-    if (firstLevel.nodeType === Node.TEXT_NODE) {
-        replaceTextWithElement(tags, firstLevel, true);
+export function changeFirstLevel(tags: string[], block: HTMLElement, container: HTMLElement) {
+    const firstLevel = getFirstLevelElement(container, block);
+    if (block.nodeType === Node.TEXT_NODE) {
+        replaceWithElement(tags, block, firstLevel, true);
         return;
     }
 
-    for (const firstLevelTag of getOfType(Display.FirstLevel)) {
-        firstLevel.innerHTML = removeTag(firstLevel, firstLevel, firstLevelTag).innerHTML;
+    block = replaceWithElement(tags, block, firstLevel, false);
+    const tagsToDelete = getOfType([Display.FirstLevel, Display.List]).filter(item => !tags.includes(item));
+    block.innerHTML = removeTag(block, block, tagsToDelete).innerHTML;
+    firstLevel.innerHTML = normalize(firstLevel).innerHTML;
+    if (firstLevel.children.length === 0) {
+        firstLevel.remove();
     }
-
-    replaceTextWithElement(tags, firstLevel, false);
 }
 
 export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElement[]) {
@@ -56,7 +59,7 @@ export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElemen
     return true;
 }
 
-function replaceTextWithElement(tags: string[], firstLevel: HTMLElement, isText: boolean) {
+function replaceWithElement(tags: string[], block: HTMLElement, firstLevel: HTMLElement, isText: boolean): HTMLElement {
     const replace = document.createElement(tags[0] || "P");
 
     let lastChild;
@@ -70,12 +73,13 @@ function replaceTextWithElement(tags: string[], firstLevel: HTMLElement, isText:
 
     let changeContent = lastChild ? lastChild : replace;
     if (isText) {
-        changeContent.innerHTML = firstLevel.textContent;
+        changeContent.innerHTML = block.textContent;
     } else {
-        const isFirstLevel = isSchemaContain(firstLevel, [Display.FirstLevel]);
-        changeContent.innerHTML = isFirstLevel ? firstLevel.innerHTML : firstLevel.outerHTML;
+        changeContent.innerHTML = isSchemaContain(block, [Display.FirstLevel]) ? block.outerHTML : block.innerHTML;
     }
 
     firstLevel.after(replace);
-    firstLevel.remove();
+    block.remove();
+
+    return replace;
 }

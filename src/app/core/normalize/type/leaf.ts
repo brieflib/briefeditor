@@ -10,13 +10,11 @@ export class Leaf {
     private parents: HTMLElement[];
 
     public addParent(parent: Node) {
-        this.parents.push(parent.cloneNode(false) as HTMLElement);
-        //this.parents.push(parent as HTMLElement);
+        this.parents.push(parent as HTMLElement);
     }
 
     public getParents() {
         return this.parents;
-        //return this.parents.map(parent => parent.cloneNode(false) as HTMLElement);
     }
 
     public setParents(parents: HTMLElement[]) {

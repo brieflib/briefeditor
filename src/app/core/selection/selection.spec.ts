@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import {getSelectedFirstLevels, getSharedTags} from "@/core/selection/selection";
+import {getSelectedBlocks, getSelectedSharedTags} from "@/core/selection/selection";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -18,7 +18,7 @@ describe("Shared tags", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const shared = getSharedTags(toFindFrom);
+        const shared = getSelectedSharedTags(toFindFrom);
 
         expect(shared).toStrictEqual(["STRONG", "P"]);
     });
@@ -34,7 +34,7 @@ describe("Shared tags", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const shared = getSharedTags(toFindFrom);
+        const shared = getSelectedSharedTags(toFindFrom);
 
         expect(shared).toStrictEqual(["STRONG", "EM", "P"]);
     });
@@ -50,7 +50,7 @@ describe("Shared tags", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const shared = getSharedTags(toFindFrom);
+        const shared = getSelectedSharedTags(toFindFrom);
 
         expect(shared).toStrictEqual(["STRONG", "P"]);
     });
@@ -66,7 +66,7 @@ describe("Shared tags", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const shared = getSharedTags(toFindFrom);
+        const shared = getSelectedSharedTags(toFindFrom);
 
         expect(shared).toStrictEqual(["STRONG", "P"]);
     });
@@ -86,7 +86,26 @@ test("Should find first level elements arranged by selection", () => {
 
     (getRange as jest.Mock).mockReturnValue(range);
 
-    const firstLevel = getSelectedFirstLevels(toFind);
+    const blocks = getSelectedBlocks(toFind);
 
-    expect(firstLevel).toStrictEqual([allParagraphs[0], allParagraphs[1], end]);
+    expect(blocks).toStrictEqual([allParagraphs[0], allParagraphs[1], toFind]);
+});
+
+test("Should find list elements arranged by selection", () => {
+    const toFind = document.createElement("div");
+    toFind.innerHTML = "<ul><li>bolditalic</li></ul><ul><li>paragraph</li><li>text</li></ul>";
+    document.body.appendChild(toFind);
+
+    const range = new Range();
+    const allUls = toFind.querySelectorAll("ul");
+    const start = allUls[0]?.querySelector("li")?.firstChild;
+    range.setStart(start as Node, "bold".length);
+    const end = allUls[1]?.querySelector("li")?.firstChild;
+    range.setEnd(end as Node, "pa".length);
+
+    (getRange as jest.Mock).mockReturnValue(range);
+
+    const blocks = getSelectedBlocks(toFind);
+
+    expect(blocks).toStrictEqual([allUls[0]?.querySelector("li"), allUls[1]?.querySelector("li")]);
 });

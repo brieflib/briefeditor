@@ -15,6 +15,14 @@ tagHierarchy.set("TR", max);
 tagHierarchy.set("TD", max);
 tagHierarchy.set("UL", max);
 tagHierarchy.set("LI", max);
+tagHierarchy.set("DIV", max);
+tagHierarchy.set("P", max);
+tagHierarchy.set("H1", max);
+tagHierarchy.set("H2", max);
+tagHierarchy.set("H3", max);
+tagHierarchy.set("H4", max);
+tagHierarchy.set("H5", max);
+tagHierarchy.set("H6", max);
 tagHierarchy.set("STRONG", 1);
 tagHierarchy.set("EM", 0);
 

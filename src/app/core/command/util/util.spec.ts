@@ -47,7 +47,7 @@ describe("Change first level", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<p>Paragraph</p>";
 
-        changeFirstLevel(["H1"], toWrap.querySelector("p") as HTMLElement);
+        changeFirstLevel(["H1"], toWrap.querySelector("p") as HTMLElement, toWrap);
 
         expect(toWrap.innerHTML).toBe("<h1>Paragraph</h1>");
     });
@@ -56,7 +56,7 @@ describe("Change first level", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "Paragraph";
 
-        changeFirstLevel(["H1"], toWrap.firstChild as HTMLElement);
+        changeFirstLevel(["H1"], toWrap.firstChild as HTMLElement, toWrap);
 
         expect(toWrap.innerHTML).toBe("<h1>Paragraph</h1>");
     });
@@ -65,16 +65,16 @@ describe("Change first level", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "Paragraph";
 
-        changeFirstLevel(["UL", "LI"], toWrap.firstChild as HTMLElement);
+        changeFirstLevel(["UL", "LI"], toWrap.firstChild as HTMLElement, toWrap);
 
         expect(toWrap.innerHTML).toBe("<ul><li>Paragraph</li></ul>");
     });
 
     test("Should wrap strong in heading", () => {
         const toWrap = document.createElement("div");
-        toWrap.innerHTML = "<strong>Paragraph</strong>";
+        toWrap.innerHTML = "<p><strong>Paragraph</strong></p>";
 
-        changeFirstLevel(["H1"], toWrap.querySelector("strong") as HTMLElement);
+        changeFirstLevel(["H1"], toWrap.querySelector("p") as HTMLElement, toWrap);
 
         expect(toWrap.innerHTML).toBe("<h1><strong>Paragraph</strong></h1>");
     });
@@ -83,8 +83,35 @@ describe("Change first level", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<p><strong>Paragraph</strong></p>";
 
-        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement);
+        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
 
         expect(toWrap.innerHTML).toBe("<ul><li><strong>Paragraph</strong></li></ul>");
+    });
+
+    test("Should unwrap list to paragraph", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>text1<ul><li><strong>text2</strong></li></ul></li></ul>";
+
+        changeFirstLevel(["P"], toWrap.querySelector("ul > li > ul > li") as HTMLElement, toWrap);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>text1</li></ul><p><strong>text2</strong></p>");
+    });
+
+    test("Should change ordered list to paragraph", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>Paragraph</li></ul>";
+
+        changeFirstLevel(["P"], toWrap.querySelector("li") as HTMLElement, toWrap);
+
+        expect(toWrap.innerHTML).toBe("<p>Paragraph</p>");
+    });
+
+    test("Should wrap multiple elements to ordered list", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>Paragraph</li></ul><p>text</p>";
+
+        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>Paragraph</li></ul><ul><li>text</li></ul>");
     });
 });

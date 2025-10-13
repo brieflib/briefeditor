@@ -44,10 +44,12 @@ export function sortLeafParents(toSort: Leaf | undefined) {
 
 export function getLeavesWithTheSameClosestParent(leaves: Leaf[]): Leaf[] {
     const leavesWithTheSameFirstParent: Leaf[] = [];
-    const parent: string | undefined = leaves[0]?.getParents()[0]?.nodeName;
+    const parent: HTMLElement | undefined = leaves[0]?.getParents()[0];
 
     for (const leaf of leaves) {
-        if (parent === leaf?.getParents()[0]?.nodeName) {
+        if (parent === leaf?.getParents()[0]) {
+            leavesWithTheSameFirstParent.push(leaf);
+        } else if (parent?.nodeName === leaf?.getParents()[0]?.nodeName && isSchemaContain(parent, [Display.Collapse])) {
             leavesWithTheSameFirstParent.push(leaf);
         } else {
             break;
@@ -68,16 +70,16 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
     let element;
 
     for (const duplicate of duplicateParents) {
-        element = duplicate.getParents().shift();
+        element = duplicate.getParents().shift()?.cloneNode(false) as HTMLElement;
         // Node to duplicate
-        if (element && isSchemaContain(element, [Display.SelfClose, Display.NotCollapse])) {
+        if (element && isSchemaContain(element, [Display.SelfClose])) {
             container.appendChild(element);
             element.appendChild(document.createTextNode(duplicate.getText() ?? ""));
             duplicate.setElement(null);
         }
     }
     // Node
-    if (element && !isSchemaContain(element, [Display.SelfClose, Display.NotCollapse])) {
+    if (element && !isSchemaContain(element, [Display.SelfClose])) {
         container.appendChild(element);
     }
     // Text
