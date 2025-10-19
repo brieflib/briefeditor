@@ -30,13 +30,6 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
         for (const block of blocks) {
             changeFirstLevel(isParagraph ? ["P"] : tags, block, contentEditable);
         }
-
-        const wrapper = document.createElement("div");
-        blocks[blocks.length - 1].after(wrapper);
-        for (const block of blocks) {
-            wrapper.appendChild(block);
-        }
-        wrapper.replaceWith(...wrapper.childNodes);
     }
 
     contentEditable.focus();
