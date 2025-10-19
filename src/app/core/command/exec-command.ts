@@ -2,6 +2,8 @@ import {Action, Command} from "@/core/command/type/command";
 import {changeFirstLevel, isFirstLevelsEqualToTags, unwrap, wrap} from "@/core/command/util/util";
 import {getSelectedBlocks, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
+import normalize from "@/core/normalize/normalize";
+import {getFirstLevelElement} from "@/core/shared/element-util";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
     const cursorPosition = getSelectionOffset(contentEditable);
@@ -22,12 +24,19 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
 
     if (command.action === Action.FirstLevel) {
         const tags = (command.tag as string[]).map(tag => tag.toUpperCase());
-        const firstLevels = getSelectedBlocks(contentEditable);
+        const blocks = getSelectedBlocks(contentEditable);
 
-        const isParagraph = isFirstLevelsEqualToTags(tags, firstLevels);
-        for (const firstLevel of firstLevels) {
-            changeFirstLevel(isParagraph ? ["P"] : tags, firstLevel, contentEditable);
+        const isParagraph = isFirstLevelsEqualToTags(tags, blocks);
+        for (const block of blocks) {
+            changeFirstLevel(isParagraph ? ["P"] : tags, block, contentEditable);
         }
+
+        const wrapper = document.createElement("div");
+        blocks[blocks.length - 1].after(wrapper);
+        for (const block of blocks) {
+            wrapper.appendChild(block);
+        }
+        wrapper.replaceWith(...wrapper.childNodes);
     }
 
     contentEditable.focus();

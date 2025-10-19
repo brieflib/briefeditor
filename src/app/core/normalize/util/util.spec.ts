@@ -176,6 +176,8 @@ function createLeafFromNode(element: Node, nodeNames: string[]) {
 function testCollapse(toCollapse: Leaf[], result: string) {
     const collapsed = collapseLeaves(toCollapse);
     const wrapper = document.createElement("div");
-    wrapper.appendChild(collapsed);
+    if (collapsed) {
+        wrapper.appendChild(collapsed);
+    }
     expect(wrapper.innerHTML).toBe(result);
 }

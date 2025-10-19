@@ -14,7 +14,7 @@ schema.set("A", [Display.NotCollapse]);
 
 schema.set("LI", [Display.List]);
 
-schema.set("UL", [Display.FirstLevel, Display.List]);
+schema.set("UL", [Display.FirstLevel, Display.List, Display.Collapse]);
 schema.set("DIV", [Display.FirstLevel]);
 schema.set("P", [Display.FirstLevel]);
 schema.set("H1", [Display.FirstLevel]);

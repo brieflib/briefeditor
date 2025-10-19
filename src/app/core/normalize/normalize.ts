@@ -16,7 +16,7 @@ export default function normalize(normalizeFrom: HTMLElement, elementToReplace: 
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    replaceElement(leaves, elementToReplace);
+    replaceElement(normalizeFrom, leaves, elementToReplace);
 }
 
 export function removeTag(findFrom: HTMLElement, removeTagFrom: Node, elementToReplace: HTMLElement, tags: string[]) {
@@ -27,14 +27,15 @@ export function removeTag(findFrom: HTMLElement, removeTagFrom: Node, elementToR
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    replaceElement(leaves, elementToReplace);
+    replaceElement(findFrom, leaves, elementToReplace);
 }
 
-function replaceElement(leaves: Leaf[], elementToReplace: HTMLElement) {
+function replaceElement(findFrom: HTMLElement, leaves: Leaf[], elementToReplace: HTMLElement) {
     const fragment = document.createDocumentFragment();
     const range = getRange();
     range.selectNode(elementToReplace);
     elementToReplace.remove();
+    findFrom.innerHTML = "";
     collapseLeaves(leaves, fragment);
     range.insertNode(fragment);
 }

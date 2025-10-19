@@ -42,28 +42,11 @@ export function sortLeafParents(toSort: Leaf | undefined) {
     return toSort;
 }
 
-export function getLeavesWithTheSameClosestParent(leaves: Leaf[]): Leaf[] {
-    const leavesWithTheSameFirstParent: Leaf[] = [];
-    const parent: HTMLElement | undefined = leaves[0]?.getParents()[0];
-
-    for (const leaf of leaves) {
-        if (parent === leaf?.getParents()[0]) {
-            leavesWithTheSameFirstParent.push(leaf);
-        } else if (parent?.nodeName === leaf?.getParents()[0]?.nodeName && isSchemaContain(parent, [Display.Collapse])) {
-            leavesWithTheSameFirstParent.push(leaf);
-        } else {
-            break;
-        }
-    }
-
-    return leavesWithTheSameFirstParent;
-}
-
 export function collapseLeaves(leaves: Leaf[] | null | undefined,
                                container: DocumentFragment = new DocumentFragment(),
                                existingElements: Node[] = []) {
     if (!leaves || leaves.length === 0 || container.nodeType === Node.TEXT_NODE) {
-        return container;
+        return;
     }
 
     const duplicateParents = getLeavesWithTheSameClosestParent(leaves);
@@ -107,6 +90,23 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined,
     collapseLeaves(duplicateParents, element as DocumentFragment, existingElements);
 
     return container;
+}
+
+export function getLeavesWithTheSameClosestParent(leaves: Leaf[]): Leaf[] {
+    const leavesWithTheSameFirstParent: Leaf[] = [];
+    const parent: HTMLElement | undefined = leaves[0]?.getParents()[0];
+
+    for (const leaf of leaves) {
+        if (parent === leaf?.getParents()[0]) {
+            leavesWithTheSameFirstParent.push(leaf);
+        } else if (parent?.nodeName === leaf?.getParents()[0]?.nodeName && isSchemaContain(parent, [Display.Collapse])) {
+            leavesWithTheSameFirstParent.push(leaf);
+        } else {
+            break;
+        }
+    }
+
+    return leavesWithTheSameFirstParent;
 }
 
 export function getLeafNodes(element: Node, leafNodes: Node[] = []) {

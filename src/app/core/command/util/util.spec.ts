@@ -43,6 +43,9 @@ describe("Wrap in tag", () => {
 });
 
 describe("Change first level", () => {
+    const range = new Range();
+    (getRange as jest.Mock).mockReturnValue(range);
+
     test("Should change paragraph to heading", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<p>Paragraph</p>";
@@ -83,9 +86,6 @@ describe("Change first level", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<p><strong>Paragraph</strong></p>";
 
-        const range = new Range();
-        (getRange as jest.Mock).mockReturnValue(range);
-
         changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
 
         expect(toWrap.innerHTML).toBe("<ul><li><strong>Paragraph</strong></li></ul>");
@@ -110,12 +110,13 @@ describe("Change first level", () => {
     });
 
     test("Should wrap paragraph elements to ordered list", () => {
-        const toWrap = document.createElement("div");
-        toWrap.innerHTML = "<ul><li>Paragraph</li></ul><p>text</p>";
+        const container = document.createElement("div");
+        container.innerHTML = "<ul><li>Paragraph</li></ul><p>text</p>";
 
-        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
+        const toWrap = container.querySelector("p") as HTMLElement;
+        changeFirstLevel(["UL", "LI"], toWrap, container);
 
-        expect(toWrap.innerHTML).toBe("<ul><li>Paragraph</li></ul><ul><li>text</li></ul>");
+        expect(container.innerHTML).toBe("<ul><li>Paragraph</li><li>text</li></ul>");
     });
 
     test("Should wrap one of the li to paragraph", () => {
