@@ -83,6 +83,9 @@ describe("Change first level", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<p><strong>Paragraph</strong></p>";
 
+        const range = new Range();
+        (getRange as jest.Mock).mockReturnValue(range);
+
         changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
 
         expect(toWrap.innerHTML).toBe("<ul><li><strong>Paragraph</strong></li></ul>");

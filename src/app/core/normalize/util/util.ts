@@ -59,7 +59,9 @@ export function getLeavesWithTheSameClosestParent(leaves: Leaf[]): Leaf[] {
     return leavesWithTheSameFirstParent;
 }
 
-export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Node = document.createElement("DIV")) {
+export function collapseLeaves(leaves: Leaf[] | null | undefined,
+                               container: DocumentFragment = new DocumentFragment(),
+                               existingElements: Node[] = []) {
     if (!leaves || leaves.length === 0 || container.nodeType === Node.TEXT_NODE) {
         return container;
     }
@@ -70,7 +72,16 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
     let element;
 
     for (const duplicate of duplicateParents) {
-        element = duplicate.getParents().shift()?.cloneNode(false) as HTMLElement;
+        element = duplicate.getParents().shift();
+        if (element) {
+            if (existingElements.includes(element)) {
+                element = element.cloneNode(false);
+            } else {
+                element.innerHTML = "";
+            }
+            existingElements.push(element);
+        }
+
         // Node to duplicate
         if (element && isSchemaContain(element, [Display.SelfClose])) {
             container.appendChild(element);
@@ -91,9 +102,9 @@ export function collapseLeaves(leaves: Leaf[] | null | undefined, container: Nod
     }
 
     if (remainingNodes.length !== 0) {
-        collapseLeaves(remainingNodes, container);
+        collapseLeaves(remainingNodes, container, existingElements);
     }
-    collapseLeaves(duplicateParents, element);
+    collapseLeaves(duplicateParents, element as DocumentFragment, existingElements);
 
     return container;
 }

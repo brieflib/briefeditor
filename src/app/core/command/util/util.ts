@@ -13,7 +13,7 @@ export function wrap(tag: string, contentEditable: HTMLElement) {
     cloneRange.insertNode(tagElement);
 
     const firstLevel = getFirstLevelElement(contentEditable, tagElement);
-    firstLevel.innerHTML = normalize(firstLevel).innerHTML;
+    normalize(contentEditable, firstLevel);
 }
 
 export function unwrap(tag: string, contentEditable: HTMLElement) {
@@ -26,23 +26,14 @@ export function unwrap(tag: string, contentEditable: HTMLElement) {
     cloneRange.insertNode(removeTagFrom);
 
     const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
-    if (isSchemaContain(firstLevel, [Display.FirstLevel])) {
-        firstLevel.innerHTML = removeTag(firstLevel, removeTagFrom, [tag]).innerHTML;
-    } else {
-        contentEditable.innerHTML = removeTag(contentEditable, removeTagFrom, [tag]).innerHTML;
-    }
+    removeTag(contentEditable, removeTagFrom, firstLevel, [tag, "DELETED"])
 }
 
 export function changeFirstLevel(tagsToAdd: string[], block: HTMLElement, contentEditable: HTMLElement) {
-    const firstLevel = getFirstLevelElement(contentEditable, block);
-    const isBlockFirstLevel = firstLevel === block;
-    const replace = addTagsToElement(tagsToAdd, block);
+    const removeTagFrom = addTagsToElement(tagsToAdd, block);
     const tagsToDelete = getOfType([Display.FirstLevel, Display.List]).filter(item => !tagsToAdd.includes(item));
-    if (isBlockFirstLevel) {
-        replace.innerHTML = removeTag(replace, replace, tagsToDelete).innerHTML;
-        return;
-    }
-    firstLevel.outerHTML = removeTag(contentEditable, replace, tagsToDelete).innerHTML;
+    const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
+    removeTag(contentEditable, removeTagFrom, firstLevel, tagsToDelete);
 }
 
 export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElement[]) {
@@ -73,8 +64,7 @@ function addTagsToElement(tags: string[], block: HTMLElement): HTMLElement {
     } else {
         changeContent.innerHTML = isSchemaContain(block, [Display.FirstLevel]) ? block.outerHTML : block.innerHTML;
     }
-    block.after(replace);
-    block.remove();
+    block.replaceWith(replace);
 
     return replace;
 }
