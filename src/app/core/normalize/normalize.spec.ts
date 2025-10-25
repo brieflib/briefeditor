@@ -27,8 +27,13 @@ describe("Should normalize tags", () => {
     });
 
     test("Should delete duplicates", () => {
-        testNormalize("<strong><strong>bold</strong></strong>",
-            "<strong>bold</strong>");
+        testNormalize("<strong>strong <strong>bold <strong><em>text</em></strong></strong></strong>",
+            "<strong>strong bold <em>text</em></strong>");
+    });
+
+    test("Should delete paragraph duplicates", () => {
+        testNormalize("<p>strong <p>bold <p>text</p></p></p>",
+            "<p>strong bold text</p>");
     });
 
     test("Should preserve href property", () => {
@@ -95,7 +100,7 @@ describe("Should remove tags", () => {
 
         const toRemoveTag = element.querySelector("strong > u > div");
         removeTag(element, toRemoveTag as Node, element, ["STRONG"]);
-        expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><div><u><span>par</span></u></div><div><u>lorem</u></div>text");
+        expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><div><u><span>par</span>lorem</u></div>text");
     });
 });
 

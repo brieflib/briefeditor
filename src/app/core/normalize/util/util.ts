@@ -99,7 +99,7 @@ export function getLeavesWithTheSameClosestParent(leaves: Leaf[]): Leaf[] {
     for (const leaf of leaves) {
         if (parent === leaf?.getParents()[0]) {
             leavesWithTheSameFirstParent.push(leaf);
-        } else if (parent?.nodeName === leaf?.getParents()[0]?.nodeName && isSchemaContain(parent, [Display.Collapse])) {
+        } else if (parent?.nodeName === leaf?.getParents()[0]?.nodeName && !isSchemaContain(parent, [Display.NotCollapse])) {
             leavesWithTheSameFirstParent.push(leaf);
         } else {
             break;
@@ -114,12 +114,7 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
         return leafNodes;
     }
 
-    if (element.nodeType === Node.TEXT_NODE) {
-        leafNodes.push(element);
-        return leafNodes;
-    }
-
-    if (element.childNodes.length === 0) {
+    if (element.nodeType === Node.TEXT_NODE || element.childNodes.length === 0) {
         leafNodes.push(element);
         return leafNodes;
     }

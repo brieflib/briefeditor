@@ -12,9 +12,9 @@ schema.set("IMG", [Display.SelfClose]);
 
 schema.set("A", [Display.NotCollapse]);
 
-schema.set("LI", [Display.List]);
+schema.set("LI", [Display.List, Display.NotCollapse]);
 
-schema.set("UL", [Display.FirstLevel, Display.List, Display.Collapse]);
+schema.set("UL", [Display.FirstLevel, Display.List]);
 schema.set("DIV", [Display.FirstLevel]);
 schema.set("P", [Display.FirstLevel]);
 schema.set("H1", [Display.FirstLevel]);
@@ -24,10 +24,6 @@ schema.set("H4", [Display.FirstLevel]);
 schema.set("H5", [Display.FirstLevel]);
 schema.set("H6", [Display.FirstLevel]);
 schema.set("BLOCKQUOTE", [Display.FirstLevel]);
-
-schema.set("EM", [Display.Collapse]);
-schema.set("STRONG", [Display.Collapse]);
-schema.set("U", [Display.Collapse]);
 
 export function isSchemaContain(element: Node | undefined, contains: Display[]) {
     if (!element) {

@@ -32,13 +32,43 @@ describe("Wrap in tag", () => {
 
         const range = new Range();
         range.setStart(toWrap.querySelector("p > strong")?.firstChild as Node, "Wri".length);
-        range.setEnd(toWrap.querySelector("p")?.lastChild as Node, "to".length);
+        range.setEnd(toWrap.querySelector("p")?.lastChild as Node, "te".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
         wrap("em", toWrap);
 
         expect(toWrap.innerHTML).toBe("<p><strong>Wri</strong><em>te</em> text here</p>");
+    });
+
+    test("Should wrap selection from the different paragraphs in italic", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<p>Write </p><p><strong>text </strong></p><p>here</p>";
+
+        const range = new Range();
+        range.setStart(toWrap.querySelectorAll("p")[0]?.firstChild as Node, "Wri".length);
+        range.setEnd(toWrap.querySelectorAll("p")[2]?.firstChild as Node, "he".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        wrap("em", toWrap);
+
+        expect(toWrap.innerHTML).toBe("<p>Wri<em>te </em></p><p><strong><em>text </em></strong></p><p><em>he</em>re</p>");
+    });
+
+    test("Should wrap selection from different elements in bold", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<p>Write <strong>text</strong></p>";
+
+        const range = new Range();
+        range.setStart(toWrap.querySelector("p")?.firstChild as Node, "Wri".length);
+        range.setEnd(toWrap.querySelector("p > strong")?.firstChild as Node, "te".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        wrap("strong", toWrap);
+
+        expect(toWrap.innerHTML).toBe("<p>Wri<strong>te text</strong></p>");
     });
 });
 
@@ -119,7 +149,7 @@ describe("Change first level", () => {
         expect(container.innerHTML).toBe("<ul><li>Paragraph</li></ul><ul><li>text</li></ul>");
     });
 
-    test("Should wrap one of the li to paragraph", () => {
+    test("Should change tag from the li to the paragraph", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<ul><li>text1</li><li>text2</li><li>text3</li></ul>";
 

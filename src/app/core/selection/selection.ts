@@ -14,11 +14,14 @@ export function getSelectedSharedTags(findTill: HTMLElement) {
 }
 
 export function getSelectedBlocks(findTill: HTMLElement): HTMLElement[] {
-    const selected = [];
+    const selected: HTMLElement[] = [];
     const leafNodes = getSelectedLeaves();
 
     for (const leafNode of leafNodes) {
-        selected.push(getBlockElement(findTill, leafNode as HTMLElement))
+        const block = getBlockElement(findTill, leafNode as HTMLElement);
+        if (!selected.includes(block)) {
+            selected.push(block);
+        }
     }
 
     return selected;
