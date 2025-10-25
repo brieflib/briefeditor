@@ -33,6 +33,7 @@ export function changeFirstLevel(tagsToAdd: string[], block: HTMLElement, conten
     const removeTagFrom = addTagsToElement(tagsToAdd, block);
     const tagsToDelete = getOfType([Display.FirstLevel, Display.List]).filter(item => !tagsToAdd.includes(item));
     const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
+
     removeTag(contentEditable, removeTagFrom, firstLevel, tagsToDelete);
 }
 

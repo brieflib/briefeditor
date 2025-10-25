@@ -9,33 +9,32 @@ import {
 import {Leaf} from "@/core/normalize/type/leaf";
 import {getRange} from "@/core/shared/range-util";
 
-export default function normalize(normalizeFrom: HTMLElement, elementToReplace: HTMLElement) {
-    const leaves = getLeafNodes(normalizeFrom)
-        .map(node => setLeafParents(node, normalizeFrom, new Leaf(node)))
+export default function normalize(contentEditable: HTMLElement, parentElement: HTMLElement) {
+    const leaves = getLeafNodes(parentElement)
+        .map(node => setLeafParents(node, contentEditable, new Leaf(node)))
         .filter(leaf => leaf?.isLeafPresent())
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    replaceElement(normalizeFrom, leaves, elementToReplace);
+    replaceElement(leaves, parentElement);
 }
 
-export function removeTag(findFrom: HTMLElement, removeTagFrom: Node, elementToReplace: HTMLElement, tags: string[]) {
-    const leaves = getLeafNodes(findFrom)
-        .map(node => setLeafParents(node, findFrom, new Leaf(node)))
+export function removeTag(contentEditable: HTMLElement, removeTagFrom: Node, parentElement: HTMLElement, tags: string[]) {
+    const leaves = getLeafNodes(parentElement)
+        .map(node => setLeafParents(node, contentEditable, new Leaf(node)))
         .filter(leaf => filterLeafParents(leaf, removeTagFrom, tags))
         .filter(leaf => leaf?.isLeafPresent())
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    replaceElement(findFrom, leaves, elementToReplace);
+    replaceElement(leaves, parentElement);
 }
 
-function replaceElement(findFrom: HTMLElement, leaves: Leaf[], elementToReplace: HTMLElement) {
+function replaceElement(leaves: Leaf[], parentElement: HTMLElement) {
     const fragment = document.createDocumentFragment();
     const range = getRange();
-    range.selectNode(elementToReplace);
-    elementToReplace.remove();
-    findFrom.innerHTML = "";
+    range.selectNode(parentElement);
+    parentElement.remove();
     collapseLeaves(leaves, fragment);
     range.insertNode(fragment);
 }

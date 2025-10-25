@@ -116,7 +116,7 @@ describe("Change first level", () => {
         const toWrap = container.querySelector("p") as HTMLElement;
         changeFirstLevel(["UL", "LI"], toWrap, container);
 
-        expect(container.innerHTML).toBe("<ul><li>Paragraph</li><li>text</li></ul>");
+        expect(container.innerHTML).toBe("<ul><li>Paragraph</li></ul><ul><li>text</li></ul>");
     });
 
     test("Should wrap one of the li to paragraph", () => {
