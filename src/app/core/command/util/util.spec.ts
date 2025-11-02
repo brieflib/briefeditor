@@ -70,6 +70,21 @@ describe("Wrap in tag", () => {
 
         expect(toWrap.innerHTML).toBe("<p>Wri<strong>te text</strong></p>");
     });
+
+    test("Should wrap unordered list in bold", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>first</li><li>second</li></ul>";
+
+        const range = new Range();
+        range.setStart(toWrap.querySelectorAll("ul > li")[0]?.firstChild as Node, "fir".length);
+        range.setEnd(toWrap.querySelectorAll("ul > li")[1]?.firstChild as Node, "sec".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        wrap("strong", toWrap);
+
+        expect(toWrap.innerHTML).toBe("");
+    });
 });
 
 describe("Change first level", () => {

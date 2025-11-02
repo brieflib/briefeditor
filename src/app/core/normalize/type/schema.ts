@@ -1,7 +1,6 @@
 export enum Display {
     SelfClose = "SelfClose",
     NotCollapse = "NotCollapse",
-    Collapse = "Collapse",
     FirstLevel = "FirstLevel",
     List = "List",
 }
@@ -34,8 +33,8 @@ export function isSchemaContain(element: Node | undefined, contains: Display[]) 
 }
 
 export function getOfType(displays: Display[]): string[] {
-    let tags = [];
-    for (let [key, values] of schema) {
+    const tags = [];
+    for (const [key, values] of schema) {
         if (values.some(item => displays.includes(item))) {
             tags.push(key);
         }

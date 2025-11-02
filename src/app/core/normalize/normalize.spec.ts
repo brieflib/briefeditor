@@ -6,11 +6,6 @@ describe("Should normalize tags", () => {
             "<strong>bold <em>bolditalic</em></strong><em>ital</em>ic");
     });
 
-    test("Should sort tags by priority", () => {
-        testNormalize("<strong>bold </strong><em><strong>bolditalic</strong>ital</em>ic",
-            "<strong>bold <em>bolditalic</em></strong><em>ital</em>ic");
-    });
-
     test("Should collapse similar tags", () => {
         testNormalize("<strong>bold </strong><strong>strong</strong>",
             "<strong>bold strong</strong>");
@@ -25,15 +20,19 @@ describe("Should normalize tags", () => {
         testNormalize("<strong>bold </strong><br><br><strong>bolditalic</strong>",
             "<strong>bold </strong><br><br><strong>bolditalic</strong>");
     });
+    test("Should honor br", () => {
+        testNormalize("<strong>bold </strong><br><strong>bolditalic</strong>",
+            "<strong>bold </strong><br><strong>bolditalic</strong>");
+    });
 
     test("Should delete duplicates", () => {
         testNormalize("<strong>strong <strong>bold <strong><em>text</em></strong></strong></strong>",
             "<strong>strong bold <em>text</em></strong>");
     });
 
-    test("Should delete paragraph duplicates", () => {
-        testNormalize("<p>strong <p>bold <p>text</p></p></p>",
-            "<p>strong bold text</p>");
+    test("Should delete paragraph and strong duplicates", () => {
+        testNormalize("<div>strong <strong><div>bold <strong><div>text</div></strong></div></strong></div>",
+            "<div>strong <strong>bold text</strong></div>");
     });
 
     test("Should preserve href property", () => {

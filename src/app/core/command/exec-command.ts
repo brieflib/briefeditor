@@ -2,8 +2,6 @@ import {Action, Command} from "@/core/command/type/command";
 import {changeFirstLevel, isFirstLevelsEqualToTags, unwrap, wrap} from "@/core/command/util/util";
 import {getSelectedBlocks, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
-import normalize from "@/core/normalize/normalize";
-import {getFirstLevelElement} from "@/core/shared/element-util";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
     const cursorPosition = getSelectionOffset(contentEditable);

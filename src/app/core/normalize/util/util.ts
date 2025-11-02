@@ -1,4 +1,4 @@
-import {Leaf} from "@/core/normalize/type/leaf";
+import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
@@ -8,18 +8,17 @@ export function setLeafParents(leafElement: Node | null | undefined, findTill: H
     }
 
     const parents: HTMLElement[] = [];
-    const parent = leafElement.parentElement;
-    if (leafElement && isSchemaContain(leafElement, [Display.SelfClose])) {
-        parents.unshift(leafElement as HTMLElement);
-    }
-    if (parent && parent !== findTill) {
+    let parent = leafElement.parentElement;
+
+    while (parent && parent !== findTill) {
         parents.unshift(parent);
-        setLeafParents(parent, findTill, leaf);
+        parent = parent.parentElement;
     }
 
     for (const add of parents) {
         leaf.addParent(add);
     }
+    leaf.addParent(leafElement);
     return leaf;
 }
 
@@ -42,71 +41,69 @@ export function sortLeafParents(toSort: Leaf | undefined) {
     return toSort;
 }
 
-export function collapseLeaves(leaves: Leaf[] | null | undefined,
-                               container: DocumentFragment = new DocumentFragment(),
-                               existingElements: Node[] = []) {
-    if (!leaves || leaves.length === 0 || container.nodeType === Node.TEXT_NODE) {
-        return;
-    }
+export function collapseLeaves(leaves: Leaf[],
+                               container: DocumentFragment = nodeToFragment(document.createElement("div")),
+                               existingElements: HTMLElement[] = []) {
+    const sameConsecutive = getSameConsecutiveFirstParent(leaves);
 
-    const duplicateParents = getLeavesWithTheSameClosestParent(leaves);
-    const remainingNodes = leaves.filter((leaf, index) => !duplicateParents[index]);
+    for (const leafGroup of sameConsecutive) {
+        let firstParentElement = shiftFirstParent(leafGroup.leaves);
+        firstParentElement = clearElementHTML(firstParentElement, existingElements);
 
-    let element;
-
-    for (const duplicate of duplicateParents) {
-        element = duplicate.getParents().shift();
-        if (element) {
-            if (existingElements.includes(element)) {
-                element = element.cloneNode(false);
-            } else {
-                element.innerHTML = "";
-            }
-            existingElements.push(element);
+        if (!firstParentElement) {
+            return container;
         }
-
-        // Node to duplicate
-        if (element && isSchemaContain(element, [Display.SelfClose])) {
-            container.appendChild(element);
-            element.appendChild(document.createTextNode(duplicate.getText() ?? ""));
-            duplicate.setElement(null);
-        }
+        const fragment = collapseLeaves(leafGroup.leaves, nodeToFragment(firstParentElement), existingElements);
+        insertAfterLastChild(container, fragment);
     }
-    // Node
-    if (element && !isSchemaContain(element, [Display.SelfClose])) {
-        container.appendChild(element);
-    }
-    // Text
-    if (!element) {
-        for (const leaf of duplicateParents) {
-            element = document.createTextNode(leaf.getText() ?? "");
-            container.appendChild(element);
-        }
-    }
-
-    if (remainingNodes.length !== 0) {
-        collapseLeaves(remainingNodes, container, existingElements);
-    }
-    collapseLeaves(duplicateParents, element as DocumentFragment, existingElements);
 
     return container;
 }
 
-export function getLeavesWithTheSameClosestParent(leaves: Leaf[]): Leaf[] {
-    const leavesWithTheSameFirstParent: Leaf[] = [];
-    const parent: HTMLElement | undefined = leaves[0]?.getParents()[0];
+export function getSameConsecutiveFirstParent(leaves: Leaf[]): LeafGroup[] {
+    const sameConsecutive: LeafGroup[] = [];
+    let leafGroup: LeafGroup = {leaves: []};
 
-    for (const leaf of leaves) {
-        if (parent === leaf?.getParents()[0]) {
-            leavesWithTheSameFirstParent.push(leaf);
-        } else if (parent?.nodeName === leaf?.getParents()[0]?.nodeName && !isSchemaContain(parent, [Display.NotCollapse])) {
-            leavesWithTheSameFirstParent.push(leaf);
-        } else {
-            break;
+    if (leaves.length === 1) {
+        leafGroup.leaves = leaves;
+        return [leafGroup];
+    }
+
+    for (let i = 0; i < leaves.length; i++) {
+        const leaf = leaves[i];
+        const nextLeaf = leaves[i + 1];
+
+        if (leaf) {
+            leafGroup.leaves.push(leaf);
+        }
+
+        if (!isElementsEqual(leaf?.getParents()[0], nextLeaf?.getParents()[0])) {
+            sameConsecutive.push(leafGroup);
+            leafGroup = {leaves: []};
         }
     }
 
-    return leavesWithTheSameFirstParent;
+    return sameConsecutive;
+}
+
+function isElementsEqual(element: Node | undefined, compareTo: Node | undefined) {
+    if (!element && !compareTo) {
+        return true;
+    }
+
+    if (isSchemaContain(element, [Display.SelfClose]) || isSchemaContain(compareTo, [Display.SelfClose])) {
+        return false;
+    }
+
+    if (element === compareTo) {
+        return true;
+    }
+
+    if (element?.nodeName === compareTo?.nodeName && !isSchemaContain(element, [Display.NotCollapse])) {
+        return true;
+    }
+
+    return false;
 }
 
 export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
@@ -114,13 +111,15 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
         return leafNodes;
     }
 
-    if (element.nodeType === Node.TEXT_NODE || element.childNodes.length === 0) {
+    if (element.nodeType === Node.TEXT_NODE || isSchemaContain(element, [Display.SelfClose])) {
         leafNodes.push(element);
         return leafNodes;
     }
 
     for (const child of element.childNodes) {
-        getLeafNodes(child, leafNodes);
+        if (child.textContent || isSchemaContain(child, [Display.SelfClose])) {
+            getLeafNodes(child, leafNodes);
+        }
     }
 
     return leafNodes;
@@ -129,7 +128,7 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
 export function filterLeafParents(leaf: Leaf | null | undefined, element: Node, excludeTags: string[]) {
     if (leaf) {
         for (const toFilter of getLeafNodes(element)) {
-            if (leaf.getElement() === toFilter) {
+            if (leaf.getParents().includes(toFilter)) {
                 if (leaf.getParents()) {
                     leaf.setParents(leaf.getParents()
                         .filter(parent => !excludeTags.includes(parent.nodeName)));
@@ -148,7 +147,7 @@ export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
         return leaf;
     }
 
-    const result: HTMLElement[] = [];
+    const result: Node[] = [];
 
     for (let i = 0; i < parents.length; i++) {
         const parent = parents[i];
@@ -164,4 +163,57 @@ export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
     leaf.setParents(result);
 
     return leaf;
+}
+
+function nodeToFragment(node: Node) {
+    const fragment = new DocumentFragment();
+    fragment.appendChild(node);
+    return fragment;
+}
+
+function insertAfterLastChild(container: DocumentFragment, element: DocumentFragment) {
+    if (container.lastChild) {
+        container.lastChild.appendChild(element);
+    }
+}
+
+function shiftFirstParent(leaves: Leaf[]) {
+    let node;
+    for (const leaf of leaves) {
+        const parent = leaf.getParents().shift();
+        if (parent && parent.nodeType === Node.TEXT_NODE) {
+            const text = parent.textContent;
+            if (text) {
+                if (!node) {
+                    node = document.createTextNode(text)
+                } else {
+                    (node as Text).appendData(text)
+                }
+            }
+        } else {
+            node = parent;
+        }
+    }
+
+    return node;
+}
+
+function clearElementHTML(node: Node | undefined, existingElements: HTMLElement[]) {
+    if (!node) {
+        return;
+    }
+
+    if (node.nodeType === Node.TEXT_NODE) {
+        return node;
+    }
+
+    let element = node as HTMLElement;
+    if (existingElements.includes(element)) {
+        element = (element as Node).cloneNode(false) as HTMLElement;
+    } else {
+        (element as HTMLElement).innerHTML = "";
+    }
+    existingElements.push(element);
+
+    return element;
 }

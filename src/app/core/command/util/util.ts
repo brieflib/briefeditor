@@ -1,29 +1,28 @@
 import {getRange} from "@/core/shared/range-util";
 import normalize, {removeTag} from "@/core/normalize/normalize";
-import {getFirstLevelElement} from "@/core/shared/element-util";
+import {getBlockElement, getFirstLevelElement} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 
 export function wrap(tag: string, contentEditable: HTMLElement) {
     const range: Range = getRange();
-    const cloneRange: Range = range.cloneRange();
 
-    const startFirstLevel = getFirstLevelElement(contentEditable, cloneRange.startContainer as HTMLElement);
-    const endFirstLevel = getFirstLevelElement(contentEditable, cloneRange.endContainer as HTMLElement);
-    const documentFragment: DocumentFragment = cloneRange.extractContents();
+    const startFirstLevel = getBlockElement(contentEditable, range.startContainer as HTMLElement);
+    const endFirstLevel = getBlockElement(contentEditable, range.endContainer as HTMLElement);
 
+    const documentFragment: DocumentFragment = range.extractContents();
     const fillChildNodes = Array.from(documentFragment.childNodes).filter(node => node.textContent);
+    if (fillChildNodes.length === 1 || startFirstLevel === endFirstLevel) {
+        const tagElement = document.createElement(tag);
+        tagElement.appendChild(documentFragment);
+        range.insertNode(tagElement);
+        const firstLevel = getBlockElement(contentEditable, tagElement);
+        normalize(contentEditable, firstLevel);
+        return;
+    }
+
     for (let i = 0; i < fillChildNodes.length; i++) {
         const tagElement = document.createElement(tag);
         const currentChild = fillChildNodes[i] as HTMLElement;
-
-        if (fillChildNodes.length === 1 || startFirstLevel === endFirstLevel) {
-            tagElement.appendChild(documentFragment);
-            cloneRange.insertNode(tagElement);
-            const firstLevel = getFirstLevelElement(contentEditable, tagElement);
-            normalize(contentEditable, firstLevel);
-            break;
-        }
-
         tagElement.appendChild(currentChild);
 
         if (i === 0) {
@@ -41,13 +40,6 @@ export function wrap(tag: string, contentEditable: HTMLElement) {
         endFirstLevel.before(tagElement);
         normalize(contentEditable, tagElement);
     }
-
-
-    // tagElement.appendChild(documentFragment);
-    // cloneRange.insertNode(tagElement);
-    //
-    // const firstLevel = getFirstLevelElement(contentEditable, tagElement);
-    // normalize(contentEditable, firstLevel);
 }
 
 export function unwrap(tag: string, contentEditable: HTMLElement) {
@@ -93,7 +85,7 @@ function addTagsToElement(tags: string[], toElement: HTMLElement): HTMLElement {
         }
     }
 
-    let changeContent = lastChild ? lastChild : replace;
+    const changeContent = lastChild ? lastChild : replace;
     if (toElement.nodeType === Node.TEXT_NODE) {
         changeContent.innerHTML = toElement.textContent;
     } else {

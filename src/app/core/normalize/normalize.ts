@@ -11,8 +11,7 @@ import {getRange} from "@/core/shared/range-util";
 
 export default function normalize(contentEditable: HTMLElement, parentElement: HTMLElement) {
     const leaves = getLeafNodes(parentElement)
-        .map(node => setLeafParents(node, contentEditable, new Leaf(node)))
-        .filter(leaf => leaf?.isLeafPresent())
+        .map(node => setLeafParents(node, contentEditable))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
@@ -21,9 +20,8 @@ export default function normalize(contentEditable: HTMLElement, parentElement: H
 
 export function removeTag(contentEditable: HTMLElement, removeTagFrom: Node, parentElement: HTMLElement, tags: string[]) {
     const leaves = getLeafNodes(parentElement)
-        .map(node => setLeafParents(node, contentEditable, new Leaf(node)))
+        .map(node => setLeafParents(node, contentEditable))
         .filter(leaf => filterLeafParents(leaf, removeTagFrom, tags))
-        .filter(leaf => leaf?.isLeafPresent())
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
@@ -31,10 +29,15 @@ export function removeTag(contentEditable: HTMLElement, removeTagFrom: Node, par
 }
 
 function replaceElement(leaves: Leaf[], parentElement: HTMLElement) {
-    const fragment = document.createDocumentFragment();
     const range = getRange();
     range.selectNode(parentElement);
     parentElement.remove();
-    collapseLeaves(leaves, fragment);
-    range.insertNode(fragment);
+    const fragment = collapseLeaves(leaves);
+
+    const childNodes = fragment.firstChild?.childNodes;
+    const innerFragment = new DocumentFragment();
+    if (childNodes) {
+        innerFragment.append(...childNodes);
+    }
+    range.insertNode(innerFragment);
 }

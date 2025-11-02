@@ -2,7 +2,7 @@ import {
     collapseLeaves,
     filterLeafParents,
     getLeafNodes,
-    getLeavesWithTheSameClosestParent,
+    getSameConsecutiveFirstParent,
     removeConsecutiveDuplicates,
     setLeafParents,
     sortLeafParents
@@ -25,11 +25,11 @@ test("Should find all leaf's parents", () => {
     const toTransform = document.createElement("div");
     toTransform.innerHTML = "<strong>bold </strong><em><strong>bolditalic</strong>ital</em>ic";
 
-    const node = toTransform.childNodes[1]?.firstChild?.firstChild;
-    const leaf = setLeafParents(node, toTransform, new Leaf(node));
+    const node = toTransform.querySelector("em > strong")?.firstChild;
+    const leaf = setLeafParents(node, toTransform);
 
-    expect(leaf?.getText()).toBe("bolditalic");
-    expect(leaf?.getParents().map(parent => parent.nodeName)).toStrictEqual(["EM", "STRONG"]);
+    expect(leaf?.getParents()[leaf?.getParents().length - 1]?.textContent).toBe("bolditalic");
+    expect(leaf?.getParents().map(parent => parent.nodeName)).toStrictEqual(["EM", "STRONG", "#text"]);
 });
 
 test("Should sort tags", () => {
@@ -37,7 +37,7 @@ test("Should sort tags", () => {
 
     const sorted = sortLeafParents(leaf);
 
-    expect(sorted.getParents().map(parent => parent.nodeName)).toStrictEqual(["UL", "LI", "STRONG", "STRONG", "EM", "SPAN"]);
+    expect(sorted.getParents().map(parent => parent.nodeName)).toStrictEqual(["UL", "LI", "STRONG", "STRONG", "EM", "SPAN", "#text"]);
 });
 
 test("Should remove consecutive duplicates", () => {
@@ -45,55 +45,74 @@ test("Should remove consecutive duplicates", () => {
 
     leaf.setParents(removeConsecutiveDuplicates(leaf).getParents());
 
-    expect(leaf.getParents().map(parent => parent.nodeName)).toStrictEqual(["STRONG", "UL", "LI", "EM", "SPAN"]);
+    expect(leaf.getParents().map(parent => parent.nodeName)).toStrictEqual(["STRONG", "UL", "LI", "EM", "SPAN", "#text"]);
 });
 
 describe("Find leaves with same first parent", () => {
-    test("Find two STRONG tags", () => {
+    test("Find two STRONG tags and one EM", () => {
         const toFind: Leaf[] = [];
         toFind.push(createLeaf("first", ["STRONG", "EM", "DIV", "SPAN"]));
         toFind.push(createLeaf("second", ["STRONG", "EM", "SPAN"]));
         toFind.push(createLeaf("third", ["EM", "DIV"]));
 
-        const leaves = getLeavesWithTheSameClosestParent(toFind);
+        const leafGroup = getSameConsecutiveFirstParent(toFind);
 
-        expect(leaves[0]).toBe(toFind[0]);
-        expect(leaves[1]).toBe(toFind[1]);
-        expect(leaves.length).toBe(2);
+        expect(leafGroup[0]?.leaves[0]).toBe(toFind[0]);
+        expect(leafGroup[0]?.leaves[1]).toBe(toFind[1]);
+        expect(leafGroup[1]?.leaves[0]).toBe(toFind[2]);
+        expect(leafGroup.length).toBe(2);
     });
 
-    test("Find all tags", () => {
+    test("Find one STRONG tag and two EM tags", () => {
         const toFind: Leaf[] = [];
         toFind.push(createLeaf("first", ["STRONG", "EM", "DIV", "SPAN"]));
         toFind.push(createLeaf("second", ["EM", "CUSTOM"]));
         toFind.push(createLeaf("third", ["EM", "DIV"]));
 
-        const leaves = getLeavesWithTheSameClosestParent(toFind);
+        const leafGroup = getSameConsecutiveFirstParent(toFind);
 
-        expect(leaves[0]).toBe(toFind[0]);
-        expect(leaves.length).toBe(1);
+        expect(leafGroup[0]?.leaves[0]).toBe(toFind[0]);
+        expect(leafGroup[1]?.leaves[0]).toBe(toFind[1]);
+        expect(leafGroup[1]?.leaves[1]).toBe(toFind[2]);
+        expect(leafGroup.length).toBe(2);
     });
 
     test("Find one STRONG tag from one element array", () => {
         const toFind: Leaf[] = [];
         toFind.push(createLeaf("first", ["STRONG", "EM", "DIV", "SPAN"]));
 
-        const leaves = getLeavesWithTheSameClosestParent(toFind);
+        const leafGroup = getSameConsecutiveFirstParent(toFind);
 
-        expect(leaves[0]).toBe(toFind[0]);
-        expect(leaves.length).toBe(1);
+        expect(leafGroup[0]?.leaves[0]).toBe(toFind[0]);
+        expect(leafGroup.length).toBe(1);
     });
 
-    test("Find one STRONG tag from three element array", () => {
+    test("Find three tags from three element array", () => {
         const toFind: Leaf[] = [];
         toFind.push(createLeaf("first", ["STRONG"]));
         toFind.push(createLeaf("second", ["SPAN"]));
         toFind.push(createLeaf("third", ["STRONG"]));
 
-        const leaves = getLeavesWithTheSameClosestParent(toFind);
+        const leafGroup = getSameConsecutiveFirstParent(toFind);
 
-        expect(leaves[0]).toBe(toFind[0]);
-        expect(leaves.length).toBe(1);
+        expect(leafGroup[0]?.leaves[0]).toBe(toFind[0]);
+        expect(leafGroup[1]?.leaves[0]).toBe(toFind[1]);
+        expect(leafGroup[2]?.leaves[0]).toBe(toFind[2]);
+        expect(leafGroup.length).toBe(3);
+    });
+
+    test("Find empty array and two STRONG tags from three element array", () => {
+        const toFind: Leaf[] = [];
+        toFind.push(createLeaf("first", []));
+        toFind.push(createLeaf("second", ["STRONG"]));
+        toFind.push(createLeaf("third", ["STRONG"]));
+
+        const leafGroup = getSameConsecutiveFirstParent(toFind);
+
+        expect(leafGroup[0]?.leaves[0]).toBe(toFind[0]);
+        expect(leafGroup[1]?.leaves[0]).toBe(toFind[1]);
+        expect(leafGroup[1]?.leaves[1]).toBe(toFind[2]);
+        expect(leafGroup.length).toBe(2);
     });
 });
 
@@ -149,35 +168,34 @@ test("Should remove leaf's parents", () => {
     const leaf = createLeafFromNode(element, ["STRONG", "SPAN", "DELETED"]);
 
     const filtered = filterLeafParents(leaf, element, ["STRONG", "DELETED"]);
-    expect(filtered?.getParents().map(parent => parent.nodeName)).toStrictEqual(["SPAN"])
+    expect(filtered?.getParents().map(parent => parent.nodeName)).toStrictEqual(["SPAN", "#text"])
 });
 
-function createLeaf(text: string, nodeNames: string[]) {
-    const elements: HTMLElement[] = [];
+function createLeaf(text: string, parentNames: string[]) {
+    const parents: Node[] = [];
 
-    for (const nodeName of nodeNames) {
-        elements.push(document.createElement(nodeName));
+    for (const parentName of parentNames) {
+        parents.push(document.createElement(parentName));
     }
 
     const element = document.createTextNode(text);
-    return new Leaf(element, elements);
+    parents.push(element);
+    return new Leaf(parents);
 }
 
 function createLeafFromNode(element: Node, nodeNames: string[]) {
-    const elements: HTMLElement[] = [];
+    const elements: Node[] = [];
 
     for (const nodeName of nodeNames) {
         elements.push(document.createElement(nodeName));
     }
 
-    return new Leaf(element, elements);
+    elements.push(element);
+
+    return new Leaf(elements);
 }
 
 function testCollapse(toCollapse: Leaf[], result: string) {
     const collapsed = collapseLeaves(toCollapse);
-    const wrapper = document.createElement("div");
-    if (collapsed) {
-        wrapper.appendChild(collapsed);
-    }
-    expect(wrapper.innerHTML).toBe(result);
+    expect((collapsed.firstChild as HTMLElement).innerHTML).toBe(result);
 }
