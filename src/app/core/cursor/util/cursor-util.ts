@@ -1,5 +1,6 @@
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
 import {getFirstLevelElement} from "@/core/shared/element-util";
+import {getRange} from "@/core/shared/range-util";
 
 interface NodeOffset {
     node: HTMLElement | null,
@@ -7,7 +8,7 @@ interface NodeOffset {
 }
 
 export function createRange(contentEditable: HTMLElement, cursorPosition: CursorPosition): Range {
-    const range: Range = document.createRange();
+    const range: Range = getRange();
     range.selectNode(contentEditable);
 
     const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset);
