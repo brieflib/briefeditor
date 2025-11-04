@@ -7,6 +7,7 @@ export interface TagHierarchy {
 const max = Number.MAX_SAFE_INTEGER;
 
 const tagHierarchy: Map<string, number> = new Map<string, number>();
+tagHierarchy.set("DELETED", max);
 tagHierarchy.set("TABLE", max);
 tagHierarchy.set("THEAD", max);
 tagHierarchy.set("TBODY", max);

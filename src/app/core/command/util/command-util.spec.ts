@@ -1,4 +1,4 @@
-import {changeFirstLevel, unwrap, wrap} from "@/core/command/util/command-util";
+import {changeFirstLevel, mergeLists, unwrap, wrap} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
 
 jest.mock("../../shared/range-util", () => ({
@@ -205,3 +205,28 @@ describe("Change first level", () => {
         expect(toWrap.innerHTML).toBe("<ul><li>text1</li></ul><p>text2</p><ul><li>text3</li></ul>");
     });
 });
+
+describe("Merge lists", () => {
+    test("Should merge lists from different ul", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>text1</li></ul><ul><li>text2</li></ul><ul><li>text3</li></ul>";
+
+        const lists = [toWrap.querySelectorAll("ul")[1]?.querySelector("li") as HTMLElement];
+
+        mergeLists(toWrap, lists);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>text1</li><li>text2</li><li>text3</li></ul>");
+    });
+
+    test("Should merge lists from same ul", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>text1</li><li>text2</li></ul><ul><li>text3</li></ul>";
+
+        const lists = [toWrap.querySelectorAll("ul")[1]?.querySelector("li") as HTMLElement];
+
+        mergeLists(toWrap, lists);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>text1</li><li>text2</li><li>text3</li></ul>");
+    });
+});
+

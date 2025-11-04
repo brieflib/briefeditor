@@ -82,6 +82,7 @@ export function changeFirstLevel(tagsToAdd: string[], changeElement: HTMLElement
     const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
 
     removeTag(contentEditable, removeTagFrom, firstLevel, tagsToDelete);
+    return removeTagFrom;
 }
 
 export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElement[]) {
@@ -116,7 +117,7 @@ function unwrapRangeFromTag(range: Range, tag: string, contentEditable: HTMLElem
 }
 
 function addTagsToElement(tags: string[], toElement: HTMLElement): HTMLElement {
-    const replace = document.createElement(tags[0] || "P");
+    const replace = document.createElement(tags[0] ?? "P");
 
     let lastChild;
     for (let i = 1; i < tags.length; i++) {
@@ -127,13 +128,30 @@ function addTagsToElement(tags: string[], toElement: HTMLElement): HTMLElement {
         }
     }
 
-    const changeContent = lastChild ? lastChild : replace;
-    if (toElement.nodeType === Node.TEXT_NODE) {
-        changeContent.innerHTML = toElement.textContent;
-    } else {
-        changeContent.innerHTML = isSchemaContain(toElement, [Display.FirstLevel]) ? toElement.outerHTML : toElement.innerHTML;
-    }
-    toElement.replaceWith(replace);
+    toElement.after(replace);
+    const changeContent = replace.lastChild ? replace.lastChild : replace;
+    changeContent.appendChild(toElement);
 
     return replace;
+}
+
+export function mergeLists(contentEditable: HTMLElement, lists: HTMLElement[]) {
+    const wrapper = document.createElement("DELETED");
+    const allLists: HTMLElement[] = lists.map(list => getFirstLevelElement(contentEditable, list));
+
+    let previousList = allLists[0]?.previousSibling as HTMLElement;
+    while (previousList && isSchemaContain(previousList, [Display.List])) {
+        allLists.unshift(previousList);
+        previousList = previousList.previousSibling as HTMLElement;
+    }
+
+    let nextList = allLists[allLists.length - 1]?.nextSibling as HTMLElement;
+    while (nextList && isSchemaContain(nextList, [Display.List])) {
+        allLists.push(nextList as HTMLElement);
+        nextList = nextList.nextSibling as HTMLElement;
+    }
+
+    allLists[allLists.length - 1]?.after(wrapper);
+    wrapper.append(...allLists);
+    removeTag(contentEditable, wrapper, wrapper, ["DELETED"]);
 }
