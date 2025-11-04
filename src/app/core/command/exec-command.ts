@@ -1,5 +1,5 @@
 import {Action, Command} from "@/core/command/type/command";
-import {changeFirstLevel, isFirstLevelsEqualToTags, unwrap, wrap} from "@/core/command/util/util";
+import {changeFirstLevel, isFirstLevelsEqualToTags, unwrap, wrap} from "@/core/command/util/command-util";
 import {getSelectedBlocks, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 

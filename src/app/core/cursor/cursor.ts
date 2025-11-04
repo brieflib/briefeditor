@@ -1,5 +1,5 @@
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {createRange, isOutsideElement} from "@/core/cursor/util/util";
+import {createRange, isOutsideElement} from "@/core/cursor/util/cursor-util";
 import {getRange} from "@/core/shared/range-util";
 
 export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition | null {

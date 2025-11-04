@@ -1,4 +1,4 @@
-import {changeFirstLevel, unwrap, wrap} from "@/core/command/util/util";
+import {changeFirstLevel, unwrap, wrap} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
 
 jest.mock("../../shared/range-util", () => ({

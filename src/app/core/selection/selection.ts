@@ -1,4 +1,4 @@
-import {getParentTags, getSelectedLeaves} from "@/core/selection/util/util";
+import {getParentTags, getSelectedLeaves} from "@/core/selection/util/selection-util";
 import {getBlockElement} from "@/core/shared/element-util";
 
 export function getSelectedSharedTags(findTill: HTMLElement) {

@@ -6,7 +6,7 @@ import {
     removeConsecutiveDuplicates,
     setLeafParents,
     sortLeafParents
-} from "@/core/normalize/util/util";
+} from "@/core/normalize/util/normalize-util";
 import {Leaf} from "@/core/normalize/type/leaf";
 
 test("Should find all leaves", () => {

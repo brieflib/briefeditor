@@ -1,4 +1,4 @@
-import {getSelectedLeaves} from "@/core/selection/util/util";
+import {getSelectedLeaves} from "@/core/selection/util/selection-util";
 import {getRange} from "@/core/shared/range-util";
 
 jest.mock("../../shared/range-util", () => ({
