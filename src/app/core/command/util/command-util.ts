@@ -42,15 +42,38 @@ export function wrap(tag: string, contentEditable: HTMLElement) {
 
 export function unwrap(tag: string, contentEditable: HTMLElement) {
     const range: Range = getRange();
-    const cloneRange: Range = range.cloneRange();
-    const documentFragment: DocumentFragment = cloneRange.extractContents();
 
-    const removeTagFrom = document.createElement("DELETED");
-    removeTagFrom.appendChild(documentFragment);
-    cloneRange.insertNode(removeTagFrom);
+    const startContainer = range.startContainer as HTMLElement;
+    const endContainer = range.endContainer as HTMLElement;
+    const endOffset = range.endOffset;
+    const startFirstLevel = getBlockElement(contentEditable, startContainer);
+    const endFirstLevel = getBlockElement(contentEditable, endContainer);
 
-    const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
-    removeTag(contentEditable, removeTagFrom, firstLevel, [tag, "DELETED"])
+    if (startFirstLevel === endFirstLevel) {
+        unwrapRangeFromTag(range, tag, contentEditable);
+        return;
+    }
+
+    for (const element of getSelectedElements()) {
+        const cloneRange = range.cloneRange();
+
+        if (element === startContainer.parentElement as HTMLElement) {
+            cloneRange.setEnd(element, element.childNodes.length);
+            unwrapRangeFromTag(cloneRange, tag, contentEditable);
+            continue;
+        }
+
+        if (element === endContainer.parentElement as HTMLElement) {
+            cloneRange.setStart(element, 0);
+            cloneRange.setEnd(endContainer, endOffset);
+            unwrapRangeFromTag(cloneRange, tag, contentEditable);
+            continue;
+        }
+
+        cloneRange.setStart(element, 0);
+        cloneRange.setEnd(element, element.childNodes.length);
+        unwrapRangeFromTag(cloneRange, tag, contentEditable);
+    }
 }
 
 export function changeFirstLevel(tagsToAdd: string[], changeElement: HTMLElement, contentEditable: HTMLElement) {
@@ -78,6 +101,18 @@ function wrapRangeInTag(range: Range, tag: string, contentEditable: HTMLElement)
     range.insertNode(tagElement);
     const firstLevel = getFirstLevelElement(contentEditable, tagElement);
     normalize(contentEditable, firstLevel);
+}
+
+function unwrapRangeFromTag(range: Range, tag: string, contentEditable: HTMLElement) {
+    const cloneRange: Range = range.cloneRange();
+    const documentFragment: DocumentFragment = cloneRange.extractContents();
+
+    const removeTagFrom = document.createElement("DELETED");
+    removeTagFrom.appendChild(documentFragment);
+    cloneRange.insertNode(removeTagFrom);
+
+    const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
+    removeTag(contentEditable, removeTagFrom, firstLevel, [tag, "DELETED"]);
 }
 
 function addTagsToElement(tags: string[], toElement: HTMLElement): HTMLElement {

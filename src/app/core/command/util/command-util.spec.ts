@@ -23,6 +23,23 @@ describe("Unwrap tag", () => {
 
         expect(toUnwrap.innerHTML).toBe("<p><strong><u><i>bold </i></u></strong><u><i>bolditalic</i>pa</u><strong><u>r</u></strong>italic text</p>");
     });
+
+    test("Should unwrap strong from different li", () => {
+        const toUnwrap = document.createElement("div");
+        toUnwrap.id = "content";
+        toUnwrap.innerHTML = "<ul><li>fi<strong>rst</strong></li><li><strong>sec</strong>ond</li></ul>";
+        document.body.appendChild(toUnwrap);
+
+        const range = new Range();
+        range.setStart(toUnwrap.querySelectorAll("ul > li")[0]?.querySelector("strong")?.firstChild as Node, "".length);
+        range.setEnd(toUnwrap.querySelectorAll("ul > li")[1]?.querySelector("strong")?.firstChild as Node, "sec".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        unwrap("STRONG", toUnwrap);
+
+        expect(toUnwrap.innerHTML).toBe("<ul><li>first</li><li>second</li></ul>");
+    });
 });
 
 describe("Wrap in tag", () => {
