@@ -26,3 +26,7 @@ export function getSelectedBlocks(findTill: HTMLElement): HTMLElement[] {
 
     return selected;
 }
+
+export function getSelectedElements() {
+    return getSelectedLeaves().map(element => element.parentElement as Node);
+}

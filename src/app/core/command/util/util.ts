@@ -1,7 +1,8 @@
 import {getRange} from "@/core/shared/range-util";
 import normalize, {removeTag} from "@/core/normalize/normalize";
-import {getBlockElement, getElementsBetween, getFirstLevelElement} from "@/core/shared/element-util";
+import {getBlockElement, getFirstLevelElement} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
+import {getSelectedElements} from "@/core/selection/selection";
 
 export function wrap(tag: string, contentEditable: HTMLElement) {
     const range: Range = getRange();
@@ -17,17 +18,16 @@ export function wrap(tag: string, contentEditable: HTMLElement) {
         return;
     }
 
-    const elementsBetween = getElementsBetween(startFirstLevel, endFirstLevel);
-    for (const element of elementsBetween) {
+    for (const element of getSelectedElements()) {
         const cloneRange = range.cloneRange();
 
-        if (element === startFirstLevel) {
+        if (element === startContainer.parentElement as HTMLElement) {
             cloneRange.setEnd(element, element.childNodes.length);
             wrapRangeInTag(cloneRange, tag, contentEditable);
             continue;
         }
 
-        if (element === endFirstLevel) {
+        if (element === endContainer.parentElement as HTMLElement) {
             cloneRange.setStart(element, 0);
             cloneRange.setEnd(endContainer, endOffset);
             wrapRangeInTag(cloneRange, tag, contentEditable);

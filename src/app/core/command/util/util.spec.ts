@@ -85,6 +85,21 @@ describe("Wrap in tag", () => {
 
         expect(toWrap.innerHTML).toBe("<ul><li>first<u>un</u><strong><u>der</u><em>test</em></strong></li><li><strong>second</strong></li><li><strong>th</strong>ird</li></ul>");
     });
+
+    test("Should wrap unordered list and paragraph in bold", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>first</li></ul><p>second</p>";
+
+        const range = new Range();
+        range.setStart(toWrap.querySelector("ul > li")?.firstChild as Node, "fi".length);
+        range.setEnd(toWrap.querySelector("p")?.firstChild as Node, "se".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        wrap("strong", toWrap);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>fi<strong>rst</strong></li></ul><p><strong>se</strong>cond</p>");
+    });
 });
 
 describe("Change first level", () => {
