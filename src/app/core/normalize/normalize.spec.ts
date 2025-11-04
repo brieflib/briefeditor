@@ -48,7 +48,7 @@ describe("Should normalize tags", () => {
     test("Should merge multiple ul", () => {
         testNormalize("<ul><li>Write</li></ul><ul><li>here</li></ul>",
             "<ul><li>Write</li><li>here</li></ul>");
-    })
+    });
 
     test("Should preserve table", () => {
         const table = `

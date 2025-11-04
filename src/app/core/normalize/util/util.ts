@@ -183,12 +183,10 @@ function shiftFirstParent(leaves: Leaf[]) {
         const parent = leaf.getParents().shift();
         if (parent && parent.nodeType === Node.TEXT_NODE) {
             const text = parent.textContent;
-            if (text) {
-                if (!node) {
-                    node = document.createTextNode(text)
-                } else {
-                    (node as Text).appendData(text)
-                }
+            if (!node) {
+                node = parent;
+            } else if (text) {
+                (node as Text).appendData(text);
             }
         } else {
             node = parent;

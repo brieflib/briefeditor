@@ -73,17 +73,17 @@ describe("Wrap in tag", () => {
 
     test("Should wrap unordered list in bold", () => {
         const toWrap = document.createElement("div");
-        toWrap.innerHTML = "<ul><li>first</li><li>second</li></ul>";
+        toWrap.innerHTML = "<ul><li>first<u>under</u><em>test</em></li><li>second</li><li>third</li></ul>";
 
         const range = new Range();
-        range.setStart(toWrap.querySelectorAll("ul > li")[0]?.firstChild as Node, "fir".length);
-        range.setEnd(toWrap.querySelectorAll("ul > li")[1]?.firstChild as Node, "sec".length);
+        range.setStart(toWrap.querySelectorAll("ul > li > u")[0]?.firstChild as Node, "un".length);
+        range.setEnd(toWrap.querySelectorAll("ul > li")[2]?.firstChild as Node, "th".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
         wrap("strong", toWrap);
 
-        expect(toWrap.innerHTML).toBe("");
+        expect(toWrap.innerHTML).toBe("<ul><li>first<u>un</u><strong><u>der</u><em>test</em></strong></li><li><strong>second</strong></li><li><strong>th</strong>ird</li></ul>");
     });
 });
 

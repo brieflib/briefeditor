@@ -38,7 +38,7 @@ export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: 
         }
 
         if (current.nodeType === Node.TEXT_NODE) {
-            const textContentLength = current.textContent.length;
+            const textContentLength = current.textContent?.length ?? 0;
 
             if (position + textContentLength >= targetPosition) {
                 return {node: current as HTMLElement, offset: targetPosition - position};

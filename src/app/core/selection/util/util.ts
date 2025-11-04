@@ -36,32 +36,13 @@ export function getSelectedLeaves() {
     return textNodes;
 }
 
-export function getParentTags(leaf: Node, findTill: HTMLElement, parents: string[] = []) {
-    const parent = leaf.parentElement;
+export function getParentTags(node: Node, findTill: HTMLElement, parents: string[] = []) {
+    let parent = node.parentElement;
 
-    if (parent && parent !== findTill) {
+    while (parent && parent !== findTill) {
         parents.push(parent.nodeName)
-        getParentTags(parent, findTill, parents);
+        parent = parent.parentElement;
     }
 
     return parents;
-}
-
-export function GetElementsBetween(start: HTMLElement, end: HTMLElement): HTMLElement[] {
-    const between: HTMLElement[] = [];
-    if (start === end) {
-        between.push(start);
-        return between;
-    }
-
-    while (start !== end) {
-        between.push(start);
-        if (!start.nextSibling) {
-            return between;
-        }
-        start = start.nextSibling as HTMLElement;
-    }
-    between.push(end);
-
-    return between;
 }

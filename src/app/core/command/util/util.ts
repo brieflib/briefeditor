@@ -1,44 +1,42 @@
 import {getRange} from "@/core/shared/range-util";
 import normalize, {removeTag} from "@/core/normalize/normalize";
-import {getBlockElement, getFirstLevelElement} from "@/core/shared/element-util";
+import {getBlockElement, getElementsBetween, getFirstLevelElement} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 
 export function wrap(tag: string, contentEditable: HTMLElement) {
     const range: Range = getRange();
 
-    const startFirstLevel = getBlockElement(contentEditable, range.startContainer as HTMLElement);
-    const endFirstLevel = getBlockElement(contentEditable, range.endContainer as HTMLElement);
+    const startContainer = range.startContainer as HTMLElement;
+    const endContainer = range.endContainer as HTMLElement;
+    const endOffset = range.endOffset;
+    const startFirstLevel = getBlockElement(contentEditable, startContainer);
+    const endFirstLevel = getBlockElement(contentEditable, endContainer);
 
-    const documentFragment: DocumentFragment = range.extractContents();
-    const fillChildNodes = Array.from(documentFragment.childNodes).filter(node => node.textContent);
-    if (fillChildNodes.length === 1 || startFirstLevel === endFirstLevel) {
-        const tagElement = document.createElement(tag);
-        tagElement.appendChild(documentFragment);
-        range.insertNode(tagElement);
-        const firstLevel = getBlockElement(contentEditable, tagElement);
-        normalize(contentEditable, firstLevel);
+    if (startFirstLevel === endFirstLevel) {
+        wrapRangeInTag(range, tag, contentEditable);
         return;
     }
 
-    for (let i = 0; i < fillChildNodes.length; i++) {
-        const tagElement = document.createElement(tag);
-        const currentChild = fillChildNodes[i] as HTMLElement;
-        tagElement.appendChild(currentChild);
+    const elementsBetween = getElementsBetween(startFirstLevel, endFirstLevel);
+    for (const element of elementsBetween) {
+        const cloneRange = range.cloneRange();
 
-        if (i === 0) {
-            startFirstLevel.appendChild(tagElement);
-            normalize(contentEditable, startFirstLevel);
+        if (element === startFirstLevel) {
+            cloneRange.setEnd(element, element.childNodes.length);
+            wrapRangeInTag(cloneRange, tag, contentEditable);
             continue;
         }
 
-        if (i === fillChildNodes.length - 1) {
-            endFirstLevel.insertBefore(tagElement, endFirstLevel.firstChild);
-            normalize(contentEditable, endFirstLevel);
+        if (element === endFirstLevel) {
+            cloneRange.setStart(element, 0);
+            cloneRange.setEnd(endContainer, endOffset);
+            wrapRangeInTag(cloneRange, tag, contentEditable);
             continue;
         }
 
-        endFirstLevel.before(tagElement);
-        normalize(contentEditable, tagElement);
+        cloneRange.setStart(element, 0);
+        cloneRange.setEnd(element, element.childNodes.length);
+        wrapRangeInTag(cloneRange, tag, contentEditable);
     }
 }
 
@@ -71,6 +69,15 @@ export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElemen
     }
 
     return true;
+}
+
+function wrapRangeInTag(range: Range, tag: string, contentEditable: HTMLElement) {
+    const documentFragment: DocumentFragment = range.extractContents();
+    const tagElement = document.createElement(tag);
+    tagElement.appendChild(documentFragment);
+    range.insertNode(tagElement);
+    const firstLevel = getFirstLevelElement(contentEditable, tagElement);
+    normalize(contentEditable, firstLevel);
 }
 
 function addTagsToElement(tags: string[], toElement: HTMLElement): HTMLElement {
