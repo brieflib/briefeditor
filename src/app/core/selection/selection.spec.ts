@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import {getSelectedFirstLevel, getSelectedSharedTags} from "@/core/selection/selection";
+import {getSelectedBlock, getSelectedFirstLevel, getSelectedSharedTags} from "@/core/selection/selection";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -86,7 +86,7 @@ test("Should find first level elements arranged by selection", () => {
 
     (getRange as jest.Mock).mockReturnValue(range);
 
-    const blocks = getSelectedFirstLevel(toFind);
+    const blocks = getSelectedBlock(toFind);
 
     expect(blocks).toStrictEqual([allParagraphs[0], allParagraphs[1], toFind]);
 });
@@ -105,7 +105,7 @@ test("Should find list elements arranged by selection", () => {
 
     (getRange as jest.Mock).mockReturnValue(range);
 
-    const blocks = getSelectedFirstLevel(toFind);
+    const blocks = getSelectedBlock(toFind);
 
     expect(blocks).toStrictEqual([allUls[0]?.querySelector("li"), allUls[1]?.querySelector("li")]);
 });

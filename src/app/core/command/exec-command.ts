@@ -1,6 +1,6 @@
 import {Action, Command} from "@/core/command/type/command";
 import {changeFirstLevel, isFirstLevelsEqualToTags, mergeLists, unwrap, wrap} from "@/core/command/util/command-util";
-import {getSelectedFirstLevel, getSelectedSharedTags} from "@/core/selection/selection";
+import {getSelectedBlock, getSelectedFirstLevel, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 
@@ -23,10 +23,11 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
 
     if (command.action === Action.FirstLevel) {
         const tags = (command.tag as string[]).map(tag => tag.toUpperCase());
-        const blocks = getSelectedFirstLevel(contentEditable);
+        const blocks = getSelectedBlock(contentEditable);
+        const firstLevels = getSelectedBlock(contentEditable);
 
         const updatedBlocks: HTMLElement[] = [];
-        const isParagraph = isFirstLevelsEqualToTags(tags, blocks);
+        const isParagraph = isFirstLevelsEqualToTags(tags, firstLevels);
         for (const block of blocks) {
             const updatedBlock = changeFirstLevel(isParagraph ? ["P"] : tags, block, contentEditable);
             updatedBlocks.push(updatedBlock);

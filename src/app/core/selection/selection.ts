@@ -27,6 +27,20 @@ export function getSelectedFirstLevel(findTill: HTMLElement): HTMLElement[] {
     return selected;
 }
 
+export function getSelectedBlock(findTill: HTMLElement): HTMLElement[] {
+    const selected: HTMLElement[] = [];
+    const leafNodes = getSelectedLeaves();
+
+    for (const leafNode of leafNodes) {
+        const block = getBlockElement(findTill, leafNode as HTMLElement);
+        if (!selected.includes(block)) {
+            selected.push(block);
+        }
+    }
+
+    return selected;
+}
+
 export function getSelectedElements() {
     return getSelectedLeaves().map(element => element.parentElement as Node);
 }

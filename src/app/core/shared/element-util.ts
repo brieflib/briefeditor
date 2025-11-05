@@ -1,17 +1,11 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export function getFirstLevelElement(findTill: HTMLElement, child: HTMLElement) {
-    let element: HTMLElement = child;
-
-    while (child !== findTill) {
-        element = child;
-        if (!child.parentElement) {
-            return element;
-        }
+    while (child.parentElement && child.parentElement !== findTill) {
         child = child.parentElement;
     }
 
-    return element;
+    return child;
 }
 
 export function getBlockElement(findTill: HTMLElement, child: HTMLElement) {
