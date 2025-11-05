@@ -80,7 +80,7 @@ describe("Should normalize tags", () => {
 });
 
 describe("Should remove tags", () => {
-    test("Should remove strong tag", () => {
+    test("Should remove strong tag from text", () => {
         const wrapper = document.createElement("div");
         const element = document.createElement("div");
         element.innerHTML = "<strong><u><i>bold bolditalic</i>par</u></strong>text";
@@ -91,7 +91,7 @@ describe("Should remove tags", () => {
         expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><u>par</u>text");
     });
 
-    test("Should remove strong and deleted tags", () => {
+    test("Should remove strong tag from div", () => {
         const wrapper = document.createElement("div");
         const element = document.createElement("div");
         element.innerHTML = "<strong><u><i>bold bolditalic</i><div><span>par</span><div>lorem</div></div></u></strong>text";

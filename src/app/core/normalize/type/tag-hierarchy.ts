@@ -15,6 +15,7 @@ tagHierarchy.set("TH", max);
 tagHierarchy.set("TR", max);
 tagHierarchy.set("TD", max);
 tagHierarchy.set("UL", max);
+tagHierarchy.set("OL", max);
 tagHierarchy.set("LI", max);
 tagHierarchy.set("DIV", max);
 tagHierarchy.set("P", max);

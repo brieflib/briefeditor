@@ -14,6 +14,7 @@ schema.set("A", [Display.NotCollapse]);
 schema.set("LI", [Display.List, Display.NotCollapse]);
 
 schema.set("UL", [Display.FirstLevel, Display.List]);
+schema.set("OL", [Display.FirstLevel, Display.List]);
 schema.set("DIV", [Display.FirstLevel]);
 schema.set("P", [Display.FirstLevel]);
 schema.set("H1", [Display.FirstLevel]);
@@ -29,7 +30,15 @@ export function isSchemaContain(element: Node | undefined, contains: Display[]) 
         return false;
     }
     const display = schema.get(element.nodeName) ?? [];
-    return display.some(element => contains.includes(element));
+    return display.some(nodeName => contains.includes(nodeName));
+}
+
+export function isSchemaContainNodeName(nodeName: string | undefined, contains: Display[]) {
+    if (!nodeName) {
+        return false;
+    }
+    const display = schema.get(nodeName) ?? [];
+    return display.some(nodeName => contains.includes(nodeName));
 }
 
 export function getOfType(displays: Display[]): string[] {

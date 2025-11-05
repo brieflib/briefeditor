@@ -8,6 +8,7 @@ import EmptyIcon from "@/component/toolbar-icon/empty-icon";
 import {Icon} from "@/component/toolbar-icon/type/icon";
 import BlockquoteIcon from "@/component/toolbar-icon/blockquote-icon";
 import UnorderedListIcon from "@/component/toolbar-icon/unordered-list-icon";
+import OrderedListIcon from "@/component/toolbar-icon/ordered-list-icon";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;
@@ -37,6 +38,7 @@ export default class Toolbar {
         this.addIcon(new BlockquoteIcon());
         this.addEmptyItem();
         this.addIcon(new UnorderedListIcon());
+        this.addIcon(new OrderedListIcon());
     }
 
     private addIcon(icon: Icon) {

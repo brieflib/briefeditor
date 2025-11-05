@@ -38,6 +38,10 @@
     fill: #444;
 }
 
+.thin {
+    stroke-width: 1;
+}
+
 .icon-svg {
     fill: #000;
 }
