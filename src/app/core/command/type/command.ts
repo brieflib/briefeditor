@@ -1,9 +1,11 @@
 export enum Action {
     Tag = "Tag",
-    FirstLevel = "FirstLevel"
+    FirstLevel = "FirstLevel",
+    PlusIndent = "PlusIndent",
+    MinusIndent = "MinusIndent",
 }
 
 export interface Command {
-    tag: string | string[],
-    action: Action
+    action: Action,
+    tag?: string | string[]
 }

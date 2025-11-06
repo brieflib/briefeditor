@@ -3,6 +3,7 @@ import {changeFirstLevel, isFirstLevelsEqualToTags, mergeLists, unwrap, wrap} fr
 import {getSelectedBlock, getSelectedFirstLevel, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
+import {plusIndent} from "@/core/list/list";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
     const cursorPosition = getSelectionOffset(contentEditable);
@@ -24,7 +25,7 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
     if (command.action === Action.FirstLevel) {
         const tags = (command.tag as string[]).map(tag => tag.toUpperCase());
         const blocks = getSelectedBlock(contentEditable);
-        const firstLevels = getSelectedBlock(contentEditable);
+        const firstLevels = getSelectedFirstLevel(contentEditable);
 
         const updatedBlocks: HTMLElement[] = [];
         const isParagraph = isFirstLevelsEqualToTags(tags, firstLevels);
@@ -32,9 +33,13 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
             const updatedBlock = changeFirstLevel(isParagraph ? ["P"] : tags, block, contentEditable);
             updatedBlocks.push(updatedBlock);
         }
-        if (!isParagraph && isSchemaContainNodeName(tags[0], [Display.List])) {
+        if (!isParagraph && isSchemaContainNodeName(tags[0], [Display.ListWrapper])) {
             mergeLists(contentEditable, updatedBlocks);
         }
+    }
+
+    if (command.action === Action.PlusIndent) {
+        plusIndent(contentEditable);
     }
 
     contentEditable.focus();

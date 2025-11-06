@@ -40,8 +40,8 @@ class ItalicIcon extends HTMLElement implements Icon {
         }
 
         this.button.addEventListener("click", () => execCommand({
-            tag: "EM",
-            action: Action.Tag
+            action: Action.Tag,
+            tag: "EM"
         }, contentEditable));
     }
 }

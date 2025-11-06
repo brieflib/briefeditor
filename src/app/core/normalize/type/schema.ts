@@ -3,6 +3,7 @@ export enum Display {
     NotCollapse = "NotCollapse",
     FirstLevel = "FirstLevel",
     List = "List",
+    ListWrapper = "ListWrapper"
 }
 
 const schema: Map<string, Display[]> = new Map<string, Display[]>();
@@ -13,8 +14,8 @@ schema.set("A", [Display.NotCollapse]);
 
 schema.set("LI", [Display.List, Display.NotCollapse]);
 
-schema.set("UL", [Display.FirstLevel, Display.List]);
-schema.set("OL", [Display.FirstLevel, Display.List]);
+schema.set("UL", [Display.FirstLevel, Display.ListWrapper]);
+schema.set("OL", [Display.FirstLevel, Display.ListWrapper]);
 schema.set("DIV", [Display.FirstLevel]);
 schema.set("P", [Display.FirstLevel]);
 schema.set("H1", [Display.FirstLevel]);

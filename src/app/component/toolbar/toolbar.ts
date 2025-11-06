@@ -9,6 +9,9 @@ import {Icon} from "@/component/toolbar-icon/type/icon";
 import BlockquoteIcon from "@/component/toolbar-icon/blockquote-icon";
 import UnorderedListIcon from "@/component/toolbar-icon/unordered-list-icon";
 import OrderedListIcon from "@/component/toolbar-icon/ordered-list-icon";
+import PlusIndentIcon from "@/component/toolbar-icon/plus-indent";
+import MinusIndentIcon from "@/component/toolbar-icon/minus-indent";
+import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;
@@ -24,7 +27,12 @@ export default class Toolbar {
         document.addEventListener("selectionchange", () => {
             const sharedTags = getSelectedSharedTags(contentEditable);
             for (const item of this.items) {
-                item.setActive(sharedTags);
+                if (item.setActive) {
+                    item.setActive(sharedTags);
+                }
+                if (item.setEnabled && sharedTags.filter(tag => isSchemaContainNodeName(tag, [Display.ListWrapper])).length !== 0) {
+                    item.setEnabled();
+                }
             }
         });
     }
@@ -39,6 +47,8 @@ export default class Toolbar {
         this.addEmptyItem();
         this.addIcon(new UnorderedListIcon());
         this.addIcon(new OrderedListIcon());
+        this.addIcon(new MinusIndentIcon());
+        this.addIcon(new PlusIndentIcon());
     }
 
     private addIcon(icon: Icon) {

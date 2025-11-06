@@ -140,13 +140,13 @@ export function mergeLists(contentEditable: HTMLElement, lists: HTMLElement[]) {
     const allLists: HTMLElement[] = lists.map(list => getFirstLevelElement(contentEditable, list));
 
     let previousList = allLists[0]?.previousSibling as HTMLElement;
-    while (previousList && isSchemaContain(previousList, [Display.List])) {
+    while (previousList && isSchemaContain(previousList, [Display.ListWrapper])) {
         allLists.unshift(previousList);
         previousList = previousList.previousSibling as HTMLElement;
     }
 
     let nextList = allLists[allLists.length - 1]?.nextSibling as HTMLElement;
-    while (nextList && isSchemaContain(nextList, [Display.List])) {
+    while (nextList && isSchemaContain(nextList, [Display.ListWrapper])) {
         allLists.push(nextList as HTMLElement);
         nextList = nextList.nextSibling as HTMLElement;
     }

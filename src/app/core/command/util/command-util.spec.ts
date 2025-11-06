@@ -204,6 +204,15 @@ describe("Change first level", () => {
 
         expect(toWrap.innerHTML).toBe("<ul><li>text1</li></ul><p>text2</p><ul><li>text3</li></ul>");
     });
+
+    test("Should insert unordered list", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<p><br></p>";
+
+        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
+
+        expect(toWrap.innerHTML).toBe("<ul><li><br></li></ul>");
+    });
 });
 
 describe("Merge lists", () => {

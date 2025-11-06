@@ -45,8 +45,8 @@ class OrderedListIcon extends HTMLElement implements Icon {
 
         this.button.addEventListener("click", () => {
             execCommand({
-                tag: ["OL", "LI"],
-                action: Action.FirstLevel
+                action: Action.FirstLevel,
+                tag: ["OL", "LI"]
             }, contentEditable);
         });
     }

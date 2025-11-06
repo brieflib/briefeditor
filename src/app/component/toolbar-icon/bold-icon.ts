@@ -39,8 +39,8 @@ class BoldIcon extends HTMLElement implements Icon {
         }
 
         this.button.addEventListener("click", () => execCommand({
-            tag: "STRONG",
-            action: Action.Tag
+            action: Action.Tag,
+            tag: "STRONG"
         }, contentEditable));
     }
 }

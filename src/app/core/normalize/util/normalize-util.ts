@@ -117,7 +117,7 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     }
 
     for (const child of element.childNodes) {
-        if (child.textContent || isSchemaContain(child, [Display.SelfClose])) {
+        if (child.textContent || isSchemaContain(child, [Display.SelfClose, Display.FirstLevel, Display.List])) {
             getLeafNodes(child, leafNodes);
         }
     }

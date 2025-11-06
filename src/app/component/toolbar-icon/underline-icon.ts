@@ -39,8 +39,8 @@ class UnderlineIcon extends HTMLElement implements Icon {
         }
 
         this.button.addEventListener("click", () => execCommand({
-            tag: "U",
-            action: Action.Tag
+            action: Action.Tag,
+            tag: "U"
         }, contentEditable));
     }
 }

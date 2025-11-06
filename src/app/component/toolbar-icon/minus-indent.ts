@@ -4,7 +4,7 @@ import {Icon} from "@/component/toolbar-icon/type/icon";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 
-class BlockquoteIcon extends HTMLElement implements Icon {
+class MinusIndentIcon extends HTMLElement implements Icon {
     private readonly button: HTMLElement | null;
 
     constructor() {
@@ -12,27 +12,15 @@ class BlockquoteIcon extends HTMLElement implements Icon {
         initShadowRoot(this, toolbarIconCss);
         this.shadowRoot.innerHTML = `
           <button type="button" class="icon" id="button">
-            <svg viewBox="0 1 18 18">
-              <rect class="fill stroke" height="3" width="3" x="4" y="5"></rect>
-              <rect class="fill stroke" height="3" width="3" x="11" y="5"></rect>
-              <path class="fill stroke" d="M7,8c0,4.031-3,5-3,5"></path>
-              <path class="fill stroke" d="M14,8c0,4.031-3,5-3,5"></path>
+            <svg viewBox="0 0 18 18">
+              <line class="stroke" x1="3" x2="15" y1="14" y2="14"></line>
+              <line class="stroke" x1="3" x2="15" y1="4" y2="4"></line>
+              <line class="stroke" x1="9" x2="15" y1="9" y2="9"></line>
+              <polyline class="stroke" points="5 7 5 11 3 9 5 7"></polyline>
             </svg>
           </button>
         `;
         this.button = this.shadowRoot.getElementById("button");
-    }
-
-    setActive(tags: string[]) {
-        if (!this.button) {
-            return;
-        }
-
-        if (tags.includes("BLOCKQUOTE")) {
-            this.button.className = "icon active"
-        } else {
-            this.button.className = "icon"
-        }
     }
 
     setContentEditable(contentEditable: HTMLElement) {
@@ -41,12 +29,11 @@ class BlockquoteIcon extends HTMLElement implements Icon {
         }
 
         this.button.addEventListener("click", () => execCommand({
-            action: Action.FirstLevel,
-            tag: ["BLOCKQUOTE"]
+            action: Action.PlusIndent
         }, contentEditable));
     }
 }
 
-customElements.define("blockquote-icon", BlockquoteIcon);
+customElements.define("minus-indent-icon", MinusIndentIcon);
 
-export default BlockquoteIcon;
+export default MinusIndentIcon;

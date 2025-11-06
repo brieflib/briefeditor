@@ -38,6 +38,18 @@
     fill: #444;
 }
 
+button[disabled] {
+    cursor: default;
+}
+
+button[disabled] .stroke {
+    stroke: #ccc;
+}
+
+button[disabled] .fill {
+    stroke: #ccc;
+}
+
 .thin {
     stroke-width: 1;
 }

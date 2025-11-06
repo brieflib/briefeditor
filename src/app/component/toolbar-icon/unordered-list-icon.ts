@@ -44,8 +44,8 @@ class UnorderedListIcon extends HTMLElement implements Icon {
 
         this.button.addEventListener("click", () => {
             execCommand({
-                tag: ["UL", "LI"],
-                action: Action.FirstLevel
+                action: Action.FirstLevel,
+                tag: ["UL", "LI"]
             }, contentEditable);
         });
     }

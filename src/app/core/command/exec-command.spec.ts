@@ -25,7 +25,7 @@ test("Should change multiple lists to paragraph", () => {
     (getRange as jest.Mock).mockReturnValue(range);
     (getSelectionOffset as jest.Mock).mockReturnValue({});
 
-    execCommand({tag: ["UL", "LI"], action: Action.FirstLevel}, toWrap);
+    execCommand({action: Action.FirstLevel, tag: ["UL", "LI"]}, toWrap);
 
     expect(toWrap.innerHTML).toBe("<p>first</p><p>second</p><p>third</p>");
 });

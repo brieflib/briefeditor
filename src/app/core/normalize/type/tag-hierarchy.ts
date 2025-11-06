@@ -18,6 +18,7 @@ tagHierarchy.set("UL", max);
 tagHierarchy.set("OL", max);
 tagHierarchy.set("LI", max);
 tagHierarchy.set("DIV", max);
+tagHierarchy.set("BLOCKQUOTE", max);
 tagHierarchy.set("P", max);
 tagHierarchy.set("H1", max);
 tagHierarchy.set("H2", max);
