@@ -14,7 +14,9 @@ export function wrap(tag: string, contentEditable: HTMLElement) {
     const endFirstLevel = getBlockElement(contentEditable, endContainer);
 
     if (startFirstLevel === endFirstLevel) {
-        wrapRangeInTag(range, tag, contentEditable);
+        wrapRangeInTag(range, tag);
+        const firstLevel = getFirstLevelElement(contentEditable, startFirstLevel);
+        normalize(contentEditable, firstLevel);
         return;
     }
 
@@ -23,21 +25,24 @@ export function wrap(tag: string, contentEditable: HTMLElement) {
 
         if (element === startContainer.parentElement as HTMLElement) {
             cloneRange.setEnd(element, element.childNodes.length);
-            wrapRangeInTag(cloneRange, tag, contentEditable);
+            wrapRangeInTag(cloneRange, tag);
             continue;
         }
 
         if (element === endContainer.parentElement as HTMLElement) {
             cloneRange.setStart(element, 0);
             cloneRange.setEnd(endContainer, endOffset);
-            wrapRangeInTag(cloneRange, tag, contentEditable);
+            wrapRangeInTag(cloneRange, tag);
             continue;
         }
 
         cloneRange.setStart(element, 0);
         cloneRange.setEnd(element, element.childNodes.length);
-        wrapRangeInTag(cloneRange, tag, contentEditable);
+        wrapRangeInTag(cloneRange, tag);
     }
+
+    const firstLevel = getFirstLevelElement(contentEditable, startFirstLevel);
+    normalize(contentEditable, firstLevel);
 }
 
 export function unwrap(tag: string, contentEditable: HTMLElement) {
@@ -95,13 +100,11 @@ export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElemen
     return true;
 }
 
-function wrapRangeInTag(range: Range, tag: string, contentEditable: HTMLElement) {
+function wrapRangeInTag(range: Range, tag: string) {
     const documentFragment: DocumentFragment = range.extractContents();
     const tagElement = document.createElement(tag);
     tagElement.appendChild(documentFragment);
     range.insertNode(tagElement);
-    const firstLevel = getFirstLevelElement(contentEditable, tagElement);
-    normalize(contentEditable, firstLevel);
 }
 
 function unwrapRangeFromTag(range: Range, tag: string, contentEditable: HTMLElement) {

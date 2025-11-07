@@ -42,5 +42,14 @@ export function getSelectedBlock(findTill: HTMLElement): HTMLElement[] {
 }
 
 export function getSelectedElements() {
-    return getSelectedLeaves().map(element => element.parentElement as Node);
+    const parents: HTMLElement[] = [];
+
+    for (const leafElement of getSelectedLeaves()) {
+        const parent = leafElement.parentElement as HTMLElement;
+        if (!parents.includes(parent)) {
+            parents.push(parent);
+        }
+    }
+
+    return parents;
 }
