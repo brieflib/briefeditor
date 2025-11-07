@@ -18,8 +18,8 @@ class Editor extends HTMLElement {
         document.getElementById("content").appendChild(contentEditable);
     }
 
-    addToolbarItem(toolbarIcon: HTMLElement) {
-        document.getElementById("toolbar").appendChild(toolbarIcon);
+    addToolbarItem(toolbar: HTMLElement) {
+        document.getElementById("toolbar").appendChild(toolbar);
     }
 }
 

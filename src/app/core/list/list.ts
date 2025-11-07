@@ -11,7 +11,7 @@ export function isPlusIndentEnabled(contentEditable: HTMLElement) {
         return false;
     }
 
-    if (!firstBlock.previousSibling || !isSchemaContain(firstBlock.previousSibling, [Display.List])) {
+    if (!firstBlock.previousElementSibling || !isSchemaContain(firstBlock.previousElementSibling, [Display.List, Display.ListWrapper])) {
         return false;
     }
 
@@ -29,32 +29,24 @@ export function plusIndent(contentEditable: HTMLElement) {
         return;
     }
 
-    let listWrapper: HTMLElement | undefined;
-    let previousList;
-    for (const block of getSelectedBlock(contentEditable)) {
-        if (!previousList) {
-            previousList = block.previousSibling;
-        }
-
-        const parent = block.parentElement;
-        if (!listWrapper && parent) {
-            listWrapper = document.createElement(parent.nodeName);
-        }
-
-        if (block.lastChild && isSchemaContain(block.lastChild, [Display.ListWrapper])) {
-            listWrapper = block.lastChild as HTMLElement;
-            const li = document.createElement("li");
-            li.append(...Array.from(block.childNodes).filter(node => node !== listWrapper as Node));
-            listWrapper.prepend(li);
-            continue;
-        }
-
-        listWrapper?.appendChild(block);
+    const lists = getSelectedBlock(contentEditable);
+    const firstList = lists[0];
+    if (!firstList) {
+        return;
     }
 
+    const previousList = firstList.previousSibling;
+    const parentElement = firstList.parentElement;
+    if (!previousList || !parentElement) {
+        return;
+    }
+
+    const listWrapper = document.createElement(parentElement.nodeName);
+    listWrapper.append(...lists);
+
     if (listWrapper && previousList) {
-        previousList.appendChild(listWrapper);
-        const firstLevel = getFirstLevelElement(contentEditable, previousList as HTMLElement);
+        previousList.after(listWrapper);
+        const firstLevel = getFirstLevelElement(contentEditable, listWrapper);
         normalize(contentEditable, firstLevel);
     }
 }

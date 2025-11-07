@@ -47,16 +47,15 @@ describe("Is plus indent enabled", () => {
         expect(isEnabled).toBe(false);
     });
 
-    test("Should not allow plus indent if previous li has different nesting", () => {
+    test("Should not allow plus indent if previous li has less nesting", () => {
         const wrapper = document.createElement("div");
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second
-                    <ul>
-                        <li>third</li>
-                    </ul>
-                </li>
+                <li>second</li>
+                <ul>
+                    <li>third</li>
+                </ul>  
             </ul>`);
 
         const range = new Range();
@@ -74,16 +73,33 @@ describe("Is plus indent enabled", () => {
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second
-                    <ul>
-                        <li>third</li>
-                    </ul>
-                </li>
+                <li>second</li>
+                <ul>
+                    <li>third</li>
+                </ul>                
             </ul>`);
 
         const range = new Range();
         range.setStart(wrapper.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
         range.setEnd(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "third".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isEnabled = isPlusIndentEnabled(wrapper);
+        expect(isEnabled).toBe(true);
+    });
+
+    test("Should allow plus indent for list", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>             
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelectorAll("ul > li")[1]?.firstChild as Node, "second".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
@@ -112,12 +128,11 @@ describe("Plus indent", () => {
         plusIndent(wrapper);
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
-                <li>first
-                    <ul>
-                        <li>second</li>
-                        <li>third</li>
-                    </ul>
-                </li>
+                <li>first</li>
+                <ul>
+                    <li>second</li>
+                    <li>third</li>
+                </ul>
             </ul>`));
     });
 
@@ -126,11 +141,10 @@ describe("Plus indent", () => {
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>se<strong>cond</strong>
-                    <ul>
-                        <li>third</li>
-                    </ul>
-                </li>
+                <li>se<strong>cond</strong></li>
+                <ul>
+                    <li>third</li>
+                </ul>                
             </ul>
         `);
 
@@ -143,12 +157,11 @@ describe("Plus indent", () => {
         plusIndent(wrapper);
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
-                <li>first
-                    <ul>
-                        <li>se<strong>cond</strong></li>
-                        <li>third</li>
-                    </ul>
-                </li>
+                <li>first</li>
+                <ul>
+                    <li>se<strong>cond</strong></li>
+                    <li>third</li>
+                </ul>
             </ul>
         `));
     });
@@ -158,16 +171,14 @@ describe("Plus indent", () => {
         wrapper.innerHTML = replaceSpaces(`
         <ul>
             <li>first</li>
-            <li>second
-                <ul>
-                  <li>third</li>
-                </ul>
-            </li>
-            <li>fourth
-                <ul>
-                  <li>fifth</li>
-                </ul>
-            </li>
+            <li>second</li>
+            <ul>
+              <li>third</li>
+            </ul>
+            <li>fourth</li>
+            <ul>
+              <li>fifth</li>
+            </ul>            
         </ul>
         `);
 
@@ -181,13 +192,12 @@ describe("Plus indent", () => {
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second
-                    <ul>
-                        <li>third</li>
-                        <li>fourth</li>
-                        <li>fifth</li>
-                    </ul>
-                </li>
+                <li>second</li>
+                <ul>
+                    <li>third</li>
+                    <li>fourth</li>
+                    <li>fifth</li>
+                </ul>
             </ul>
         `));
     });

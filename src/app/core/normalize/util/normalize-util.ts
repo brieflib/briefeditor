@@ -152,8 +152,13 @@ export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
     for (let i = 0; i < parents.length; i++) {
         const parent = parents[i];
         const nextParent = parents[i + 1];
+        if (parent && isSchemaContain(parent, [Display.Nested])) {
+            result.push(parent);
+            continue;
+        }
         if (parent && !nextParent) {
             result.push(parent);
+            continue;
         }
         if (parent && nextParent && parent.nodeName !== nextParent.nodeName) {
             result.push(parent);

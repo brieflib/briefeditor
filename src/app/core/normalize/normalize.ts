@@ -33,7 +33,6 @@ function replaceElement(leaves: Leaf[], parentElement: HTMLElement) {
     range.selectNode(parentElement);
     parentElement.remove();
     const fragment = collapseLeaves(leaves);
-
     const childNodes = fragment.firstChild?.childNodes;
     const innerFragment = new DocumentFragment();
     if (childNodes) {

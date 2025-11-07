@@ -139,16 +139,16 @@ export function mergeLists(contentEditable: HTMLElement, lists: HTMLElement[]) {
     const wrapper = document.createElement("DELETED");
     const allLists: HTMLElement[] = lists.map(list => getFirstLevelElement(contentEditable, list));
 
-    let previousList = allLists[0]?.previousSibling as HTMLElement;
+    let previousList = allLists[0]?.previousElementSibling as HTMLElement;
     while (previousList && isSchemaContain(previousList, [Display.ListWrapper])) {
         allLists.unshift(previousList);
-        previousList = previousList.previousSibling as HTMLElement;
+        previousList = previousList.previousElementSibling as HTMLElement;
     }
 
-    let nextList = allLists[allLists.length - 1]?.nextSibling as HTMLElement;
+    let nextList = allLists[allLists.length - 1]?.nextElementSibling;
     while (nextList && isSchemaContain(nextList, [Display.ListWrapper])) {
         allLists.push(nextList as HTMLElement);
-        nextList = nextList.nextSibling as HTMLElement;
+        nextList = nextList.nextElementSibling;
     }
 
     allLists[allLists.length - 1]?.after(wrapper);

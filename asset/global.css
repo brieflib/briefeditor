@@ -56,8 +56,12 @@ ul li {
     margin-top: 8px;
 }
 
-ul li li {
+ul ul li {
     margin-left: 16px;
+}
+
+ul ul ul li {
+    margin-left: 24px;
 }
 
 ol {
