@@ -6,68 +6,96 @@
     font-display: swap;
 }
 
-strong {
+.bf-editor {
+    visibility: visible !important;
+}
+
+.bf-editor strong {
     font-weight: bold;
 }
 
-em {
+.bf-editor em {
     font-style: italic;
 }
 
-h1, h2, h3, h4, h5 {
+.bf-editor h1, h2, h3, h4, h5 {
     margin-top: 20px;
     margin-bottom: 20px;
     font-weight: 500;
     line-height: 1.1;
 }
 
-h1 {
+.bf-editor h1 {
     font-size: 36px;
 }
 
-h2 {
+.bf-editor h2 {
     font-size: 30px;
 }
 
-h3 {
+.bf-editor h3 {
     font-size: 24px;
 }
 
-h4 {
+.bf-editor h4 {
     font-size: 18px;
 }
 
-h5 {
+.bf-editor h5 {
     font-size: 14px;
 }
 
-blockquote {
+.bf-editor blockquote {
     border-left: 4px solid #ccc;
     margin-bottom: 5px;
     margin-top: 5px;
     padding-left: 16px;
 }
 
-ul {
+.bf-editor ul {
     list-style: disc inside;
 }
 
-ul li {
+.bf-editor ul li {
     margin-top: 8px;
 }
 
-ul ul li {
+.bf-editor ul ul li {
     margin-left: 16px;
 }
 
-ul ul ul li {
+.bf-editor ul ul ul li {
     margin-left: 24px;
 }
 
-ol {
+.bf-editor ul ul ul ul li {
+    margin-left: 32px;
+}
+
+.bf-editor ul ul ul ul ul li {
+    margin-left: 40px;
+}
+
+.bf-editor ol {
     list-style: decimal inside;
 }
 
-ol li {
+.bf-editor ol li {
     margin-top: 8px;
+}
+
+.bf-editor ol ol li {
+    margin-left: 16px;
+}
+
+.bf-editor ol ol ol li {
+    margin-left: 24px;
+}
+
+.bf-editor ol ol ol ol li {
+    margin-left: 32px;
+}
+
+.bf-editor ol ol ol ol ol li {
+    margin-left: 40px;
 }

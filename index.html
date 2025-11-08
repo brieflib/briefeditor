@@ -4,16 +4,21 @@
     <meta charset="UTF-8"/>
     <link rel="icon" type="image/svg+xml" href="/asset/icon.svg"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        #bf-editor {
+            visibility: hidden;
+        }
+    </style>
     <title>Brief Editor</title>
 </head>
 <body>
 
-<div contenteditable="true"><p>Write text here</p></div>
+<div id="bf-editor"><p>Write text here</p></div>
 
 <script type="module">
     import BriefEditor from "/src/app/brief-editor";
 
-    new BriefEditor(document.querySelector("[contenteditable='true']"));
+    new BriefEditor(document.querySelector("#bf-editor"));
 </script>
 </body>
 </html>

@@ -3,7 +3,7 @@ import {changeFirstLevel, isFirstLevelsEqualToTags, mergeLists, unwrap, wrap} fr
 import {getSelectedBlock, getSelectedFirstLevel, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {plusIndent} from "@/core/list/list";
+import {minusIndent, plusIndent} from "@/core/list/list";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
     const cursorPosition = getSelectionOffset(contentEditable);
@@ -40,6 +40,10 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
 
     if (command.action === Action.PlusIndent) {
         plusIndent(contentEditable);
+    }
+
+    if (command.action === Action.MinusIndent) {
+        minusIndent(contentEditable);
     }
 
     contentEditable.focus();

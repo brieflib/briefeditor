@@ -1,17 +1,17 @@
-.content-editable-flex {
+.bf-content-editable-flex {
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.content-editable-container {
+.bf-content-editable-container {
     width: 80%;
     max-width: 1200px;
     height: 90vh;
     padding: 40px;
 }
 
-.content-editable-toolbar {
+.bf-content-editable-toolbar {
     display: flex;
 
     height: 40px;
@@ -20,16 +20,16 @@
     box-sizing: border-box;
 }
 
-.content-editable-scroll {
+.bf-content-editable-scroll {
     height: 100%;
     overflow: scroll;
 }
 
-.content-editable {
+.bf-editor {
     padding: 20px 8px;
     font-family: "InstrumentSans", sans-serif;
 }
 
-.content-editable:focus {
+.bf-editor:focus {
     outline: none;
 }

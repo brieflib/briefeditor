@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import {isPlusIndentEnabled, plusIndent} from "@/core/list/list";
+import {isMinusIndentEnabled, isPlusIndentEnabled, minusIndent, plusIndent} from "@/core/list/list";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -200,6 +200,253 @@ describe("Plus indent", () => {
                 </ul>
             </ul>
         `));
+    });
+
+    test("Should indent two lists with different nesting level", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+                <ul>
+                  <li>third</li>
+                </ul>           
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "third".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        plusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <ul>
+                    <li>second</li>
+                    <ul>
+                        <li>third</li>
+                    </ul>
+                </ul>           
+            </ul>
+        `));
+    });
+});
+
+describe("Is minus indent enabled", () => {
+    test("Should not allow minus indent for three direct descendant li", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+                <li>third</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > li")[0]?.firstChild as Node, "fi".length);
+        range.setEnd(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "th".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isEnabled = isMinusIndentEnabled(wrapper);
+        expect(isEnabled).toBe(false);
+    });
+
+    test("Should not allow minus indent if range contains not li elements", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+            </ul>
+            <p>third</p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > li")[0]?.firstChild as Node, "fi".length);
+        range.setEnd(wrapper.querySelector("p")?.firstChild as Node, "th".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isEnabled = isMinusIndentEnabled(wrapper);
+        expect(isEnabled).toBe(false);
+    });
+
+    test("Should allow minus indent for nested li", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+                <ul>
+                    <li>third</li>
+                </ul>
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "th".length);
+        range.setEnd(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "third".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isEnabled = isMinusIndentEnabled(wrapper);
+        expect(isEnabled).toBe(true);
+    });
+
+    test("Should not allow minus indent for list with one level deep nesting", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+                <ul>
+                    <li>third</li>
+                </ul>
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "third".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isEnabled = isMinusIndentEnabled(wrapper);
+        expect(isEnabled).toBe(false);
+    });
+
+    test("Should allow minus indent for two list  with deep level deep nesting", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <ul>
+                    <li>second</li>
+                    <li>third</li>
+                </ul>
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelectorAll("ul > ul > li")[1]?.firstChild as Node, "third".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isEnabled = isMinusIndentEnabled(wrapper);
+        expect(isEnabled).toBe(true);
+    });
+
+    test("Should not allow minus indent if next li has deeper nesting", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <ul>
+                    <li>second</li>
+                    <ul>
+                        <li>third</li>
+                    </ul>                    
+                </ul>
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "second".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isEnabled = isMinusIndentEnabled(wrapper);
+        expect(isEnabled).toBe(false);
+    });
+
+    test("Should allow minus indent for list with different nesting level", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+                <ul>
+                    <li>third</li>
+                    <ul>
+                        <li>fourth</li>
+                        <li>fifth</li>
+                    </ul>
+                </ul>
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "th".length);
+        range.setEnd(wrapper.querySelectorAll("ul > ul > ul > li")[0]?.firstChild as Node, "fourth".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isEnabled = isMinusIndentEnabled(wrapper);
+        expect(isEnabled).toBe(true);
+    });
+});
+
+describe("Minus indent", () => {
+    test("Should minus indent two nested lis", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+                <ul>
+                    <li>third</li>
+                    <li>fourth</li>
+                </ul>
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "th".length);
+        range.setEnd(wrapper.querySelectorAll("ul > ul > li")[1]?.firstChild as Node, "fourth".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        minusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+                <li>third</li>
+                <li>fourth</li>
+            </ul>`));
+    });
+
+    test("Should minus indent lists with different nesting level", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+                <ul>
+                    <li>third</li>
+                    <ul>
+                        <li>fourth</li>
+                    </ul>
+                </ul>
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "th".length);
+        range.setEnd(wrapper.querySelectorAll("ul > ul > ul > li")[0]?.firstChild as Node, "fourth".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        minusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+                <li>third</li>
+                <ul>
+                    <li>fourth</li>
+                </ul>
+            </ul>`));
     });
 });
 
