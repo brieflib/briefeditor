@@ -1,5 +1,8 @@
 import {changeFirstLevel, mergeLists, unwrap, wrap} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
+import {getSelectionOffset} from "@/core/cursor/cursor";
+import execCommand from "@/core/command/exec-command";
+import {Action} from "@/core/command/type/command";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -213,6 +216,33 @@ describe("Change first level", () => {
 
         expect(toWrap.innerHTML).toBe("<ul><li><br></li></ul>");
     });
+
+    test("Should change list with br to paragraph", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>first<br>second</li></ul>";
+
+        changeFirstLevel(["P"], toWrap.querySelector("ul > li") as HTMLElement, toWrap);
+
+        expect(toWrap.innerHTML).toBe("<p>first<br>second</p>");
+    });
+
+    test("Should change paragraph divided by br to list", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<p>first<br>second</p>";
+
+        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>first<br>second</li></ul>");
+    });
+
+    test("Should change paragraph with strong tag divided by br to list", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<p>fir<strong>st<br>se</strong>cond</p>";
+
+        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
+
+        expect(toWrap.innerHTML).toBe("");
+    });
 });
 
 describe("Merge lists", () => {
@@ -220,7 +250,7 @@ describe("Merge lists", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<ul><li>text1</li></ul><ul><li>text2</li></ul><ul><li>text3</li></ul>";
 
-        const lists = [toWrap.querySelectorAll("ul")[1]?.querySelector("li") as HTMLElement];
+        const lists = [toWrap.querySelectorAll("ul")[1]?.querySelector("li") as Node];
 
         mergeLists(toWrap, lists);
 
@@ -231,7 +261,7 @@ describe("Merge lists", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<ul><li>text1</li><li>text2</li></ul><ul><li>text3</li></ul>";
 
-        const lists = [toWrap.querySelectorAll("ul")[1]?.querySelector("li") as HTMLElement];
+        const lists = [toWrap.querySelectorAll("ul")[1]?.querySelector("li") as Node];
 
         mergeLists(toWrap, lists);
 

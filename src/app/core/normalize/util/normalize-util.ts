@@ -116,7 +116,7 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
         return leafNodes;
     }
 
-    for (const child of element.childNodes) {
+    for (const child of getChildNodesWithoutNewLines(element)) {
         if (child.textContent || isSchemaContain(child, [Display.SelfClose, Display.FirstLevel, Display.List])) {
             getLeafNodes(child, leafNodes);
         }
@@ -125,19 +125,69 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     return leafNodes;
 }
 
+function getChildNodesWithoutNewLines(element: Node): Node[] {
+    const nodes: Node[] = [];
+
+    for (const currentNode of element.childNodes) {
+        const lastNode = nodes[nodes.length - 1];
+
+        if (lastNode?.nodeType === Node.TEXT_NODE &&
+            currentNode.nodeType === Node.TEXT_NODE) {
+            (lastNode as Text).appendData(currentNode.textContent || '');
+        } else {
+            nodes.push(currentNode);
+        }
+    }
+
+    return nodes;
+}
+
 export function filterLeafParents(leaf: Leaf | null | undefined, element: Node, excludeTags: string[]) {
     if (leaf) {
         for (const toFilter of getLeafNodes(element)) {
             if (leaf.getParents().includes(toFilter)) {
-                if (leaf.getParents()) {
-                    leaf.setParents(leaf.getParents()
-                        .filter(parent => !excludeTags.includes(parent.nodeName)));
-                }
+                leaf.setParents(leaf.getParents()
+                    .filter(parent => !excludeTags.includes(parent.nodeName)));
             }
         }
     }
 
     return leaf;
+}
+
+export function replaceLeafParents(leaf: Leaf | null | undefined, element: Node, replaceFrom: string[], replaceTo: string[]) {
+    if (leaf) {
+        if (leaf.getParents() && leaf.getParents().includes(element)) {
+            const firstParent = leaf.getParents()[0];
+            if (firstParent && leaf.getParents().length === 1 && firstParent.nodeType === Node.TEXT_NODE) {
+                const parentsToReplace = getParentsToReplace(replaceTo);
+                parentsToReplace.push(firstParent);
+                leaf.setParents(parentsToReplace);
+                return leaf;
+            }
+
+            leaf.setParents(leaf.getParents()
+                .flatMap(parent => {
+                    if (replaceFrom.includes(parent.nodeName)) {
+                        return getParentsToReplace(replaceTo);
+                    }
+
+                    return parent;
+                }));
+        }
+    }
+
+    return leaf;
+}
+
+function getParentsToReplace(replaceTo: string[]) {
+    const parentsToReplace: Node[] = [];
+    for (const replace of replaceTo) {
+        const parentToReplace = document.createElement(replace);
+        parentsToReplace.push(parentToReplace);
+    }
+
+    return parentsToReplace;
 }
 
 export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
@@ -168,6 +218,23 @@ export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
     leaf.setParents(result);
 
     return leaf;
+}
+
+export function filterEmptyLists(leaf: Leaf | undefined) {
+    if (!leaf) {
+        return false;
+    }
+
+    const parents = leaf.getParents();
+    for (let i = 0; i < parents.length; i++) {
+        const parent = parents[i];
+        const nextParent = parents[i + 1];
+        if (isSchemaContain(parent, [Display.List]) && isSchemaContain(nextParent, [Display.SelfClose])) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function nodeToFragment(node: Node) {
@@ -214,7 +281,7 @@ function clearElementHTML(node: Node | undefined, existingElements: HTMLElement[
     if (existingElements.includes(element)) {
         element = (element as Node).cloneNode(false) as HTMLElement;
     } else {
-        (element as HTMLElement).innerHTML = "";
+        element.innerHTML = "";
     }
     existingElements.push(element);
 

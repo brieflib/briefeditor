@@ -1,4 +1,4 @@
-import normalize, {removeTag} from "@/core/normalize/normalize";
+import normalize, {removeTag, replaceTag} from "@/core/normalize/normalize";
 
 describe("Should normalize tags", () => {
     test("Should sort tags by priority", () => {
@@ -77,40 +77,48 @@ describe("Should normalize tags", () => {
         `;
         testNormalize(table, table);
     });
+
+    test("Should remove empty tags", () => {
+        const container = document.createElement("div");
+        container.innerHTML = "<div>text<ul><li></li></ul></div>";
+
+        const toRemove = container.querySelector("div") as HTMLElement;
+        normalize(container, toRemove);
+        expect(container.innerHTML).toBe("<div>text</div>");
+    });
 });
 
 describe("Should remove tags", () => {
     test("Should remove strong tag from text", () => {
         const wrapper = document.createElement("div");
-        const element = document.createElement("div");
-        element.innerHTML = "<strong><u><i>bold bolditalic</i>par</u></strong>text";
-        wrapper.appendChild(element);
+        wrapper.innerHTML = "<strong><u><i>bold bolditalic</i>par</u></strong>text";
 
-        const toRemoveTag = element.querySelector("strong > u")?.childNodes[1] as Node;
-        removeTag(element, toRemoveTag, element,["STRONG"]);
+        const toRemoveTag = wrapper.querySelector("strong > u")?.childNodes[1] as HTMLElement;
+        removeTag(wrapper, toRemoveTag, ["STRONG"]);
         expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><u>par</u>text");
     });
 
     test("Should remove strong tag from div", () => {
         const wrapper = document.createElement("div");
-        const element = document.createElement("div");
-        element.innerHTML = "<strong><u><i>bold bolditalic</i><div><span>par</span><div>lorem</div></div></u></strong>text";
-        wrapper.appendChild(element);
+        wrapper.innerHTML = "<strong><u><i>bold bolditalic</i><div><span>par</span><div>lorem</div></div></u></strong>text";
 
-        const toRemoveTag = element.querySelector("strong > u > div");
-        removeTag(element, toRemoveTag as Node, element, ["STRONG"]);
+        const toRemoveTag = wrapper.querySelector("strong > u > div");
+        removeTag(wrapper, toRemoveTag as HTMLElement, ["STRONG"]);
         expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><div><u><span>par</span>lorem</u></div>text");
     });
 });
 
-test("Should remove empty tags", () => {
-    const container = document.createElement("div");
-    container.innerHTML = "<div>text<ul><li></li></ul></div>";
+describe("Should replace tags", () => {
+    test("Should replace div tag with list", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = "<strong><u><i>bold bolditalic</i><div><span>par</span><p>lorem</p></div></u></strong>text";
 
-    const toRemove = container.querySelector("div") as HTMLElement;
-    normalize(container, toRemove);
-    expect(container.innerHTML).toBe("<div>text</div>");
+        const toReplaceTag = wrapper.querySelector("strong > u > div");
+        replaceTag(wrapper, toReplaceTag as HTMLElement, ["DIV"], ["UL", "LI"]);
+        expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><ul><li><strong><u><span>par</span></u></strong></li><li><p><strong><u>lorem</u></strong></p></li></ul>text");
+    });
 });
+
 
 function testNormalize(initial: string, result: string) {
     const wrapper = document.createElement("div");

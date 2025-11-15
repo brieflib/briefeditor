@@ -13,7 +13,7 @@ export function getSelectedSharedTags(findTill: HTMLElement) {
     return shared[0]?.filter(element => shared.every(arr => arr.includes(element))) ?? [];
 }
 
-export function getSelectedFirstLevel(findTill: HTMLElement): HTMLElement[] {
+export function getSelectedFirstLevels(findTill: HTMLElement): HTMLElement[] {
     const selected: HTMLElement[] = [];
     const leafNodes = getSelectedLeaves();
 

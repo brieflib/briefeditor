@@ -29,3 +29,19 @@ test("Should change multiple lists to paragraph", () => {
 
     expect(toWrap.innerHTML).toBe("<p>first</p><p>second</p><p>third</p>");
 });
+
+test("Should change paragraphs to list", () => {
+    const toWrap = document.createElement("div");
+    toWrap.innerHTML = "<p>first</p><p>second</p>";
+
+    const range = new Range();
+    range.setStart(toWrap.querySelectorAll("p")[0]?.firstChild as Node, "fi".length);
+    range.setEnd(toWrap.querySelectorAll("p")[1]?.firstChild as Node, "second".length);
+
+    (getRange as jest.Mock).mockReturnValue(range);
+    (getSelectionOffset as jest.Mock).mockReturnValue({});
+
+    execCommand({action: Action.FirstLevel, tag: ["UL", "LI"]}, toWrap);
+
+    expect(toWrap.innerHTML).toBe("<ul><li>first</li><li>second</li></ul>");
+});

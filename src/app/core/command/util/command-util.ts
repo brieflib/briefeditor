@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import normalize, {removeTag} from "@/core/normalize/normalize";
+import normalize, {removeTag, replaceTag} from "@/core/normalize/normalize";
 import {getBlockElement, getFirstLevelElement} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 import {getSelectedElements} from "@/core/selection/selection";
@@ -81,13 +81,10 @@ export function unwrap(tag: string, contentEditable: HTMLElement) {
     }
 }
 
-export function changeFirstLevel(tagsToAdd: string[], changeElement: HTMLElement, contentEditable: HTMLElement) {
-    const removeTagFrom = addTagsToElement(tagsToAdd, changeElement);
-    const tagsToDelete = getOfType([Display.FirstLevel, Display.List]).filter(item => !tagsToAdd.includes(item));
-    const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
+export function changeFirstLevel(replaceTo: string[], changeElement: HTMLElement, contentEditable: HTMLElement) {
+    const replaceFrom = getOfType([Display.FirstLevel, Display.List]).filter(item => !replaceTo.includes(item));
 
-    removeTag(contentEditable, removeTagFrom, firstLevel, tagsToDelete);
-    return removeTagFrom;
+    return replaceTag(contentEditable, changeElement, replaceFrom, replaceTo);
 }
 
 export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElement[]) {
@@ -115,36 +112,25 @@ function unwrapRangeFromTag(range: Range, tag: string, contentEditable: HTMLElem
     removeTagFrom.appendChild(documentFragment);
     cloneRange.insertNode(removeTagFrom);
 
-    const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
-    removeTag(contentEditable, removeTagFrom, firstLevel, [tag, "DELETED"]);
+    removeTag(contentEditable, removeTagFrom, [tag, "DELETED"]);
 }
 
-function addTagsToElement(tags: string[], toElement: HTMLElement): HTMLElement {
-    const replace = document.createElement(tags[0] ?? "P");
-
-    let lastChild;
-    for (let i = 1; i < tags.length; i++) {
-        const tag = tags[i];
-        if (tag) {
-            lastChild = document.createElement(tag);
-            replace.appendChild(lastChild);
-        }
+export function mergeLists(contentEditable: HTMLElement, lists: Node[]) {
+    if (!lists) {
+        return;
     }
 
-    toElement.after(replace);
-    const changeContent = replace.lastChild ? replace.lastChild : replace;
-    changeContent.appendChild(toElement);
-
-    return replace;
-}
-
-export function mergeLists(contentEditable: HTMLElement, lists: HTMLElement[]) {
     const wrapper = document.createElement("DELETED");
-    const allLists: HTMLElement[] = lists.map(list => getFirstLevelElement(contentEditable, list));
+    const allLists: HTMLElement[] = lists.map(list => getFirstLevelElement(contentEditable, list as HTMLElement));
 
-    let previousList = allLists[0]?.previousElementSibling as HTMLElement;
+    const firstList = allLists[0];
+    if (!firstList) {
+        return;
+    }
+
+    let previousList = firstList.previousElementSibling;
     while (previousList && isSchemaContain(previousList, [Display.ListWrapper])) {
-        allLists.unshift(previousList);
+        allLists.push(previousList as HTMLElement);
         previousList = previousList.previousElementSibling as HTMLElement;
     }
 
@@ -156,5 +142,5 @@ export function mergeLists(contentEditable: HTMLElement, lists: HTMLElement[]) {
 
     allLists[allLists.length - 1]?.after(wrapper);
     wrapper.append(...allLists);
-    removeTag(contentEditable, wrapper, wrapper, ["DELETED"]);
+    removeTag(contentEditable, wrapper, ["DELETED"]);
 }
