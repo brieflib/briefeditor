@@ -1,9 +1,7 @@
 import {getRange} from "@/core/shared/range-util";
 
-export function getSelectedLeaves() {
+export function getSelectedLeaves(range = getRange()) {
     const textNodes: Node[] = [];
-
-    const range = getRange();
 
     if (range.startContainer === range.endContainer) {
         return [range.startContainer];

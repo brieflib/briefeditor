@@ -3,6 +3,8 @@ export enum Action {
     FirstLevel = "FirstLevel",
     PlusIndent = "PlusIndent",
     MinusIndent = "MinusIndent",
+    Wrap = "Wrap",
+    Unwrap = "Unwrap",
 }
 
 export interface Command {

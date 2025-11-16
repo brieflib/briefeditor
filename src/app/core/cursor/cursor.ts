@@ -1,5 +1,5 @@
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {createRange, isOutsideElement} from "@/core/cursor/util/cursor-util";
+import {findNodeAndOffset, isOutsideElement} from "@/core/cursor/util/cursor-util";
 import {getRange} from "@/core/shared/range-util";
 
 export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition | null {
@@ -24,11 +24,33 @@ export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition
 }
 
 export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    const range: Range = createRange(contentEditable, cursorPosition);
+    const range: Range = restoreRange(contentEditable, cursorPosition);
     const selection: Selection | null = window.getSelection();
     if (!selection) {
         return;
     }
     selection.removeAllRanges();
     selection.addRange(range);
+}
+
+export function restoreRange(contentEditable: HTMLElement, cursorPosition: CursorPosition): Range {
+    const range: Range = getRange();
+    range.selectNode(contentEditable);
+
+    const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset);
+    const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset);
+
+    if (start.node) {
+        range.setStart(start.node, start.offset);
+    } else {
+        range.setStart(contentEditable, 0);
+    }
+
+    if (end.node) {
+        range.setEnd(end.node, end.offset);
+    } else {
+        range.setEnd(contentEditable, 0);
+    }
+
+    return range;
 }

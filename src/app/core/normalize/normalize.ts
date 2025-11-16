@@ -9,7 +9,7 @@ import {
 } from "@/core/normalize/util/normalize-util";
 import {Leaf} from "@/core/normalize/type/leaf";
 import {getRange} from "@/core/shared/range-util";
-import {getFirstLevelElement} from "@/core/shared/element-util";
+import {getBlockElement, getFirstLevelElement} from "@/core/shared/element-util";
 
 export default function normalize(contentEditable: HTMLElement, element: HTMLElement) {
     const leaves = getLeafNodes(element)
@@ -34,15 +34,25 @@ export function removeTag(contentEditable: HTMLElement, removeTagFrom: HTMLEleme
 
 export function replaceTag(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[]) {
     const firstLevel = getFirstLevelElement(contentEditable, replaceTagFrom);
+    const elementToReplace = buildElementsToReplace(replaceTo);
 
     const leaves = getLeafNodes(firstLevel)
         .map(node => setLeafParents(node, contentEditable))
-        .filter(leaf => replaceLeafParents(leaf, replaceTagFrom, replaceFrom, replaceTo))
+        .filter(leaf => replaceLeafParents(leaf, replaceTagFrom, replaceFrom, elementToReplace))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
-        //.filter(leaf => filterEmptyLists(leaf));
 
     return replaceElement(leaves, firstLevel);
+}
+
+function buildElementsToReplace(replaceTo: string[]) {
+    const elementsToReplace: HTMLElement[] = [];
+    for (const replaceTag of replaceTo) {
+        const element = document.createElement(replaceTag);
+        elementsToReplace.push(element);
+    }
+
+    return elementsToReplace;
 }
 
 function replaceElement(leaves: Leaf[], parentElement: HTMLElement) {
@@ -52,11 +62,8 @@ function replaceElement(leaves: Leaf[], parentElement: HTMLElement) {
     const fragment = collapseLeaves(leaves);
     const childNodes = fragment.firstChild?.childNodes;
     const innerFragment = new DocumentFragment();
-    const nodesToInsert: Node[] = [];
     if (childNodes) {
-        nodesToInsert.push(...childNodes);
         innerFragment.append(...childNodes);
     }
     range.insertNode(innerFragment);
-    return nodesToInsert;
 }

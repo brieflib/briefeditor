@@ -2,13 +2,13 @@ import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
-export function setLeafParents(leafElement: Node | null | undefined, findTill: HTMLElement, leaf: Leaf = new Leaf()) {
-    if (!leafElement) {
+export function setLeafParents(leafNode: Node | null | undefined, findTill: HTMLElement, leaf: Leaf = new Leaf()) {
+    if (!leafNode) {
         return;
     }
 
     const parents: HTMLElement[] = [];
-    let parent = leafElement.parentElement;
+    let parent = leafNode.parentElement;
 
     while (parent && parent !== findTill) {
         parents.unshift(parent);
@@ -18,7 +18,7 @@ export function setLeafParents(leafElement: Node | null | undefined, findTill: H
     for (const add of parents) {
         leaf.addParent(add);
     }
-    leaf.addParent(leafElement);
+    leaf.addParent(leafNode);
     return leaf;
 }
 
@@ -42,25 +42,24 @@ export function sortLeafParents(toSort: Leaf | undefined) {
 }
 
 export function collapseLeaves(leaves: Leaf[],
-                               container: DocumentFragment = nodeToFragment(document.createElement("div")),
-                               existingElements: HTMLElement[] = []) {
-    const sameConsecutive = getSameConsecutiveFirstParent(leaves);
+                               container: DocumentFragment = nodeToFragment(document.createElement("div"))) {
+    const parent = getSameFirstParent(leaves);
 
-    for (const leafGroup of sameConsecutive) {
+    for (const leafGroup of parent) {
         let firstParentElement = shiftFirstParent(leafGroup.leaves);
-        firstParentElement = clearElementHTML(firstParentElement, existingElements);
+        firstParentElement = clearElementHTML(firstParentElement);
 
         if (!firstParentElement) {
             return container;
         }
-        const fragment = collapseLeaves(leafGroup.leaves, nodeToFragment(firstParentElement), existingElements);
+        const fragment = collapseLeaves(leafGroup.leaves, nodeToFragment(firstParentElement));
         insertAfterLastChild(container, fragment);
     }
 
     return container;
 }
 
-export function getSameConsecutiveFirstParent(leaves: Leaf[]): LeafGroup[] {
+export function getSameFirstParent(leaves: Leaf[]): LeafGroup[] {
     const sameConsecutive: LeafGroup[] = [];
     let leafGroup: LeafGroup = {leaves: []};
 
@@ -77,7 +76,7 @@ export function getSameConsecutiveFirstParent(leaves: Leaf[]): LeafGroup[] {
             leafGroup.leaves.push(leaf);
         }
 
-        if (!isElementsEqual(leaf?.getParents()[0], nextLeaf?.getParents()[0])) {
+        if (!willElementsMerge(leaf?.getParents()[0], nextLeaf?.getParents()[0])) {
             sameConsecutive.push(leafGroup);
             leafGroup = {leaves: []};
         }
@@ -86,20 +85,16 @@ export function getSameConsecutiveFirstParent(leaves: Leaf[]): LeafGroup[] {
     return sameConsecutive;
 }
 
-function isElementsEqual(element: Node | undefined, compareTo: Node | undefined) {
+function willElementsMerge(element: Node | undefined, compareTo: Node | undefined) {
     if (!element && !compareTo) {
         return true;
-    }
-
-    if (isSchemaContain(element, [Display.SelfClose]) || isSchemaContain(compareTo, [Display.SelfClose])) {
-        return false;
     }
 
     if (element === compareTo) {
         return true;
     }
 
-    if (element?.nodeName === compareTo?.nodeName && !isSchemaContain(element, [Display.NotCollapse])) {
+    if (element?.nodeName === compareTo?.nodeName && isSchemaContain(element, [Display.Collapse])) {
         return true;
     }
 
@@ -116,30 +111,13 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
         return leafNodes;
     }
 
-    for (const child of getChildNodesWithoutNewLines(element)) {
+    for (const child of element.childNodes) {
         if (child.textContent || isSchemaContain(child, [Display.SelfClose, Display.FirstLevel, Display.List])) {
             getLeafNodes(child, leafNodes);
         }
     }
 
     return leafNodes;
-}
-
-function getChildNodesWithoutNewLines(element: Node): Node[] {
-    const nodes: Node[] = [];
-
-    for (const currentNode of element.childNodes) {
-        const lastNode = nodes[nodes.length - 1];
-
-        if (lastNode?.nodeType === Node.TEXT_NODE &&
-            currentNode.nodeType === Node.TEXT_NODE) {
-            (lastNode as Text).appendData(currentNode.textContent || '');
-        } else {
-            nodes.push(currentNode);
-        }
-    }
-
-    return nodes;
 }
 
 export function filterLeafParents(leaf: Leaf | null | undefined, element: Node, excludeTags: string[]) {
@@ -155,40 +133,36 @@ export function filterLeafParents(leaf: Leaf | null | undefined, element: Node, 
     return leaf;
 }
 
-export function replaceLeafParents(leaf: Leaf | null | undefined, element: Node, replaceFrom: string[], replaceTo: string[]) {
-    if (leaf) {
-        if (leaf.getParents() && leaf.getParents().includes(element)) {
-            const firstParent = leaf.getParents()[0];
-            if (firstParent && leaf.getParents().length === 1 && firstParent.nodeType === Node.TEXT_NODE) {
-                const parentsToReplace = getParentsToReplace(replaceTo);
-                parentsToReplace.push(firstParent);
-                leaf.setParents(parentsToReplace);
-                return leaf;
-            }
+export function replaceLeafParents(leaf: Leaf | null | undefined, element: Node, replaceFrom: string[], replaceToElement: HTMLElement[]) {
+    if (!leaf) {
+        return;
+    }
 
-            leaf.setParents(leaf.getParents()
-                .flatMap(parent => {
-                    if (replaceFrom.includes(parent.nodeName)) {
-                        return getParentsToReplace(replaceTo);
-                    }
+    if (leaf.getParents() && leaf.getParents().includes(element)) {
+        const parents = leaf.getParents()
+            .flatMap(parent => {
+                if (replaceFrom.includes(parent.nodeName)) {
+                    return replaceToElement;
+                }
 
-                    return parent;
-                }));
-        }
+                return parent;
+            });
+        leaf.setParents(parents);
     }
 
     return leaf;
 }
 
-function getParentsToReplace(replaceTo: string[]) {
-    const parentsToReplace: Node[] = [];
-    for (const replace of replaceTo) {
-        const parentToReplace = document.createElement(replace);
-        parentsToReplace.push(parentToReplace);
-    }
-
-    return parentsToReplace;
-}
+//
+// function getParentsToReplace(replaceTo: string[]) {
+//     const parentsToReplace: Node[] = [];
+//     for (const replace of replaceTo) {
+//         const parentToReplace = document.createElement(replace);
+//         parentsToReplace.push(parentToReplace);
+//     }
+//
+//     return parentsToReplace;
+// }
 
 export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
     const parents = leaf.getParents();
@@ -199,42 +173,32 @@ export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
 
     const result: Node[] = [];
 
-    for (let i = 0; i < parents.length; i++) {
+    for (let i = 0; i <= parents.length; i++) {
         const parent = parents[i];
         const nextParent = parents[i + 1];
-        if (parent && isSchemaContain(parent, [Display.Nested])) {
-            result.push(parent);
+
+        if (!parent) {
             continue;
         }
-        if (parent && !nextParent) {
+
+        if (i === 0) {
             result.push(parent);
+        }
+        if (!nextParent) {
             continue;
         }
-        if (parent && nextParent && parent.nodeName !== nextParent.nodeName) {
-            result.push(parent);
+        if (isSchemaContain(nextParent, [Display.Nested])) {
+            result.push(nextParent);
+            continue;
+        }
+        if (parent.nodeName !== nextParent.nodeName) {
+            result.push(nextParent);
         }
     }
 
     leaf.setParents(result);
 
     return leaf;
-}
-
-export function filterEmptyLists(leaf: Leaf | undefined) {
-    if (!leaf) {
-        return false;
-    }
-
-    const parents = leaf.getParents();
-    for (let i = 0; i < parents.length; i++) {
-        const parent = parents[i];
-        const nextParent = parents[i + 1];
-        if (isSchemaContain(parent, [Display.List]) && isSchemaContain(nextParent, [Display.SelfClose])) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 function nodeToFragment(node: Node) {
@@ -252,23 +216,13 @@ function insertAfterLastChild(container: DocumentFragment, element: DocumentFrag
 function shiftFirstParent(leaves: Leaf[]) {
     let node;
     for (const leaf of leaves) {
-        const parent = leaf.getParents().shift();
-        if (parent && parent.nodeType === Node.TEXT_NODE) {
-            const text = parent.textContent;
-            if (!node) {
-                node = parent;
-            } else if (text) {
-                (node as Text).appendData(text);
-            }
-        } else {
-            node = parent;
-        }
+        node = leaf.getParents().shift();
     }
 
     return node;
 }
 
-function clearElementHTML(node: Node | undefined, existingElements: HTMLElement[]) {
+function clearElementHTML(node: Node | undefined) {
     if (!node) {
         return;
     }
@@ -277,13 +231,5 @@ function clearElementHTML(node: Node | undefined, existingElements: HTMLElement[
         return node;
     }
 
-    let element = node as HTMLElement;
-    if (existingElements.includes(element)) {
-        element = (element as Node).cloneNode(false) as HTMLElement;
-    } else {
-        element.innerHTML = "";
-    }
-    existingElements.push(element);
-
-    return element;
+    return node.cloneNode(false) as HTMLElement;
 }

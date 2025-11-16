@@ -86,6 +86,11 @@ describe("Should normalize tags", () => {
         normalize(container, toRemove);
         expect(container.innerHTML).toBe("<div>text</div>");
     });
+
+    test("Should duplicate paragraphs", () => {
+        testNormalize("<p><strong>first</strong>second </p><p>third</p>",
+            "<p><strong>first</strong>second </p><p>third</p>");
+    });
 });
 
 describe("Should remove tags", () => {
@@ -115,10 +120,9 @@ describe("Should replace tags", () => {
 
         const toReplaceTag = wrapper.querySelector("strong > u > div");
         replaceTag(wrapper, toReplaceTag as HTMLElement, ["DIV"], ["UL", "LI"]);
-        expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><ul><li><strong><u><span>par</span></u></strong></li><li><p><strong><u>lorem</u></strong></p></li></ul>text");
+        expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><ul><li><strong><u><span>par</span></u></strong><p><strong><u>lorem</u></strong></p></li></ul>text");
     });
 });
-
 
 function testNormalize(initial: string, result: string) {
     const wrapper = document.createElement("div");

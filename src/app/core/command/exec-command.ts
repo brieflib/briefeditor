@@ -1,9 +1,8 @@
 import {Action, Command} from "@/core/command/type/command";
-import {changeFirstLevel, isFirstLevelsEqualToTags, mergeLists, unwrap, wrap} from "@/core/command/util/command-util";
-import {getSelectedBlock, getSelectedFirstLevels, getSelectedSharedTags} from "@/core/selection/selection";
+import {firstLevel, tag} from "@/core/command/util/command-util";
+import {getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 import {minusIndent, plusIndent} from "@/core/list/list";
-import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
     const cursorPosition = getSelectionOffset(contentEditable);
@@ -13,32 +12,17 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
 
     if (command.action === Action.Tag) {
         const sharedTags: string[] = getSelectedSharedTags(contentEditable);
-        const tag = (command.tag as string).toUpperCase();
+        const tagName = (command.tag as string).toUpperCase();
 
-        if (sharedTags.includes(tag)) {
-            unwrap(tag, contentEditable);
+        if (sharedTags.includes(tagName)) {
+            tag(tagName, contentEditable, Action.Unwrap);
         } else {
-            wrap(tag, contentEditable);
+            tag(tagName, contentEditable, Action.Wrap);
         }
     }
 
     if (command.action === Action.FirstLevel) {
-        const tags = (command.tag as string[]).map(tag => tag.toUpperCase());
-        const blocks = getSelectedBlock(contentEditable);
-        const firstLevels = getSelectedFirstLevels(contentEditable);
-        const updatedBlocks: Node[] = [];
-
-        const isParagraph = isFirstLevelsEqualToTags(tags, firstLevels);
-        for (const block of blocks) {
-            const updatedBlock = changeFirstLevel(isParagraph ? ["P"] : tags, block, contentEditable);
-            if (!updatedBlock) {
-                continue;
-            }
-            updatedBlocks.push(...updatedBlock);
-        }
-        if (!isParagraph && isSchemaContainNodeName(tags[0], [Display.ListWrapper])) {
-            mergeLists(contentEditable, updatedBlocks);
-        }
+        firstLevel(contentEditable, command.tag);
     }
 
     if (command.action === Action.PlusIndent) {

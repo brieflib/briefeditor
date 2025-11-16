@@ -74,21 +74,21 @@ describe("Shared tags", () => {
 
 test("Should find first level elements arranged by selection", () => {
     const toFind = document.createElement("div");
-    toFind.innerHTML = "<p><strong>bolditalic</strong></p><p>paragraph</p>text";
+    toFind.innerHTML = "<p><strong>bolditalic</strong></p><p>paragraph</p>";
     document.body.appendChild(toFind);
 
     const range = new Range();
     const allParagraphs = toFind.querySelectorAll("p");
     const start = allParagraphs[0]?.querySelector("strong")?.firstChild;
     range.setStart(start as Node, "bold".length);
-    const end = toFind.lastChild;
-    range.setEnd(end as Node, "te".length);
+    const end = allParagraphs[1]?.firstChild;
+    range.setEnd(end as Node, "pa".length);
 
     (getRange as jest.Mock).mockReturnValue(range);
 
     const blocks = getSelectedBlock(toFind);
 
-    expect(blocks).toStrictEqual([allParagraphs[0], allParagraphs[1], toFind]);
+    expect(blocks).toStrictEqual([allParagraphs[0], allParagraphs[1]]);
 });
 
 test("Should find list elements arranged by selection", () => {

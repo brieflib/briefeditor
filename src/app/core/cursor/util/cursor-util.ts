@@ -7,28 +7,6 @@ interface NodeOffset {
     offset: number
 }
 
-export function createRange(contentEditable: HTMLElement, cursorPosition: CursorPosition): Range {
-    const range: Range = getRange();
-    range.selectNode(contentEditable);
-
-    const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset);
-    const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset);
-
-    if (start.node) {
-        range.setStart(start.node, start.offset);
-    } else {
-        range.setStart(contentEditable, 0);
-    }
-
-    if (end.node) {
-        range.setEnd(end.node, end.offset);
-    } else {
-        range.setEnd(contentEditable, 0);
-    }
-
-    return range;
-}
-
 export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: number): NodeOffset {
     let position = 0;
     const stack = [contentEditable];

@@ -2,7 +2,7 @@ import {
     collapseLeaves,
     filterLeafParents,
     getLeafNodes,
-    getSameConsecutiveFirstParent,
+    getSameFirstParent,
     removeConsecutiveDuplicates,
     setLeafParents,
     sortLeafParents
@@ -55,7 +55,7 @@ describe("Find leaves with same first parent", () => {
         toFind.push(createLeaf("second", ["STRONG", "EM", "SPAN"]));
         toFind.push(createLeaf("third", ["EM", "DIV"]));
 
-        const leafGroup = getSameConsecutiveFirstParent(toFind);
+        const leafGroup = getSameFirstParent(toFind);
 
         expect(leafGroup[0]?.leaves[0]).toBe(toFind[0]);
         expect(leafGroup[0]?.leaves[1]).toBe(toFind[1]);
@@ -69,7 +69,7 @@ describe("Find leaves with same first parent", () => {
         toFind.push(createLeaf("second", ["EM", "CUSTOM"]));
         toFind.push(createLeaf("third", ["EM", "DIV"]));
 
-        const leafGroup = getSameConsecutiveFirstParent(toFind);
+        const leafGroup = getSameFirstParent(toFind);
 
         expect(leafGroup[0]?.leaves[0]).toBe(toFind[0]);
         expect(leafGroup[1]?.leaves[0]).toBe(toFind[1]);
@@ -81,7 +81,7 @@ describe("Find leaves with same first parent", () => {
         const toFind: Leaf[] = [];
         toFind.push(createLeaf("first", ["STRONG", "EM", "DIV", "SPAN"]));
 
-        const leafGroup = getSameConsecutiveFirstParent(toFind);
+        const leafGroup = getSameFirstParent(toFind);
 
         expect(leafGroup[0]?.leaves[0]).toBe(toFind[0]);
         expect(leafGroup.length).toBe(1);
@@ -93,7 +93,7 @@ describe("Find leaves with same first parent", () => {
         toFind.push(createLeaf("second", ["SPAN"]));
         toFind.push(createLeaf("third", ["STRONG"]));
 
-        const leafGroup = getSameConsecutiveFirstParent(toFind);
+        const leafGroup = getSameFirstParent(toFind);
 
         expect(leafGroup[0]?.leaves[0]).toBe(toFind[0]);
         expect(leafGroup[1]?.leaves[0]).toBe(toFind[1]);
@@ -107,7 +107,7 @@ describe("Find leaves with same first parent", () => {
         toFind.push(createLeaf("second", ["STRONG"]));
         toFind.push(createLeaf("third", ["STRONG"]));
 
-        const leafGroup = getSameConsecutiveFirstParent(toFind);
+        const leafGroup = getSameFirstParent(toFind);
 
         expect(leafGroup[0]?.leaves[0]).toBe(toFind[0]);
         expect(leafGroup[1]?.leaves[0]).toBe(toFind[1]);

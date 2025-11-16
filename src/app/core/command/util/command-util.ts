@@ -1,10 +1,18 @@
 import {getRange} from "@/core/shared/range-util";
 import normalize, {removeTag, replaceTag} from "@/core/normalize/normalize";
 import {getBlockElement, getFirstLevelElement} from "@/core/shared/element-util";
-import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
-import {getSelectedElements} from "@/core/selection/selection";
+import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
+import {getSelectedBlock, getSelectedElements, getSelectedFirstLevels} from "@/core/selection/selection";
+import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
+import {Action} from "@/core/command/type/command";
+import {CursorPosition} from "@/core/cursor/type/cursor-position";
 
-export function wrap(tag: string, contentEditable: HTMLElement) {
+export function tag(tag: string, contentEditable: HTMLElement, action: Action) {
+    const initialCursorPosition = getSelectionOffset(contentEditable);
+    if (!initialCursorPosition) {
+        return;
+    }
+
     const range: Range = getRange();
 
     const startContainer = range.startContainer as HTMLElement;
@@ -14,71 +22,108 @@ export function wrap(tag: string, contentEditable: HTMLElement) {
     const endFirstLevel = getBlockElement(contentEditable, endContainer);
 
     if (startFirstLevel === endFirstLevel) {
-        wrapRangeInTag(range, tag);
-        const firstLevel = getFirstLevelElement(contentEditable, startFirstLevel);
-        normalize(contentEditable, firstLevel);
+        switch (action) {
+            case Action.Wrap:
+                wrapRangeInTag(contentEditable, range, tag);
+                break
+            case Action.Unwrap:
+                unwrapRangeFromTag(contentEditable, range, tag);
+                break;
+        }
         return;
     }
 
-    for (const element of getSelectedElements()) {
+    const length = getSelectedElements(range).length;
+    for (let i = 0; i < length; i++) {
+        const initialRange = restoreRange(contentEditable, initialCursorPosition);
+        const element = getSelectedElements(initialRange)[i];
+        if (!element) {
+            continue;
+        }
         const cloneRange = range.cloneRange();
 
         if (element === startContainer.parentElement as HTMLElement) {
             cloneRange.setEnd(element, element.childNodes.length);
-            wrapRangeInTag(cloneRange, tag);
+            switch (action) {
+                case Action.Wrap:
+                    wrapRangeInTag(contentEditable, cloneRange, tag);
+                    break
+                case Action.Unwrap:
+                    unwrapRangeFromTag(contentEditable, cloneRange, tag);
+                    break;
+            }
             continue;
         }
 
         if (element === endContainer.parentElement as HTMLElement) {
             cloneRange.setStart(element, 0);
             cloneRange.setEnd(endContainer, endOffset);
-            wrapRangeInTag(cloneRange, tag);
+            switch (action) {
+                case Action.Wrap:
+                    wrapRangeInTag(contentEditable, cloneRange, tag);
+                    break
+                case Action.Unwrap:
+                    unwrapRangeFromTag(contentEditable, cloneRange, tag);
+                    break;
+            }
             continue;
         }
 
         cloneRange.setStart(element, 0);
         cloneRange.setEnd(element, element.childNodes.length);
-        wrapRangeInTag(cloneRange, tag);
+        switch (action) {
+            case Action.Wrap:
+                wrapRangeInTag(contentEditable, cloneRange, tag);
+                break
+            case Action.Unwrap:
+                unwrapRangeFromTag(contentEditable, cloneRange, tag);
+                break;
+        }
     }
-
-    const firstLevel = getFirstLevelElement(contentEditable, startFirstLevel);
-    normalize(contentEditable, firstLevel);
 }
 
-export function unwrap(tag: string, contentEditable: HTMLElement) {
-    const range: Range = getRange();
-
-    const startContainer = range.startContainer as HTMLElement;
-    const endContainer = range.endContainer as HTMLElement;
-    const endOffset = range.endOffset;
-    const startFirstLevel = getBlockElement(contentEditable, startContainer);
-    const endFirstLevel = getBlockElement(contentEditable, endContainer);
-
-    if (startFirstLevel === endFirstLevel) {
-        unwrapRangeFromTag(range, tag, contentEditable);
+export function firstLevel(contentEditable: HTMLElement, tag: string | string[] | undefined) {
+    const initialCursorPosition = getSelectionOffset(contentEditable);
+    if (!initialCursorPosition) {
         return;
     }
 
-    for (const element of getSelectedElements()) {
-        const cloneRange = range.cloneRange();
+    const tags = (tag as string[]).map(tag => tag.toUpperCase());
+    const firstLevels = getSelectedFirstLevels(contentEditable);
+    const isParagraph = isFirstLevelsEqualToTags(tags, firstLevels);
+    const blocks = getSelectedBlock(contentEditable, getRange());
 
-        if (element === startContainer.parentElement as HTMLElement) {
-            cloneRange.setEnd(element, element.childNodes.length);
-            unwrapRangeFromTag(cloneRange, tag, contentEditable);
+    for (let i = 0; i < blocks.length; i++) {
+        let block = getBlock(contentEditable, initialCursorPosition, i);
+        if (!block) {
             continue;
         }
-
-        if (element === endContainer.parentElement as HTMLElement) {
-            cloneRange.setStart(element, 0);
-            cloneRange.setEnd(endContainer, endOffset);
-            unwrapRangeFromTag(cloneRange, tag, contentEditable);
-            continue;
-        }
-
-        cloneRange.setStart(element, 0);
-        cloneRange.setEnd(element, element.childNodes.length);
-        unwrapRangeFromTag(cloneRange, tag, contentEditable);
+        changeFirstLevel(isParagraph ? ["P"] : tags, block, contentEditable);
     }
+    const updatedBlocks: Node[] = [];
+    for (let i = 0; i < blocks.length; i++) {
+        const block = getBlock(contentEditable, initialCursorPosition, i);
+        if (!block) {
+            continue;
+        }
+        updatedBlocks.push(block);
+    }
+    if (!isParagraph && isSchemaContainNodeName(tags[0], [Display.ListWrapper])) {
+        mergeLists(contentEditable, updatedBlocks);
+    }
+    for (let i = 0; i < blocks.length; i++) {
+        const block = getBlock(contentEditable, initialCursorPosition, i);
+        if (!block) {
+            continue;
+        }
+        const firstLevel = getFirstLevelElement(contentEditable, block as HTMLElement);
+        normalize(contentEditable, firstLevel);
+    }
+}
+
+function getBlock(contentEditable: HTMLElement, initialCursorPosition: CursorPosition, i: number) {
+    const initialRange = restoreRange(contentEditable, initialCursorPosition);
+    return getSelectedBlock(contentEditable, initialRange)[i];
 }
 
 export function changeFirstLevel(replaceTo: string[], changeElement: HTMLElement, contentEditable: HTMLElement) {
@@ -97,20 +142,21 @@ export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElemen
     return true;
 }
 
-function wrapRangeInTag(range: Range, tag: string) {
+function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string) {
     const documentFragment: DocumentFragment = range.extractContents();
     const tagElement = document.createElement(tag);
     tagElement.appendChild(documentFragment);
     range.insertNode(tagElement);
+    const firstLevel = getFirstLevelElement(contentEditable, tagElement);
+    normalize(contentEditable, firstLevel);
 }
 
-function unwrapRangeFromTag(range: Range, tag: string, contentEditable: HTMLElement) {
-    const cloneRange: Range = range.cloneRange();
-    const documentFragment: DocumentFragment = cloneRange.extractContents();
+function unwrapRangeFromTag(contentEditable: HTMLElement, range: Range, tag: string) {
+    const documentFragment: DocumentFragment = range.extractContents();
 
     const removeTagFrom = document.createElement("DELETED");
     removeTagFrom.appendChild(documentFragment);
-    cloneRange.insertNode(removeTagFrom);
+    range.insertNode(removeTagFrom);
 
     removeTag(contentEditable, removeTagFrom, [tag, "DELETED"]);
 }

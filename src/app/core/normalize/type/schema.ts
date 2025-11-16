@@ -1,6 +1,6 @@
 export enum Display {
     SelfClose = "SelfClose",
-    NotCollapse = "NotCollapse",
+    Collapse = "Collapse",
     FirstLevel = "FirstLevel",
     List = "List",
     ListWrapper = "ListWrapper",
@@ -11,12 +11,11 @@ const schema: Map<string, Display[]> = new Map<string, Display[]>();
 schema.set("BR", [Display.SelfClose]);
 schema.set("IMG", [Display.SelfClose]);
 
-schema.set("A", [Display.NotCollapse]);
+schema.set("LI", [Display.List]);
 
-schema.set("LI", [Display.List, Display.NotCollapse]);
+schema.set("UL", [Display.FirstLevel, Display.ListWrapper, Display.Nested, Display.Collapse]);
+schema.set("OL", [Display.FirstLevel, Display.ListWrapper, Display.Nested, Display.Collapse]);
 
-schema.set("UL", [Display.FirstLevel, Display.ListWrapper, Display.Nested]);
-schema.set("OL", [Display.FirstLevel, Display.ListWrapper, Display.Nested]);
 schema.set("DIV", [Display.FirstLevel]);
 schema.set("P", [Display.FirstLevel]);
 schema.set("H1", [Display.FirstLevel]);
@@ -25,7 +24,14 @@ schema.set("H3", [Display.FirstLevel]);
 schema.set("H4", [Display.FirstLevel]);
 schema.set("H5", [Display.FirstLevel]);
 schema.set("H6", [Display.FirstLevel]);
-schema.set("BLOCKQUOTE", [Display.FirstLevel, Display.Nested]);
+schema.set("BLOCKQUOTE", [Display.FirstLevel]);
+
+schema.set("STRONG", [Display.Collapse]);
+schema.set("EM", [Display.Collapse]);
+schema.set("U", [Display.Collapse]);
+
+schema.set("A", []);
+schema.set("#text", []);
 
 export function isSchemaContain(element: Node | undefined, contains: Display[]) {
     if (!element) {

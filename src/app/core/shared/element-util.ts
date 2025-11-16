@@ -9,7 +9,7 @@ export function getFirstLevelElement(findTill: HTMLElement, child: HTMLElement) 
 }
 
 export function getBlockElement(findTill: HTMLElement, child: HTMLElement) {
-    while (child !== findTill && !isSchemaContain(child, [Display.FirstLevel, Display.List])) {
+    while (child.parentElement !== findTill && !isSchemaContain(child, [Display.FirstLevel, Display.List])) {
         if (!child.parentElement) {
             return child;
         }
