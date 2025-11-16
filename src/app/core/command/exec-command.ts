@@ -1,8 +1,9 @@
 import {Action, Command} from "@/core/command/type/command";
-import {firstLevel, tag} from "@/core/command/util/command-util";
-import {getSelectedSharedTags} from "@/core/selection/selection";
+import {firstLevel, isElementsEqualToTags, listWrapper, tag} from "@/core/command/util/command-util";
+import {getSelectedListWrapper, getSelectedRoot, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
-import {minusIndent, plusIndent} from "@/core/list/list";
+import {isMinusIndentEnabled, minusIndent, plusIndent} from "@/core/list/list";
+import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
     const cursorPosition = getSelectionOffset(contentEditable);
@@ -22,7 +23,23 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
     }
 
     if (command.action === Action.FirstLevel) {
-        firstLevel(contentEditable, command.tag);
+        let tags = (command.tag as string[]).map(tag => tag.toUpperCase());
+        const rootElement = getSelectedRoot(contentEditable);
+        const isParagraph = isElementsEqualToTags(tags, rootElement);
+        if (isSchemaContainNodeName(tags[0], [Display.ListWrapper])) {
+            const listWrapperElement = getSelectedListWrapper(contentEditable);
+            if ((isElementsEqualToTags(["UL"], listWrapperElement) || isElementsEqualToTags(["OL"], listWrapperElement))
+                && isMinusIndentEnabled(contentEditable)) {
+                tags = [tags[0]];
+                listWrapper(contentEditable, tags);
+                return;
+            }
+        }
+
+        if (isParagraph) {
+            tags = ["P"];
+        }
+        firstLevel(contentEditable, tags);
     }
 
     if (command.action === Action.PlusIndent) {

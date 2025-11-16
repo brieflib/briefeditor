@@ -1,13 +1,11 @@
-import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {getFirstLevelElement} from "@/core/shared/element-util";
-import {getRange} from "@/core/shared/range-util";
+import {getNextElement, getRootElement} from "@/core/shared/element-util";
 
 interface NodeOffset {
     node: HTMLElement | null,
     offset: number
 }
 
-export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: number): NodeOffset {
+export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: number, shift: number): NodeOffset {
     let position = 0;
     const stack = [contentEditable];
     while (stack.length > 0) {
@@ -20,6 +18,12 @@ export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: 
             const textContentLength = current.textContent?.length ?? 0;
 
             if (position + textContentLength >= targetPosition) {
+                if (shift === 1) {
+                    const node = getNextElement(contentEditable, current as HTMLElement);
+                    if (node) {
+                        return {node: node as HTMLElement, offset: 0};
+                    }
+                }
                 return {node: current as HTMLElement, offset: targetPosition - position};
             }
             position += textContentLength;
@@ -34,8 +38,8 @@ export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: 
 }
 
 export function isOutsideElement(element: HTMLElement, start: Node, end: Node): boolean {
-    const startParent = getFirstLevelElement(element, start as HTMLElement);
-    const endParent = getFirstLevelElement(element, end as HTMLElement);
+    const startParent = getRootElement(element, start as HTMLElement);
+    const endParent = getRootElement(element, end as HTMLElement);
 
     return startParent.nodeName === "HTML" || endParent.nodeName === "HTML"
 }

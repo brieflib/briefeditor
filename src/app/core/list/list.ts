@@ -1,27 +1,27 @@
 import {getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import normalize from "@/core/normalize/normalize";
-import {getFirstLevelElement} from "@/core/shared/element-util";
+import {getRootElement} from "@/core/shared/element-util";
 import {countParentsWithDisplay, isChildrenContain} from "@/core/list/util/list-util";
 
 export function isPlusIndentEnabled(contentEditable: HTMLElement) {
-    const blocks = getSelectedBlock(contentEditable);
-    const firstBlock = blocks[0];
+    const lists = getSelectedBlock(contentEditable);
+    const firstList = lists[0];
 
-    if (!firstBlock) {
+    if (!firstList) {
         return false;
     }
 
-    if (!firstBlock.previousElementSibling || !isSchemaContain(firstBlock.previousElementSibling, [Display.List, Display.ListWrapper])) {
+    if (!firstList.previousElementSibling || !isSchemaContain(firstList.previousElementSibling, [Display.List, Display.ListWrapper])) {
         return false;
     }
 
-    for (const block of blocks) {
-        if (!isSchemaContain(block, [Display.List])) {
+    for (const list of lists) {
+        if (!isSchemaContain(list, [Display.List])) {
             return false;
         }
 
-        if (countParentsWithDisplay(block, [Display.ListWrapper]) >= 5) {
+        if (countParentsWithDisplay(list, [Display.ListWrapper]) >= 5) {
             return false;
         }
     }
@@ -62,8 +62,8 @@ export function plusIndent(contentEditable: HTMLElement) {
         }
     }
 
-    const firstLevel = getFirstLevelElement(contentEditable, firstList);
-    normalize(contentEditable, firstLevel);
+    const rootElement = getRootElement(contentEditable, firstList);
+    normalize(contentEditable, rootElement);
 }
 
 export function isMinusIndentEnabled(contentEditable: HTMLElement) {
@@ -107,6 +107,6 @@ export function minusIndent(contentEditable: HTMLElement) {
         listWrapper?.parentElement?.insertBefore(list, listWrapper);
     }
 
-    const firstLevel = getFirstLevelElement(contentEditable, lists[0] as HTMLElement);
-    normalize(contentEditable, firstLevel);
+    const rootElement = getRootElement(contentEditable, lists[0] as HTMLElement);
+    normalize(contentEditable, rootElement);
 }

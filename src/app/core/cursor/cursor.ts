@@ -17,9 +17,12 @@ export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition
         return null;
     }
 
+    const shift = range.startOffset === 0 && range.endOffset === 0 ? 1 : 0;
+
     return {
-        startOffset: startRange.toString().length,
-        endOffset: endRange.toString().length
+        startOffset: startRange.toString().length + shift,
+        endOffset: endRange.toString().length + shift,
+        shift: shift
     };
 }
 
@@ -34,11 +37,11 @@ export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: 
 }
 
 export function restoreRange(contentEditable: HTMLElement, cursorPosition: CursorPosition): Range {
-    const range: Range = getRange();
+    const range: Range = getRange().cloneRange();
     range.selectNode(contentEditable);
 
-    const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset);
-    const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset);
+    const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset - cursorPosition.shift, cursorPosition.shift);
+    const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset - cursorPosition.shift, cursorPosition.shift);
 
     if (start.node) {
         range.setStart(start.node, start.offset);

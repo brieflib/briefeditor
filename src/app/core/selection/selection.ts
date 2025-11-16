@@ -1,6 +1,13 @@
 import {getParentTags, getSelectedLeaves} from "@/core/selection/util/selection-util";
-import {getBlockElement, getFirstLevelElement} from "@/core/shared/element-util";
+import {getBlockElement, getListWrapperElement, getRootElement} from "@/core/shared/element-util";
 import {getRange} from "@/core/shared/range-util";
+
+enum SelectionType {
+    Root = "Root",
+    Block = "Block",
+    Element = "Element",
+    ListWrapper = "ListWrapper",
+}
 
 export function getSelectedSharedTags(findTill: HTMLElement) {
     const leafNodes = getSelectedLeaves();
@@ -14,43 +21,55 @@ export function getSelectedSharedTags(findTill: HTMLElement) {
     return shared[0]?.filter(element => shared.every(arr => arr.includes(element))) ?? [];
 }
 
-export function getSelectedFirstLevels(findTill: HTMLElement): HTMLElement[] {
-    const selected: HTMLElement[] = [];
-    const leafNodes = getSelectedLeaves();
-
-    for (const leafNode of leafNodes) {
-        const block = getFirstLevelElement(findTill, leafNode as HTMLElement);
-        if (!selected.includes(block)) {
-            selected.push(block);
-        }
-    }
-
-    return selected;
+export function getSelectedRoot(findTill: HTMLElement, range: Range = getRange()): HTMLElement[] {
+    return getSelected(findTill, range, SelectionType.Root);
 }
 
 export function getSelectedBlock(findTill: HTMLElement, range: Range = getRange()): HTMLElement[] {
+    return getSelected(findTill, range, SelectionType.Block);
+}
+
+export function getSelectedListWrapper(findTill: HTMLElement, range: Range = getRange()): HTMLElement[] {
+    return getSelected(findTill, range, SelectionType.ListWrapper);
+}
+
+export function getSelectedElements(range: Range) {
+    return getSelected(null, range, SelectionType.Element);
+}
+
+export function getSelected(findTill: HTMLElement | null, range: Range = getRange(), type: SelectionType) {
     const selected: HTMLElement[] = [];
     const leafNodes = getSelectedLeaves(range);
 
     for (const leafNode of leafNodes) {
-        const block = getBlockElement(findTill, leafNode as HTMLElement);
+        let block;
+        switch (type) {
+            case SelectionType.Element:
+                block = leafNode.parentElement as HTMLElement;
+                break;
+            case SelectionType.Root:
+                if (!findTill) {
+                    return [];
+                }
+                block = getRootElement(findTill, leafNode as HTMLElement);
+                break;
+            case SelectionType.Block:
+                if (!findTill) {
+                    return [];
+                }
+                block = getBlockElement(findTill, leafNode as HTMLElement);
+                break;
+            case SelectionType.ListWrapper:
+                if (!findTill) {
+                    return [];
+                }
+                block = getListWrapperElement(findTill, leafNode as HTMLElement);
+                break;
+        }
         if (!selected.includes(block)) {
             selected.push(block);
         }
     }
 
     return selected;
-}
-
-export function getSelectedElements(range: Range) {
-    const parents: HTMLElement[] = [];
-
-    for (const leafElement of getSelectedLeaves(range)) {
-        const parent = leafElement.parentElement as HTMLElement;
-        if (!parents.includes(parent)) {
-            parents.push(parent);
-        }
-    }
-
-    return parents;
 }

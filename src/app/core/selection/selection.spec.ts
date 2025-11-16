@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import {getSelectedBlock, getSelectedFirstLevels, getSelectedSharedTags} from "@/core/selection/selection";
+import {getSelectedBlock, getSelectedSharedTags} from "@/core/selection/selection";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()

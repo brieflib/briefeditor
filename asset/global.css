@@ -56,8 +56,14 @@
     padding: 12px;
 }
 
-.bf-editor ul li::marker {
-    content: "•";
+.bf-editor ul li::before {
+    content: "• ";
+    display: inline-block;
+    margin-left: -24px;
+    margin-right: 6px;
+    text-align: right;
+    white-space: nowrap;
+    width: 24px;
 }
 
 .bf-editor ul li {
@@ -81,8 +87,14 @@
     margin-left: 40px;
 }
 
-.bf-editor ol li::marker {
+.bf-editor ol li::before {
     content: counter(list-item) ".";
+    display: inline-block;
+    margin-left: -24px;
+    margin-right: 6px;
+    text-align: right;
+    white-space: nowrap;
+    width: 24px;
 }
 
 .bf-editor ol li {
@@ -104,4 +116,12 @@
 
 .bf-editor ol ol ol ol ol li {
     margin-left: 40px;
+}
+
+.bf-editor ol ul {
+    margin-left: 16px;
+}
+
+.bf-editor ul ol {
+    margin-left: 16px;
 }

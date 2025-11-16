@@ -1,8 +1,8 @@
 import {getRange} from "@/core/shared/range-util";
-import normalize, {removeTag, replaceTag} from "@/core/normalize/normalize";
-import {getBlockElement, getFirstLevelElement} from "@/core/shared/element-util";
+import normalize, {removeTag, replaceListWrapper, replaceTag} from "@/core/normalize/normalize";
+import {getBlockElement, getRootElement} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {getSelectedBlock, getSelectedElements, getSelectedFirstLevels} from "@/core/selection/selection";
+import {getSelectedBlock, getSelectedElements, getSelectedListWrapper} from "@/core/selection/selection";
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 import {Action} from "@/core/command/type/command";
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
@@ -82,23 +82,20 @@ export function tag(tag: string, contentEditable: HTMLElement, action: Action) {
     }
 }
 
-export function firstLevel(contentEditable: HTMLElement, tag: string | string[] | undefined) {
+export function firstLevel(contentEditable: HTMLElement, tags: string[]) {
     const initialCursorPosition = getSelectionOffset(contentEditable);
     if (!initialCursorPosition) {
         return;
     }
 
-    const tags = (tag as string[]).map(tag => tag.toUpperCase());
-    const firstLevels = getSelectedFirstLevels(contentEditable);
-    const isParagraph = isFirstLevelsEqualToTags(tags, firstLevels);
-    const blocks = getSelectedBlock(contentEditable, getRange());
-
+    const blocks = getSelectedBlock(contentEditable);
     for (let i = 0; i < blocks.length; i++) {
         let block = getBlock(contentEditable, initialCursorPosition, i);
         if (!block) {
             continue;
         }
-        changeFirstLevel(isParagraph ? ["P"] : tags, block, contentEditable);
+        const replaceFrom = getOfType([Display.FirstLevel, Display.List]).filter(item => !tags.includes(item));
+        replaceTag(contentEditable, block, replaceFrom, tags);
     }
     const updatedBlocks: Node[] = [];
     for (let i = 0; i < blocks.length; i++) {
@@ -108,16 +105,16 @@ export function firstLevel(contentEditable: HTMLElement, tag: string | string[] 
         }
         updatedBlocks.push(block);
     }
-    if (!isParagraph && isSchemaContainNodeName(tags[0], [Display.ListWrapper])) {
-        mergeLists(contentEditable, updatedBlocks);
+    if (isSchemaContainNodeName(tags[0], [Display.ListWrapper])) {
+       mergeLists(contentEditable, updatedBlocks);
     }
     for (let i = 0; i < blocks.length; i++) {
         const block = getBlock(contentEditable, initialCursorPosition, i);
         if (!block) {
             continue;
         }
-        const firstLevel = getFirstLevelElement(contentEditable, block as HTMLElement);
-        normalize(contentEditable, firstLevel);
+        const rootElement = getRootElement(contentEditable, block as HTMLElement);
+        normalize(contentEditable, rootElement);
     }
 }
 
@@ -126,15 +123,31 @@ function getBlock(contentEditable: HTMLElement, initialCursorPosition: CursorPos
     return getSelectedBlock(contentEditable, initialRange)[i];
 }
 
-export function changeFirstLevel(replaceTo: string[], changeElement: HTMLElement, contentEditable: HTMLElement) {
-    const replaceFrom = getOfType([Display.FirstLevel, Display.List]).filter(item => !replaceTo.includes(item));
+export function listWrapper(contentEditable: HTMLElement, tags: string[]) {
+    const initialCursorPosition = getSelectionOffset(contentEditable);
+    if (!initialCursorPosition) {
+        return;
+    }
 
-    return replaceTag(contentEditable, changeElement, replaceFrom, replaceTo);
+    const blocks = getSelectedListWrapper(contentEditable);
+    for (let i = 0; i < blocks.length; i++) {
+        let block = getListWrapper(contentEditable, initialCursorPosition, i);
+        if (!block) {
+            continue;
+        }
+        const replaceFrom = getOfType([Display.FirstLevel]).filter(item => !tags.includes(item));
+        replaceListWrapper(contentEditable, block, replaceFrom, tags);
+    }
 }
 
-export function isFirstLevelsEqualToTags(tags: string[], firstLevels: HTMLElement[]) {
-    for (const firstLevel of firstLevels) {
-        if (!tags.includes(firstLevel.nodeName)) {
+function getListWrapper(contentEditable: HTMLElement, initialCursorPosition: CursorPosition, i: number) {
+    const initialRange = restoreRange(contentEditable, initialCursorPosition);
+    return getSelectedListWrapper(contentEditable, initialRange)[i];
+}
+
+export function isElementsEqualToTags(tags: string[], elements: HTMLElement[]) {
+    for (const element of elements) {
+        if (!tags.includes(element.nodeName)) {
             return false;
         }
     }
@@ -147,8 +160,8 @@ function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string)
     const tagElement = document.createElement(tag);
     tagElement.appendChild(documentFragment);
     range.insertNode(tagElement);
-    const firstLevel = getFirstLevelElement(contentEditable, tagElement);
-    normalize(contentEditable, firstLevel);
+    const rootElement = getRootElement(contentEditable, tagElement);
+    normalize(contentEditable, rootElement);
 }
 
 function unwrapRangeFromTag(contentEditable: HTMLElement, range: Range, tag: string) {
@@ -167,7 +180,7 @@ export function mergeLists(contentEditable: HTMLElement, lists: Node[]) {
     }
 
     const wrapper = document.createElement("DELETED");
-    const allLists: HTMLElement[] = lists.map(list => getFirstLevelElement(contentEditable, list as HTMLElement));
+    const allLists: HTMLElement[] = lists.map(list => getRootElement(contentEditable, list as HTMLElement));
 
     const firstList = allLists[0];
     if (!firstList) {

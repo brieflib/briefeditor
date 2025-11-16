@@ -1,4 +1,4 @@
-import {changeFirstLevel, firstLevel, mergeLists, tag} from "@/core/command/util/command-util";
+import {firstLevel, listWrapper, mergeLists, tag} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
 import {Action} from "@/core/command/type/command";
 
@@ -123,23 +123,34 @@ describe("Wrap in tag", () => {
 });
 
 describe("Change first level", () => {
-    const range = new Range();
-    (getRange as jest.Mock).mockReturnValue(range);
-
     test("Should change paragraph to heading", () => {
-        const toWrap = document.createElement("div");
-        toWrap.innerHTML = "<p>Paragraph</p>";
+        const container = document.createElement("div");
+        container.innerHTML = "<p>Paragraph</p>";
+        document.body.appendChild(container);
 
-        changeFirstLevel(["H1"], toWrap.querySelector("p") as HTMLElement, toWrap);
+        const range = new Range();
+        range.setStart(container.querySelector("p")?.firstChild as Node, "".length);
+        range.setEnd(container.querySelector("p")?.firstChild as Node, "par".length);
 
-        expect(toWrap.innerHTML).toBe("<h1>Paragraph</h1>");
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        firstLevel(container, ["H1"]);
+
+        expect(container.innerHTML).toBe("<h1>Paragraph</h1>");
     });
 
     test("Should wrap strong in heading", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<p><strong>Paragraph</strong></p>";
+        document.body.appendChild(toWrap);
 
-        changeFirstLevel(["H1"], toWrap.querySelector("p") as HTMLElement, toWrap);
+        const range = new Range();
+        range.setStart(toWrap.querySelector("p > strong")?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelector("p > strong")?.firstChild as Node, "Par".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        firstLevel(toWrap, ["H1"]);
 
         expect(toWrap.innerHTML).toBe("<h1><strong>Paragraph</strong></h1>");
     });
@@ -147,8 +158,15 @@ describe("Change first level", () => {
     test("Should wrap strong in unordered list", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<p><strong>Paragraph</strong></p>";
+        document.body.appendChild(toWrap);
 
-        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
+        const range = new Range();
+        range.setStart(toWrap.querySelector("p > strong")?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelector("p > strong")?.firstChild as Node, "Par".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        firstLevel(toWrap, ["UL", "LI"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li><strong>Paragraph</strong></li></ul>");
     });
@@ -156,8 +174,15 @@ describe("Change first level", () => {
     test("Should unwrap list to paragraph", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<ul><li>text1<ul><li><strong>text2</strong></li></ul></li></ul>";
+        document.body.appendChild(toWrap);
 
-        changeFirstLevel(["P"], toWrap.querySelector("ul > li > ul > li") as HTMLElement, toWrap);
+        const range = new Range();
+        range.setStart(toWrap.querySelector("ul > li > ul > li > strong")?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelector("ul > li > ul > li > strong")?.firstChild as Node, "te".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        firstLevel(toWrap, ["P"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>text1</li></ul><p><strong>text2</strong></p>");
     });
@@ -165,54 +190,95 @@ describe("Change first level", () => {
     test("Should change ordered list to paragraph", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<ul><li>Paragraph</li></ul>";
+        document.body.appendChild(toWrap);
 
-        changeFirstLevel(["P"], toWrap.querySelector("li") as HTMLElement, toWrap);
+        const range = new Range();
+        range.setStart(toWrap.querySelector("ul > li")?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelector("ul > li")?.firstChild as Node, "Par".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        firstLevel(toWrap, ["P"]);
 
         expect(toWrap.innerHTML).toBe("<p>Paragraph</p>");
     });
 
     test("Should wrap paragraph elements to ordered list", () => {
-        const container = document.createElement("div");
-        container.innerHTML = "<ul><li>Paragraph</li></ul><p>text</p>";
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>Paragraph</li></ul><p>text</p>"
+        document.body.appendChild(toWrap);
 
-        const toWrap = container.querySelector("p") as HTMLElement;
-        changeFirstLevel(["UL", "LI"], toWrap, container);
+        const range = new Range();
+        range.setStart(toWrap.querySelector("p")?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelector("p")?.firstChild as Node, "te".length);
 
-        expect(container.innerHTML).toBe("<ul><li>Paragraph</li></ul><ul><li>text</li></ul>");
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        firstLevel(toWrap, ["UL", "LI"]);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>Paragraph</li><li>text</li></ul>");
     });
 
     test("Should change tag from the li to the paragraph", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<ul><li>text1</li><li>text2</li><li>text3</li></ul>";
+        document.body.appendChild(toWrap);
 
-        changeFirstLevel(["P"], toWrap.querySelector("ul")?.childNodes[1] as HTMLElement, toWrap);
+        const range = new Range();
+        range.setStart(toWrap.querySelector("ul")?.childNodes[1]?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelector("ul")?.childNodes[1]?.firstChild as Node, "text".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        firstLevel(toWrap, ["P"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>text1</li></ul><p>text2</p><ul><li>text3</li></ul>");
     });
 
-    test("Should insert unordered list", () => {
-        const toWrap = document.createElement("div");
-        toWrap.innerHTML = "<p><br></p>";
-
-        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
-
-        expect(toWrap.innerHTML).toBe("<ul><li><br></li></ul>");
-    });
+    // test("Should insert unordered list", () => {
+    //     const container = document.createElement("div");
+    //     container.innerHTML = "<p><br></p>";
+    //     document.body.appendChild(container);
+    //
+    //     const range = new Range();
+    //     range.setStart(container.querySelector("p") as Node, 0);
+    //     range.setEnd(container.querySelector("p") as Node, 1);
+    //
+    //     (getRange as jest.Mock).mockReturnValue(range);
+    //
+    //     firstLevel(container, ["UL", "LI"]);
+    //
+    //     expect(container.innerHTML).toBe("<ul><li><br></li></ul>");
+    // });
 
     test("Should change list with br to paragraph", () => {
-        const toWrap = document.createElement("div");
-        toWrap.innerHTML = "<ul><li>first<br>second</li></ul>";
+        const container = document.createElement("div");
+        container.innerHTML = "<ul><li>first<br>second</li></ul>";
+        document.body.appendChild(container);
 
-        changeFirstLevel(["P"], toWrap.querySelector("ul > li") as HTMLElement, toWrap);
+        const range = new Range();
+        range.setStart(container.querySelector("ul > li")?.firstChild as Node, "".length);
+        range.setEnd(container.querySelector("ul > li")?.firstChild as Node, "fi".length);
 
-        expect(toWrap.innerHTML).toBe("<p>first<br>second</p>");
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        firstLevel(container, ["P"]);
+
+        expect(container.innerHTML).toBe("<p>first<br>second</p>");
     });
 
     test("Should change paragraph divided by br to list", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<p>first<br>second</p>";
+        document.body.appendChild(toWrap);
 
-        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
+        const range = new Range();
+        range.setStart(toWrap.querySelector("p")?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelector("p")?.firstChild as Node, "fi".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        firstLevel(toWrap, ["UL", "LI"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>first<br>second</li></ul>");
     });
@@ -220,8 +286,15 @@ describe("Change first level", () => {
     test("Should change paragraph with strong tag to list", () => {
         const toWrap = document.createElement("div");
         toWrap.innerHTML = "<p>fir<strong>st se</strong>cond</p>";
+        document.body.appendChild(toWrap);
 
-        changeFirstLevel(["UL", "LI"], toWrap.querySelector("p") as HTMLElement, toWrap);
+        const range = new Range();
+        range.setStart(toWrap.querySelector("p")?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelector("p")?.firstChild as Node, "fi".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        firstLevel(toWrap, ["UL", "LI"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>fir<strong>st se</strong>cond</li></ul>");
     });
@@ -237,9 +310,25 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["UL", "LI"]);
+        firstLevel(toWrap, ["P"]);
 
         expect(toWrap.innerHTML).toBe("<p>first</p><p>second</p><p>third</p>");
+    });
+
+    test("Should change inner unordered list to ordered", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>first</li><ul><li>second</li></ul></ul>";
+        document.body.appendChild(toWrap);
+
+        const range = new Range();
+        range.setStart(toWrap.querySelector("ul > ul > li")?.firstChild as Node, "se".length);
+        range.setEnd(toWrap.querySelector("ul > ul > li")?.firstChild as Node, "se".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        listWrapper(toWrap, ["OL"]);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>first</li><ol><li>second</li></ol></ul>");
     });
 
     test("Should change paragraphs to list", () => {

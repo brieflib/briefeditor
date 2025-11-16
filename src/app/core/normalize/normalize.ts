@@ -9,7 +9,7 @@ import {
 } from "@/core/normalize/util/normalize-util";
 import {Leaf} from "@/core/normalize/type/leaf";
 import {getRange} from "@/core/shared/range-util";
-import {getBlockElement, getFirstLevelElement} from "@/core/shared/element-util";
+import {getRootElement} from "@/core/shared/element-util";
 
 export default function normalize(contentEditable: HTMLElement, element: HTMLElement) {
     const leaves = getLeafNodes(element)
@@ -21,28 +21,40 @@ export default function normalize(contentEditable: HTMLElement, element: HTMLEle
 }
 
 export function removeTag(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[]) {
-    const firstLevel = getFirstLevelElement(contentEditable, removeTagFrom);
+    const rootElement = getRootElement(contentEditable, removeTagFrom);
 
-    const leaves = getLeafNodes(firstLevel)
+    const leaves = getLeafNodes(rootElement)
         .map(node => setLeafParents(node, contentEditable))
         .filter(leaf => filterLeafParents(leaf, removeTagFrom, tags))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    replaceElement(leaves, firstLevel);
+    replaceElement(leaves, rootElement);
 }
 
 export function replaceTag(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[]) {
-    const firstLevel = getFirstLevelElement(contentEditable, replaceTagFrom);
+    const rootElement = getRootElement(contentEditable, replaceTagFrom);
     const elementToReplace = buildElementsToReplace(replaceTo);
 
-    const leaves = getLeafNodes(firstLevel)
+    const leaves = getLeafNodes(rootElement)
         .map(node => setLeafParents(node, contentEditable))
         .filter(leaf => replaceLeafParents(leaf, replaceTagFrom, replaceFrom, elementToReplace))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return replaceElement(leaves, firstLevel);
+    return replaceElement(leaves, rootElement);
+}
+
+export function replaceListWrapper(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[]) {
+    const elementToReplace = buildElementsToReplace(replaceTo);
+
+    const leaves = getLeafNodes(replaceTagFrom)
+        .map(node => setLeafParents(node, replaceTagFrom.parentElement as HTMLElement))
+        .filter(leaf => replaceLeafParents(leaf, replaceTagFrom, replaceFrom, elementToReplace))
+        .map(leaf => sortLeafParents(leaf))
+        .map(leaf => removeConsecutiveDuplicates(leaf));
+
+    return replaceElement(leaves, replaceTagFrom);
 }
 
 function buildElementsToReplace(replaceTo: string[]) {

@@ -1,4 +1,5 @@
 export interface CursorPosition {
     startOffset: number,
-    endOffset: number
+    endOffset: number,
+    shift: number
 }
