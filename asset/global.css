@@ -52,12 +52,17 @@
     padding-left: 16px;
 }
 
-.bf-editor ul {
-    list-style: disc inside;
+.bf-editor ul, ol {
+    padding: 12px;
+}
+
+.bf-editor ul li::marker {
+    content: "•";
 }
 
 .bf-editor ul li {
     margin-top: 8px;
+    padding-left: 8px;
 }
 
 .bf-editor ul ul li {
@@ -76,12 +81,13 @@
     margin-left: 40px;
 }
 
-.bf-editor ol {
-    list-style: decimal inside;
+.bf-editor ol li::marker {
+    content: counter(list-item) ".";
 }
 
 .bf-editor ol li {
     margin-top: 8px;
+    padding-left: 8px;
 }
 
 .bf-editor ol ol li {
