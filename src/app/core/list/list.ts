@@ -68,30 +68,39 @@ export function plusIndent(contentEditable: HTMLElement) {
 
 export function isMinusIndentEnabled(contentEditable: HTMLElement) {
     const lists = getSelectedBlock(contentEditable);
-
     for (const list of lists) {
         if (!list) {
+           // console.log(1);
             return false;
         }
 
         if (!isSchemaContain(list, [Display.List])) {
+           // console.log(2);
+
             return false;
         }
 
         const listNesting = countParentsWithDisplay(list, [Display.ListWrapper]);
         if (listNesting === 1) {
+            //console.log(3);
+
             return false;
         }
 
         const nextList = list.nextElementSibling;
         if (!nextList) {
+            //console.log(4);
+
             continue;
         }
 
         if (!isChildrenContain(lists, nextList.children) && isSchemaContain(nextList, [Display.ListWrapper])) {
+            //console.log(5);
+
             return false;
         }
     }
+    //console.log(6);
 
     return true;
 }

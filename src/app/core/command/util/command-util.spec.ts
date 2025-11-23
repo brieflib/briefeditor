@@ -1,4 +1,4 @@
-import {changeFirstLevel, changeListWrapper, mergeLists, tag} from "@/core/command/util/command-util";
+import {changeFirstLevel, changeListWrapper, tag} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
 import {Action} from "@/core/command/type/command";
 
@@ -225,8 +225,8 @@ describe("Change first level", () => {
         document.body.appendChild(toWrap);
 
         const range = new Range();
-        range.setStart(toWrap.querySelectorAll("ul > li")[1]?.firstChild as Node, "".length);
-        range.setEnd(toWrap.querySelectorAll("ul > li")[1]?.firstChild as Node, "sec".length);
+        range.setStart(toWrap.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "sec".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
@@ -337,14 +337,14 @@ describe("Change first level", () => {
         document.body.appendChild(toWrap);
 
         const range = new Range();
-        range.setStart(toWrap.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
-        range.setEnd(toWrap.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
+        range.setStart(toWrap.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
+        range.setEnd(toWrap.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
         changeListWrapper(toWrap, ["OL"]);
 
-        expect(toWrap.innerHTML).toBe("<ul><li>first</li><ol><li>second</li></ol></ul>");
+        expect(toWrap.innerHTML).toBe("<ul><li>first</li></ul><ol><li>second</li></ol>");
     });
 
     test("Should change one of the nested ordered list to unordered", () => {
@@ -353,8 +353,8 @@ describe("Change first level", () => {
         document.body.appendChild(toWrap);
 
         const range = new Range();
-        range.setStart(toWrap.querySelectorAll("ol > li")[1]?.firstChild as Node, "th".length);
-        range.setEnd(toWrap.querySelectorAll("ol > li")[1]?.firstChild as Node, "th".length);
+        range.setStart(toWrap.querySelector("ol > li:nth-child(2)")?.firstChild as Node, "th".length);
+        range.setEnd(toWrap.querySelector("ol > li:nth-child(2)")?.firstChild as Node, "th".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
@@ -377,30 +377,6 @@ describe("Change first level", () => {
         changeFirstLevel(toWrap, ["UL", "LI"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>first</li><li>second</li></ul>");
-    });
-});
-
-describe("Merge lists", () => {
-    test("Should merge lists from different ul", () => {
-        const toWrap = document.createElement("div");
-        toWrap.innerHTML = "<ul><li>text1</li></ul><ul><li>text2</li></ul><ul><li>text3</li></ul>";
-
-        const lists = [toWrap.querySelectorAll("ul")[1]?.querySelector("li") as Node];
-
-        mergeLists(toWrap, lists);
-
-        expect(toWrap.innerHTML).toBe("<ul><li>text1</li><li>text2</li><li>text3</li></ul>");
-    });
-
-    test("Should merge lists from same ul", () => {
-        const toWrap = document.createElement("div");
-        toWrap.innerHTML = "<ul><li>text1</li><li>text2</li></ul><ul><li>text3</li></ul>";
-
-        const lists = [toWrap.querySelectorAll("ul")[1]?.querySelector("li") as Node];
-
-        mergeLists(toWrap, lists);
-
-        expect(toWrap.innerHTML).toBe("<ul><li>text1</li><li>text2</li><li>text3</li></ul>");
     });
 });
 

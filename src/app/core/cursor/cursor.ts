@@ -1,7 +1,7 @@
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
 import {findNodeAndOffset, isOutsideElement} from "@/core/cursor/util/cursor-util";
 import {getRange} from "@/core/shared/range-util";
-import {getPreviousTextNode} from "@/core/shared/element-util";
+import {getPreviousNode} from "@/core/shared/element-util";
 
 export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition | null {
     const range: Range = getRange();
@@ -20,7 +20,7 @@ export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition
 
     const startOffset = startRange.toString().length;
     const endOffset = endRange.toString().length;
-    const previousText = getPreviousTextNode(contentEditable, range.startContainer);
+    const previousText = getPreviousNode(contentEditable, range.startContainer);
     const isStartShift = range.startOffset === 0 && previousText?.textContent?.length === startOffset;
     const isEndShift = range.endOffset === 0 && previousText?.textContent?.length === endOffset;
     return {

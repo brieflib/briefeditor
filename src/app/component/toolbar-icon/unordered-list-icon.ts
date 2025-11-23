@@ -30,7 +30,7 @@ class UnorderedListIcon extends HTMLElement implements Icon {
             return;
         }
 
-        if (tags.includes("UL")) {
+        if (tags[1] === "UL") {
             this.button.className = "icon active"
         } else {
             this.button.className = "icon"

@@ -66,6 +66,16 @@
     width: 24px;
 }
 
+.bf-editor ol ul li::before {
+    content: "• ";
+    display: inline-block;
+    margin-left: -24px;
+    margin-right: 6px;
+    text-align: right;
+    white-space: nowrap;
+    width: 24px;
+}
+
 .bf-editor ul li {
     margin-top: 8px;
     padding-left: 8px;
@@ -88,6 +98,16 @@
 }
 
 .bf-editor ol li::before {
+    content: counter(list-item) ".";
+    display: inline-block;
+    margin-left: -24px;
+    margin-right: 6px;
+    text-align: right;
+    white-space: nowrap;
+    width: 24px;
+}
+
+.bf-editor ul ol li::before {
     content: counter(list-item) ".";
     display: inline-block;
     margin-left: -24px;

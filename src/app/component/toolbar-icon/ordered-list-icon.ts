@@ -31,7 +31,7 @@ class OrderedListIcon extends HTMLElement implements Icon {
             return;
         }
 
-        if (tags.includes("OL")) {
+        if (tags[1] === "OL") {
             this.button.className = "icon active"
         } else {
             this.button.className = "icon"

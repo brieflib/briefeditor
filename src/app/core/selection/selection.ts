@@ -46,7 +46,7 @@ export function getSelectedElements(range: Range) {
     return getSelected(null, range, SelectionType.Element);
 }
 
-export function getSelected(findTill: HTMLElement | null, range: Range, type: SelectionType) {
+function getSelected(findTill: HTMLElement | null, range: Range, type: SelectionType) {
     const selected: HTMLElement[] = [];
     const leafNodes = getSelectedLeaves(range);
 

@@ -23,7 +23,7 @@ export function getListWrapperElement(findTill: HTMLElement, child: HTMLElement)
     return child;
 }
 
-export function getNextTextNode(findTill: HTMLElement, node: Node) {
+export function getNextNode(findTill: HTMLElement, node: Node) {
     while (node !== findTill && !node.nextSibling) {
         node = node.parentElement as HTMLElement;
     }
@@ -37,7 +37,7 @@ export function getNextTextNode(findTill: HTMLElement, node: Node) {
     return node;
 }
 
-export function getPreviousTextNode(findTill: HTMLElement, node: Node) {
+export function getPreviousNode(findTill: HTMLElement, node: Node) {
     while (node !== findTill && !node.previousSibling) {
         node = node.parentElement as HTMLElement;
     }
@@ -50,6 +50,14 @@ export function getPreviousTextNode(findTill: HTMLElement, node: Node) {
 
     if (!node || !node.firstChild) {
         return;
+    }
+
+    return node;
+}
+
+export function getFirstText(node: Node) {
+    while (node && node.nodeType !== Node.TEXT_NODE) {
+        node = node.firstChild as Node;
     }
 
     return node;

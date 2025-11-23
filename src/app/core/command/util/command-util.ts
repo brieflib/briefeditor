@@ -91,7 +91,7 @@ export function changeFirstLevel(contentEditable: HTMLElement, tags: string[]) {
         return;
     }
 
-    const blocks = getInitialBlocks(contentEditable, initialCursorPosition);
+    const blocks = getSelectedBlock(contentEditable);
     for (let i = 0; i < blocks.length; i++) {
         let block = getInitialBlocks(contentEditable, initialCursorPosition)[i];
         if (!block) {
@@ -100,25 +100,7 @@ export function changeFirstLevel(contentEditable: HTMLElement, tags: string[]) {
         const replaceFrom = getOfType([Display.FirstLevel, Display.List]).filter(item => !tags.includes(item));
         replaceTag(contentEditable, block, replaceFrom, tags);
     }
-    const updatedBlocks: Node[] = [];
-    for (let i = 0; i < blocks.length; i++) {
-        const block = getInitialBlocks(contentEditable, initialCursorPosition)[i];
-        if (!block) {
-            continue;
-        }
-        updatedBlocks.push(block);
-    }
-    if (isSchemaContainNodeName(tags[0], [Display.ListWrapper])) {
-       mergeLists(contentEditable, updatedBlocks);
-    }
-    for (let i = 0; i < blocks.length; i++) {
-        const block = getInitialBlocks(contentEditable, initialCursorPosition)[i];
-        if (!block) {
-            continue;
-        }
-        const rootElement = getRootElement(contentEditable, block as HTMLElement);
-        normalize(contentEditable, rootElement);
-    }
+    normalizeRootElements(contentEditable, initialCursorPosition);
 }
 
 function getInitialBlocks(contentEditable: HTMLElement, initialCursorPosition: CursorPosition) {
@@ -132,16 +114,18 @@ export function changeListWrapper(contentEditable: HTMLElement, tags: string[]) 
         return;
     }
 
-    const listWrappers = getSelectedListWrapper(contentEditable);
-    for (let i = 0; i < listWrappers.length; i++) {
+    const lists = getSelectedBlock(contentEditable);
+    for (let i = 0; i < lists.length; i++) {
         const initialRange = restoreRange(contentEditable, initialCursorPosition);
-        let listWrappers = getSelectedListWrapper(contentEditable, initialRange)[i];
-        if (!listWrappers) {
+        let list = getSelectedBlock(contentEditable, initialRange)[i];
+        let listWrapper = getSelectedListWrapper(contentEditable, initialRange)[i];
+        if (!list || !listWrapper) {
             continue;
         }
         const replaceFrom = getOfType([Display.FirstLevel]).filter(item => !tags.includes(item));
-        replaceListWrapper(contentEditable, listWrappers, replaceFrom, tags);
+        replaceListWrapper(listWrapper, list, replaceFrom, tags);
     }
+    normalizeRootElements(contentEditable, initialCursorPosition);
 }
 
 export function isElementsEqualToTags(tags: string[], elements: HTMLElement[]) {
@@ -152,6 +136,52 @@ export function isElementsEqualToTags(tags: string[], elements: HTMLElement[]) {
     }
 
     return true;
+}
+
+function normalizeRootElements(contentEditable: HTMLElement, initialCursorPosition: CursorPosition) {
+    const initialBlocks = getInitialBlocks(contentEditable, initialCursorPosition);
+    const rootElements: HTMLElement[] = [];
+    for (let i = 0; i < initialBlocks.length; i++) {
+        const block = initialBlocks[i];
+        if (!block) {
+            continue;
+        }
+        const rootElement = getRootElement(contentEditable, block as HTMLElement);
+        if (!rootElements.includes(rootElement)) {
+            rootElements.push(rootElement);
+        }
+    }
+
+    let firstRootElement = rootElements[0];
+    if (!firstRootElement) {
+        return;
+    }
+    let previousListWrapper = firstRootElement.previousElementSibling;
+    while (previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper])) {
+        rootElements.unshift(previousListWrapper as HTMLElement);
+        previousListWrapper = previousListWrapper.previousElementSibling;
+    }
+
+    const lastRootElement = rootElements[rootElements.length - 1];
+    if (!lastRootElement) {
+        return;
+    }
+    let nextListWrapper = lastRootElement.nextElementSibling;
+    while (nextListWrapper && isSchemaContain(nextListWrapper, [Display.ListWrapper])) {
+        rootElements.push(nextListWrapper as HTMLElement);
+        nextListWrapper = nextListWrapper.nextElementSibling;
+    }
+
+    const wrapper = document.createElement("DELETED");
+    firstRootElement = rootElements[0];
+    if (!firstRootElement) {
+        return;
+    }
+    firstRootElement.before(wrapper);
+    for (const rootElement of rootElements) {
+        wrapper.appendChild(rootElement);
+    }
+    removeTag(contentEditable, wrapper, ["DELETED"]);
 }
 
 function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string) {
@@ -173,48 +203,17 @@ function unwrapRangeFromTag(contentEditable: HTMLElement, range: Range, tag: str
     removeTag(contentEditable, removeTagFrom, [tag, "DELETED"]);
 }
 
-export function mergeLists(contentEditable: HTMLElement, lists: Node[]) {
-    if (!lists) {
-        return;
-    }
-
-    const wrapper = document.createElement("DELETED");
-    const allLists: HTMLElement[] = lists.map(list => getRootElement(contentEditable, list as HTMLElement));
-
-    const firstList = allLists[0];
-    if (!firstList) {
-        return;
-    }
-
-    let previousList = firstList.previousElementSibling;
-    while (previousList && isSchemaContain(previousList, [Display.ListWrapper])) {
-        allLists.push(previousList as HTMLElement);
-        previousList = previousList.previousElementSibling as HTMLElement;
-    }
-
-    let nextList = allLists[allLists.length - 1]?.nextElementSibling;
-    while (nextList && isSchemaContain(nextList, [Display.ListWrapper])) {
-        allLists.push(nextList as HTMLElement);
-        nextList = nextList.nextElementSibling;
-    }
-
-    allLists[allLists.length - 1]?.after(wrapper);
-    wrapper.append(...allLists);
-    removeTag(contentEditable, wrapper, ["DELETED"]);
-}
-
 export function isListWrapper(contentEditable: HTMLElement, tag: string) {
     if (isSchemaContainNodeName(tag, [Display.ListWrapper])) {
         const listWrapperElement = getSelectedListWrapper(contentEditable);
         const isUl = isElementsEqualToTags(["UL"], listWrapperElement);
         const isOl = isElementsEqualToTags(["OL"], listWrapperElement);
-        const isMinusIndent = isMinusIndentEnabled(contentEditable);
 
         if ((isUl && tag === "UL") || (isOl && tag === "OL")) {
             return false;
         }
 
-        if ((isUl || isOl) && isMinusIndent) {
+        if (isUl || isOl) {
             return true;
         }
     }

@@ -45,16 +45,16 @@ export function replaceTag(contentEditable: HTMLElement, replaceTagFrom: HTMLEle
     return replaceElement(leaves, rootElement);
 }
 
-export function replaceListWrapper(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[]) {
+export function replaceListWrapper(listWrapper: HTMLElement, list: HTMLElement, replaceFrom: string[], replaceTo: string[]) {
     const elementToReplace = buildElementsToReplace(replaceTo);
 
-    const leaves = getLeafNodes(replaceTagFrom)
-        .map(node => setLeafParents(node, replaceTagFrom.parentElement as HTMLElement))
-        .filter(leaf => replaceLeafParents(leaf, replaceTagFrom, replaceFrom, elementToReplace))
+    const leaves = getLeafNodes(listWrapper as HTMLElement)
+        .map(node => setLeafParents(node, listWrapper.parentElement as HTMLElement))
+        .filter(leaf => replaceLeafParents(leaf, list as HTMLElement, replaceFrom, elementToReplace))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return replaceElement(leaves, replaceTagFrom);
+    return replaceElement(leaves, listWrapper as HTMLElement);
 }
 
 function buildElementsToReplace(replaceTo: string[]) {
