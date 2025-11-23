@@ -1,6 +1,7 @@
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
 import {findNodeAndOffset, isOutsideElement} from "@/core/cursor/util/cursor-util";
 import {getRange} from "@/core/shared/range-util";
+import {getPreviousTextNode} from "@/core/shared/element-util";
 
 export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition | null {
     const range: Range = getRange();
@@ -17,12 +18,16 @@ export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition
         return null;
     }
 
-    const shift = range.startOffset === 0 && range.endOffset === 0 ? 1 : 0;
-
+    const startOffset = startRange.toString().length;
+    const endOffset = endRange.toString().length;
+    const previousText = getPreviousTextNode(contentEditable, range.startContainer);
+    const isStartShift = range.startOffset === 0 && previousText?.textContent?.length === startOffset;
+    const isEndShift = range.endOffset === 0 && previousText?.textContent?.length === endOffset;
     return {
-        startOffset: startRange.toString().length + shift,
-        endOffset: endRange.toString().length + shift,
-        shift: shift
+        startOffset: startOffset,
+        endOffset: endOffset,
+        isStartShift: isStartShift,
+        isEndShift: isEndShift
     };
 }
 
@@ -40,8 +45,8 @@ export function restoreRange(contentEditable: HTMLElement, cursorPosition: Curso
     const range: Range = getRange().cloneRange();
     range.selectNode(contentEditable);
 
-    const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset - cursorPosition.shift, cursorPosition.shift);
-    const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset - cursorPosition.shift, cursorPosition.shift);
+    const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset, cursorPosition.isStartShift);
+    const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset, cursorPosition.isEndShift);
 
     if (start.node) {
         range.setStart(start.node, start.offset);

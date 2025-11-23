@@ -23,18 +23,11 @@ export function getSelectedLeaves(range = getRange()) {
         textNodes.push(walker.currentNode);
     }
 
-    if (textNodes.length > 1 && range.endOffset === 0) {
-        textNodes.pop();
-    }
-
-    if (textNodes.length > 1 && range.startContainer.textContent?.length === range.startOffset) {
-        textNodes.shift();
-    }
-
     return textNodes;
 }
 
-export function getParentTags(node: Node, findTill: HTMLElement, parents: string[] = []) {
+export function getParentTags(node: Node, findTill: HTMLElement) {
+    const parents = [];
     let parent = node.parentElement;
 
     while (parent && parent !== findTill) {

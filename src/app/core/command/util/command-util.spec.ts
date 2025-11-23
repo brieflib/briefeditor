@@ -1,4 +1,4 @@
-import {firstLevel, listWrapper, mergeLists, tag} from "@/core/command/util/command-util";
+import {changeFirstLevel, changeListWrapper, mergeLists, tag} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
 import {Action} from "@/core/command/type/command";
 
@@ -134,7 +134,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(container, ["H1"]);
+        changeFirstLevel(container, ["H1"]);
 
         expect(container.innerHTML).toBe("<h1>Paragraph</h1>");
     });
@@ -150,7 +150,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["H1"]);
+        changeFirstLevel(toWrap, ["H1"]);
 
         expect(toWrap.innerHTML).toBe("<h1><strong>Paragraph</strong></h1>");
     });
@@ -166,7 +166,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["UL", "LI"]);
+        changeFirstLevel(toWrap, ["UL", "LI"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li><strong>Paragraph</strong></li></ul>");
     });
@@ -182,7 +182,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["P"]);
+        changeFirstLevel(toWrap, ["P"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>text1</li></ul><p><strong>text2</strong></p>");
     });
@@ -198,7 +198,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["P"]);
+        changeFirstLevel(toWrap, ["P"]);
 
         expect(toWrap.innerHTML).toBe("<p>Paragraph</p>");
     });
@@ -214,25 +214,25 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["UL", "LI"]);
+        changeFirstLevel(toWrap, ["UL", "LI"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>Paragraph</li><li>text</li></ul>");
     });
 
     test("Should change tag from the li to the paragraph", () => {
         const toWrap = document.createElement("div");
-        toWrap.innerHTML = "<ul><li>text1</li><li>text2</li><li>text3</li></ul>";
+        toWrap.innerHTML = "<ul><li>first</li><li>second</li><li>third</li></ul>";
         document.body.appendChild(toWrap);
 
         const range = new Range();
-        range.setStart(toWrap.querySelector("ul")?.childNodes[1]?.firstChild as Node, "".length);
-        range.setEnd(toWrap.querySelector("ul")?.childNodes[1]?.firstChild as Node, "text".length);
+        range.setStart(toWrap.querySelectorAll("ul > li")[1]?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelectorAll("ul > li")[1]?.firstChild as Node, "sec".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["P"]);
+        changeFirstLevel(toWrap, ["P"]);
 
-        expect(toWrap.innerHTML).toBe("<ul><li>text1</li></ul><p>text2</p><ul><li>text3</li></ul>");
+        expect(toWrap.innerHTML).toBe("<ul><li>first</li></ul><p>second</p><ul><li>third</li></ul>");
     });
 
     // test("Should insert unordered list", () => {
@@ -262,7 +262,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(container, ["P"]);
+        changeFirstLevel(container, ["P"]);
 
         expect(container.innerHTML).toBe("<p>first<br>second</p>");
     });
@@ -278,7 +278,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["UL", "LI"]);
+        changeFirstLevel(toWrap, ["UL", "LI"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>first<br>second</li></ul>");
     });
@@ -294,7 +294,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["UL", "LI"]);
+        changeFirstLevel(toWrap, ["UL", "LI"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>fir<strong>st se</strong>cond</li></ul>");
     });
@@ -310,7 +310,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["P"]);
+        changeFirstLevel(toWrap, ["P"]);
 
         expect(toWrap.innerHTML).toBe("<p>first</p><p>second</p><p>third</p>");
     });
@@ -326,9 +326,41 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        listWrapper(toWrap, ["OL"]);
+        changeListWrapper(toWrap, ["OL"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>first</li><ol><li>second</li></ol></ul>");
+    });
+
+    test("Should change flat ordered list to unordered", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>first</li><li>second</li></ul>";
+        document.body.appendChild(toWrap);
+
+        const range = new Range();
+        range.setStart(toWrap.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
+        range.setEnd(toWrap.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        changeListWrapper(toWrap, ["OL"]);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>first</li><ol><li>second</li></ol></ul>");
+    });
+
+    test("Should change one of the nested ordered list to unordered", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>first</li><ol><li>second</li><li>third</li></ol></ul>";
+        document.body.appendChild(toWrap);
+
+        const range = new Range();
+        range.setStart(toWrap.querySelectorAll("ol > li")[1]?.firstChild as Node, "th".length);
+        range.setEnd(toWrap.querySelectorAll("ol > li")[1]?.firstChild as Node, "th".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        changeListWrapper(toWrap, ["UL"]);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>first</li><ol><li>second</li></ol><ul><li>third</li></ul></ul>");
     });
 
     test("Should change paragraphs to list", () => {
@@ -342,7 +374,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        firstLevel(toWrap, ["UL", "LI"]);
+        changeFirstLevel(toWrap, ["UL", "LI"]);
 
         expect(toWrap.innerHTML).toBe("<ul><li>first</li><li>second</li></ul>");
     });

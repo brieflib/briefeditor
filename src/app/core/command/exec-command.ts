@@ -1,9 +1,14 @@
 import {Action, Command} from "@/core/command/type/command";
-import {firstLevel, isElementsEqualToTags, listWrapper, tag} from "@/core/command/util/command-util";
-import {getSelectedListWrapper, getSelectedRoot, getSelectedSharedTags} from "@/core/selection/selection";
+import {
+    changeFirstLevel,
+    changeListWrapper,
+    isElementsEqualToTags,
+    isListWrapper,
+    tag
+} from "@/core/command/util/command-util";
+import {getSelectedBlock, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
-import {isMinusIndentEnabled, minusIndent, plusIndent} from "@/core/list/list";
-import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
+import {minusIndent, plusIndent} from "@/core/list/list";
 
 export default function execCommand(command: Command, contentEditable: HTMLElement) {
     const cursorPosition = getSelectionOffset(contentEditable);
@@ -24,22 +29,21 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
 
     if (command.action === Action.FirstLevel) {
         let tags = (command.tag as string[]).map(tag => tag.toUpperCase());
-        const rootElement = getSelectedRoot(contentEditable);
-        const isParagraph = isElementsEqualToTags(tags, rootElement);
-        if (isSchemaContainNodeName(tags[0], [Display.ListWrapper])) {
-            const listWrapperElement = getSelectedListWrapper(contentEditable);
-            if ((isElementsEqualToTags(["UL"], listWrapperElement) || isElementsEqualToTags(["OL"], listWrapperElement))
-                && isMinusIndentEnabled(contentEditable)) {
-                tags = [tags[0]];
-                listWrapper(contentEditable, tags);
-                return;
-            }
+        const tag = tags[0];
+        if (!tag) {
+            return;
         }
 
-        if (isParagraph) {
-            tags = ["P"];
+        if (isListWrapper(contentEditable, tag)) {
+            changeListWrapper(contentEditable, [tag]);
+        } else {
+            const blockElements = getSelectedBlock(contentEditable);
+            const isParagraph = isElementsEqualToTags(tags, blockElements);
+            if (isParagraph) {
+                tags = ["P"];
+            }
+            changeFirstLevel(contentEditable, tags);
         }
-        firstLevel(contentEditable, tags);
     }
 
     if (command.action === Action.PlusIndent) {

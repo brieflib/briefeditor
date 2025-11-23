@@ -1,13 +1,13 @@
-import {getNextElement, getRootElement} from "@/core/shared/element-util";
+import {getNextTextNode, getRootElement} from "@/core/shared/element-util";
 
 interface NodeOffset {
-    node: HTMLElement | null,
+    node: Node | null,
     offset: number
 }
 
-export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: number, shift: number): NodeOffset {
+export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: number, isShift: boolean): NodeOffset {
     let position = 0;
-    const stack = [contentEditable];
+    const stack = [contentEditable as Node];
     while (stack.length > 0) {
         const current: Node | undefined = stack.pop();
         if (!current) {
@@ -18,18 +18,18 @@ export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: 
             const textContentLength = current.textContent?.length ?? 0;
 
             if (position + textContentLength >= targetPosition) {
-                if (shift === 1) {
-                    const node = getNextElement(contentEditable, current as HTMLElement);
+                if (isShift) {
+                    const node = getNextTextNode(contentEditable, current);
                     if (node) {
-                        return {node: node as HTMLElement, offset: 0};
+                        return {node: node, offset: 0};
                     }
                 }
-                return {node: current as HTMLElement, offset: targetPosition - position};
+                return {node: current, offset: targetPosition - position};
             }
             position += textContentLength;
         } else if (current.childNodes && current.childNodes.length > 0) {
             for (let i = current.childNodes.length - 1; i >= 0; i--) {
-                stack.push(current.childNodes[i] as HTMLElement);
+                stack.push(current.childNodes[i] as Node);
             }
         }
     }

@@ -6,6 +6,7 @@ import {getSelectedBlock, getSelectedElements, getSelectedListWrapper} from "@/c
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 import {Action} from "@/core/command/type/command";
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
+import {isMinusIndentEnabled} from "@/core/list/list";
 
 export function tag(tag: string, contentEditable: HTMLElement, action: Action) {
     const initialCursorPosition = getSelectionOffset(contentEditable);
@@ -25,7 +26,7 @@ export function tag(tag: string, contentEditable: HTMLElement, action: Action) {
         switch (action) {
             case Action.Wrap:
                 wrapRangeInTag(contentEditable, range, tag);
-                break
+                break;
             case Action.Unwrap:
                 unwrapRangeFromTag(contentEditable, range, tag);
                 break;
@@ -33,10 +34,12 @@ export function tag(tag: string, contentEditable: HTMLElement, action: Action) {
         return;
     }
 
-    const length = getSelectedElements(range).length;
+    let length = getSelectedElements(range).length;
     for (let i = 0; i < length; i++) {
         const initialRange = restoreRange(contentEditable, initialCursorPosition);
-        const element = getSelectedElements(initialRange)[i];
+        const elements = getSelectedElements(initialRange);
+        length = elements.length;
+        const element = elements[i];
         if (!element) {
             continue;
         }
@@ -82,15 +85,15 @@ export function tag(tag: string, contentEditable: HTMLElement, action: Action) {
     }
 }
 
-export function firstLevel(contentEditable: HTMLElement, tags: string[]) {
+export function changeFirstLevel(contentEditable: HTMLElement, tags: string[]) {
     const initialCursorPosition = getSelectionOffset(contentEditable);
     if (!initialCursorPosition) {
         return;
     }
 
-    const blocks = getSelectedBlock(contentEditable);
+    const blocks = getInitialBlocks(contentEditable, initialCursorPosition);
     for (let i = 0; i < blocks.length; i++) {
-        let block = getBlock(contentEditable, initialCursorPosition, i);
+        let block = getInitialBlocks(contentEditable, initialCursorPosition)[i];
         if (!block) {
             continue;
         }
@@ -99,7 +102,7 @@ export function firstLevel(contentEditable: HTMLElement, tags: string[]) {
     }
     const updatedBlocks: Node[] = [];
     for (let i = 0; i < blocks.length; i++) {
-        const block = getBlock(contentEditable, initialCursorPosition, i);
+        const block = getInitialBlocks(contentEditable, initialCursorPosition)[i];
         if (!block) {
             continue;
         }
@@ -109,7 +112,7 @@ export function firstLevel(contentEditable: HTMLElement, tags: string[]) {
        mergeLists(contentEditable, updatedBlocks);
     }
     for (let i = 0; i < blocks.length; i++) {
-        const block = getBlock(contentEditable, initialCursorPosition, i);
+        const block = getInitialBlocks(contentEditable, initialCursorPosition)[i];
         if (!block) {
             continue;
         }
@@ -118,31 +121,27 @@ export function firstLevel(contentEditable: HTMLElement, tags: string[]) {
     }
 }
 
-function getBlock(contentEditable: HTMLElement, initialCursorPosition: CursorPosition, i: number) {
+function getInitialBlocks(contentEditable: HTMLElement, initialCursorPosition: CursorPosition) {
     const initialRange = restoreRange(contentEditable, initialCursorPosition);
-    return getSelectedBlock(contentEditable, initialRange)[i];
+    return getSelectedBlock(contentEditable, initialRange);
 }
 
-export function listWrapper(contentEditable: HTMLElement, tags: string[]) {
+export function changeListWrapper(contentEditable: HTMLElement, tags: string[]) {
     const initialCursorPosition = getSelectionOffset(contentEditable);
     if (!initialCursorPosition) {
         return;
     }
 
-    const blocks = getSelectedListWrapper(contentEditable);
-    for (let i = 0; i < blocks.length; i++) {
-        let block = getListWrapper(contentEditable, initialCursorPosition, i);
-        if (!block) {
+    const listWrappers = getSelectedListWrapper(contentEditable);
+    for (let i = 0; i < listWrappers.length; i++) {
+        const initialRange = restoreRange(contentEditable, initialCursorPosition);
+        let listWrappers = getSelectedListWrapper(contentEditable, initialRange)[i];
+        if (!listWrappers) {
             continue;
         }
         const replaceFrom = getOfType([Display.FirstLevel]).filter(item => !tags.includes(item));
-        replaceListWrapper(contentEditable, block, replaceFrom, tags);
+        replaceListWrapper(contentEditable, listWrappers, replaceFrom, tags);
     }
-}
-
-function getListWrapper(contentEditable: HTMLElement, initialCursorPosition: CursorPosition, i: number) {
-    const initialRange = restoreRange(contentEditable, initialCursorPosition);
-    return getSelectedListWrapper(contentEditable, initialRange)[i];
 }
 
 export function isElementsEqualToTags(tags: string[], elements: HTMLElement[]) {
@@ -202,4 +201,23 @@ export function mergeLists(contentEditable: HTMLElement, lists: Node[]) {
     allLists[allLists.length - 1]?.after(wrapper);
     wrapper.append(...allLists);
     removeTag(contentEditable, wrapper, ["DELETED"]);
+}
+
+export function isListWrapper(contentEditable: HTMLElement, tag: string) {
+    if (isSchemaContainNodeName(tag, [Display.ListWrapper])) {
+        const listWrapperElement = getSelectedListWrapper(contentEditable);
+        const isUl = isElementsEqualToTags(["UL"], listWrapperElement);
+        const isOl = isElementsEqualToTags(["OL"], listWrapperElement);
+        const isMinusIndent = isMinusIndentEnabled(contentEditable);
+
+        if ((isUl && tag === "UL") || (isOl && tag === "OL")) {
+            return false;
+        }
+
+        if ((isUl || isOl) && isMinusIndent) {
+            return true;
+        }
+    }
+
+    return false;
 }
