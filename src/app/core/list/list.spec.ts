@@ -52,15 +52,16 @@ describe("Is plus indent enabled", () => {
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second</li>
-                <ul>
-                    <li>third</li>
-                </ul>  
+                <li>second
+                    <ul>
+                        <li>third</li>
+                    </ul>
+                </li>
             </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "th".length);
-        range.setEnd(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "third".length);
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2) > ul > li")?.firstChild as Node, "th".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2) > ul > li")?.firstChild as Node, "third".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
@@ -73,15 +74,16 @@ describe("Is plus indent enabled", () => {
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second</li>
-                <ul>
-                    <li>third</li>
-                </ul>                
+                <li>second
+                    <ul>
+                        <li>third</li>
+                    </ul>
+                </li>              
             </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
-        range.setEnd(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "third".length);
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2) > ul > li")?.firstChild as Node, "third".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
@@ -106,6 +108,26 @@ describe("Is plus indent enabled", () => {
         const isEnabled = isPlusIndentEnabled(wrapper);
         expect(isEnabled).toBe(true);
     });
+
+    test("Should allow plus indent for an ordered list after an unordered list", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>         
+            </ul>
+            <ol>
+                <li>second</li> 
+            </ol>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("ol > li")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ol > li")?.firstChild as Node, "second".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isEnabled = isPlusIndentEnabled(wrapper);
+        expect(isEnabled).toBe(true);
+    });
 });
 
 describe("Plus indent", () => {
@@ -116,23 +138,23 @@ describe("Plus indent", () => {
                 <li>first</li>
                 <li>second</li>
                 <li>third</li>
-            </ul>
-        `);
+            </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
-        range.setEnd(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "third".length);
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(3)")?.firstChild as Node, "third".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
         plusIndent(wrapper);
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
-                <li>first</li>
-                <ul>
-                    <li>second</li>
-                    <li>third</li>
-                </ul>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                        <li>third</li>
+                    </ul>
+                </li>
             </ul>`));
     });
 
@@ -141,27 +163,27 @@ describe("Plus indent", () => {
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>se<strong>cond</strong></li>
-                <ul>
-                    <li>third</li>
-                </ul>                
-            </ul>
-        `);
+                <li>se<strong>cond</strong>
+                    <ul>
+                        <li>third</li>
+                    </ul>    
+                </li>            
+            </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
-        range.setEnd(wrapper.querySelectorAll("ul > li")[1]?.querySelector("strong")?.firstChild as Node, "cond".length);
-
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2) > strong")?.firstChild as Node, "cond".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         plusIndent(wrapper);
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
-                <li>first</li>
-                <ul>
-                    <li>se<strong>cond</strong></li>
-                    <li>third</li>
-                </ul>
+                <li>first
+                    <ul>
+                        <li>se<strong>cond</strong></li>
+                        <li>third</li>
+                    </ul>
+                </li>
             </ul>
         `));
     });
@@ -171,20 +193,21 @@ describe("Plus indent", () => {
         wrapper.innerHTML = replaceSpaces(`
         <ul>
             <li>first</li>
-            <li>second</li>
-            <ul>
-              <li>third</li>
-            </ul>
-            <li>fourth</li>
-            <ul>
-              <li>fifth</li>
-            </ul>            
-        </ul>
-        `);
+            <li>second
+                <ul>
+                  <li>third</li>
+                </ul>
+            </li>
+            <li>fourth
+                <ul>
+                  <li>fifth</li>
+                </ul>
+            </li>          
+        </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > li")[3]?.firstChild as Node, "fo".length);
-        range.setEnd(wrapper.querySelectorAll("ul > li")[3]?.firstChild as Node, "fourth".length);
+        range.setStart(wrapper.querySelector("ul > li:nth-child(3)")?.firstChild as Node, "fo".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(3)")?.firstChild as Node, "fourth".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
@@ -192,12 +215,13 @@ describe("Plus indent", () => {
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second</li>
-                <ul>
-                    <li>third</li>
-                    <li>fourth</li>
-                    <li>fifth</li>
-                </ul>
+                <li>second
+                    <ul>
+                        <li>third</li>
+                        <li>fourth</li>
+                        <li>fifth</li>
+                    </ul>
+                </li>
             </ul>
         `));
     });
@@ -207,31 +231,120 @@ describe("Plus indent", () => {
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second</li>
-                <ul>
-                  <li>third</li>
-                </ul>           
-            </ul>
-        `);
+                <li>second
+                    <ul>
+                      <li>third</li>
+                    </ul>
+                </li>
+            </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
-        range.setEnd(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "third".length);
-
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2) > ul > li")?.firstChild as Node, "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         plusIndent(wrapper);
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
-                <li>first</li>
-                <ul>
-                    <li>second</li>
+                <li>first
                     <ul>
-                        <li>third</li>
+                        <li>second
+                            <ul>
+                                <li>third</li>
+                            </ul>
+                        </li>
                     </ul>
-                </ul>           
+                </li>          
             </ul>
         `));
+    });
+
+    test("Should indent an ordered list located after an unordered list", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>         
+            </ul>
+            <ol>
+                <li>second</li> 
+            </ol>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("ol > li")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ol > li")?.firstChild as Node, "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        plusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>          
+            </ul>
+        `));
+    });
+
+    test("Should indent list containing an ordered list", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>         
+                <li>second
+                    <ol>
+                        <li>third</li> 
+                    </ol>
+                </li>      
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        plusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>         
+            </ul>`));
+    });
+
+    test("Should indent an ordered list after an unordered list", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>         
+            </ul>
+            <ol>
+                <li>second</li>
+                <li>third</li>
+            </ol>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("ol > li:nth-child(1)")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ol > li:nth-child(1)")?.firstChild as Node, "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        plusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ul>
+            <ol>
+                <li>third</li>
+            </ol>`));
     });
 });
 
@@ -281,15 +394,16 @@ describe("Is minus indent enabled", () => {
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second</li>
-                <ul>
-                    <li>third</li>
-                </ul>
+                <li>second
+                    <ul>
+                        <li>third</li>
+                    </ul>
+                </li>
             </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "th".length);
-        range.setEnd(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "third".length);
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2) > ul > li")?.firstChild as Node, "th".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2) > ul > li")?.firstChild as Node, "third".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
@@ -302,16 +416,16 @@ describe("Is minus indent enabled", () => {
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second</li>
-                <ul>
-                    <li>third</li>
-                </ul>
+                <li>second
+                    <ul>
+                        <li>third</li>
+                    </ul>
+                </li>
             </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > li")[1]?.firstChild as Node, "se".length);
-        range.setEnd(wrapper.querySelectorAll("ul > li")[2]?.firstChild as Node, "third".length);
-
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2) > ul > li")?.firstChild as Node, "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         const isEnabled = isMinusIndentEnabled(wrapper);
@@ -322,17 +436,17 @@ describe("Is minus indent enabled", () => {
         const wrapper = document.createElement("div");
         wrapper.innerHTML = replaceSpaces(`
             <ul>
-                <li>first</li>
-                <ul>
-                    <li>second</li>
-                    <li>third</li>
-                </ul>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                        <li>third</li>
+                    </ul>
+                </li>
             </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "se".length);
-        range.setEnd(wrapper.querySelectorAll("ul > ul > li")[1]?.firstChild as Node, "third".length);
-
+        range.setStart(wrapper.querySelector("ul > li > ul > li:nth-child(1)")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ul > li > ul > li:nth-child(2)")?.firstChild as Node, "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         const isEnabled = isMinusIndentEnabled(wrapper);
@@ -343,19 +457,20 @@ describe("Is minus indent enabled", () => {
         const wrapper = document.createElement("div");
         wrapper.innerHTML = replaceSpaces(`
             <ul>
-                <li>first</li>
-                <ul>
-                    <li>second</li>
+                <li>first
                     <ul>
-                        <li>third</li>
-                    </ul>                    
-                </ul>
+                        <li>second
+                            <ul>
+                                <li>third</li>
+                            </ul>
+                        </li>                
+                    </ul>
+                </li>
             </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "se".length);
-        range.setEnd(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "second".length);
-
+        range.setStart(wrapper.querySelector("ul > li > ul > li")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ul > li > ul > li")?.firstChild as Node, "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         const isEnabled = isMinusIndentEnabled(wrapper);
@@ -367,19 +482,21 @@ describe("Is minus indent enabled", () => {
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second</li>
-                <ul>
-                    <li>third</li>
+                <li>second
                     <ul>
-                        <li>fourth</li>
-                        <li>fifth</li>
+                        <li>third
+                            <ul>
+                                <li>fourth</li>
+                                <li>fifth</li>
+                            </ul>
+                        </li>
                     </ul>
-                </ul>
+                </li>
             </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "th".length);
-        range.setEnd(wrapper.querySelectorAll("ul > ul > ul > li")[0]?.firstChild as Node, "fourth".length);
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2) > ul > li")?.firstChild as Node, "th".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2) > ul > li > ul > li:nth-child(1)")?.firstChild as Node, "fourth".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
@@ -389,22 +506,23 @@ describe("Is minus indent enabled", () => {
 });
 
 describe("Minus indent", () => {
-    test("Should minus indent two nested lis", () => {
+    test("Should minus indent two nested lists", () => {
         const wrapper = document.createElement("div");
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second</li>
-                <ul>
-                    <li>third</li>
-                    <li>fourth</li>
-                </ul>
+                <li>second
+                    <ul>
+                        <li>third</li>
+                        <li>fourth</li>
+                        <li>fifth</li>
+                    </ul>
+                </li>
             </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "th".length);
-        range.setEnd(wrapper.querySelectorAll("ul > ul > li")[1]?.firstChild as Node, "fourth".length);
-
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2) > ul > li:nth-child(1)")?.firstChild as Node, "th".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2) > ul > li:nth-child(2)")?.firstChild as Node, "fourth".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         minusIndent(wrapper);
@@ -413,6 +531,41 @@ describe("Minus indent", () => {
                 <li>first</li>
                 <li>second</li>
                 <li>third</li>
+                <li>fourth
+                    <ul>
+                        <li>fifth</li>
+                    </ul>
+                </li>
+            </ul>`));
+    });
+
+    test("Should minus indent nested lists", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second
+                    <ul>
+                        <li>third</li>
+                        <li>fourth</li>
+                    </ul>
+                </li>
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2) > ul > li:nth-child(2)")?.firstChild as Node, "fo".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2) > ul > li:nth-child(2)")?.firstChild as Node, "fourth".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        minusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second
+                    <ul>
+                        <li>third</li>
+                    </ul>
+                </li>
                 <li>fourth</li>
             </ul>`));
     });
@@ -422,18 +575,20 @@ describe("Minus indent", () => {
         wrapper.innerHTML = replaceSpaces(`
             <ul>
                 <li>first</li>
-                <li>second</li>
-                <ul>
-                    <li>third</li>
+                <li>second
                     <ul>
-                        <li>fourth</li>
+                        <li>third
+                            <ul>
+                                <li>fourth</li>
+                            </ul>
+                        </li>
                     </ul>
-                </ul>
+                </li>
             </ul>`);
 
         const range = new Range();
-        range.setStart(wrapper.querySelectorAll("ul > ul > li")[0]?.firstChild as Node, "th".length);
-        range.setEnd(wrapper.querySelectorAll("ul > ul > ul > li")[0]?.firstChild as Node, "fourth".length);
+        range.setStart(wrapper.querySelector("ul > li:nth-child(2) > ul > li")?.firstChild as Node, "th".length);
+        range.setEnd(wrapper.querySelector("ul > li:nth-child(2) > ul > li > ul > li")?.firstChild as Node, "fourth".length);
 
         (getRange as jest.Mock).mockReturnValue(range);
 
@@ -442,11 +597,44 @@ describe("Minus indent", () => {
             <ul>
                 <li>first</li>
                 <li>second</li>
-                <li>third</li>
-                <ul>
-                    <li>fourth</li>
-                </ul>
+                <li>third
+                    <ul>
+                        <li>fourth</li>
+                    </ul>
+                </li>
             </ul>`));
+    });
+
+    test("Should minus indent ordered list inside unordered list", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first
+                    <ol>
+                        <li>second</li>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ul>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("ul > li > ol > li:nth-child(1)")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ul > li > ol > li:nth-child(1)")?.firstChild as Node, "second".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        minusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first</li>
+            </ul>
+            <ol>
+                <li>second
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ol>`));
     });
 });
 
