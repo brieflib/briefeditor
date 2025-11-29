@@ -56,24 +56,8 @@
     padding: 12px;
 }
 
-.bf-editor ul li::before {
-    content: "• ";
-    display: inline-block;
-    margin-left: -24px;
-    margin-right: 6px;
-    text-align: right;
-    white-space: nowrap;
-    width: 24px;
-}
-
-.bf-editor ol ul li::before {
-    content: "• ";
-    display: inline-block;
-    margin-left: -24px;
-    margin-right: 6px;
-    text-align: right;
-    white-space: nowrap;
-    width: 24px;
+.bf-editor :where(ul) {
+    list-style-type: disc;
 }
 
 .bf-editor ul li {
@@ -97,24 +81,8 @@
     margin-left: 40px;
 }
 
-.bf-editor ol li::before {
-    content: counter(list-item) ".";
-    display: inline-block;
-    margin-left: -24px;
-    margin-right: 6px;
-    text-align: right;
-    white-space: nowrap;
-    width: 24px;
-}
-
-.bf-editor ul ol li::before {
-    content: counter(list-item) ".";
-    display: inline-block;
-    margin-left: -24px;
-    margin-right: 6px;
-    text-align: right;
-    white-space: nowrap;
-    width: 24px;
+.bf-editor :where(ol) {
+    list-style-type: decimal;
 }
 
 .bf-editor ol li {

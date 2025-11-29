@@ -1,4 +1,4 @@
-import {changeFirstLevel, changeListWrapper, tag} from "@/core/command/util/command-util";
+import {changeBlock, tag} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
 import {Action} from "@/core/command/type/command";
 import {getFirstChild, getLastChild, replaceSpaces} from "@/core/shared/test-util";
@@ -244,7 +244,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "p"), "par".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["H1"]);
+        changeBlock(wrapper, ["H1"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <h1>Paragraph</h1>
@@ -265,7 +265,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "p > strong"), "Par".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["H1"]);
+        changeBlock(wrapper, ["H1"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <h1>
@@ -288,7 +288,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "p > strong"), "Par".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["UL", "LI"]);
+        changeBlock(wrapper, ["UL", "LI"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -319,7 +319,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "ul > li > ul > li > strong"), "te".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["P"]);
+        changeBlock(wrapper, ["P"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -345,7 +345,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "ul > li"), "Par".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["P"]);
+        changeBlock(wrapper, ["P"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p>Paragraph</p>
@@ -367,7 +367,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "p"), "te".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["UL", "LI"]);
+        changeBlock(wrapper, ["UL", "LI"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -393,7 +393,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "ul > li:nth-child(2)"), "sec".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["P"]);
+        changeBlock(wrapper, ["P"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -436,7 +436,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "ul > li"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["P"]);
+        changeBlock(wrapper, ["P"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p>first<br>second</p>
@@ -455,7 +455,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "p"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["UL", "LI"]);
+        changeBlock(wrapper, ["UL", "LI"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -479,7 +479,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "p"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["UL", "LI"]);
+        changeBlock(wrapper, ["UL", "LI"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -507,7 +507,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "ul > li:nth-child(3)"), "th".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["P"]);
+        changeBlock(wrapper, ["P"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p>first</p>
@@ -533,7 +533,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "ul > ul > li"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeListWrapper(wrapper, ["OL"]);
+        changeBlock(wrapper, ["OL"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -561,7 +561,7 @@ describe("Change first level", () => {
 
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeListWrapper(wrapper, ["OL"]);
+        changeBlock(wrapper, ["OL"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -592,7 +592,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "ul > li > ol > li:nth-child(2)"), "th".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeListWrapper(wrapper, ["UL"]);
+        changeBlock(wrapper, ["UL"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -608,7 +608,7 @@ describe("Change first level", () => {
         `));
     });
 
-    test("Should change ordered list to unordered list", () => {
+    test("Should change parent ordered list to unordered", () => {
         const wrapper = document.createElement("div");
         wrapper.innerHTML = replaceSpaces(`
             <ol>
@@ -626,15 +626,16 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "ol > li:nth-child(1)"), "sec".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["UL"]);
+        changeBlock(wrapper, ["UL"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
-                <li>second</li>
-            </ul>    
-            <ol>
-                <li>third</li>
-            </ol>
+                <li>second
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ul>
         `));
     });
 
@@ -651,7 +652,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, "p:nth-child(2)"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeFirstLevel(wrapper, ["UL", "LI"]);
+        changeBlock(wrapper, ["UL", "LI"]);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>

@@ -26,7 +26,7 @@ test("Should find all leaf's parents", () => {
     toTransform.innerHTML = "<strong>bold </strong><em><strong>bolditalic</strong>ital</em>ic";
 
     const node = toTransform.querySelector("em > strong")?.firstChild;
-    const leaf = setLeafParents(node, toTransform);
+    const leaf = setLeafParents(node as Node, toTransform);
 
     expect(leaf?.getParents()[leaf?.getParents().length - 1]?.textContent).toBe("bolditalic");
     expect(leaf?.getParents().map(parent => parent.nodeName)).toStrictEqual(["EM", "STRONG", "#text"]);

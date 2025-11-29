@@ -1,8 +1,14 @@
-import {getSelectedBlock} from "@/core/selection/selection";
+import {getSelectedBlock, getSelectedRoot} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import normalize from "@/core/normalize/normalize";
+import normalize, {appendTags} from "@/core/normalize/normalize";
 import {getRootElement} from "@/core/shared/element-util";
-import {countParentsWithDisplay, isChildrenContain, moveConsecutive} from "@/core/list/util/list-util";
+import {
+    countParentsWithDisplay,
+    isChildrenContain,
+    moveConsecutive,
+    moveListWrapperToPreviousLi
+} from "@/core/list/util/list-util";
+import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 
 export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const firstList = lists[0];
@@ -37,60 +43,32 @@ export function plusIndent(contentEditable: HTMLElement, lists: HTMLElement[] = 
         return;
     }
 
-    const firstLi = lists[0];
-    if (!firstLi) {
+    const initialCursorPosition = getSelectionOffset(contentEditable);
+    if (!initialCursorPosition) {
         return;
     }
 
-    for (const li of lists) {
-        const listWrapper = li.parentElement;
-        if (!listWrapper) {
+    for (let i = 0; i < lists.length; i++) {
+        const initialRange = restoreRange(contentEditable, initialCursorPosition);
+        const block = getSelectedBlock(contentEditable, initialRange)[i];
+        if (!block) {
             continue;
         }
 
-        const maybePreviousListWrapper = listWrapper.previousElementSibling;
-        if (maybePreviousListWrapper &&
-            isSchemaContain(maybePreviousListWrapper, [Display.ListWrapper]) &&
-            listWrapper.querySelector("li:first-child") === li) {
-            const previousListWrapper = maybePreviousListWrapper;
-            const newListWrapper = document.createElement(listWrapper.nodeName);
-            newListWrapper.append(li);
-            previousListWrapper.querySelector("li:last-child")?.appendChild(newListWrapper);
-            if (!listWrapper.textContent) {
-                listWrapper.remove();
-            }
+        const parentElement = block.parentElement;
+        if (!parentElement) {
             continue;
         }
 
-        const maybePreviousLi = li.previousElementSibling;
-        if (!maybePreviousLi) {
-            continue;
-        }
-        const previousLi = maybePreviousLi;
-
-        const nestedListWrapper = li.querySelectorAll("ul, ol")[0];
-        if (nestedListWrapper && nestedListWrapper.textContent && listWrapper.nodeName === nestedListWrapper.nodeName) {
-            previousLi.appendChild(nestedListWrapper);
-            nestedListWrapper.prepend(li);
-            continue;
-        }
-
-        if (nestedListWrapper && listWrapper.nodeName !== nestedListWrapper.nodeName) {
-            previousLi.appendChild(nestedListWrapper);
-
-            const newListWrapper = document.createElement(listWrapper.nodeName);
-            newListWrapper.append(li);
-            nestedListWrapper.before(newListWrapper);
-            continue;
-        }
-
-        const newListWrapper = document.createElement(listWrapper.nodeName);
-        newListWrapper.append(li);
-        previousLi.appendChild(newListWrapper);
+        appendTags(contentEditable, block, [parentElement.nodeName]);
     }
 
-    const rootElement = getRootElement(contentEditable, firstLi);
-    normalize(contentEditable, rootElement);
+    const initialRange = restoreRange(contentEditable, initialCursorPosition);
+    const rootElements = getSelectedRoot(contentEditable, initialRange);
+    for (const rootElement of rootElements) {
+        moveListWrapperToPreviousLi(rootElement);
+        normalize(contentEditable, rootElement);
+    }
 }
 
 export function isMinusIndentEnabled(contentEditable: HTMLElement) {

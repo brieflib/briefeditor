@@ -1,4 +1,5 @@
 import {
+    appendLeafParents,
     collapseLeaves,
     filterLeafParents,
     getLeafNodes,
@@ -20,7 +21,7 @@ export default function normalize(contentEditable: HTMLElement, element: HTMLEle
     replaceElement(leaves, element);
 }
 
-export function removeTag(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[]) {
+export function removeTags(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[]) {
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
     const leaves = getLeafNodes(rootElement)
@@ -32,29 +33,30 @@ export function removeTag(contentEditable: HTMLElement, removeTagFrom: HTMLEleme
     replaceElement(leaves, rootElement);
 }
 
-export function replaceTag(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[]) {
+export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[], isClosest: boolean = false) {
     const rootElement = getRootElement(contentEditable, replaceTagFrom);
-    const elementToReplace = buildElementsToReplace(replaceTo);
+    const elementsToReplace = buildElementsToReplace(replaceTo);
 
     const leaves = getLeafNodes(rootElement)
         .map(node => setLeafParents(node, contentEditable))
-        .filter(leaf => replaceLeafParents(leaf, replaceTagFrom, replaceFrom, elementToReplace))
+        .filter(leaf => replaceLeafParents(leaf, replaceTagFrom, replaceFrom, elementsToReplace, isClosest))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
     return replaceElement(leaves, rootElement);
 }
 
-export function replaceClosestTag(wrapper: HTMLElement, list: HTMLElement, replaceFrom: string[], replaceTo: string[]) {
-    const elementToReplace = buildElementsToReplace(replaceTo);
+export function appendTags(contentEditable: HTMLElement, appendTagTo: HTMLElement, appendTags: string[]) {
+    const rootElement = getRootElement(contentEditable, appendTagTo);
+    const elementsToAppend = buildElementsToReplace(appendTags);
 
-    const leaves = getLeafNodes(wrapper)
-        .map(node => setLeafParents(node, wrapper.parentElement as HTMLElement))
-        .filter(leaf => replaceLeafParents(leaf, list, replaceFrom, elementToReplace))
+    const leaves = getLeafNodes(rootElement)
+        .map(node => setLeafParents(node, contentEditable))
+        .map(leaf => appendLeafParents(leaf, appendTagTo, elementsToAppend))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return replaceElement(leaves, wrapper);
+    return replaceElement(leaves, rootElement);
 }
 
 function buildElementsToReplace(replaceTo: string[]) {

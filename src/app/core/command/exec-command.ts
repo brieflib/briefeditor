@@ -1,7 +1,6 @@
 import {Action, Command} from "@/core/command/type/command";
 import {
-    changeFirstLevel,
-    changeListWrapper,
+    changeBlock,
     isElementsEqualToTags,
     isListWrapper,
     tag
@@ -35,14 +34,14 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
         }
 
         if (isListWrapper(contentEditable, tag)) {
-            changeListWrapper(contentEditable, [tag]);
+            changeBlock(contentEditable, [tag]);
         } else {
             const blockElements = getSelectedBlock(contentEditable);
             const isParagraph = isElementsEqualToTags(tags, blockElements);
             if (isParagraph) {
                 tags = ["P"];
             }
-            changeFirstLevel(contentEditable, tags);
+            changeBlock(contentEditable, tags);
         }
     }
 

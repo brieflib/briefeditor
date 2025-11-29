@@ -1,4 +1,7 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {restoreRange} from "@/core/cursor/cursor";
+import {CursorPosition} from "@/core/cursor/type/cursor-position";
+import {getSelectedListWrapper} from "@/core/selection/selection";
 
 export function countParentsWithDisplay(element: HTMLElement, display: Display[]) {
     let count = 0;
@@ -57,6 +60,27 @@ export function moveConsecutive(startLi: HTMLElement) {
     }
     if (!listWrapper.textContent) {
         listWrapper.remove();
+    }
+}
+
+export function moveListWrapperToPreviousLi(rootElement: HTMLElement) {
+    const listWrappers = rootElement.querySelectorAll("ul, ol");
+
+    for (const listWrapper of listWrappers) {
+        let previousLi = listWrapper.previousElementSibling;
+        if (previousLi && isSchemaContain(previousLi, [Display.List])) {
+            previousLi.appendChild(listWrapper);
+            continue;
+        }
+
+        const previousListWrapper = listWrapper.parentElement?.previousElementSibling;
+        if (previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper])) {
+            previousListWrapper.appendChild(listWrapper);
+        }
+        previousLi = listWrapper.previousElementSibling;
+        if (previousLi && isSchemaContain(previousLi, [Display.List])) {
+            previousLi.appendChild(listWrapper);
+        }
     }
 }
 

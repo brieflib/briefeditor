@@ -1,4 +1,4 @@
-import normalize, {removeTag, replaceTag} from "@/core/normalize/normalize";
+import normalize, {removeTags, replaceTags} from "@/core/normalize/normalize";
 
 describe("Should normalize tags", () => {
     test("Should sort tags by priority", () => {
@@ -99,7 +99,7 @@ describe("Should remove tags", () => {
         wrapper.innerHTML = "<strong><u><i>bold bolditalic</i>par</u></strong>text";
 
         const toRemoveTag = wrapper.querySelector("strong > u")?.childNodes[1] as HTMLElement;
-        removeTag(wrapper, toRemoveTag, ["STRONG"]);
+        removeTags(wrapper, toRemoveTag, ["STRONG"]);
         expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><u>par</u>text");
     });
 
@@ -108,7 +108,7 @@ describe("Should remove tags", () => {
         wrapper.innerHTML = "<strong><u><i>bold bolditalic</i><div><span>par</span><div>lorem</div></div></u></strong>text";
 
         const toRemoveTag = wrapper.querySelector("strong > u > div");
-        removeTag(wrapper, toRemoveTag as HTMLElement, ["STRONG"]);
+        removeTags(wrapper, toRemoveTag as HTMLElement, ["STRONG"]);
         expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><div><u><span>par</span>lorem</u></div>text");
     });
 });
@@ -119,7 +119,7 @@ describe("Should replace tags", () => {
         wrapper.innerHTML = "<strong><u><i>bold bolditalic</i><div><span>par</span><p>lorem</p></div></u></strong>text";
 
         const toReplaceTag = wrapper.querySelector("strong > u > div");
-        replaceTag(wrapper, toReplaceTag as HTMLElement, ["DIV"], ["UL", "LI"]);
+        replaceTags(wrapper, toReplaceTag as HTMLElement, ["DIV"], ["UL", "LI"]);
         expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><ul><li><strong><u><span>par</span></u></strong><p><strong><u>lorem</u></strong></p></li></ul>text");
     });
 });

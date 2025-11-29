@@ -139,12 +139,13 @@ describe("Plus indent", () => {
                 <li>first</li>
                 <li>second</li>
                 <li>third</li>
-            </ul>`);
+            </ul>
+        `);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
         range.setEnd(wrapper.querySelector("ul > li:nth-child(3)")?.firstChild as Node, "third".length);
-
         (getRange as jest.Mock).mockReturnValue(range);
 
         plusIndent(wrapper);
@@ -156,7 +157,8 @@ describe("Plus indent", () => {
                         <li>third</li>
                     </ul>
                 </li>
-            </ul>`));
+            </ul>
+        `));
     });
 
     test("Should indent one direct descendent lists when cursor at the end of the second", () => {
@@ -167,11 +169,11 @@ describe("Plus indent", () => {
                 <li>second</li>
                 <li>third</li>
             </ul>`);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "second".length);
         range.setEnd(wrapper.querySelector("ul > li:nth-child(3)")?.firstChild as Node, "third".length);
-
         (getRange as jest.Mock).mockReturnValue(range);
 
         plusIndent(wrapper);
@@ -194,9 +196,11 @@ describe("Plus indent", () => {
                 <li>se<strong>cond</strong>
                     <ul>
                         <li>third</li>
-                    </ul>    
+                    </ul>
                 </li>            
-            </ul>`);
+            </ul>
+        `);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
@@ -219,19 +223,21 @@ describe("Plus indent", () => {
     test("Should indent middle list", () => {
         const wrapper = document.createElement("div");
         wrapper.innerHTML = replaceSpaces(`
-        <ul>
-            <li>first</li>
-            <li>second
-                <ul>
-                  <li>third</li>
-                </ul>
-            </li>
-            <li>fourth
-                <ul>
-                  <li>fifth</li>
-                </ul>
-            </li>          
-        </ul>`);
+            <ul>
+                <li>first</li>
+                <li>second
+                    <ul>
+                      <li>third</li>
+                    </ul>
+                </li>
+                <li>fourth
+                    <ul>
+                      <li>fifth</li>
+                    </ul>
+                </li>          
+            </ul>
+        `);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("ul > li:nth-child(3)")?.firstChild as Node, "fo".length);
@@ -261,10 +267,12 @@ describe("Plus indent", () => {
                 <li>first</li>
                 <li>second
                     <ul>
-                      <li>third</li>
+                        <li>third</li>
+                        <li>fourth</li>
                     </ul>
                 </li>
             </ul>`);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
@@ -281,6 +289,7 @@ describe("Plus indent", () => {
                                 <li>third</li>
                             </ul>
                         </li>
+                        <li>fourth</li>
                     </ul>
                 </li>          
             </ul>
@@ -295,7 +304,9 @@ describe("Plus indent", () => {
             </ul>
             <ol>
                 <li>second</li> 
-            </ol>`);
+            </ol>
+        `);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("ol > li")?.firstChild as Node, "se".length);
@@ -314,6 +325,40 @@ describe("Plus indent", () => {
         `));
     });
 
+    test("Should indent an ordered list (with child) located after an unordered list", () => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = replaceSpaces(`
+            <ul>
+                <li>first</li>         
+            </ul>
+            <ol>
+                <li>second
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+        document.body.appendChild(wrapper);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("ol > li")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector("ol > li")?.firstChild as Node, "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        plusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first
+                    <ol>
+                        <li>second</li>
+                        <li>third</li>
+                    </ol>
+                </li>          
+            </ul>
+        `));
+    });
+
     test("Should indent list containing an ordered list", () => {
         const wrapper = document.createElement("div");
         wrapper.innerHTML = replaceSpaces(`
@@ -324,7 +369,9 @@ describe("Plus indent", () => {
                         <li>third</li> 
                     </ol>
                 </li>      
-            </ul>`);
+            </ul>
+        `);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("ul > li:nth-child(2)")?.firstChild as Node, "se".length);
@@ -342,7 +389,8 @@ describe("Plus indent", () => {
                         <li>third</li>
                     </ol>
                 </li>         
-            </ul>`));
+            </ul>
+        `));
     });
 
     test("Should indent an ordered list after an unordered list", () => {
@@ -355,6 +403,7 @@ describe("Plus indent", () => {
                 <li>second</li>
                 <li>third</li>
             </ol>`);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("ol > li:nth-child(1)")?.firstChild as Node, "se".length);
@@ -385,7 +434,9 @@ describe("Plus indent", () => {
             <ol>
                 <li>second</li>
                 <li>third</li>
-            </ol>`);
+            </ol>
+        `);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("ol > li:nth-child(2)")?.firstChild as Node, "th".length);
@@ -403,7 +454,8 @@ describe("Plus indent", () => {
                         <li>third</li>
                     </ol>               
                 </li>
-            </ol>`));
+            </ol>
+        `));
     });
 });
 
@@ -417,6 +469,7 @@ describe("Is minus indent enabled", () => {
                 <li>third</li>
             </ul>
         `);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelectorAll("ul > li")[0]?.firstChild as Node, "fi".length);
@@ -437,6 +490,7 @@ describe("Is minus indent enabled", () => {
             </ul>
             <p>third</p>
         `);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelectorAll("ul > li")[0]?.firstChild as Node, "fi".length);
@@ -459,6 +513,7 @@ describe("Is minus indent enabled", () => {
                     </ul>
                 </li>
             </ul>`);
+        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("ul > li:nth-child(2) > ul > li")?.firstChild as Node, "th".length);

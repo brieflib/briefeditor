@@ -2,11 +2,22 @@ import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
-export function setLeafParents(leafNode: Node | null | undefined, findTill: HTMLElement, leaf: Leaf = new Leaf()) {
-    if (!leafNode) {
-        return;
+export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
+    if (element.nodeType === Node.TEXT_NODE || isSchemaContain(element, [Display.SelfClose])) {
+        leafNodes.push(element);
+        return leafNodes;
     }
 
+    for (const child of element.childNodes) {
+        if (child.textContent || isSchemaContain(child, [Display.SelfClose, Display.FirstLevel, Display.List])) {
+            getLeafNodes(child, leafNodes);
+        }
+    }
+
+    return leafNodes;
+}
+
+export function setLeafParents(leafNode: Node, findTill: HTMLElement, leaf: Leaf = new Leaf()) {
     const parents: HTMLElement[] = [];
     let parent = leafNode.parentElement;
 
@@ -19,14 +30,35 @@ export function setLeafParents(leafNode: Node | null | undefined, findTill: HTML
         leaf.addParent(add);
     }
     leaf.addParent(leafNode);
+
     return leaf;
 }
 
-export function sortLeafParents(toSort: Leaf | undefined) {
-    if (!toSort) {
-        return new Leaf();
+export function appendLeafParents(leaf: Leaf, element: HTMLElement, elementsToAppend: HTMLElement[]) {
+    const parents = leaf.getParents();
+    if (!parents.includes(element)) {
+        return leaf;
     }
 
+    const lastParent = parents[parents.length - 1];
+    if (!lastParent) {
+        return leaf;
+    }
+    const childListWrappers = element.querySelectorAll("ul, ol");
+    for (const childListWrapper of childListWrappers) {
+        if (childListWrapper.contains(lastParent)) {
+            const liIndex = leaf.getParents().indexOf(childListWrapper) - 1;
+            leaf.getParents().splice(liIndex, 1);
+            return leaf;
+        }
+    }
+
+    const insertBeforeIndex = leaf.getParents().indexOf(element);
+    leaf.getParents().splice(insertBeforeIndex, 0, ...elementsToAppend);
+    return leaf;
+}
+
+export function sortLeafParents(toSort: Leaf) {
     const sortedParents = toSort
         .getParents()
         .map(element => ({
@@ -101,25 +133,6 @@ function willElementsMerge(element: Node | undefined, compareTo: Node | undefine
     return false;
 }
 
-export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
-    if (!element) {
-        return leafNodes;
-    }
-
-    if (element.nodeType === Node.TEXT_NODE || isSchemaContain(element, [Display.SelfClose])) {
-        leafNodes.push(element);
-        return leafNodes;
-    }
-
-    for (const child of element.childNodes) {
-        if (child.textContent || isSchemaContain(child, [Display.SelfClose, Display.FirstLevel, Display.List])) {
-            getLeafNodes(child, leafNodes);
-        }
-    }
-
-    return leafNodes;
-}
-
 export function filterLeafParents(leaf: Leaf | null | undefined, element: Node, excludeTags: string[]) {
     if (leaf) {
         for (const toFilter of getLeafNodes(element)) {
@@ -133,14 +146,14 @@ export function filterLeafParents(leaf: Leaf | null | undefined, element: Node, 
     return leaf;
 }
 
-export function replaceLeafParents(leaf: Leaf | null | undefined, element: Node, replaceFrom: string[], replaceToElement: HTMLElement[]) {
-    if (!leaf) {
-        return;
-    }
-
+export function replaceLeafParents(leaf: Leaf, element: Node, replaceFrom: string[], replaceToElement: HTMLElement[], isClosest: boolean = false) {
     if (leaf.getParents() && leaf.getParents().includes(element)) {
         const parents = leaf.getParents()
             .flatMap(parent => {
+                if (isClosest && !Array.from(parent.childNodes).some(child => child === element)) {
+                    return parent;
+                }
+
                 if (replaceFrom.includes(parent.nodeName)) {
                     return replaceToElement;
                 }
@@ -152,17 +165,6 @@ export function replaceLeafParents(leaf: Leaf | null | undefined, element: Node,
 
     return leaf;
 }
-
-//
-// function getParentsToReplace(replaceTo: string[]) {
-//     const parentsToReplace: Node[] = [];
-//     for (const replace of replaceTo) {
-//         const parentToReplace = document.createElement(replace);
-//         parentsToReplace.push(parentToReplace);
-//     }
-//
-//     return parentsToReplace;
-// }
 
 export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
     const parents = leaf.getParents();
