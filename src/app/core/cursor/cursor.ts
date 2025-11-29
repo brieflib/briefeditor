@@ -20,9 +20,25 @@ export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition
 
     const startOffset = startRange.toString().length;
     const endOffset = endRange.toString().length;
+
     const previousText = getPreviousNode(contentEditable, range.startContainer);
-    const isStartShift = range.startOffset === 0 && previousText?.textContent?.length === startOffset;
-    const isEndShift = range.endOffset === 0 && previousText?.textContent?.length === endOffset;
+
+    let isStartShift = false;
+    if (previousText) {
+        const previousRangeStart: Range = range.cloneRange();
+        previousRangeStart.selectNodeContents(previousText);
+        previousRangeStart.setEnd(range.startContainer, range.startOffset);
+        isStartShift = range.startOffset === 0 && previousText?.textContent?.length === previousRangeStart.toString().length;
+    }
+
+    let isEndShift = false;
+    if (previousText) {
+        const previousRangeEnd: Range = range.cloneRange();
+        previousRangeEnd.selectNodeContents(previousText);
+        previousRangeEnd.setEnd(range.endContainer, range.endOffset);
+        isEndShift = range.endOffset === 0 && previousText?.textContent?.length === previousRangeEnd.toString().length;
+    }
+
     return {
         startOffset: startOffset,
         endOffset: endOffset,

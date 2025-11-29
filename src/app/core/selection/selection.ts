@@ -10,16 +10,7 @@ enum SelectionType {
 }
 
 export function getSelectedSharedTags(findTill: HTMLElement) {
-    const range = getRange();
     const leafNodes = getSelectedLeaves();
-
-    if (leafNodes.length > 1 && range.endOffset === 0) {
-        leafNodes.pop();
-    }
-
-    if (leafNodes.length > 1 && range.startContainer.textContent?.length === range.startOffset) {
-        leafNodes.shift();
-    }
 
     const shared: string[][] = [];
     for (const leaf of leafNodes) {

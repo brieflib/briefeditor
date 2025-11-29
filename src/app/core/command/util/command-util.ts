@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import normalize, {removeTag, replaceListWrapper, replaceTag} from "@/core/normalize/normalize";
+import normalize, {removeTag, replaceClosestTag, replaceTag} from "@/core/normalize/normalize";
 import {getBlockElement, getRootElement} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {getSelectedBlock, getSelectedElements, getSelectedListWrapper} from "@/core/selection/selection";
@@ -123,7 +123,7 @@ export function changeListWrapper(contentEditable: HTMLElement, tags: string[]) 
             continue;
         }
         const replaceFrom = getOfType([Display.FirstLevel]).filter(item => !tags.includes(item));
-        replaceListWrapper(listWrapper, list, replaceFrom, tags);
+        replaceClosestTag(listWrapper, list, replaceFrom, tags);
     }
     normalizeRootElements(contentEditable, initialCursorPosition);
 }

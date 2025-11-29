@@ -2,12 +2,10 @@ import {getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import normalize from "@/core/normalize/normalize";
 import {getRootElement} from "@/core/shared/element-util";
-import {countParentsWithDisplay, isChildrenContain} from "@/core/list/util/list-util";
+import {countParentsWithDisplay, isChildrenContain, moveConsecutive} from "@/core/list/util/list-util";
 
-export function isPlusIndentEnabled(contentEditable: HTMLElement) {
-    const lists = getSelectedBlock(contentEditable);
+export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const firstList = lists[0];
-
     if (!firstList) {
         return false;
     }
@@ -34,60 +32,64 @@ export function isPlusIndentEnabled(contentEditable: HTMLElement) {
     return true;
 }
 
-export function plusIndent(contentEditable: HTMLElement) {
-    if (!isPlusIndentEnabled(contentEditable)) {
+export function plusIndent(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
+    if (!isPlusIndentEnabled(contentEditable, lists)) {
         return;
     }
 
-    const lists = getSelectedBlock(contentEditable);
-    const firstList = lists[0];
-    if (!firstList) {
+    const firstLi = lists[0];
+    if (!firstLi) {
         return;
     }
 
-    for (const list of lists) {
-        const parentElement = list.parentElement;
-
-        if (!parentElement) {
+    for (const li of lists) {
+        const listWrapper = li.parentElement;
+        if (!listWrapper) {
             continue;
         }
 
-        const previousListWrapper = parentElement.previousElementSibling;
-        if (previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper])) {
-            const listWrapper = document.createElement(parentElement.nodeName);
-            listWrapper.append(list);
-            previousListWrapper.querySelector("li:last-child")?.appendChild(listWrapper);
-            if (parentElement.textContent.length === 0) {
-                parentElement.remove();
+        const maybePreviousListWrapper = listWrapper.previousElementSibling;
+        if (maybePreviousListWrapper &&
+            isSchemaContain(maybePreviousListWrapper, [Display.ListWrapper]) &&
+            listWrapper.querySelector("li:first-child") === li) {
+            const previousListWrapper = maybePreviousListWrapper;
+            const newListWrapper = document.createElement(listWrapper.nodeName);
+            newListWrapper.append(li);
+            previousListWrapper.querySelector("li:last-child")?.appendChild(newListWrapper);
+            if (!listWrapper.textContent) {
+                listWrapper.remove();
             }
             continue;
         }
 
-        const previousList = list.previousElementSibling;
-        const nestedListWrapper = list.querySelectorAll("ul, ol")[0];
-        if (nestedListWrapper && previousList && parentElement.nodeName === nestedListWrapper.nodeName) {
-            previousList.appendChild(nestedListWrapper);
-            nestedListWrapper.prepend(list);
+        const maybePreviousLi = li.previousElementSibling;
+        if (!maybePreviousLi) {
+            continue;
+        }
+        const previousLi = maybePreviousLi;
+
+        const nestedListWrapper = li.querySelectorAll("ul, ol")[0];
+        if (nestedListWrapper && nestedListWrapper.textContent && listWrapper.nodeName === nestedListWrapper.nodeName) {
+            previousLi.appendChild(nestedListWrapper);
+            nestedListWrapper.prepend(li);
             continue;
         }
 
-        if (nestedListWrapper && previousList && parentElement.nodeName !== nestedListWrapper.nodeName) {
-            previousList.appendChild(nestedListWrapper);
+        if (nestedListWrapper && listWrapper.nodeName !== nestedListWrapper.nodeName) {
+            previousLi.appendChild(nestedListWrapper);
 
-            const listWrapper = document.createElement(parentElement.nodeName);
-            listWrapper.append(list);
-            nestedListWrapper.before(listWrapper);
+            const newListWrapper = document.createElement(listWrapper.nodeName);
+            newListWrapper.append(li);
+            nestedListWrapper.before(newListWrapper);
             continue;
         }
 
-        if (previousList) {
-            const listWrapper = document.createElement(parentElement.nodeName);
-            listWrapper.append(list);
-            previousList.appendChild(listWrapper);
-        }
+        const newListWrapper = document.createElement(listWrapper.nodeName);
+        newListWrapper.append(li);
+        previousLi.appendChild(newListWrapper);
     }
 
-    const rootElement = getRootElement(contentEditable, firstList);
+    const rootElement = getRootElement(contentEditable, firstLi);
     normalize(contentEditable, rootElement);
 }
 
@@ -126,31 +128,25 @@ export function minusIndent(contentEditable: HTMLElement) {
     }
 
     const lists = getSelectedBlock(contentEditable);
-    for (let i = 0; i < lists.length; i++) {
-        const list = lists[i];
-        if (!list) {
-            continue;
-        }
-
-        const listWrapper = list.parentElement;
-        const parentList = listWrapper?.parentElement;
-
-        if (!listWrapper || !parentList) {
-            continue;
-        }
-
-        const childLists = listWrapper.querySelectorAll("li").length;
-        if (childLists === 1 && i !== 0) {
-            continue;
-        }
-
-        if (parentList.parentElement?.nodeName === listWrapper.nodeName) {
-            parentList.after(listWrapper);
-            listWrapper.before(list);
-            list.appendChild(listWrapper);
-        }
+    const firstList = lists[0];
+    if (!firstList) {
+        return;
     }
 
-    const rootElement = getRootElement(contentEditable, lists[0] as HTMLElement);
-    normalize(contentEditable, rootElement);
+    const listsToPlusIndent: HTMLElement[] = [];
+    const nestedLists = firstList.querySelectorAll("ul > li, ol > li");
+    for (const nestedList of nestedLists) {
+        listsToPlusIndent.push(nestedList as HTMLElement);
+    }
+
+    for (const list of lists) {
+        moveConsecutive(list);
+    }
+
+    plusIndent(contentEditable, listsToPlusIndent);
+
+    if (!listsToPlusIndent.length) {
+        const rootElement = getRootElement(contentEditable, firstList);
+        normalize(contentEditable, rootElement);
+    }
 }

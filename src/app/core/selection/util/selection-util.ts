@@ -23,6 +23,14 @@ export function getSelectedLeaves(range = getRange()) {
         textNodes.push(walker.currentNode);
     }
 
+    if (textNodes.length > 1 && range.endOffset === 0) {
+        textNodes.pop();
+    }
+
+    if (textNodes.length > 1 && range.startContainer.textContent?.length === range.startOffset) {
+        textNodes.shift();
+    }
+
     return textNodes;
 }
 

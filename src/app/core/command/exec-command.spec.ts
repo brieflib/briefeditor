@@ -1,6 +1,7 @@
 import {getRange} from "@/core/shared/range-util";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
+import {replaceSpaces} from "@/core/shared/test-util";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -54,5 +55,21 @@ describe("Cursor position", () => {
         execCommand({action: Action.FirstLevel, tag: ["UL", "LI"]}, toWrap);
 
         expect(toWrap.innerHTML).toBe("<p><strong>first</strong> second</p><ul><li><strong>third</strong></li></ul>");
+    });
+
+    test("Should change ordered list to unordered list when cursor is at start", () => {
+        const toWrap = document.createElement("div");
+        toWrap.innerHTML = "<ul><li>first<ol><li>second</li><li>third</li></ol></li></ul>";
+        document.body.appendChild(toWrap);
+
+        const range = new Range();
+        range.setStart(toWrap.querySelector("ul > li > ol > li:nth-child(2)")?.firstChild as Node, "".length);
+        range.setEnd(toWrap.querySelector("ul > li > ol > li:nth-child(2)")?.firstChild as Node, "".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        execCommand({action: Action.FirstLevel, tag: ["UL", "LI"]}, toWrap);
+
+        expect(toWrap.innerHTML).toBe("<ul><li>first<ol><li>second</li></ol><ul><li>third</li></ul></li></ul>");
     });
 });

@@ -23,3 +23,48 @@ export function isChildrenContain(containIn: HTMLElement[], children: HTMLCollec
 
     return false;
 }
+
+export function moveConsecutive(startLi: HTMLElement) {
+    const listWrapper = startLi.parentElement;
+    if (!listWrapper) {
+        return;
+    }
+    const parentLi = listWrapper.parentElement;
+    if (!parentLi) {
+        return;
+    }
+
+    const newListWrapper = document.createElement(listWrapper.nodeName);
+    let nextElementSibling = startLi.nextElementSibling;
+    while (nextElementSibling) {
+        newListWrapper.appendChild(nextElementSibling);
+        nextElementSibling = startLi.nextElementSibling;
+    }
+    if (isGrandParentNodeNameEqual(listWrapper)) {
+        parentLi.after(startLi);
+        if (newListWrapper.textContent) {
+            startLi.appendChild(newListWrapper);
+        }
+    } else {
+        if (newListWrapper.textContent) {
+            listWrapper.parentElement?.parentElement?.after(newListWrapper);
+            newListWrapper.prepend(startLi);
+        }
+    }
+
+    if (!parentLi.textContent) {
+        parentLi.remove();
+    }
+    if (!listWrapper.textContent) {
+        listWrapper.remove();
+    }
+}
+
+function isGrandParentNodeNameEqual(listWrapper: HTMLElement | null) {
+    const grandParent = listWrapper?.parentElement?.parentElement;
+    if (!grandParent) {
+        return true;
+    }
+
+    return grandParent.nodeName === listWrapper?.nodeName;
+}
