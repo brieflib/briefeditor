@@ -5,6 +5,7 @@ class Editor extends HTMLElement {
         super();
 
         this.innerHTML = `
+          <div class="bf-background"></div>
           <div class="bf-content-editable-flex">
             <div class="bf-content-editable-container">
                 <div class="bf-content-editable-toolbar" id="toolbar"></div>

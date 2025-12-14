@@ -60,7 +60,10 @@ export function moveListWrappersOutOfLi(element: HTMLElement, contentEditable: H
         if (!li) {
             continue;
         }
-        let previousLi: Element | undefined = lis[i - 1];
+        let previousLi: Element | undefined | null = lis[i - 1];
+        if (!previousLi) {
+            previousLi = li.previousElementSibling;
+        }
         if (!previousLi) {
             const previousWrapper = getRootElement(contentEditable, li).previousElementSibling;
             if (previousWrapper) {
@@ -82,6 +85,7 @@ export function moveListWrappersOutOfLi(element: HTMLElement, contentEditable: H
         }
 
         listWrappers.forEach(listWrapper => li.before(listWrapper));
+        console.log();
     }
 }
 

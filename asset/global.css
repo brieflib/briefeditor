@@ -1,115 +1,174 @@
-@font-face {
-    font-family: "InstrumentSans";
-    src: url("/asset/InstrumentSans-Regular.ttf") format("ttf");
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
+/* Reset */
+
+editor-layout :where(div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
 }
 
-.bf-editor {
+editor-layout :where(article, aside, details, figcaption, figure,
+footer, header, hgroup, menu, nav, section) {
+    display: block;
+}
+
+editor-layout :where(ol, ul) {
+    list-style: none;
+}
+
+editor-layout :where(blockquote, q) {
+    quotes: none;
+}
+
+editor-layout :where(blockquote:before, blockquote:after,
+q:before, q:after) {
+    content: '';
+    content: none;
+}
+
+editor-layout :where(table) {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+#bf-editor {
     visibility: visible !important;
 }
 
-.bf-editor strong {
-    font-weight: bold;
+/* Variables */
+
+editor-layout {
+    --color-gray-50: oklch(98.5% .002 247.839);
+    --color-gray-100: oklch(96.7% .003 264.542);
+    --color-gray-200: oklch(92.8% .006 264.531);
+    --color-gray-300: oklch(87.2% .01 258.338);
+    --color-gray-400: oklch(70.7% .022 261.325);
+    --color-gray-500: oklch(55.1% .027 264.364);
+    --color-gray-700: oklch(37.3% .034 259.733);
+    --color-gray-900: oklch(21% .034 264.665);
 }
 
-.bf-editor em {
+/* Element styles */
+
+editor-layout {
+    font-family: sans-serif;
+    line-height: 1.75;
+    color: var(--color-gray-700);
+}
+
+editor-layout p {
+    margin-bottom: 1.25em;
+}
+
+editor-layout strong {
+    font-weight: bold;
+    color: var(--color-gray-900);
+}
+
+editor-layout em {
     font-style: italic;
 }
 
-.bf-editor h1, h2, h3, h4, h5 {
-    margin-top: 20px;
-    margin-bottom: 20px;
+editor-layout :where(h1, h2, h3, h4, h5) {
+    color: var(--color-gray-900);
+}
+
+editor-layout h1 {
+    font-size: 2em;
+    line-height: calc(2 / 1.5);
+    font-weight: 900;
+    border-bottom: 1px solid var(--color-gray-200);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+editor-layout h2 {
+    margin-top: 2em;
+    margin-bottom: 1em;
+    font-size: 1.5em;
+    font-weight: 700;
+    line-height: 1.33333;
+}
+
+editor-layout h3 {
+    margin-top: 1.6em;
+    margin-bottom: .6em;
+    font-size: 1.25em;
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+editor-layout h4 {
+    margin-top: 1.5em;
+    margin-bottom: .5em;
+    font-size: 1em;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+editor-layout h5 {
+    margin-top: 1.4em;
+    margin-bottom: .4em;
+    font-size: .8em;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+editor-layout blockquote {
+    border-left: 4px solid var(--color-gray-200);
+    margin-top: 1.6em;
+    margin-bottom: 1.6em;
+    padding-inline-start: 1em;
     font-weight: 500;
-    line-height: 1.1;
 }
 
-.bf-editor h1 {
-    font-size: 36px;
+editor-layout :where(ul, ol) {
+    padding-inline-start: 1.625em;
+    margin-top: 1.25em;
+    margin-bottom: 1.25em;
 }
 
-.bf-editor h2 {
-    font-size: 30px;
+editor-layout :where(ul ul, ul ol, ol ul, ol ol) {
+    margin-top: .75em;
+    margin-bottom: .75em;
 }
 
-.bf-editor h3 {
-    font-size: 24px;
-}
-
-.bf-editor h4 {
-    font-size: 18px;
-}
-
-.bf-editor h5 {
-    font-size: 14px;
-}
-
-.bf-editor blockquote {
-    border-left: 4px solid #ccc;
-    margin-bottom: 5px;
-    margin-top: 5px;
-    padding-left: 16px;
-}
-
-.bf-editor ul, ol {
-    padding: 12px;
-}
-
-.bf-editor ul {
+editor-layout :where(ul) {
     list-style-type: disc;
 }
 
-.bf-editor ul li {
-    margin-top: 8px;
-    padding-left: 8px;
-}
-
-.bf-editor ul ul li {
-    margin-left: 16px;
-}
-
-.bf-editor ul ul ul li {
-    margin-left: 24px;
-}
-
-.bf-editor ul ul ul ul li {
-    margin-left: 32px;
-}
-
-.bf-editor ul ul ul ul ul li {
-    margin-left: 40px;
-}
-
-.bf-editor ol {
+editor-layout :where(ol) {
+    padding-inline-start: 1.75em;
     list-style-type: decimal;
 }
 
-.bf-editor ol li {
-    margin-top: 8px;
-    padding-left: 8px;
+editor-layout :where(ul > li, ol > li) {
+    padding-inline-start: .375em;
 }
 
-.bf-editor ol ol li {
-    margin-left: 16px;
+editor-layout :where(ul > li)::marker {
+    color: var(--color-gray-300);
 }
 
-.bf-editor ol ol ol li {
-    margin-left: 24px;
+editor-layout :where(ol > li)::marker {
+    color: var(--color-gray-500);
 }
 
-.bf-editor ol ol ol ol li {
-    margin-left: 32px;
-}
-
-.bf-editor ol ol ol ol ol li {
-    margin-left: 40px;
-}
-
-.bf-editor ol ul {
-    margin-left: 16px;
-}
-
-.bf-editor ul ol {
-    margin-left: 16px;
+editor-layout :where(li) {
+    margin-top: .75em;
+    margin-bottom: .75em;
 }

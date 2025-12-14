@@ -1173,4 +1173,45 @@ describe("Minus indent", () => {
             </ul>
         `));
     });
+
+    test("Should minus indent two same level different type lists", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>first
+                    <ol>
+                        <li class="start">second</li>
+                    </ol>
+                    <ul>
+                        <li class="end">third</li>
+                    </ul>
+                    <ol>
+                        <li>fourth</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".start")?.firstChild as Node, "se".length);
+        range.setEnd(wrapper.querySelector(".end")?.firstChild as Node, "thi".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        minusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first</li>
+            </ul>
+            <ol>
+                <li class="start">second</li>
+            </ol>
+            <ul>
+                <li class="end">third
+                    <ol>
+                        <li>fourth</li>
+                    </ol>
+                </li>
+            </ul>
+        `));
+    });
 });

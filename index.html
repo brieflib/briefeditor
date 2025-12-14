@@ -4,21 +4,63 @@
     <meta charset="UTF-8"/>
     <link rel="icon" type="image/svg+xml" href="/asset/icon.svg"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <style>
-        #bf-editor {
-            visibility: hidden;
-        }
-    </style>
     <title>Brief Editor</title>
+    <link rel="stylesheet" href="asset/initial.css">
 </head>
 <body>
 
-<div id="bf-editor"><p>Write text here</p></div>
+<div id="bf-editor">
+    <h1>Editor Reference Editor</h1>
+
+    <h2>Text Formatting Elements</h2>
+
+    <p>This is a regular paragraph with <strong>strong (bold) text</strong>, <em>emphasized (italic) text</em>, <u>underlined text</u>.</p>
+
+    <h2>Lists</h2>
+    <h3>Ordered List</h3>
+    <ol>
+        <li>First ordered item</li>
+        <li>Second ordered item</li>
+        <li>Third ordered item</li>
+    </ol>
+
+    <h3>Unordered List</h3>
+    <ul>
+        <li>Unordered item one</li>
+        <li>Unordered item two</li>
+        <li>Unordered item three</li>
+    </ul>
+
+    <h3>Mixed List</h3>
+
+    <ul>
+        <li>first
+            <ol>
+                <li>second
+                    <ul>
+                        <li>third</li>
+                    </ul>
+                </li>
+            </ol>
+            <ol>
+                <li>fourth</li>
+            </ol>
+        </li>
+    </ul>
+
+    <h2>Quotes and Citations</h2>
+    <blockquote>This is a blockquote. It typically represents a section that is quoted from another source.</blockquote>
+
+    <h2>Headings Hierarchy</h2>
+    <h3>Level 3 Heading</h3>
+    <h4>Level 4 Heading</h4>
+    <h5>Level 5 Heading</h5>
+</div>
 
 <script type="module">
     import BriefEditor from "/src/app/brief-editor";
 
-    new BriefEditor(document.querySelector("#bf-editor"));
+    new BriefEditor();
 </script>
 </body>
 </html>

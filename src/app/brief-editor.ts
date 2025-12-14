@@ -1,14 +1,18 @@
-import "/asset/reset.css";
 import "/asset/global.css";
 import Editor from "@/component/editor/editor";
 import Toolbar from "@/component/toolbar/toolbar";
 
 export default class BriefEditor {
-    constructor(contentEditable: HTMLElement) {
-        const editor = new Editor(contentEditable);
-        new Toolbar(contentEditable, editor);
+    constructor() {
+        const contentEditable = document.querySelector("#bf-editor");
+        if (!contentEditable) {
+            throw new Error("There is no #bf-editor");
+        }
+        const contentEditableHTML = contentEditable as HTMLElement;
+        const editor = new Editor(contentEditableHTML);
+        new Toolbar(contentEditableHTML, editor);
 
-        this.cleanElementWhitespace(contentEditable);
+        this.cleanElementWhitespace(contentEditableHTML);
     }
 
     private cleanElementWhitespace(element) {

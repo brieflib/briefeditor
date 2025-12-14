@@ -1,35 +1,50 @@
-.bf-content-editable-flex {
+editor-layout .bf-content-editable-flex {
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.bf-content-editable-container {
+editor-layout .bf-content-editable-container {
     width: 80%;
     max-width: 1200px;
-    height: 90vh;
-    padding: 40px;
+    height: calc(100vh - 10em);
+    margin: 2.5em;
 }
 
-.bf-content-editable-toolbar {
+editor-layout .bf-content-editable-toolbar {
     display: flex;
 
-    height: 40px;
+    height: 4em;
+    padding: 1.25em;
     width: 100%;
+    border-radius: .75em .75em 0 0;
 
     box-sizing: border-box;
+    background-color: color-mix(in oklab, white 70%, transparent);
 }
 
-.bf-content-editable-scroll {
+editor-layout .bf-content-editable-scroll {
     height: 100%;
     overflow: scroll;
+    scrollbar-color: var(--color-gray-400) var(--color-gray-100);
+    background-color: color-mix(in oklab, white 70%, transparent);
 }
 
-.bf-editor {
-    padding: 20px 8px;
-    font-family: "InstrumentSans", sans-serif;
+editor-layout .bf-editor {
+    padding: 1.75em;
 }
 
-.bf-editor:focus {
+editor-layout .bf-editor:focus {
     outline: none;
+}
+
+editor-layout .bf-background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    opacity: 0.2;
+    background-image: radial-gradient(in oklab, oklch(69.6% .17 162.48) 0%, color-mix(in oklab, oklch(64.8% .2 131.684) 50%, transparent) 50%, transparent 100%);
 }
