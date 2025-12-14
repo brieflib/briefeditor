@@ -133,14 +133,39 @@ function willElementsMerge(element: Node | undefined, compareTo: Node | undefine
     return false;
 }
 
-export function filterLeafParents(leaf: Leaf | null | undefined, element: Node, excludeTags: string[]) {
-    if (leaf) {
-        for (const toFilter of getLeafNodes(element)) {
-            if (leaf.getParents().includes(toFilter)) {
-                leaf.setParents(leaf.getParents()
-                    .filter(parent => !excludeTags.includes(parent.nodeName)));
+export function filterLeafParents(leaf: Leaf, element: Node, excludeTags: string[]) {
+    const leafParents = leaf.getParents();
+
+    if (leafParents.includes(element)) {
+        leaf.setParents(leaf.getParents().filter(parent => !excludeTags.includes(parent.nodeName)));
+    }
+
+    return leaf;
+}
+
+export function filterDistantLeafParents(leaf: Leaf, element: Node, excludeTags: string[]) {
+    const leafParents = leaf.getParents();
+    if (leafParents.includes(element)) {
+        const filteredParents = [];
+
+        for (const parent of leafParents) {
+            if (excludeTags.length) {
+                const firstExclude = excludeTags[0];
+                if (firstExclude !== parent.nodeName) {
+                    filteredParents.push(parent);
+                } else {
+                    excludeTags.shift();
+                }
+
+                continue;
+            }
+
+            if (!excludeTags.includes(parent.nodeName)) {
+                filteredParents.push(parent);
             }
         }
+
+        leaf.setParents(filteredParents);
     }
 
     return leaf;
@@ -166,7 +191,11 @@ export function replaceLeafParents(leaf: Leaf, element: Node, replaceFrom: strin
     return leaf;
 }
 
-export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
+export function removeConsecutiveDuplicates(leaf: Leaf, isDisabled: boolean = false): Leaf {
+    if (isDisabled) {
+        return leaf;
+    }
+
     const parents = leaf.getParents();
 
     if (parents.length === 0) {
@@ -200,6 +229,11 @@ export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
 
     leaf.setParents(result);
 
+    return leaf;
+}
+
+export function filterEmptyParents(leaf: Leaf) {
+    leaf.setParents(leaf.getParents().filter(parent => !(isSchemaContain(parent, [Display.SelfClose]) && parent.textContent?.length)));
     return leaf;
 }
 

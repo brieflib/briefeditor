@@ -1,6 +1,8 @@
 import {getParentTags, getSelectedLeaves} from "@/core/selection/util/selection-util";
 import {getBlockElement, getListWrapperElement, getRootElement} from "@/core/shared/element-util";
 import {getRange} from "@/core/shared/range-util";
+import {CursorPosition} from "@/core/cursor/type/cursor-position";
+import {restoreRange} from "@/core/cursor/cursor";
 
 enum SelectionType {
     Root = "Root",
@@ -35,6 +37,11 @@ export function getSelectedListWrapper(findTill: HTMLElement, range: Range = get
 
 export function getSelectedElements(range: Range) {
     return getSelected(null, range, SelectionType.Element);
+}
+
+export function getInitialBlocks(contentEditable: HTMLElement, initialCursorPosition: CursorPosition) {
+    const initialRange = restoreRange(contentEditable, initialCursorPosition);
+    return getSelectedBlock(contentEditable, initialRange);
 }
 
 function getSelected(findTill: HTMLElement | null, range: Range, type: SelectionType) {

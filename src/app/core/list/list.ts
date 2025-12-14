@@ -1,14 +1,14 @@
 import {getSelectedBlock, getSelectedRoot} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import normalize, {appendTags} from "@/core/normalize/normalize";
-import {getRootElement} from "@/core/shared/element-util";
+import {appendTags, normalizeRootElements, removeDistantTags} from "@/core/normalize/normalize";
 import {
-    countParentsWithDisplay,
+    countListWrapperParents,
     isChildrenContain,
-    moveConsecutive,
+    moveListWrappersOutOfLi,
     moveListWrapperToPreviousLi
 } from "@/core/list/util/list-util";
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
+import {getRootElement} from "@/core/shared/element-util";
 
 export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const firstList = lists[0];
@@ -30,7 +30,7 @@ export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLEle
             return false;
         }
 
-        if (countParentsWithDisplay(list, [Display.ListWrapper]) >= 5) {
+        if (countListWrapperParents(list) >= 5) {
             return false;
         }
     }
@@ -50,25 +50,25 @@ export function plusIndent(contentEditable: HTMLElement, lists: HTMLElement[] = 
 
     for (let i = 0; i < lists.length; i++) {
         const initialRange = restoreRange(contentEditable, initialCursorPosition);
-        const block = getSelectedBlock(contentEditable, initialRange)[i];
-        if (!block) {
+        const li = getSelectedBlock(contentEditable, initialRange)[i];
+        if (!li) {
             continue;
         }
 
-        const parentElement = block.parentElement;
-        if (!parentElement) {
+        const listWrapper = li.parentElement;
+        if (!listWrapper) {
             continue;
         }
 
-        appendTags(contentEditable, block, [parentElement.nodeName]);
+        appendTags(contentEditable, li, [listWrapper.nodeName]);
     }
 
     const initialRange = restoreRange(contentEditable, initialCursorPosition);
     const rootElements = getSelectedRoot(contentEditable, initialRange);
     for (const rootElement of rootElements) {
         moveListWrapperToPreviousLi(rootElement);
-        normalize(contentEditable, rootElement);
     }
+    normalizeRootElements(contentEditable, initialCursorPosition);
 }
 
 export function isMinusIndentEnabled(contentEditable: HTMLElement) {
@@ -82,7 +82,7 @@ export function isMinusIndentEnabled(contentEditable: HTMLElement) {
             return false;
         }
 
-        const listNesting = countParentsWithDisplay(list, [Display.ListWrapper]);
+        const listNesting = countListWrapperParents(list);
         if (listNesting === 1) {
             return false;
         }
@@ -100,31 +100,33 @@ export function isMinusIndentEnabled(contentEditable: HTMLElement) {
     return true;
 }
 
-export function minusIndent(contentEditable: HTMLElement) {
+export function minusIndent(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     if (!isMinusIndentEnabled(contentEditable)) {
         return;
     }
 
-    const lists = getSelectedBlock(contentEditable);
-    const firstList = lists[0];
-    if (!firstList) {
+    const initialCursorPosition = getSelectionOffset(contentEditable);
+    if (!initialCursorPosition) {
         return;
     }
 
-    const listsToPlusIndent: HTMLElement[] = [];
-    const nestedLists = firstList.querySelectorAll("ul > li, ol > li");
-    for (const nestedList of nestedLists) {
-        listsToPlusIndent.push(nestedList as HTMLElement);
+    for (let i = 0; i < lists.length; i++) {
+        const initialRange = restoreRange(contentEditable, initialCursorPosition);
+        const lis = getSelectedBlock(contentEditable, initialRange);
+        const li = lis[i];
+        if (!li) {
+            continue;
+        }
+
+        const parentWrapper = getRootElement(contentEditable, li)
+        removeDistantTags(contentEditable, li, [parentWrapper.nodeName, "LI"]);
     }
 
-    for (const list of lists) {
-        moveConsecutive(list);
+    const initialRange = restoreRange(contentEditable, initialCursorPosition);
+    let rootElements = getSelectedRoot(contentEditable, initialRange);
+    for (const rootElement of rootElements) {
+        moveListWrappersOutOfLi(rootElement, contentEditable);
+        moveListWrapperToPreviousLi(rootElement);
     }
-
-    plusIndent(contentEditable, listsToPlusIndent);
-
-    if (!listsToPlusIndent.length) {
-        const rootElement = getRootElement(contentEditable, firstList);
-        normalize(contentEditable, rootElement);
-    }
+    normalizeRootElements(contentEditable, initialCursorPosition);
 }

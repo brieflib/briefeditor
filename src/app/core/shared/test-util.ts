@@ -1,7 +1,16 @@
-export function replaceSpaces(input: string) {
-    return input
+export function createWrapper(html: string) {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = replaceSpaces(html);
+    document.body.appendChild(wrapper);
+
+    return wrapper;
+}
+
+export function replaceSpaces(html: string) {
+    return html
         .replaceAll("\n", "")
-        .replaceAll(" ", "");
+        .replaceAll(" ", "")
+        .replaceAll("class", " class");
 }
 
 export function getFirstChild(wrapper: HTMLElement, querySelector: string) {

@@ -33,7 +33,7 @@ schema.set("U", [Display.Collapse]);
 schema.set("A", []);
 schema.set("#text", []);
 
-export function isSchemaContain(element: Node | undefined, contains: Display[]) {
+export function isSchemaContain(element: Node | undefined | null, contains: Display[]) {
     if (!element) {
         return false;
     }

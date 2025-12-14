@@ -1,14 +1,12 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {restoreRange} from "@/core/cursor/cursor";
-import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {getSelectedListWrapper} from "@/core/selection/selection";
+import {getRootElement} from "@/core/shared/element-util";
 
-export function countParentsWithDisplay(element: HTMLElement, display: Display[]) {
+export function countListWrapperParents(element: Element) {
     let count = 0;
     let current = element.parentElement;
 
     while (current) {
-        if (isSchemaContain(current, display)) {
+        if (isSchemaContain(current, [Display.ListWrapper])) {
             count++;
         }
         current = current.parentElement;
@@ -27,68 +25,107 @@ export function isChildrenContain(containIn: HTMLElement[], children: HTMLCollec
     return false;
 }
 
-export function moveConsecutive(startLi: HTMLElement) {
-    const listWrapper = startLi.parentElement;
-    if (!listWrapper) {
-        return;
-    }
-    const parentLi = listWrapper.parentElement;
-    if (!parentLi) {
-        return;
-    }
-
-    const newListWrapper = document.createElement(listWrapper.nodeName);
-    let nextElementSibling = startLi.nextElementSibling;
-    while (nextElementSibling) {
-        newListWrapper.appendChild(nextElementSibling);
-        nextElementSibling = startLi.nextElementSibling;
-    }
-    if (isGrandParentNodeNameEqual(listWrapper)) {
-        parentLi.after(startLi);
-        if (newListWrapper.textContent) {
-            startLi.appendChild(newListWrapper);
-        }
-    } else {
-        if (newListWrapper.textContent) {
-            listWrapper.parentElement?.parentElement?.after(newListWrapper);
-            newListWrapper.prepend(startLi);
-        }
-    }
-
-    if (!parentLi.textContent) {
-        parentLi.remove();
-    }
-    if (!listWrapper.textContent) {
-        listWrapper.remove();
-    }
-}
-
 export function moveListWrapperToPreviousLi(rootElement: HTMLElement) {
     const listWrappers = rootElement.querySelectorAll("ul, ol");
 
     for (const listWrapper of listWrappers) {
-        let previousLi = listWrapper.previousElementSibling;
-        if (previousLi && isSchemaContain(previousLi, [Display.List])) {
-            previousLi.appendChild(listWrapper);
+        moveToPreviousLi(listWrapper);
+    }
+
+    for (const listWrapper of listWrappers) {
+        moveToPreviousListWrapper(listWrapper);
+        moveToPreviousLi(listWrapper);
+    }
+}
+
+export function getLisWithFirstChildListWrapper(element: HTMLElement, contentEditable: HTMLElement) {
+    const lis: HTMLElement[] = [];
+
+    fillLisWithFirstChildListWrapper(lis, element);
+
+    let nextElement = getRootElement(contentEditable, element).nextElementSibling;
+    while (nextElement && isSchemaContain(nextElement, [Display.ListWrapper])) {
+        fillLisWithFirstChildListWrapper(lis, nextElement as HTMLElement);
+        nextElement = nextElement.nextElementSibling;
+    }
+
+    return lis;
+}
+
+export function moveListWrappersOutOfLi(element: HTMLElement, contentEditable: HTMLElement) {
+    const lis = getLisWithFirstChildListWrapper(element, contentEditable);
+
+    for (let i = lis.length; i >= 0; i--) {
+        const li = lis[i];
+        if (!li) {
+            continue;
+        }
+        let previousLi: Element | undefined = lis[i - 1];
+        if (!previousLi) {
+            const previousWrapper = getRootElement(contentEditable, li).previousElementSibling;
+            if (previousWrapper) {
+                const previousLis = getChildren(previousWrapper, [Display.List]);
+                previousLi = previousLis.pop();
+            }
+        }
+
+        const listWrappers = getChildren(li, [Display.ListWrapper]);
+        if (previousLi && countListWrapperParents(li) > countListWrapperParents(previousLi)) {
+            const liToAppend = previousLi.querySelector(":scope li:nth-last-child(1)");
+            listWrappers.forEach(listWrapper => liToAppend?.appendChild(listWrapper));
             continue;
         }
 
-        const previousListWrapper = listWrapper.parentElement?.previousElementSibling;
-        if (previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper])) {
-            previousListWrapper.appendChild(listWrapper);
+        if (previousLi) {
+            listWrappers.forEach(listWrapper => previousLi.appendChild(listWrapper));
+            continue;
         }
-        previousLi = listWrapper.previousElementSibling;
-        if (previousLi && isSchemaContain(previousLi, [Display.List])) {
-            previousLi.appendChild(listWrapper);
+
+        listWrappers.forEach(listWrapper => li.before(listWrapper));
+    }
+}
+
+function getChildren(li: Element, display: Display[]) {
+    const listWrappers: Element[] = [];
+
+    Array.from(li.children).forEach(element => {
+        if (isSchemaContain(element, display)) {
+            listWrappers.push(element);
+        }
+    });
+
+    return listWrappers;
+}
+
+function moveToPreviousLi(listWrapper: Element) {
+    const previousLi = listWrapper.previousElementSibling;
+    if (previousLi && isSchemaContain(previousLi, [Display.List])) {
+        previousLi.appendChild(listWrapper);
+    }
+}
+
+function moveToPreviousListWrapper(listWrapper: Element) {
+    const parent = listWrapper.parentElement;
+    const previousListWrapper = parent?.previousElementSibling;
+    if (previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper])) {
+        previousListWrapper.appendChild(listWrapper);
+        if (!parent.textContent) {
+            parent.remove();
         }
     }
 }
 
-function isGrandParentNodeNameEqual(listWrapper: HTMLElement | null) {
-    const grandParent = listWrapper?.parentElement?.parentElement;
-    if (!grandParent) {
-        return true;
-    }
+function fillLisWithFirstChildListWrapper(lis: HTMLElement[], element: HTMLElement) {
+    const nestedLis = element.querySelectorAll("li");
+    const lisWithFirstChild = Array.from(nestedLis).filter(isLiWithFirstChildListWrapper);
+    lis.push(...lisWithFirstChild);
+}
 
-    return grandParent.nodeName === listWrapper?.nodeName;
+function isLiWithFirstChildListWrapper(element: HTMLElement) {
+    const maybeListWrapper = element.firstChild;
+    const maybeText = maybeListWrapper?.firstChild?.firstChild;
+
+    return isSchemaContain(element, [Display.List]) &&
+        isSchemaContain(maybeListWrapper, [Display.ListWrapper]) &&
+        maybeText?.nodeType === Node.TEXT_NODE;
 }

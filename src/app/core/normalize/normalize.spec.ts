@@ -1,4 +1,5 @@
-import normalize, {removeTags, replaceTags} from "@/core/normalize/normalize";
+import normalize, {appendTags, removeDistantTags, removeTags, replaceTags} from "@/core/normalize/normalize";
+import {createWrapper, replaceSpaces} from "@/core/shared/test-util";
 
 describe("Should normalize tags", () => {
     test("Should sort tags by priority", () => {
@@ -36,8 +37,13 @@ describe("Should normalize tags", () => {
     });
 
     test("Should preserve href property", () => {
-        testNormalize("<strong>bold<a href=\"http://www.briefeditor.com\">brief</a><a href=\"http://briefeditor.com\">editor</a>te<em>xt</em></strong>",
-            "<strong>bold<a href=\"http://www.briefeditor.com\">brief</a><a href=\"http://briefeditor.com\">editor</a>te<em>xt</em></strong>");
+        const wrapper = document.createElement("div");
+        const toNormalize = document.createElement("div");
+        toNormalize.innerHTML = "<strong>bold<a href=\"http://www.briefeditor.com\">brief</a><a href=\"http://briefeditor.com\">editor</a>te<em>xt</em></strong>";
+        wrapper.appendChild(toNormalize);
+
+        normalize(toNormalize, toNormalize);
+        expect(wrapper.innerHTML).toBe("<strong>bold<a href=\"http://www.briefeditor.com\">brief</a><a href=\"http://briefeditor.com\">editor</a>te<em>xt</em></strong>");
     });
 
     test("Should preserve nested ordered list", () => {
@@ -111,6 +117,27 @@ describe("Should remove tags", () => {
         removeTags(wrapper, toRemoveTag as HTMLElement, ["STRONG"]);
         expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><div><u><span>par</span>lorem</u></div>text");
     });
+
+    test("Should remove distant UL and LI", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const removeTagFrom = wrapper.querySelector("ul > li > ul > li") as HTMLElement;
+        removeDistantTags(wrapper, removeTagFrom, ["UL", "LI"]);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>first</li>
+                <li>second</li>
+            </ul>
+        `));
+    });
 });
 
 describe("Should replace tags", () => {
@@ -124,12 +151,34 @@ describe("Should replace tags", () => {
     });
 });
 
+describe("Should append tags", () => {
+    test("Should append list tags", () => {
+        const wrapper = createWrapper(`
+            <p>
+                <strong>first</strong>
+            </p>
+        `);
+
+        const elementToAppend = wrapper.querySelector("p > strong") as HTMLElement;
+        appendTags(wrapper, elementToAppend, ["UL", "LI"]);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <p>
+                <ul>
+                    <li>
+                        <strong>first</strong>
+                    </li>
+                </ul>
+            </p>
+        `));
+    });
+});
+
 function testNormalize(initial: string, result: string) {
     const wrapper = document.createElement("div");
     const toNormalize = document.createElement("div");
-    toNormalize.innerHTML = initial;
+    toNormalize.innerHTML = replaceSpaces(initial);
     wrapper.appendChild(toNormalize);
 
     normalize(toNormalize, toNormalize);
-    expect(wrapper.innerHTML).toBe(result);
+    expect(wrapper.innerHTML).toBe(replaceSpaces(result));
 }

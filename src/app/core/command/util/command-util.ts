@@ -1,8 +1,13 @@
 import {getRange} from "@/core/shared/range-util";
-import normalize, {removeTags, replaceTags} from "@/core/normalize/normalize";
+import normalize, {normalizeRootElements, removeTags, replaceTags} from "@/core/normalize/normalize";
 import {getBlockElement, getRootElement} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {getSelectedBlock, getSelectedElements, getSelectedListWrapper} from "@/core/selection/selection";
+import {
+    getInitialBlocks,
+    getSelectedBlock,
+    getSelectedElements,
+    getSelectedListWrapper
+} from "@/core/selection/selection";
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 import {Action} from "@/core/command/type/command";
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
@@ -111,11 +116,6 @@ export function changeBlock(contentEditable: HTMLElement, tags: string[]) {
     normalizeRootElements(contentEditable, initialCursorPosition);
 }
 
-function getInitialBlocks(contentEditable: HTMLElement, initialCursorPosition: CursorPosition) {
-    const initialRange = restoreRange(contentEditable, initialCursorPosition);
-    return getSelectedBlock(contentEditable, initialRange);
-}
-
 export function isElementsEqualToTags(tags: string[], elements: HTMLElement[]) {
     for (const element of elements) {
         if (!tags.includes(element.nodeName)) {
@@ -124,56 +124,6 @@ export function isElementsEqualToTags(tags: string[], elements: HTMLElement[]) {
     }
 
     return true;
-}
-
-function normalizeRootElements(contentEditable: HTMLElement, initialCursorPosition: CursorPosition) {
-    // Fill array with root elements
-    const initialBlocks = getInitialBlocks(contentEditable, initialCursorPosition);
-    const rootElements: HTMLElement[] = [];
-    for (let i = 0; i < initialBlocks.length; i++) {
-        const block = initialBlocks[i];
-        if (!block) {
-            continue;
-        }
-        const rootElement = getRootElement(contentEditable, block as HTMLElement);
-        if (!rootElements.includes(rootElement)) {
-            rootElements.push(rootElement);
-        }
-    }
-
-    // Fill array with previous ul and ol
-    let firstRootElement = rootElements[0];
-    if (!firstRootElement) {
-        return;
-    }
-    let previousListWrapper = firstRootElement.previousElementSibling;
-    while (previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper])) {
-        rootElements.unshift(previousListWrapper as HTMLElement);
-        previousListWrapper = previousListWrapper.previousElementSibling;
-    }
-
-    // Fill array with next ul and ol
-    const lastRootElement = rootElements[rootElements.length - 1];
-    if (!lastRootElement) {
-        return;
-    }
-    let nextListWrapper = lastRootElement.nextElementSibling;
-    while (nextListWrapper && isSchemaContain(nextListWrapper, [Display.ListWrapper])) {
-        rootElements.push(nextListWrapper as HTMLElement);
-        nextListWrapper = nextListWrapper.nextElementSibling;
-    }
-
-    // Wrap all elements in tag and normalize
-    const wrapper = document.createElement("DELETED");
-    firstRootElement = rootElements[0];
-    if (!firstRootElement) {
-        return;
-    }
-    firstRootElement.before(wrapper);
-    for (const rootElement of rootElements) {
-        wrapper.appendChild(rootElement);
-    }
-    removeTags(contentEditable, wrapper, ["DELETED"]);
 }
 
 export function isListWrapper(contentEditable: HTMLElement, tag: string) {
