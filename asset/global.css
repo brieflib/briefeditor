@@ -138,11 +138,6 @@ editor-layout blockquote {
 
 editor-layout :where(ul, ol) {
     padding-inline-start: 1.625em;
-    margin-top: 1.25em;
-    margin-bottom: 1.25em;
-}
-
-editor-layout :where(ul ul, ul ol, ol ul, ol ol) {
     margin-top: .75em;
     margin-bottom: .75em;
 }

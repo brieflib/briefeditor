@@ -7,7 +7,7 @@ editor-layout .bf-content-editable-flex {
 editor-layout .bf-content-editable-container {
     width: 80%;
     max-width: 1200px;
-    height: calc(100vh - 10em);
+    height: calc(100vh - 8em);
     margin: 2.5em;
 }
 
