@@ -65,14 +65,13 @@ export function moveListWrappersOutOfLi(element: HTMLElement, contentEditable: H
             previousLi = li.previousElementSibling;
         }
         if (!previousLi) {
-            const previousWrapper = getRootElement(contentEditable, li).previousElementSibling;
-            if (previousWrapper) {
-                const previousLis = getChildren(previousWrapper, [Display.List]);
-                previousLi = previousLis.pop();
-            }
+            previousLi = li.parentElement?.previousElementSibling;
+        }
+        if (!previousLi) {
+            previousLi = li.parentElement?.parentElement?.previousElementSibling
         }
 
-        const listWrappers = getChildren(li, [Display.ListWrapper]);
+        const listWrappers = getDirectChildren(li, [Display.ListWrapper]);
         if (previousLi && countListWrapperParents(li) > countListWrapperParents(previousLi)) {
             const liToAppend = previousLi.querySelector(":scope li:nth-last-child(1)");
             listWrappers.forEach(listWrapper => liToAppend?.appendChild(listWrapper));
@@ -80,16 +79,15 @@ export function moveListWrappersOutOfLi(element: HTMLElement, contentEditable: H
         }
 
         if (previousLi) {
-            listWrappers.forEach(listWrapper => previousLi.appendChild(listWrapper));
+            listWrappers.forEach(listWrapper => previousLi?.appendChild(listWrapper));
             continue;
         }
 
         listWrappers.forEach(listWrapper => li.before(listWrapper));
-        console.log();
     }
 }
 
-function getChildren(li: Element, display: Display[]) {
+function getDirectChildren(li: Element, display: Display[]) {
     const listWrappers: Element[] = [];
 
     Array.from(li.children).forEach(element => {

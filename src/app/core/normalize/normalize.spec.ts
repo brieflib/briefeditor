@@ -129,8 +129,9 @@ describe("Should remove tags", () => {
             </ul>
         `);
 
-        const removeTagFrom = wrapper.querySelector("ul > li > ul > li") as HTMLElement;
-        removeDistantTags(wrapper, removeTagFrom, ["UL", "LI"]);
+        const removeTagFrom = wrapper.querySelector("div > ul > li > ul > li") as HTMLElement;
+        const ul = wrapper.querySelector("ul") as HTMLElement;
+        removeDistantTags(wrapper, ul, [removeTagFrom], ["UL", "LI"]);
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
                 <li>first</li>

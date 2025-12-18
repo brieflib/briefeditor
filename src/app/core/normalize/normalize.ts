@@ -8,7 +8,6 @@ import {
     setLeafParents,
     sortLeafParents
 } from "@/core/normalize/util/normalize-util";
-import {Leaf} from "@/core/normalize/type/leaf";
 import {getRange} from "@/core/shared/range-util";
 import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
@@ -22,7 +21,8 @@ export default function normalize(contentEditable: HTMLElement, element: HTMLEle
         .map(leaf => removeConsecutiveDuplicates(leaf))
         .map(leaf => filterEmptyParents(leaf));
 
-    replaceElement(leaves, element);
+    const fragment = collapseLeaves(leaves);
+    replaceElement(fragment, element);
 }
 
 export function removeTags(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[]) {
@@ -35,20 +35,22 @@ export function removeTags(contentEditable: HTMLElement, removeTagFrom: HTMLElem
         .map(leaf => removeConsecutiveDuplicates(leaf))
         .map(leaf => filterEmptyParents(leaf));
 
-    replaceElement(leaves, rootElement);
+    const fragment = collapseLeaves(leaves);
+    replaceElement(fragment, rootElement);
 }
 
-export function removeDistantTags(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[]) {
-    const rootElement = getRootElement(contentEditable, removeTagFrom);
+export function removeDistantTags(contentEditable: HTMLElement, wrapper: HTMLElement, toRemoveFrom: HTMLElement[], tags: string[]) {
+    const rootElement = getRootElement(contentEditable, wrapper);
 
     const leaves = getLeafNodes(rootElement)
         .map(node => setLeafParents(node, contentEditable))
-        .filter(leaf => filterDistantLeafParents(leaf, removeTagFrom, tags))
+        .filter(leaf => filterDistantLeafParents(leaf, toRemoveFrom, [...tags]))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf))
         .map(leaf => filterEmptyParents(leaf));
 
-    replaceElement(leaves, rootElement);
+    const fragment = collapseLeaves(leaves);
+    replaceElement(fragment, rootElement);
 }
 
 export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[], isClosest: boolean = false) {
@@ -61,7 +63,8 @@ export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLEl
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return replaceElement(leaves, rootElement);
+    const fragment = collapseLeaves(leaves);
+    return replaceElement(fragment, rootElement);
 }
 
 export function appendTags(contentEditable: HTMLElement, appendTagTo: HTMLElement, appendTags: string[]) {
@@ -74,7 +77,8 @@ export function appendTags(contentEditable: HTMLElement, appendTagTo: HTMLElemen
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return replaceElement(leaves, rootElement);
+    const fragment = collapseLeaves(leaves);
+    return replaceElement(fragment, rootElement);
 }
 
 export function normalizeRootElements(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
@@ -134,11 +138,10 @@ function buildElementsToReplace(replaceTo: string[]) {
     return elementsToReplace;
 }
 
-function replaceElement(leaves: Leaf[], replacebleElement: HTMLElement) {
+function replaceElement(fragment: DocumentFragment, replacebleElement: HTMLElement) {
     const range = getRange();
     range.selectNode(replacebleElement);
     replacebleElement.remove();
-    const fragment = collapseLeaves(leaves);
     const childNodes = fragment.firstChild?.childNodes;
     const innerFragment = new DocumentFragment();
     if (childNodes) {

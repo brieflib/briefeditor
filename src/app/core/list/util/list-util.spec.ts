@@ -103,10 +103,11 @@ describe("Move elements after normalization to conform list structure", () => {
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul class="root">
-                <li>first</li>
-                <ul>
-                    <li>second</li>
-                </ul>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
             </ul>
         `));
     });
@@ -138,14 +139,15 @@ describe("Move elements after normalization to conform list structure", () => {
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul class="root">
-                <li>first</li>
-                <ul>
-                    <li>second
-                        <ul>
-                            <li>third</li>
-                        </ul>
-                    </li>
-                </ul>
+                <li>first
+                    <ul>
+                        <li>second
+                            <ul>
+                                <li>third</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
             </ul>
         `));
     });

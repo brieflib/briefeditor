@@ -1214,4 +1214,92 @@ describe("Minus indent", () => {
             </ul>
         `));
     });
+
+    test("Move nested lis to same level list wrapper", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>first
+                    <ol>
+                        <li>second
+                            <ol>
+                                <li class="start">third
+                                    <ol>
+                                        <li>fourth</li>
+                                    </ol>
+                                </li>
+                                <li class="end">fifth</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".start")?.firstChild as Node, "th".length);
+        range.setEnd(wrapper.querySelector(".end")?.firstChild as Node, "fi".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        minusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ol>
+                <li>first
+                    <ol>
+                        <li>second</li>
+                        <li class="start">third
+                            <ol>
+                                <li>fourth</li>
+                            </ol>
+                        </li>
+                        <li class="end">fifth</li>
+                    </ol>
+                </li>
+            </ol>
+        `));
+    });
+
+    test("Move nested li to same level list wrapper", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>first
+                    <ol>
+                        <li>second
+                            <ol>
+                                <li>third
+                                    <ol>
+                                        <li class="start">fourth</li>
+                                    </ol>
+                                </li>
+                                <li>fifth</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".start")?.firstChild as Node, "fo".length);
+        range.setEnd(wrapper.querySelector(".start")?.firstChild as Node, "fourth".length);
+
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        minusIndent(wrapper);
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ol>
+                <li>first
+                    <ol>
+                        <li>second
+                            <ol>
+                                <li>third</li>
+                                <li class="start">fourth</li>
+                                <li>fifth</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ol>
+        `));
+    });
 });

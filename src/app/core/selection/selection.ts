@@ -27,6 +27,17 @@ export function getSelectedRoot(findTill: HTMLElement, range: Range = getRange()
     return getSelected(findTill, range, SelectionType.Root);
 }
 
+export function getFirstSelectedRoot(contentEditable: HTMLElement, cursorPosition: CursorPosition): HTMLElement {
+    const range = restoreRange(contentEditable, cursorPosition);
+    const selectedRoots = getSelected(contentEditable, range, SelectionType.Root);
+    const firstSelectedRoot = selectedRoots[0];
+    if (!firstSelectedRoot) {
+        throw new Error("Selected root not found");
+    }
+
+    return firstSelectedRoot;
+}
+
 export function getSelectedBlock(findTill: HTMLElement, range: Range = getRange()): HTMLElement[] {
     return getSelected(findTill, range, SelectionType.Block);
 }

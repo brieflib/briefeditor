@@ -1,6 +1,6 @@
-import {getSelectedBlock, getSelectedRoot} from "@/core/selection/selection";
+import {getFirstSelectedRoot, getSelectedBlock, getSelectedRoot} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {appendTags, normalizeRootElements, removeDistantTags} from "@/core/normalize/normalize";
+import normalize, {appendTags, normalizeRootElements, removeDistantTags, removeTags} from "@/core/normalize/normalize";
 import {
     countListWrapperParents,
     isChildrenContain,
@@ -110,23 +110,9 @@ export function minusIndent(contentEditable: HTMLElement, lists: HTMLElement[] =
         return;
     }
 
-    for (let i = 0; i < lists.length; i++) {
-        const initialRange = restoreRange(contentEditable, initialCursorPosition);
-        const lis = getSelectedBlock(contentEditable, initialRange);
-        const li = lis[i];
-        if (!li) {
-            continue;
-        }
-
-        const parentWrapper = getRootElement(contentEditable, li)
-        removeDistantTags(contentEditable, li, [parentWrapper.nodeName, "LI"]);
-    }
-
-    const initialRange = restoreRange(contentEditable, initialCursorPosition);
-    let rootElements = getSelectedRoot(contentEditable, initialRange);
-    for (const rootElement of rootElements) {
-        moveListWrappersOutOfLi(rootElement, contentEditable);
-        moveListWrapperToPreviousLi(rootElement);
-    }
+    let firstRootElement = getFirstSelectedRoot(contentEditable, initialCursorPosition);
+    removeDistantTags(contentEditable, firstRootElement, lists,[firstRootElement.nodeName, "LI"]);
+    firstRootElement = getFirstSelectedRoot(contentEditable, initialCursorPosition);
+    moveListWrappersOutOfLi(firstRootElement, contentEditable);
     normalizeRootElements(contentEditable, initialCursorPosition);
 }

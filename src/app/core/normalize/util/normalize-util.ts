@@ -143,18 +143,18 @@ export function filterLeafParents(leaf: Leaf, element: Node, excludeTags: string
     return leaf;
 }
 
-export function filterDistantLeafParents(leaf: Leaf, element: Node, excludeTags: string[]) {
+export function filterDistantLeafParents(leaf: Leaf, elements: HTMLElement[], excludeTags: string[]) {
     const leafParents = leaf.getParents();
-    if (leafParents.includes(element)) {
+    if (elements.includes(leafParents[leafParents.length - 2] as HTMLElement)) {
         const filteredParents = [];
 
         for (const parent of leafParents) {
             if (excludeTags.length) {
                 const firstExclude = excludeTags[0];
-                if (firstExclude !== parent.nodeName) {
-                    filteredParents.push(parent);
-                } else {
+                if (firstExclude === parent.nodeName) {
                     excludeTags.shift();
+                } else {
+                    filteredParents.push(parent);
                 }
 
                 continue;
