@@ -38,10 +38,10 @@ class BoldIcon extends HTMLElement implements Icon {
             return;
         }
 
-        this.button.addEventListener("click", () => execCommand({
+        this.button.addEventListener("click", () => execCommand(contentEditable, {
             action: Action.Tag,
             tag: "STRONG"
-        }, contentEditable));
+        }));
     }
 }
 

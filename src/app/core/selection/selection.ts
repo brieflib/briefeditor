@@ -16,7 +16,7 @@ export function getSelectedSharedTags(findTill: HTMLElement) {
 
     const shared: string[][] = [];
     for (const leaf of leafNodes) {
-        const parents = getParentTags(leaf, findTill);
+        const parents = getParentTags(findTill, leaf);
         shared.push(parents);
     }
 

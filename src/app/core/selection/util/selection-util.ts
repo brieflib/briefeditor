@@ -34,7 +34,7 @@ export function getSelectedLeaves(range = getRange()) {
     return textNodes;
 }
 
-export function getParentTags(node: Node, findTill: HTMLElement) {
+export function getParentTags(findTill: HTMLElement, node: Node) {
     const parents = [];
     let parent = node.parentElement;
 

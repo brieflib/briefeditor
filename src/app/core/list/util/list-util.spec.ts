@@ -77,7 +77,7 @@ describe("Move elements after normalization to conform list structure", () => {
         `);
 
         const firstLi = wrapper.querySelector(".start") as HTMLElement;
-        const lisWithFirstChildListWrapper = getLisWithFirstChildListWrapper(firstLi, wrapper);
+        const lisWithFirstChildListWrapper = getLisWithFirstChildListWrapper(wrapper, firstLi);
 
         expect(lisWithFirstChildListWrapper.length).toBe(2);
         expect(lisWithFirstChildListWrapper[0]).toBe(firstLi.firstChild);
@@ -98,7 +98,7 @@ describe("Move elements after normalization to conform list structure", () => {
         `);
 
         const root = wrapper.querySelector(".start") as HTMLElement;
-        moveListWrappersOutOfLi(root, wrapper);
+        moveListWrappersOutOfLi(wrapper, root);
         normalize(wrapper, root);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
@@ -134,7 +134,7 @@ describe("Move elements after normalization to conform list structure", () => {
         `);
 
         const root = wrapper.querySelector(".start") as HTMLElement;
-        moveListWrappersOutOfLi(root, wrapper);
+        moveListWrappersOutOfLi(wrapper, root);
         normalize(wrapper, root);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
@@ -170,7 +170,7 @@ describe("Move elements after normalization to conform list structure", () => {
         `);
 
         const root = wrapper.querySelector(".start") as HTMLElement;
-        moveListWrappersOutOfLi(root, wrapper);
+        moveListWrappersOutOfLi(wrapper, root);
         normalize(wrapper, root);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`

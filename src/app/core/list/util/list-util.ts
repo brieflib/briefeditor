@@ -15,7 +15,7 @@ export function countListWrapperParents(element: Element) {
     return count;
 }
 
-export function isChildrenContain(containIn: HTMLElement[], children: HTMLCollection) {
+export function isChildrenContain(children: HTMLCollection, containIn: HTMLElement[]) {
     for (const child of children) {
         if (containIn.includes(child as HTMLElement)) {
             return true;
@@ -38,22 +38,22 @@ export function moveListWrapperToPreviousLi(rootElement: HTMLElement) {
     }
 }
 
-export function getLisWithFirstChildListWrapper(element: HTMLElement, contentEditable: HTMLElement) {
+export function getLisWithFirstChildListWrapper(contentEditable: HTMLElement, element: HTMLElement) {
     const lis: HTMLElement[] = [];
 
-    fillLisWithFirstChildListWrapper(lis, element);
+    fillLisWithFirstChildListWrapper(element, lis);
 
     let nextElement = getRootElement(contentEditable, element).nextElementSibling;
     while (nextElement && isSchemaContain(nextElement, [Display.ListWrapper])) {
-        fillLisWithFirstChildListWrapper(lis, nextElement as HTMLElement);
+        fillLisWithFirstChildListWrapper(nextElement as HTMLElement, lis);
         nextElement = nextElement.nextElementSibling;
     }
 
     return lis;
 }
 
-export function moveListWrappersOutOfLi(element: HTMLElement, contentEditable: HTMLElement) {
-    const lis = getLisWithFirstChildListWrapper(element, contentEditable);
+export function moveListWrappersOutOfLi(contentEditable: HTMLElement, element: HTMLElement) {
+    const lis = getLisWithFirstChildListWrapper(contentEditable, element);
 
     for (let i = lis.length; i >= 0; i--) {
         const li = lis[i];
@@ -117,7 +117,7 @@ function moveToPreviousListWrapper(listWrapper: Element) {
     }
 }
 
-function fillLisWithFirstChildListWrapper(lis: HTMLElement[], element: HTMLElement) {
+function fillLisWithFirstChildListWrapper(element: HTMLElement, lis: HTMLElement[]) {
     const nestedLis = element.querySelectorAll("li");
     const lisWithFirstChild = Array.from(nestedLis).filter(isLiWithFirstChildListWrapper);
     lis.push(...lisWithFirstChild);

@@ -1,6 +1,6 @@
 import {getFirstSelectedRoot, getSelectedBlock, getSelectedRoot} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import normalize, {appendTags, normalizeRootElements, removeDistantTags, removeTags} from "@/core/normalize/normalize";
+import {appendTags, normalizeRootElements, removeDistantTags} from "@/core/normalize/normalize";
 import {
     countListWrapperParents,
     isChildrenContain,
@@ -8,7 +8,6 @@ import {
     moveListWrapperToPreviousLi
 } from "@/core/list/util/list-util";
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
-import {getRootElement} from "@/core/shared/element-util";
 
 export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const firstList = lists[0];
@@ -92,7 +91,7 @@ export function isMinusIndentEnabled(contentEditable: HTMLElement) {
             continue;
         }
 
-        if (!isChildrenContain(lists, nextList.children) && isSchemaContain(nextList, [Display.ListWrapper])) {
+        if (!isChildrenContain(nextList.children, lists) && isSchemaContain(nextList, [Display.ListWrapper])) {
             return false;
         }
     }
@@ -113,6 +112,6 @@ export function minusIndent(contentEditable: HTMLElement, lists: HTMLElement[] =
     let firstRootElement = getFirstSelectedRoot(contentEditable, initialCursorPosition);
     removeDistantTags(contentEditable, firstRootElement, lists,[firstRootElement.nodeName, "LI"]);
     firstRootElement = getFirstSelectedRoot(contentEditable, initialCursorPosition);
-    moveListWrappersOutOfLi(firstRootElement, contentEditable);
+    moveListWrappersOutOfLi(contentEditable, firstRootElement);
     normalizeRootElements(contentEditable, initialCursorPosition);
 }

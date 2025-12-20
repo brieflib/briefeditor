@@ -40,9 +40,9 @@ class PlusIndentIcon extends HTMLElement implements Icon {
 
         this.contentEditableElement = contentEditable;
 
-        this.button.addEventListener("click", () => execCommand({
+        this.button.addEventListener("click", () => execCommand(contentEditable, {
             action: Action.PlusIndent
-        }, contentEditable));
+        }));
     }
 }
 

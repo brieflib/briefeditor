@@ -27,7 +27,7 @@ describe("Unwrap tag", () => {
         range.setEnd(getLastChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        tag("STRONG", wrapper, Action.Unwrap);
+        tag(wrapper, "STRONG", Action.Unwrap);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
              <p>
@@ -61,7 +61,7 @@ describe("Unwrap tag", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        tag("STRONG", wrapper, Action.Unwrap);
+        tag(wrapper, "STRONG", Action.Unwrap);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -86,7 +86,7 @@ describe("Wrap in tag", () => {
         range.setEnd(getLastChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        tag("em", wrapper, Action.Wrap);
+        tag(wrapper, "em", Action.Wrap);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p class="end">
@@ -111,7 +111,7 @@ describe("Wrap in tag", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        tag("em", wrapper, Action.Wrap);
+        tag(wrapper, "em", Action.Wrap);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p class="start">zer
@@ -141,7 +141,7 @@ describe("Wrap in tag", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        tag("strong", wrapper, Action.Wrap);
+        tag(wrapper, "strong", Action.Wrap);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p class="start">zer
@@ -168,7 +168,7 @@ describe("Wrap in tag", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fo".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        tag("strong", wrapper, Action.Wrap);
+        tag(wrapper, "strong", Action.Wrap);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -203,7 +203,7 @@ describe("Wrap in tag", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        tag("strong", wrapper, Action.Wrap);
+        tag(wrapper, "strong", Action.Wrap);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>

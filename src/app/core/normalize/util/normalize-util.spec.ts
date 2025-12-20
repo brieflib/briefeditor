@@ -39,7 +39,7 @@ test("Should find all leaf's parents", () => {
     `);
 
     const node = getFirstChild(wrapper, ".start");
-    const leaf = setLeafParents(node as Node, wrapper);
+    const leaf = setLeafParents(wrapper, node as Node);
 
     expect(leaf?.getParents()[leaf?.getParents().length - 1]?.textContent).toBe("first");
     expect(leaf?.getParents().map(parent => parent.nodeName)).toStrictEqual(["EM", "STRONG", "#text"]);
@@ -213,7 +213,7 @@ test("Should remove leaf's parents", () => {
     const element = document.createTextNode("text");
     const leaf = createLeafFromNode(element, ["STRONG", "SPAN", "DELETED"]);
 
-    const filtered = filterLeafParents(leaf, element, ["STRONG", "DELETED"]);
+    const filtered = filterLeafParents(element, ["STRONG", "DELETED"], leaf);
     expect(filtered?.getParents().map(parent => parent.nodeName)).toStrictEqual(["SPAN", "#text"])
 });
 

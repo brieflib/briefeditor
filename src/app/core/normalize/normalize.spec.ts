@@ -1,5 +1,5 @@
 import normalize, {appendTags, removeDistantTags, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {createWrapper, getFirstChild, getLastChild, replaceSpaces} from "@/core/shared/test-util";
+import {createWrapper, getLastChild, replaceSpaces} from "@/core/shared/test-util";
 
 describe("Should normalize tags", () => {
     test("Should sort tags by priority", () => {

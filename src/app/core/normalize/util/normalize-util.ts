@@ -17,7 +17,7 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     return leafNodes;
 }
 
-export function setLeafParents(leafNode: Node, findTill: HTMLElement, leaf: Leaf = new Leaf()) {
+export function setLeafParents(findTill: HTMLElement, leafNode: Node, leaf: Leaf = new Leaf()) {
     const parents: HTMLElement[] = [];
     let parent = leafNode.parentElement;
 
@@ -34,7 +34,7 @@ export function setLeafParents(leafNode: Node, findTill: HTMLElement, leaf: Leaf
     return leaf;
 }
 
-export function appendLeafParents(leaf: Leaf, element: HTMLElement, elementsToAppend: HTMLElement[]) {
+export function appendLeafParents(element: HTMLElement, elementsToAppend: HTMLElement[], leaf: Leaf) {
     const parents = leaf.getParents();
     if (!parents.includes(element)) {
         return leaf;
@@ -133,7 +133,7 @@ function willElementsMerge(element: Node | undefined, compareTo: Node | undefine
     return false;
 }
 
-export function filterLeafParents(leaf: Leaf, element: Node, excludeTags: string[]) {
+export function filterLeafParents(element: Node, excludeTags: string[], leaf: Leaf) {
     const leafParents = leaf.getParents();
 
     if (leafParents.includes(element)) {
@@ -143,7 +143,7 @@ export function filterLeafParents(leaf: Leaf, element: Node, excludeTags: string
     return leaf;
 }
 
-export function filterDistantLeafParents(leaf: Leaf, elements: HTMLElement[], excludeTags: string[]) {
+export function filterDistantLeafParents(elements: HTMLElement[], excludeTags: string[], leaf: Leaf) {
     const leafParents = leaf.getParents();
     const lastHTMLElementIndex = leafParents.length - 2;
     if (elements.includes(leafParents[lastHTMLElementIndex] as HTMLElement)) {
@@ -172,7 +172,7 @@ export function filterDistantLeafParents(leaf: Leaf, elements: HTMLElement[], ex
     return leaf;
 }
 
-export function replaceLeafParents(leaf: Leaf, element: Node, replaceFrom: string[], replaceToElement: HTMLElement[], isClosest: boolean = false) {
+export function replaceLeafParents(element: Node, replaceToElement: HTMLElement[], replaceFrom: string[], leaf: Leaf, isClosest = false) {
     if (leaf.getParents() && leaf.getParents().includes(element)) {
         const parents = leaf.getParents()
             .flatMap(parent => {
@@ -192,7 +192,7 @@ export function replaceLeafParents(leaf: Leaf, element: Node, replaceFrom: strin
     return leaf;
 }
 
-export function removeConsecutiveDuplicates(leaf: Leaf, isDisabled: boolean = false): Leaf {
+export function removeConsecutiveDuplicates(leaf: Leaf, isDisabled = false): Leaf {
     if (isDisabled) {
         return leaf;
     }

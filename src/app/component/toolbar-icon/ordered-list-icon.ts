@@ -44,10 +44,10 @@ class OrderedListIcon extends HTMLElement implements Icon {
         }
 
         this.button.addEventListener("click", () => {
-            execCommand({
+            execCommand(contentEditable, {
                 action: Action.FirstLevel,
                 tag: ["OL", "LI"]
-            }, contentEditable);
+            });
         });
     }
 }

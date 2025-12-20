@@ -4,7 +4,7 @@ import {getSelectedBlock, getSelectedSharedTags} from "@/core/selection/selectio
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 import {minusIndent, plusIndent} from "@/core/list/list";
 
-export default function execCommand(command: Command, contentEditable: HTMLElement) {
+export default function execCommand(contentEditable: HTMLElement, command: Command) {
     const cursorPosition = getSelectionOffset(contentEditable);
     if (!cursorPosition) {
         return;
@@ -15,9 +15,9 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
         const tagName = (command.tag as string).toUpperCase();
 
         if (sharedTags.includes(tagName)) {
-            tag(tagName, contentEditable, Action.Unwrap);
+            tag(contentEditable, tagName, Action.Unwrap);
         } else {
-            tag(tagName, contentEditable, Action.Wrap);
+            tag(contentEditable, tagName, Action.Wrap);
         }
     }
 
@@ -32,7 +32,7 @@ export default function execCommand(command: Command, contentEditable: HTMLEleme
             changeBlock(contentEditable, [tag]);
         } else {
             const blockElements = getSelectedBlock(contentEditable);
-            const isParagraph = isElementsEqualToTags(tags, blockElements);
+            const isParagraph = isElementsEqualToTags(blockElements, tags);
             if (isParagraph) {
                 tags = ["P"];
             }

@@ -48,10 +48,10 @@ class HeadingIcon extends HTMLElement implements Icon {
     setContentEditable(contentEditable: HTMLElement) {
         for (let i = 1; i <= 5; i++) {
             const hTag = "H" + i;
-            this.button.get(hTag).addEventListener("click", () => execCommand({
+            this.button.get(hTag).addEventListener("click", () => execCommand(contentEditable, {
                     action: Action.FirstLevel,
                     tag: [hTag]
-                }, contentEditable)
+                })
             );
         }
     }

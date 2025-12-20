@@ -20,7 +20,7 @@ describe("Cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand({action: Action.Tag, tag: "STRONG"}, wrapper);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p class="start">
@@ -41,7 +41,7 @@ describe("Cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand({action: Action.FirstLevel, tag: ["UL", "LI"]}, wrapper);
+        execCommand(wrapper, {action: Action.FirstLevel, tag: ["UL", "LI"]});
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -67,7 +67,7 @@ describe("Cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand({action: Action.FirstLevel, tag: ["UL", "LI"]}, wrapper);
+        execCommand(wrapper, {action: Action.FirstLevel, tag: ["UL", "LI"]});
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -99,7 +99,7 @@ describe("Cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand({action: Action.FirstLevel, tag: ["UL", "LI"]}, wrapper);
+        execCommand(wrapper, {action: Action.FirstLevel, tag: ["UL", "LI"]});
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>

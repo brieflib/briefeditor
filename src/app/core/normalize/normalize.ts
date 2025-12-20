@@ -16,7 +16,7 @@ import {getInitialBlocks} from "@/core/selection/selection";
 
 export default function normalize(contentEditable: HTMLElement, element: HTMLElement) {
     const leaves = getLeafNodes(element)
-        .map(node => setLeafParents(node, contentEditable))
+        .map(node => setLeafParents(contentEditable, node))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf))
         .map(leaf => filterEmptyParents(leaf));
@@ -29,8 +29,8 @@ export function removeTags(contentEditable: HTMLElement, removeTagFrom: HTMLElem
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
     const leaves = getLeafNodes(rootElement)
-        .map(node => setLeafParents(node, contentEditable))
-        .filter(leaf => filterLeafParents(leaf, removeTagFrom, tags))
+        .map(node => setLeafParents(contentEditable, node))
+        .filter(leaf => filterLeafParents(removeTagFrom, tags, leaf))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf))
         .map(leaf => filterEmptyParents(leaf));
@@ -43,8 +43,8 @@ export function removeDistantTags(contentEditable: HTMLElement, wrapper: HTMLEle
     const rootElement = getRootElement(contentEditable, wrapper);
 
     const leaves = getLeafNodes(rootElement)
-        .map(node => setLeafParents(node, contentEditable))
-        .filter(leaf => filterDistantLeafParents(leaf, toRemoveFrom, [...tags]))
+        .map(node => setLeafParents(contentEditable, node))
+        .filter(leaf => filterDistantLeafParents(toRemoveFrom, [...tags], leaf))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf))
         .map(leaf => filterEmptyParents(leaf));
@@ -53,13 +53,13 @@ export function removeDistantTags(contentEditable: HTMLElement, wrapper: HTMLEle
     replaceElement(fragment, rootElement);
 }
 
-export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[], isClosest: boolean = false) {
+export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[], isClosest = false) {
     const rootElement = getRootElement(contentEditable, replaceTagFrom);
     const elementsToReplace = buildElementsToReplace(replaceTo);
 
     const leaves = getLeafNodes(rootElement)
-        .map(node => setLeafParents(node, contentEditable))
-        .filter(leaf => replaceLeafParents(leaf, replaceTagFrom, replaceFrom, elementsToReplace, isClosest))
+        .map(node => setLeafParents(contentEditable, node))
+        .filter(leaf => replaceLeafParents(replaceTagFrom, elementsToReplace, replaceFrom, leaf, isClosest))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
@@ -72,8 +72,8 @@ export function appendTags(contentEditable: HTMLElement, appendTagTo: HTMLElemen
     const elementsToAppend = buildElementsToReplace(appendTags);
 
     const leaves = getLeafNodes(rootElement)
-        .map(node => setLeafParents(node, contentEditable))
-        .map(leaf => appendLeafParents(leaf, appendTagTo, elementsToAppend))
+        .map(node => setLeafParents(contentEditable, node))
+        .map(leaf => appendLeafParents(appendTagTo, elementsToAppend, leaf))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 

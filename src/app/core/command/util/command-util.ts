@@ -1,7 +1,7 @@
 import {getRange} from "@/core/shared/range-util";
 import normalize, {normalizeRootElements, removeTags, replaceTags} from "@/core/normalize/normalize";
 import {getBlockElement, getRootElement} from "@/core/shared/element-util";
-import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
+import {Display, getOfType, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {
     getInitialBlocks,
     getSelectedBlock,
@@ -11,7 +11,7 @@ import {
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 import {Action} from "@/core/command/type/command";
 
-export function tag(tag: string, contentEditable: HTMLElement, action: Action) {
+export function tag(contentEditable: HTMLElement, tag: string, action: Action) {
     const initialCursorPosition = getSelectionOffset(contentEditable);
     if (!initialCursorPosition) {
         return;
@@ -106,7 +106,7 @@ export function changeBlock(contentEditable: HTMLElement, tags: string[]) {
 
     const blocks = getSelectedBlock(contentEditable);
     for (let i = 0; i < blocks.length; i++) {
-        let block = getInitialBlocks(contentEditable, initialCursorPosition)[i];
+        const block = getInitialBlocks(contentEditable, initialCursorPosition)[i];
         if (!block) {
             continue;
         }
@@ -117,7 +117,7 @@ export function changeBlock(contentEditable: HTMLElement, tags: string[]) {
     normalizeRootElements(contentEditable, initialCursorPosition);
 }
 
-export function isElementsEqualToTags(tags: string[], elements: HTMLElement[]) {
+export function isElementsEqualToTags(elements: HTMLElement[], tags: string[]) {
     for (const element of elements) {
         if (!tags.includes(element.nodeName)) {
             return false;
@@ -130,8 +130,8 @@ export function isElementsEqualToTags(tags: string[], elements: HTMLElement[]) {
 export function isListWrapper(contentEditable: HTMLElement, tag: string) {
     if (isSchemaContainNodeName(tag, [Display.ListWrapper])) {
         const listWrapperElement = getSelectedListWrapper(contentEditable);
-        const isUl = isElementsEqualToTags(["UL"], listWrapperElement);
-        const isOl = isElementsEqualToTags(["OL"], listWrapperElement);
+        const isUl = isElementsEqualToTags(listWrapperElement, ["UL"]);
+        const isOl = isElementsEqualToTags(listWrapperElement, ["OL"]);
 
         if ((isUl && tag === "UL") || (isOl && tag === "OL")) {
             return false;

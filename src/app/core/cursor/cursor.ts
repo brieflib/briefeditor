@@ -23,21 +23,8 @@ export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition
 
     const previousText = getPreviousNode(contentEditable, range.startContainer);
 
-    let isStartShift = false;
-    if (previousText) {
-        const previousRangeStart: Range = range.cloneRange();
-        previousRangeStart.selectNodeContents(previousText);
-        previousRangeStart.setEnd(range.startContainer, range.startOffset);
-        isStartShift = range.startOffset === 0 && previousText?.textContent?.length === previousRangeStart.toString().length;
-    }
-
-    let isEndShift = false;
-    if (previousText) {
-        const previousRangeEnd: Range = range.cloneRange();
-        previousRangeEnd.selectNodeContents(previousText);
-        previousRangeEnd.setEnd(range.endContainer, range.endOffset);
-        isEndShift = range.endOffset === 0 && previousText?.textContent?.length === previousRangeEnd.toString().length;
-    }
+    const isStartShift = isShift(previousText, range, range.startContainer, range.startOffset);
+    const isEndShift = isShift(previousText, range, range.endContainer, range.endOffset);
 
     return {
         startOffset: startOffset,
@@ -77,4 +64,15 @@ export function restoreRange(contentEditable: HTMLElement, cursorPosition: Curso
     }
 
     return range;
+}
+
+function isShift(previousText: Node | undefined, range: Range, container: Node, offset: number) {
+    if (!previousText) {
+        return false;
+    }
+
+    const previousRangeStart: Range = range.cloneRange();
+    previousRangeStart.selectNodeContents(previousText);
+    previousRangeStart.setEnd(container, offset);
+    return range.startOffset === 0 && previousText?.textContent?.length === previousRangeStart.toString().length;
 }
