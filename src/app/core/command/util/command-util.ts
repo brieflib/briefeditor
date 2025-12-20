@@ -10,7 +10,6 @@ import {
 } from "@/core/selection/selection";
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 import {Action} from "@/core/command/type/command";
-import {CursorPosition} from "@/core/cursor/type/cursor-position";
 
 export function tag(tag: string, contentEditable: HTMLElement, action: Action) {
     const initialCursorPosition = getSelectionOffset(contentEditable);
@@ -28,6 +27,7 @@ export function tag(tag: string, contentEditable: HTMLElement, action: Action) {
 
     if (startFirstLevel === endFirstLevel) {
         tagAction(contentEditable, range, tag, action);
+        normalizeRootElements(contentEditable, initialCursorPosition);
         return;
     }
 
@@ -61,6 +61,7 @@ export function tag(tag: string, contentEditable: HTMLElement, action: Action) {
         cloneRange.setEnd(element, element.childNodes.length);
         tagAction(contentEditable, cloneRange, tag, action);
     }
+    normalizeRootElements(contentEditable, initialCursorPosition);
 }
 
 function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string, action: Action) {

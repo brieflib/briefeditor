@@ -122,9 +122,8 @@ export function normalizeRootElements(contentEditable: HTMLElement, cursorPositi
         return;
     }
     firstRootElement.before(wrapper);
-    for (const rootElement of rootElements) {
-        wrapper.appendChild(rootElement);
-    }
+    wrapper.append(...rootElements);
+    wrapper.normalize();
     removeTags(contentEditable, wrapper, ["DELETED"]);
 }
 

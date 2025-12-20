@@ -1,5 +1,6 @@
 import {getRange} from "@/core/shared/range-util";
 import {getSelectedBlock, getSelectedSharedTags} from "@/core/selection/selection";
+import {createWrapper, getFirstChild, getLastChild} from "@/core/shared/test-util";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -8,104 +9,133 @@ jest.mock("../shared/range-util", () => ({
 
 describe("Shared tags", () => {
     test("Should find shared parents", () => {
-        const toFindFrom = document.createElement("div");
-        toFindFrom.innerHTML = "<p><em>ital<strong>bolditalic</strong></em><strong>bold </strong>ic</p>";
-        document.body.appendChild(toFindFrom);
+        const wrapper = createWrapper(`
+            <p>
+                <em>
+                    zero
+                    <strong class="start">first</strong>
+                </em>
+                <strong class="end">second</strong>
+                third
+            </p>
+        `);
 
         const range = new Range();
-        range.setStart(toFindFrom.querySelector("p > em > strong")?.firstChild as Node, "bold".length);
-        range.setEnd(toFindFrom.querySelector("p > strong")?.firstChild as Node, "bo".length);
-
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const shared = getSelectedSharedTags(toFindFrom);
+        const shared = getSelectedSharedTags(wrapper);
 
         expect(shared).toStrictEqual(["STRONG", "P"]);
     });
 
     test("Should find shared parents from single element", () => {
-        const toFindFrom = document.createElement("div");
-        toFindFrom.innerHTML = "<p><em>ital<strong>bolditalic</strong></em><strong>bold </strong>ic</p>";
-        document.body.appendChild(toFindFrom);
+        const wrapper = createWrapper(`
+            <p>
+                <em>
+                    zero
+                    <strong class="start">first</strong>
+                </em>
+                <strong>second</strong>
+                third
+            </p>
+        `);
 
         const range = new Range();
-        range.setStart(toFindFrom.querySelector("p > em > strong")?.firstChild as Node, "bo".length);
-        range.setEnd(toFindFrom.querySelector("p > em > strong")?.firstChild as Node, "bold".length);
-
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const shared = getSelectedSharedTags(toFindFrom);
+        const shared = getSelectedSharedTags(wrapper);
 
         expect(shared).toStrictEqual(["STRONG", "EM", "P"]);
     });
 
     test("Should find shared parents when selecting start of the next text", () => {
-        const toFindFrom = document.createElement("div");
-        toFindFrom.innerHTML = "<p><strong>Write</strong>text here</p>";
-        document.body.appendChild(toFindFrom);
+        const wrapper = createWrapper(`
+            <p class="end">
+                <strong class="start">zero</strong>
+                first
+            </p>
+        `);
 
         const range = new Range();
-        range.setStart(toFindFrom.querySelector("p > strong")?.firstChild as Node, 0);
-        range.setEnd(toFindFrom.querySelector("p")?.lastChild as Node, 0);
-
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getLastChild(wrapper, ".end"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const shared = getSelectedSharedTags(toFindFrom);
+        const shared = getSelectedSharedTags(wrapper);
 
         expect(shared).toStrictEqual(["STRONG", "P"]);
     });
 
     test("Should find shared parents when selecting end of the previous text", () => {
-        const toFindFrom = document.createElement("div");
-        toFindFrom.innerHTML = "<p>Write text <strong>here</strong></p>";
-        document.body.appendChild(toFindFrom);
+        const wrapper = createWrapper(`
+            <p class="start">
+                zero 
+                <strong class="end">first</strong>
+            </p>
+        `);
 
         const range = new Range();
-        range.setStart(toFindFrom.querySelector("p")?.firstChild as Node, "Write text ".length);
-        range.setEnd(toFindFrom.querySelector("p > strong")?.firstChild as Node, "here".length);
-
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const shared = getSelectedSharedTags(toFindFrom);
+        const shared = getSelectedSharedTags(wrapper);
 
         expect(shared).toStrictEqual(["STRONG", "P"]);
     });
 });
 
 test("Should find first level elements arranged by selection", () => {
-    const toFind = document.createElement("div");
-    toFind.innerHTML = "<p><strong>bolditalic</strong></p><p>paragraph</p>";
-    document.body.appendChild(toFind);
+    const wrapper = createWrapper(`
+        <p class="start">
+            <strong>zero</strong>
+        </p>
+        <p class="end">first</p>
+    `);
+
+    const startParagraph = wrapper.querySelector(".start") as HTMLElement;
+    const endParagraph = wrapper.querySelector(".end") as HTMLElement;
+
+    const start = getFirstChild(startParagraph, "strong");
+    const end = endParagraph.firstChild as Node;
 
     const range = new Range();
-    const allParagraphs = toFind.querySelectorAll("p");
-    const start = allParagraphs[0]?.querySelector("strong")?.firstChild;
-    range.setStart(start as Node, "bold".length);
-    const end = allParagraphs[1]?.firstChild;
-    range.setEnd(end as Node, "pa".length);
-
+    range.setStart(start, "ze".length);
+    range.setEnd(end, "fi".length);
     (getRange as jest.Mock).mockReturnValue(range);
 
-    const blocks = getSelectedBlock(toFind);
+    const blocks = getSelectedBlock(wrapper);
 
-    expect(blocks).toStrictEqual([allParagraphs[0], allParagraphs[1]]);
+    expect(blocks).toStrictEqual([startParagraph, endParagraph]);
 });
 
 test("Should find list elements arranged by selection", () => {
-    const toFind = document.createElement("div");
-    toFind.innerHTML = "<ul><li>bolditalic</li></ul><ul><li>paragraph</li><li>text</li></ul>";
-    document.body.appendChild(toFind);
+    const wrapper = createWrapper(`
+        <ul class="start">
+            <li>zero</li>
+        </ul>
+        <ul class="end">
+            <li>first</li>
+            <li>second</li>
+        </ul>
+    `);
+
+    const startUl = wrapper.querySelector(".start") as HTMLElement;
+    const endUl = wrapper.querySelector(".end") as HTMLElement;
+
+    const start = getFirstChild(startUl, "li");
+    const end = getFirstChild(endUl, "li");
 
     const range = new Range();
-    const allUls = toFind.querySelectorAll("ul");
-    const start = allUls[0]?.querySelector("li")?.firstChild;
-    range.setStart(start as Node, "bold".length);
-    const end = allUls[1]?.querySelector("li")?.firstChild;
-    range.setEnd(end as Node, "pa".length);
-
+    range.setStart(start, "ze".length);
+    range.setEnd(end, "fi".length);
     (getRange as jest.Mock).mockReturnValue(range);
 
-    const blocks = getSelectedBlock(toFind);
+    const blocks = getSelectedBlock(wrapper);
 
-    expect(blocks).toStrictEqual([allUls[0]?.querySelector("li"), allUls[1]?.querySelector("li")]);
+    expect(blocks).toStrictEqual([startUl?.querySelector("li"), endUl?.querySelector("li")]);
 });

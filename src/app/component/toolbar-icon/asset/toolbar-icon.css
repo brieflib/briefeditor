@@ -9,9 +9,9 @@
 .icon {
     position: relative;
 
-    width: 28px;
-    height: 24px;
-    padding: 3px 5px;
+    width: 1.75rem;
+    height: 1.5rem;
+    padding: .1875rem .3125rem;
     cursor: pointer;
 
     background: none;
@@ -20,7 +20,7 @@
 }
 
 .empty-icon {
-    width: 12px;
+    width: .75rem;
     background: none;
     border: none;
     user-select: none;

@@ -1,10 +1,15 @@
 import {getRootElement} from "@/core/shared/element-util";
+import {createWrapper} from "@/core/shared/test-util";
 
 test("Should find first level element", () => {
-    const container = document.createElement("div");
-    container.innerHTML = "<p><span>inner</span></p>";
+    const wrapper = createWrapper(`
+        <p>
+            <span class="start">zero</span>
+        </p>
+    `);
 
-    const rootElement = getRootElement(container, container.firstChild?.firstChild as HTMLElement);
+    const span = wrapper.querySelector(".start") as HTMLElement;
+    const rootElement = getRootElement(wrapper, span);
 
-    expect(rootElement).toBe(container.firstChild);
+    expect(rootElement).toBe(wrapper.firstChild);
 });

@@ -145,7 +145,8 @@ export function filterLeafParents(leaf: Leaf, element: Node, excludeTags: string
 
 export function filterDistantLeafParents(leaf: Leaf, elements: HTMLElement[], excludeTags: string[]) {
     const leafParents = leaf.getParents();
-    if (elements.includes(leafParents[leafParents.length - 2] as HTMLElement)) {
+    const lastHTMLElementIndex = leafParents.length - 2;
+    if (elements.includes(leafParents[lastHTMLElementIndex] as HTMLElement)) {
         const filteredParents = [];
 
         for (const parent of leafParents) {

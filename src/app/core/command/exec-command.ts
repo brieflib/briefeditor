@@ -1,10 +1,5 @@
 import {Action, Command} from "@/core/command/type/command";
-import {
-    changeBlock,
-    isElementsEqualToTags,
-    isListWrapper,
-    tag
-} from "@/core/command/util/command-util";
+import {changeBlock, isElementsEqualToTags, isListWrapper, tag} from "@/core/command/util/command-util";
 import {getSelectedBlock, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 import {minusIndent, plusIndent} from "@/core/list/list";

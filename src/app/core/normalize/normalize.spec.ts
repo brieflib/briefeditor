@@ -1,141 +1,301 @@
 import normalize, {appendTags, removeDistantTags, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {createWrapper, replaceSpaces} from "@/core/shared/test-util";
+import {createWrapper, getFirstChild, getLastChild, replaceSpaces} from "@/core/shared/test-util";
 
 describe("Should normalize tags", () => {
     test("Should sort tags by priority", () => {
-        testNormalize("<strong>bold </strong><em><strong>bolditalic</strong>ital</em>ic",
-            "<strong>bold <em>bolditalic</em></strong><em>ital</em>ic");
+        testNormalize(`
+            <strong>zero</strong>
+            <em>
+                <strong>first</strong>
+                second
+            </em>
+            third
+        `,
+            `
+            <strong>
+                zero 
+                <em>first</em>
+            </strong>
+            <em>second</em>
+            third
+        `);
     });
 
     test("Should collapse similar tags", () => {
-        testNormalize("<strong>bold </strong><strong>strong</strong>",
-            "<strong>bold strong</strong>");
+        testNormalize(`
+            <strong>zero </strong>
+            <strong>first</strong>
+        `,
+            `
+            <strong>zero first</strong>
+        `);
     });
 
     test("Should be the same", () => {
-        testNormalize("<strong>bold </strong><span>span</span><strong>strong</strong>",
-            "<strong>bold </strong><span>span</span><strong>strong</strong>");
+        testNormalize(`
+            <strong>zero</strong>
+            <span>first</span>
+            <strong>second</strong>
+        `,
+            `
+            <strong>zero</strong>
+            <span>first</span>
+            <strong>second</strong>
+        `);
     });
 
     test("Should honor double br", () => {
-        testNormalize("<strong>bold </strong><br><br><strong>bolditalic</strong>",
-            "<strong>bold </strong><br><br><strong>bolditalic</strong>");
+        testNormalize(`
+            <strong>zero</strong>
+            <br>
+            <br>
+            <strong>first</strong>
+        `,
+            `
+            <strong>zero</strong>
+            <br>
+            <br>
+            <strong>first</strong>
+        `);
     });
+
     test("Should honor br", () => {
-        testNormalize("<strong>bold </strong><br><strong>bolditalic</strong>",
-            "<strong>bold </strong><br><strong>bolditalic</strong>");
+        testNormalize(`
+            <strong>zero</strong>
+            <br>
+            <strong>first</strong>
+        `,
+            `
+            <strong>zero</strong>
+            <br>
+            <strong>first</strong>
+        `);
     });
 
     test("Should delete duplicates", () => {
-        testNormalize("<strong>strong <strong>bold <strong><em>text</em></strong></strong></strong>",
-            "<strong>strong bold <em>text</em></strong>");
+        testNormalize(`
+            <strong>zero
+                <strong>
+                    first
+                    <strong>
+                        <em>second</em>
+                    </strong>
+                </strong>
+            </strong>`,
+            `
+            <strong>zero first 
+                <em>second</em>
+            </strong>
+        `);
     });
 
     test("Should delete paragraph and strong duplicates", () => {
-        testNormalize("<div>strong <strong><div>bold <strong><div>text</div></strong></div></strong></div>",
-            "<div>strong <strong>bold text</strong></div>");
+        testNormalize(`
+            <div>zero
+                <strong>
+                    <div>first
+                        <strong>
+                            <div>second</div>
+                        </strong>
+                    </div>
+                </strong>
+            </div>`,
+            `
+            <div>zero 
+                <strong>first second</strong>
+            </div>
+        `);
     });
 
     test("Should preserve href property", () => {
         const wrapper = document.createElement("div");
         const toNormalize = document.createElement("div");
-        toNormalize.innerHTML = "<strong>bold<a href=\"http://www.briefeditor.com\">brief</a><a href=\"http://briefeditor.com\">editor</a>te<em>xt</em></strong>";
+        toNormalize.innerHTML = "<strong>zero<a href=\"http://www.briefeditor.com\">first</a><a href=\"http://briefeditor.com\">second</a>third<em>fourth</em></strong>";
         wrapper.appendChild(toNormalize);
 
         normalize(toNormalize, toNormalize);
-        expect(wrapper.innerHTML).toBe("<strong>bold<a href=\"http://www.briefeditor.com\">brief</a><a href=\"http://briefeditor.com\">editor</a>te<em>xt</em></strong>");
+        expect(wrapper.innerHTML).toBe("<strong>zero<a href=\"http://www.briefeditor.com\">first</a><a href=\"http://briefeditor.com\">second</a>third<em>fourth</em></strong>");
     });
 
     test("Should preserve nested ordered list", () => {
-        testNormalize("<ul><li>Write<ul><li>text<strong>1</strong><strong>2</strong></li><li>here</li></ul></li></ul>",
-            "<ul><li>Write<ul><li>text<strong>12</strong></li><li>here</li></ul></li></ul>");
+        testNormalize(`
+            <ul>
+                <li>zero
+                    <ul>
+                        <li>first
+                            <strong>second </strong>
+                            <strong>third</strong>
+                        </li>
+                        <li>fourth</li>
+                    </ul>
+                </li>
+            </ul>`,
+            `
+            <ul>
+                <li>zero
+                    <ul>
+                        <li>first
+                            <strong>second third</strong>
+                        </li>
+                        <li>fourth</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
     });
 
     test("Should merge multiple ul", () => {
-        testNormalize("<ul><li>Write</li></ul><ul><li>here</li></ul>",
-            "<ul><li>Write</li><li>here</li></ul>");
+        testNormalize(`
+            <ul>
+                <li>zero</li>
+            </ul>
+            <ul>
+                <li>first</li>
+            </ul>`,
+            `
+            <ul>
+                <li>zero</li>
+                <li>first</li>
+            </ul>
+        `);
     });
 
     test("Should preserve table", () => {
         const table = `
-        <table>
-          <thead>
-            <tr>
-              <th>Option</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>data</td>
-              <td>path to data files to <strong>supply</strong> the data that will be passed into templates.</td>
-            </tr>
-            <tr>
-              <td>engine</td>
-              <td>engine to be used for processing templates. Handlebars is the default.</td>
-            </tr>
-            <tr>
-              <td>ext</td>
-              <td>extension to be used for dest files.</td>
-            </tr>
-          </tbody>
-        </table>
+            <table>
+              <thead>
+                <tr>
+                  <th>zero</th>
+                  <th>first</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>second</td>
+                  <td>third <strong>fourth</strong> fifth</td>
+                </tr>
+                <tr>
+                  <td>six</td>
+                  <td>seventh</td>
+                </tr>
+              </tbody>
+            </table>
         `;
         testNormalize(table, table);
     });
 
     test("Should remove empty tags", () => {
-        const container = document.createElement("div");
-        container.innerHTML = "<div>text<ul><li></li></ul></div>";
+        const wrapper = createWrapper(`
+            <div class="start">zero
+                <ul>
+                    <li></li>
+                </ul>
+            </div>
+        `);
 
-        const toRemove = container.querySelector("div") as HTMLElement;
-        normalize(container, toRemove);
-        expect(container.innerHTML).toBe("<div>text</div>");
+        const div = wrapper.querySelector(".start") as HTMLElement;
+        normalize(wrapper, div);
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <div class="start">zero</div>
+        `));
     });
 
-    test("Should duplicate paragraphs", () => {
-        testNormalize("<p><strong>first</strong>second </p><p>third</p>",
-            "<p><strong>first</strong>second </p><p>third</p>");
+    test("Should preserve paragraphs duplication", () => {
+        testNormalize(`
+            <p>
+                <strong>zero</strong>
+                first
+            </p>
+            <p>second</p>`,
+            `
+            <p>
+                <strong>zero</strong>
+                first
+            </p>
+            <p>second</p>
+        `);
     });
 });
 
 describe("Should remove tags", () => {
     test("Should remove strong tag from text", () => {
-        const wrapper = document.createElement("div");
-        wrapper.innerHTML = "<strong><u><i>bold bolditalic</i>par</u></strong>text";
+        const wrapper = createWrapper(`
+            <strong>
+                <u class="start">
+                    <i>zero</i>
+                    first
+                </u>
+            </strong>
+            second
+        `);
 
-        const toRemoveTag = wrapper.querySelector("strong > u")?.childNodes[1] as HTMLElement;
-        removeTags(wrapper, toRemoveTag, ["STRONG"]);
-        expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><u>par</u>text");
+        const toRemove = getLastChild(wrapper, ".start") as HTMLElement;
+        removeTags(wrapper, toRemove, ["STRONG"]);
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <strong>
+                <u class="start">
+                    <i>zero</i>
+                </u>
+            </strong>
+            <u class="start">first</u>
+            second
+        `));
     });
 
     test("Should remove strong tag from div", () => {
-        const wrapper = document.createElement("div");
-        wrapper.innerHTML = "<strong><u><i>bold bolditalic</i><div><span>par</span><div>lorem</div></div></u></strong>text";
+        const wrapper = createWrapper(`
+            <strong>
+                <u>
+                    <i>zero</i>
+                    <div class="start">
+                        <span>first</span>
+                        <div>second</div>
+                    </div>
+                </u>
+            </strong>
+            third
+        `);
 
-        const toRemoveTag = wrapper.querySelector("strong > u > div");
-        removeTags(wrapper, toRemoveTag as HTMLElement, ["STRONG"]);
-        expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><div><u><span>par</span>lorem</u></div>text");
+        const toRemove = wrapper.querySelector(".start");
+        removeTags(wrapper, toRemove as HTMLElement, ["STRONG"]);
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <strong>
+                <u>
+                    <i>zero</i>
+                </u>
+            </strong>
+            <div class="start">
+                <u>
+                    <span>first</span>
+                    second
+                </u>
+            </div>
+            third
+        `));
     });
 
     test("Should remove distant UL and LI", () => {
         const wrapper = createWrapper(`
-            <ul>
-                <li>first
+            <ul class="zero">
+                <li>zero
                     <ul>
-                        <li>second</li>
+                        <li class="first">first</li>
                     </ul>
                 </li>
             </ul>
         `);
 
-        const removeTagFrom = wrapper.querySelector("div > ul > li > ul > li") as HTMLElement;
-        const ul = wrapper.querySelector("ul") as HTMLElement;
-        removeDistantTags(wrapper, ul, [removeTagFrom], ["UL", "LI"]);
+        const ul = wrapper.querySelector(".zero") as HTMLElement;
+        const toRemove = wrapper.querySelector(".first") as HTMLElement;
+        removeDistantTags(wrapper, ul, [toRemove], ["UL", "LI"]);
+
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
-                <li>first</li>
-                <li>second</li>
+                <li>zero</li>
+                <li class="first">first</li>
             </ul>
         `));
     });
@@ -143,12 +303,44 @@ describe("Should remove tags", () => {
 
 describe("Should replace tags", () => {
     test("Should replace div tag with list", () => {
-        const wrapper = document.createElement("div");
-        wrapper.innerHTML = "<strong><u><i>bold bolditalic</i><div><span>par</span><p>lorem</p></div></u></strong>text";
+        const wrapper = createWrapper(`
+            <strong>
+                <u>
+                    <i>zero</i>
+                    <div class="start">
+                        <span>first</span>
+                        <p>second</p>
+                    </div>
+                </u>
+            </strong>
+            third
+        `);
 
-        const toReplaceTag = wrapper.querySelector("strong > u > div");
-        replaceTags(wrapper, toReplaceTag as HTMLElement, ["DIV"], ["UL", "LI"]);
-        expect(wrapper.innerHTML).toBe("<strong><u><i>bold bolditalic</i></u></strong><ul><li><strong><u><span>par</span></u></strong><p><strong><u>lorem</u></strong></p></li></ul>text");
+        const toReplace = wrapper.querySelector(".start") as HTMLElement;
+        replaceTags(wrapper, toReplace, ["DIV"], ["UL", "LI"]);
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <strong>
+                <u>
+                    <i>zero</i>
+                </u>
+            </strong>
+            <ul>
+                <li>
+                    <strong>
+                        <u>
+                            <span>first</span>
+                        </u>
+                    </strong>
+                    <p>
+                        <strong>
+                            <u>second</u>
+                        </strong>
+                    </p>
+                </li>
+            </ul>
+            third
+        `));
     });
 });
 
@@ -156,17 +348,18 @@ describe("Should append tags", () => {
     test("Should append list tags", () => {
         const wrapper = createWrapper(`
             <p>
-                <strong>first</strong>
+                <strong class="start">zero</strong>
             </p>
         `);
 
-        const elementToAppend = wrapper.querySelector("p > strong") as HTMLElement;
-        appendTags(wrapper, elementToAppend, ["UL", "LI"]);
+        const toAppend = wrapper.querySelector(".start") as HTMLElement;
+        appendTags(wrapper, toAppend, ["UL", "LI"]);
+
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p>
                 <ul>
                     <li>
-                        <strong>first</strong>
+                        <strong class="start">zero</strong>
                     </li>
                 </ul>
             </p>

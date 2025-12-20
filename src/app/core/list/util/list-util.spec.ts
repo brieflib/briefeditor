@@ -9,10 +9,10 @@ describe("Move elements after normalization to conform list structure", () => {
     test("Move list wrapper to previous li", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li>first</li>
+                <li>zero</li>
                 <ul>
+                    <li>first</li>
                     <li>second</li>
-                    <li>third</li>
                 </ul>
             </ul>
         `);
@@ -21,10 +21,10 @@ describe("Move elements after normalization to conform list structure", () => {
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
-                <li>first
+                <li>zero
                     <ul>
+                        <li>first</li>
                         <li>second</li>
-                        <li>third</li>
                     </ul>
                 </li>
             </ul>
@@ -34,23 +34,23 @@ describe("Move elements after normalization to conform list structure", () => {
     test("Move second level list wrapper to li in previous list wrapper", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li>first</li>
+                <li>zero</li>
             </ul>
-            <ol>
+            <ol class="start">
                 <ol>
-                    <li>second</li>
+                    <li>first</li>
                 </ol>
             </ol>
         `);
 
-        const secondLevelListWrapper = wrapper.querySelector("ol") as HTMLElement;
+        const secondLevelListWrapper = wrapper.querySelector(".start") as HTMLElement;
         moveListWrapperToPreviousLi(secondLevelListWrapper);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
-                <li>first
+                <li>zero
                     <ol>
-                        <li>second</li>
+                        <li>first</li>
                     </ol>
                 </li>
             </ul>
@@ -59,24 +59,24 @@ describe("Move elements after normalization to conform list structure", () => {
 
     test("Select lis with first child list wrapper", () => {
         const wrapper = createWrapper(`
-            <ol class="first">
+            <ol class="start">
                 <li>
                     <ol>
-                        <li>fourth</li>
+                        <li>zero</li>
                     </ol>
                 </li>
             </ol>
             <ul>
                 <li>
                     <ol>
-                        <li>fifth</li>
+                        <li>first</li>
                     </ol>
                 </li>
-                <li>six</li>
+                <li>second</li>
             </ul>
         `);
 
-        const firstLi = wrapper.querySelector(".first") as HTMLElement;
+        const firstLi = wrapper.querySelector(".start") as HTMLElement;
         const lisWithFirstChildListWrapper = getLisWithFirstChildListWrapper(firstLi, wrapper);
 
         expect(lisWithFirstChildListWrapper.length).toBe(2);
@@ -87,25 +87,25 @@ describe("Move elements after normalization to conform list structure", () => {
 
     test("Should move ul out of li", () => {
         const wrapper = createWrapper(`
-            <ul class="root">
-                <li>first</li>
+            <ul class="start">
+                <li>zero</li>
                 <li>
                     <ul>
-                        <li>second</li>
+                        <li>first</li>
                     </ul>
                 </li>
             </ul>
         `);
 
-        const root = wrapper.querySelector(".root") as HTMLElement;
+        const root = wrapper.querySelector(".start") as HTMLElement;
         moveListWrappersOutOfLi(root, wrapper);
         normalize(wrapper, root);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
-            <ul class="root">
-                <li>first
+            <ul class="start">
+                <li>zero
                     <ul>
-                        <li>second</li>
+                        <li>first</li>
                     </ul>
                 </li>
             </ul>
@@ -114,18 +114,18 @@ describe("Move elements after normalization to conform list structure", () => {
 
     test("Should move deeper ul to ul in previous li", () => {
         const wrapper = createWrapper(`
-            <ul class="root">
-                <li>first</li>
+            <ul class="start">
+                <li>zero</li>
                 <li>
                     <ul>
-                        <li>second</li>
+                        <li>first</li>
                     </ul>
                 </li>
                 <li>
                     <ul>
                         <li>
                             <ul>
-                                <li>third</li>
+                                <li>second</li>
                             </ul>
                         </li>
                     </ul>
@@ -133,17 +133,17 @@ describe("Move elements after normalization to conform list structure", () => {
             </ul>
         `);
 
-        const root = wrapper.querySelector(".root") as HTMLElement;
+        const root = wrapper.querySelector(".start") as HTMLElement;
         moveListWrappersOutOfLi(root, wrapper);
         normalize(wrapper, root);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
-            <ul class="root">
-                <li>first
+            <ul class="start">
+                <li>zero
                     <ul>
-                        <li>second
+                        <li>first
                             <ul>
-                                <li>third</li>
+                                <li>second</li>
                             </ul>
                         </li>
                     </ul>
@@ -155,32 +155,32 @@ describe("Move elements after normalization to conform list structure", () => {
     test("Should move nested ol to previous ol", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li>first</li>
+                <li>zero</li>
             </ul>
             <ol>
-                <li>second</li>
+                <li>first</li>
             </ol>
-            <ul class="root">
+            <ul class="start">
                 <li>
                     <ol>
-                        <li>third</li>
+                        <li>second</li>
                     </ol>
                 </li>
             </ul>
         `);
 
-        const root = wrapper.querySelector(".root") as HTMLElement;
+        const root = wrapper.querySelector(".start") as HTMLElement;
         moveListWrappersOutOfLi(root, wrapper);
         normalize(wrapper, root);
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
-                <li>first</li>
+                <li>zero</li>
             </ul>
             <ol>
-                <li>second
+                <li>first
                     <ol>
-                        <li>third</li>
+                        <li>second</li>
                     </ol>
                 </li>
             </ol>
