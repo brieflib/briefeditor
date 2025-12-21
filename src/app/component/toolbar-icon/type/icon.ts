@@ -1,5 +1,5 @@
 export interface Icon extends HTMLElement {
     setActive?(tags: string[]);
-    setEnabled?();
+    setEnabled?(isEnabled: boolean);
     setContentEditable(contentEditable: HTMLElement);
 }

@@ -35,6 +35,14 @@ class BlockquoteIcon extends HTMLElement implements Icon {
         }
     }
 
+    setEnabled(isEnabled: boolean) {
+        this.button?.setAttribute("disabled", "true");
+
+        if (isEnabled) {
+            this.button?.removeAttribute("disabled");
+        }
+    }
+
     setContentEditable(contentEditable: HTMLElement) {
         if (!this.button) {
             return;

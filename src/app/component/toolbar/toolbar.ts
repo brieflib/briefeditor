@@ -11,7 +11,7 @@ import UnorderedListIcon from "@/component/toolbar-icon/unordered-list-icon";
 import OrderedListIcon from "@/component/toolbar-icon/ordered-list-icon";
 import PlusIndentIcon from "@/component/toolbar-icon/plus-indent";
 import MinusIndentIcon from "@/component/toolbar-icon/minus-indent";
-import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
+import {isNextListNotNested} from "@/core/list/list";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;
@@ -26,12 +26,13 @@ export default class Toolbar {
 
         document.addEventListener("selectionchange", () => {
             const sharedTags = getSelectedSharedTags(contentEditable);
+            const isEnabled = isNextListNotNested(contentEditable);
             for (const item of this.items) {
                 if (item.setActive) {
                     item.setActive(sharedTags);
                 }
-                if (item.setEnabled && sharedTags.filter(tag => isSchemaContainNodeName(tag, [Display.ListWrapper])).length !== 0) {
-                    item.setEnabled();
+                if (item.setEnabled) {
+                    item.setEnabled(isEnabled);
                 }
             }
         });

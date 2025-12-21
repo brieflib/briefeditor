@@ -1,6 +1,6 @@
 import {getRange} from "@/core/shared/range-util";
 import {isMinusIndentEnabled, isPlusIndentEnabled, minusIndent, plusIndent} from "@/core/list/list";
-import {createWrapper, getFirstChild, replaceSpaces} from "@/core/shared/test-util";
+import {createWrapper, getFirstChild, getLastChild, replaceSpaces} from "@/core/shared/test-util";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -1296,6 +1296,38 @@ describe("Minus indent", () => {
                             </ol>
                         </li>
                     </ol>
+                </li>
+            </ol>
+        `));
+    });
+
+    test("Minus indent with strong tag inside li", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li class="start">
+                            <strong>fi</strong>
+                            rst
+                        </li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getLastChild(wrapper, ".start"), "r".length);
+        range.setEnd(getLastChild(wrapper, ".start"), "rst".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        minusIndent(wrapper);
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ol>
+                <li>zero</li>
+                <li class="start">
+                    <strong>fi</strong>
+                    rst
                 </li>
             </ol>
         `));

@@ -1,4 +1,13 @@
 import {getRange} from "@/core/shared/range-util";
+import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
+import {getBlockElement, getListWrapperElement, getRootElement} from "@/core/shared/element-util";
+
+export enum SelectionType {
+    Root = "Root",
+    Block = "Block",
+    Element = "Element",
+    ListWrapper = "ListWrapper",
+}
 
 export function getSelectedLeaves(range = getRange()) {
     const textNodes: Node[] = [];
@@ -44,4 +53,61 @@ export function getParentTags(findTill: HTMLElement, node: Node) {
     }
 
     return parents;
+}
+
+export function filterListWrapperTag(parents: string[]) {
+    const filtered = [];
+
+    let isFirstWrapper = false;
+    for (const parent of parents) {
+        if (isSchemaContainNodeName(parent, [Display.ListWrapper])) {
+            if (!isFirstWrapper) {
+                filtered.push(parent);
+                isFirstWrapper = true;
+            }
+
+            continue;
+        }
+
+        filtered.push(parent);
+    }
+
+    return filtered;
+}
+
+export function getSelected(findTill: HTMLElement | null, range: Range, type: SelectionType) {
+    const selected: HTMLElement[] = [];
+    const leafNodes = getSelectedLeaves(range);
+
+    for (const leafNode of leafNodes) {
+        let block;
+        switch (type) {
+            case SelectionType.Element:
+                block = leafNode.parentElement as HTMLElement;
+                break;
+            case SelectionType.Root:
+                if (!findTill) {
+                    return [];
+                }
+                block = getRootElement(findTill, leafNode as HTMLElement);
+                break;
+            case SelectionType.Block:
+                if (!findTill) {
+                    return [];
+                }
+                block = getBlockElement(findTill, leafNode as HTMLElement);
+                break;
+            case SelectionType.ListWrapper:
+                if (!findTill) {
+                    return [];
+                }
+                block = getListWrapperElement(findTill, leafNode as HTMLElement);
+                break;
+        }
+        if (!selected.includes(block)) {
+            selected.push(block);
+        }
+    }
+
+    return selected;
 }

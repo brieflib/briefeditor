@@ -45,6 +45,14 @@ class HeadingIcon extends HTMLElement implements Icon {
         this.button.get("H0").className = "icon";
     }
 
+    setEnabled(isEnabled: boolean) {
+        this.button.get("H0").setAttribute("disabled", "true");
+
+        if (isEnabled) {
+            this.button.get("H0").removeAttribute("disabled");
+        }
+    }
+
     setContentEditable(contentEditable: HTMLElement) {
         for (let i = 1; i <= 5; i++) {
             const hTag = "H" + i;

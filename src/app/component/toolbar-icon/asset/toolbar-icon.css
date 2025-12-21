@@ -47,7 +47,11 @@ button[disabled] .stroke {
 }
 
 button[disabled] .fill {
-    stroke: #ccc;
+    fill: #ccc;
+}
+
+button[disabled] .icon-svg {
+    fill: #ccc;
 }
 
 .thin {

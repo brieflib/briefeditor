@@ -6,6 +6,7 @@ import {Icon} from "@/component/toolbar-icon/type/icon";
 
 class UnorderedListIcon extends HTMLElement implements Icon {
     private readonly button: HTMLElement | null;
+    private isActive: boolean;
 
     constructor() {
         super();
@@ -30,10 +31,19 @@ class UnorderedListIcon extends HTMLElement implements Icon {
             return;
         }
 
-        if (tags[1] === "UL") {
+        this.isActive = tags.includes("UL");
+        if (this.isActive) {
             this.button.className = "icon active"
         } else {
             this.button.className = "icon"
+        }
+    }
+
+    setEnabled(isEnabled: boolean) {
+        this.button?.setAttribute("disabled", "true");
+
+        if (isEnabled || !this.isActive) {
+            this.button?.removeAttribute("disabled");
         }
     }
 

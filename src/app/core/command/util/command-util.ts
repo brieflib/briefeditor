@@ -1,7 +1,7 @@
 import {getRange} from "@/core/shared/range-util";
 import normalize, {normalizeRootElements, removeTags, replaceTags} from "@/core/normalize/normalize";
 import {getBlockElement, getRootElement} from "@/core/shared/element-util";
-import {Display, getOfType, isSchemaContainNodeName} from "@/core/normalize/type/schema";
+import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {
     getInitialBlocks,
     getSelectedBlock,
@@ -96,8 +96,8 @@ function unwrapRangeFromTag(contentEditable: HTMLElement, range: Range, tag: str
     removeTags(contentEditable, removeTagFrom, [tag, "DELETED"]);
 }
 
-export function changeBlock(contentEditable: HTMLElement, tags: string[]) {
-    const isList = tags.length === 1 && isSchemaContainNodeName(tags[0], [Display.ListWrapper])
+export function changeBlock(contentEditable: HTMLElement, replaceTo: string[]) {
+    const isList = replaceTo.length === 1 && isSchemaContainNodeName(replaceTo[0], [Display.ListWrapper]);
 
     const initialCursorPosition = getSelectionOffset(contentEditable);
     if (!initialCursorPosition) {
@@ -105,14 +105,14 @@ export function changeBlock(contentEditable: HTMLElement, tags: string[]) {
     }
 
     const blocks = getSelectedBlock(contentEditable);
-    for (let i = 0; i < blocks.length; i++) {
+    for (let i = blocks.length - 1; i >= 0; i--) {
         const block = getInitialBlocks(contentEditable, initialCursorPosition)[i];
         if (!block) {
             continue;
         }
         const displays = isList ? [Display.FirstLevel] : [Display.FirstLevel, Display.List];
-        const replaceFrom = getOfType(displays).filter(item => !tags.includes(item));
-        replaceTags(contentEditable, block, replaceFrom, tags, isList);
+        const replaceFrom = getOfType(displays).filter(item => !replaceTo.includes(item));
+        replaceTags(contentEditable, block, replaceFrom, replaceTo, isList);
     }
     normalizeRootElements(contentEditable, initialCursorPosition);
 }
@@ -127,20 +127,14 @@ export function isElementsEqualToTags(elements: HTMLElement[], tags: string[]) {
     return true;
 }
 
-export function isListWrapper(contentEditable: HTMLElement, tag: string) {
-    if (isSchemaContainNodeName(tag, [Display.ListWrapper])) {
-        const listWrapperElement = getSelectedListWrapper(contentEditable);
-        const isUl = isElementsEqualToTags(listWrapperElement, ["UL"]);
-        const isOl = isElementsEqualToTags(listWrapperElement, ["OL"]);
+export function isListWrapper(contentEditable: HTMLElement) {
+    const maybeListWrappers = getSelectedListWrapper(contentEditable);
 
-        if ((isUl && tag === "UL") || (isOl && tag === "OL")) {
+    for (const element of maybeListWrappers) {
+        if (!isSchemaContain(element, [Display.ListWrapper])) {
             return false;
-        }
-
-        if (isUl || isOl) {
-            return true;
         }
     }
 
-    return false;
+    return true;
 }

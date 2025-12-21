@@ -3,11 +3,40 @@ import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {appendTags, normalizeRootElements, removeDistantTags} from "@/core/normalize/normalize";
 import {
     countListWrapperParents,
+    getDirectChildren,
     isChildrenContain,
     moveListWrappersOutOfLi,
     moveListWrapperToPreviousLi
 } from "@/core/list/util/list-util";
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
+import {getNextNode} from "@/core/shared/element-util";
+
+export function isNextListNotNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
+    const lastList = lists[lists.length - 1];
+    if (!lastList) {
+        return true;
+    }
+    if (!isSchemaContain(lastList, [Display.List])) {
+        return true;
+    }
+    const listWrapperChildren = getDirectChildren(lastList, [Display.ListWrapper]);
+    if (listWrapperChildren.length) {
+        return false;
+    }
+    const maybeNextList = getNextNode(contentEditable, lastList);
+    if (!maybeNextList) {
+        return true;
+    }
+    const nestedLevel = countListWrapperParents(contentEditable, maybeNextList as HTMLElement);
+    if (isSchemaContain(maybeNextList, [Display.List])) {
+        return nestedLevel === 1;
+    }
+    if (isSchemaContain(maybeNextList, [Display.ListWrapper])) {
+        return nestedLevel === 0;
+    }
+
+    return true;
+}
 
 export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const firstList = lists[0];
@@ -29,7 +58,7 @@ export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLEle
             return false;
         }
 
-        if (countListWrapperParents(list) >= 5) {
+        if (countListWrapperParents(contentEditable, list) >= 5) {
             return false;
         }
     }
@@ -81,7 +110,7 @@ export function isMinusIndentEnabled(contentEditable: HTMLElement) {
             return false;
         }
 
-        const listNesting = countListWrapperParents(list);
+        const listNesting = countListWrapperParents(contentEditable, list);
         if (listNesting === 1) {
             return false;
         }
@@ -110,7 +139,7 @@ export function minusIndent(contentEditable: HTMLElement, lists: HTMLElement[] =
     }
 
     let firstRootElement = getFirstSelectedRoot(contentEditable, initialCursorPosition);
-    removeDistantTags(contentEditable, firstRootElement, lists,[firstRootElement.nodeName, "LI"]);
+    removeDistantTags(contentEditable, firstRootElement, lists, [firstRootElement.nodeName, "LI"]);
     firstRootElement = getFirstSelectedRoot(contentEditable, initialCursorPosition);
     moveListWrappersOutOfLi(contentEditable, firstRootElement);
     normalizeRootElements(contentEditable, initialCursorPosition);

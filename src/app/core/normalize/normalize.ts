@@ -1,6 +1,8 @@
 import {
     appendLeafParents,
-    collapseLeaves, filterDistantLeafParents, filterEmptyParents,
+    collapseLeaves,
+    filterDistantLeafParents,
+    filterEmptyParents,
     filterLeafParents,
     getLeafNodes,
     removeConsecutiveDuplicates,

@@ -145,8 +145,8 @@ export function filterLeafParents(element: Node, excludeTags: string[], leaf: Le
 
 export function filterDistantLeafParents(elements: HTMLElement[], excludeTags: string[], leaf: Leaf) {
     const leafParents = leaf.getParents();
-    const lastHTMLElementIndex = leafParents.length - 2;
-    if (elements.includes(leafParents[lastHTMLElementIndex] as HTMLElement)) {
+    const firstLi = getFirstLi([...leafParents]);
+    if (firstLi && elements.includes(firstLi)) {
         const filteredParents = [];
 
         for (const parent of leafParents) {
@@ -269,4 +269,14 @@ function clearElementHTML(node: Node | undefined) {
     }
 
     return node.cloneNode(false) as HTMLElement;
+}
+
+function getFirstLi(parents: Node[]) {
+    for (const parent of parents.reverse()) {
+        if (isSchemaContain(parent, [Display.List])) {
+            return parent as HTMLElement;
+        }
+    }
+
+    return null;
 }

@@ -28,7 +28,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             return;
         }
 
-        if (isListWrapper(contentEditable, tag)) {
+        if (isListWrapper(contentEditable) && !getSelectedSharedTags(contentEditable).includes(tag)) {
             changeBlock(contentEditable, [tag]);
         } else {
             const blockElements = getSelectedBlock(contentEditable);

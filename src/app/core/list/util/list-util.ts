@@ -1,11 +1,11 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {getRootElement} from "@/core/shared/element-util";
 
-export function countListWrapperParents(element: Element) {
+export function countListWrapperParents(findTill: HTMLElement, element: Element) {
     let count = 0;
     let current = element.parentElement;
 
-    while (current) {
+    while (current && current !== findTill) {
         if (isSchemaContain(current, [Display.ListWrapper])) {
             count++;
         }
@@ -72,7 +72,7 @@ export function moveListWrappersOutOfLi(contentEditable: HTMLElement, element: H
         }
 
         const listWrappers = getDirectChildren(li, [Display.ListWrapper]);
-        if (previousLi && countListWrapperParents(li) > countListWrapperParents(previousLi)) {
+        if (previousLi && countListWrapperParents(contentEditable, li) > countListWrapperParents(contentEditable, previousLi)) {
             const liToAppend = previousLi.querySelector(":scope li:nth-last-child(1)");
             listWrappers.forEach(listWrapper => liToAppend?.appendChild(listWrapper));
             continue;
@@ -87,7 +87,7 @@ export function moveListWrappersOutOfLi(contentEditable: HTMLElement, element: H
     }
 }
 
-function getDirectChildren(li: Element, display: Display[]) {
+export function getDirectChildren(li: Element, display: Display[]) {
     const listWrappers: Element[] = [];
 
     Array.from(li.children).forEach(element => {

@@ -2,6 +2,7 @@ import {changeBlock, tag} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
 import {Action} from "@/core/command/type/command";
 import {createWrapper, getFirstChild, getLastChild, replaceSpaces} from "@/core/shared/test-util";
+import execCommand from "@/core/command/exec-command";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -412,6 +413,76 @@ describe("Change first level", () => {
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p>zero<br>first</p>
+        `));
+    });
+
+    test("Should change list with strong to paragraph", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">
+                    <strong>zero</strong>
+                    first
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getLastChild(wrapper, ".start"), "".length);
+        range.setEnd(getLastChild(wrapper, ".start"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        changeBlock(wrapper, ["P"]);
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <p>
+                <strong>zero</strong>
+                first
+            </p>
+        `));
+    });
+
+    test("Should change list with strong divided by br to paragraph", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><strong>zero<br>first</strong></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        changeBlock(wrapper, ["P"]);
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <p>
+                <strong>zero<br>first</strong>
+            </p>
+        `));
+    });
+
+    test("Should change nested lists to two paragraphs", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero
+                    <ul>
+                        <li class="end">first</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        changeBlock(wrapper, ["P"]);
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <p>zero</p>
+            <p>first</p>
         `));
     });
 
