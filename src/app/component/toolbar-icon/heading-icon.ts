@@ -6,6 +6,7 @@ import {Action} from "@/core/command/type/command";
 
 class HeadingIcon extends HTMLElement implements Icon {
     private button: Map<string, HTMLElement | null> = new Map<string, HTMLElement | null>();
+    private container: HTMLElement;
 
     constructor() {
         super();
@@ -21,14 +22,22 @@ class HeadingIcon extends HTMLElement implements Icon {
               </button>
             `;
         }
-        this.shadowRoot.innerHTML = `<div class="flex heading-container">` + this.shadowRoot.innerHTML + `</div>`;
+        this.shadowRoot.innerHTML = `<div class="flex" id="heading-container">` + this.shadowRoot.innerHTML + `</div>`;
+        this.container = this.shadowRoot.getElementById("heading-container") as HTMLElement;
 
         for (let i = 0; i <= 5; i++) {
+            const hTag = "H" + i;
             this.button.set("H" + i, this.shadowRoot.getElementById("button" + i));
+            this.button.get(hTag).addEventListener("click", () => {
+                const isShow = this.isShowIcon();
+                this.showIcons(isShow);
+            });
         }
     }
 
     setActive(tags: string[]) {
+        this.showIcons(false);
+
         for (let i = 0; i <= 5; i++) {
             const hTag = "H" + i;
             this.button.get(hTag).className = "icon hidden";
@@ -56,12 +65,30 @@ class HeadingIcon extends HTMLElement implements Icon {
     setContentEditable(contentEditable: HTMLElement) {
         for (let i = 1; i <= 5; i++) {
             const hTag = "H" + i;
-            this.button.get(hTag).addEventListener("click", () => execCommand(contentEditable, {
+            this.button.get(hTag).addEventListener("click", () => {
+                if (!this.isShowIcon()) {
+                    return;
+                }
+
+                execCommand(contentEditable, {
                     action: Action.FirstLevel,
                     tag: [hTag]
                 })
-            );
+            });
         }
+    }
+
+    private showIcons(isShow: boolean | undefined) {
+        if (isShow) {
+            this.container.className = "flex show-icons";
+            return;
+        }
+
+        this.container.className = "flex";
+    }
+
+    private isShowIcon(): boolean {
+        return !this.container.classList.contains("show-icons");
     }
 }
 

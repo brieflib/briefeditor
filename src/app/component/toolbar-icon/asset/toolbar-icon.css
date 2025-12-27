@@ -88,6 +88,6 @@ button[disabled] .icon-svg {
     color: var(--color-active);
 }
 
-.heading-container:hover .icon {
+#heading-container.show-icons .icon {
     display: block;
 }
