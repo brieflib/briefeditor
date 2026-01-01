@@ -40,6 +40,10 @@ export function getSelectedBlock(findTill: HTMLElement, range: Range = getRange(
     return getSelected(findTill, range, SelectionType.Block);
 }
 
+export function getSelectedLink(findTill: HTMLElement, range: Range = getRange()): HTMLElement[] {
+    return getSelected(findTill, range, SelectionType.Link);
+}
+
 export function getSelectedListWrapper(findTill: HTMLElement, range: Range = getRange()): HTMLElement[] {
     return getSelected(findTill, range, SelectionType.ListWrapper);
 }

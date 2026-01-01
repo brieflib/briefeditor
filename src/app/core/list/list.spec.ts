@@ -1332,4 +1332,89 @@ describe("Minus indent", () => {
             </ol>
         `));
     });
+
+    test("Minus indent for deep nested li in mixed list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ul>
+                                <li>second
+                                    <ol>
+                                        <li class="start">third</li>
+                                    </ol>
+                                </li>
+                            </ul>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "t".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        minusIndent(wrapper);
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ul>
+                                <li>second</li>
+                            </ul>
+                            <ol>
+                                <li class="start">third</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `));
+    });
+
+    test("Minus indent for ol inside li in mixed list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ul>
+                                <li>second</li>
+                            </ul>
+                            <ol>
+                                <li class="start">third</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "t".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        minusIndent(wrapper);
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ul>
+                                <li>second</li>
+                            </ul>
+                        </li>
+                        <li class="start">third</li>
+                    </ol>
+                </li>
+            </ul>
+        `));
+    });
 });

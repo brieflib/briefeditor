@@ -8,18 +8,11 @@ export function getRootElement(findTill: HTMLElement, child: HTMLElement) {
     return child;
 }
 
-export function getBlockElement(findTill: HTMLElement, child: HTMLElement) {
-    while (child.parentElement && child.parentElement !== findTill && !isSchemaContain(child, [Display.FirstLevel, Display.List])) {
+export function getElement(findTill: HTMLElement, child: HTMLElement, display: Display[]) {
+    while (child.parentElement && child.parentElement !== findTill && !isSchemaContain(child, display)) {
         child = child.parentElement;
     }
 
-    return child;
-}
-
-export function getListWrapperElement(findTill: HTMLElement, child: HTMLElement) {
-    while (child.parentElement && child.parentElement !== findTill && !isSchemaContain(child, [Display.ListWrapper])) {
-        child = child.parentElement;
-    }
     return child;
 }
 

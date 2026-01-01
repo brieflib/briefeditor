@@ -1,12 +1,13 @@
 import {getRange} from "@/core/shared/range-util";
 import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {getBlockElement, getListWrapperElement, getRootElement} from "@/core/shared/element-util";
+import {getElement, getRootElement} from "@/core/shared/element-util";
 
 export enum SelectionType {
     Root = "Root",
     Block = "Block",
     Element = "Element",
     ListWrapper = "ListWrapper",
+    Link = "Link"
 }
 
 export function getSelectedLeaves(range = getRange()) {
@@ -95,13 +96,19 @@ export function getSelected(findTill: HTMLElement | null, range: Range, type: Se
                 if (!findTill) {
                     return [];
                 }
-                block = getBlockElement(findTill, leafNode as HTMLElement);
+                block = getElement(findTill, leafNode as HTMLElement, [Display.FirstLevel, Display.List]);
                 break;
             case SelectionType.ListWrapper:
                 if (!findTill) {
                     return [];
                 }
-                block = getListWrapperElement(findTill, leafNode as HTMLElement);
+                block = getElement(findTill, leafNode as HTMLElement, [Display.ListWrapper]);
+                break;
+            case SelectionType.Link:
+                if (!findTill) {
+                    return [];
+                }
+                block = getElement(findTill, leafNode as HTMLElement, [Display.Link]);
                 break;
         }
         if (!selected.includes(block)) {

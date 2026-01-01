@@ -114,7 +114,7 @@ describe("Should normalize tags", () => {
         wrapper.appendChild(toNormalize);
 
         normalize(toNormalize, toNormalize);
-        expect(wrapper.innerHTML).toBe("<strong>zero<a href=\"http://www.briefeditor.com\">first</a><a href=\"http://briefeditor.com\">second</a>third<em>fourth</em></strong>");
+        expect(wrapper.innerHTML).toBe("<strong>zero</strong><a href=\"http://www.briefeditor.com\"><strong>first</strong></a><a href=\"http://briefeditor.com\"><strong>second</strong></a><strong>third<em>fourth</em></strong>");
     });
 
     test("Should preserve nested ordered list", () => {

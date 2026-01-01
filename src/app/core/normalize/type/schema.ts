@@ -3,6 +3,7 @@ export enum Display {
     Collapse = "Collapse",
     FirstLevel = "FirstLevel",
     List = "List",
+    Link = "Link",
     ListWrapper = "ListWrapper",
     Nested = "Nested",
 }
@@ -30,7 +31,7 @@ schema.set("STRONG", [Display.Collapse]);
 schema.set("EM", [Display.Collapse]);
 schema.set("U", [Display.Collapse]);
 
-schema.set("A", []);
+schema.set("A", [Display.Link]);
 schema.set("#text", []);
 
 export function isSchemaContain(element: Node | undefined | null, contains: Display[]) {

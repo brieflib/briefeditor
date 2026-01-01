@@ -1,5 +1,6 @@
 export enum Action {
     Tag = "Tag",
+    Link = "Link",
     FirstLevel = "FirstLevel",
     PlusIndent = "PlusIndent",
     MinusIndent = "MinusIndent",
@@ -9,5 +10,6 @@ export enum Action {
 
 export interface Command {
     action: Action,
-    tag?: string | string[]
+    tag?: string | string[],
+    attributes?: Map<string, string>
 }

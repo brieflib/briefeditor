@@ -25,7 +25,7 @@ editor-layout .bf-content-editable-toolbar {
 
 editor-layout .bf-content-editable-scroll {
     height: 100%;
-    overflow: scroll;
+    overflow: auto;
     scrollbar-color: var(--color-gray-400) var(--color-gray-100);
     background-color: color-mix(in oklab, white 70%, transparent);
 }

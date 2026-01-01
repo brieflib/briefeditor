@@ -12,6 +12,7 @@ import OrderedListIcon from "@/component/toolbar-icon/ordered-list-icon";
 import PlusIndentIcon from "@/component/toolbar-icon/plus-indent";
 import MinusIndentIcon from "@/component/toolbar-icon/minus-indent";
 import {isNextListNotNested} from "@/core/list/list";
+import LinkIcon from "@/component/toolbar-icon/link-icon";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;
@@ -50,6 +51,8 @@ export default class Toolbar {
         this.addIcon(new OrderedListIcon());
         this.addIcon(new MinusIndentIcon());
         this.addIcon(new PlusIndentIcon());
+        this.addEmptyItem();
+        this.addIcon(new LinkIcon());
     }
 
     private addIcon(icon: Icon) {

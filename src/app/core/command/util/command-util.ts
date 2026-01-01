@@ -1,6 +1,6 @@
 import {getRange} from "@/core/shared/range-util";
 import normalize, {normalizeRootElements, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {getBlockElement, getRootElement} from "@/core/shared/element-util";
+import {getElement, getRootElement} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {
     getInitialBlocks,
@@ -11,7 +11,7 @@ import {
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 import {Action} from "@/core/command/type/command";
 
-export function tag(contentEditable: HTMLElement, tag: string, action: Action) {
+export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Map<string, string>) {
     const initialCursorPosition = getSelectionOffset(contentEditable);
     if (!initialCursorPosition) {
         return;
@@ -22,11 +22,11 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action) {
     const startContainer = range.startContainer as HTMLElement;
     const endContainer = range.endContainer as HTMLElement;
     const endOffset = range.endOffset;
-    const startFirstLevel = getBlockElement(contentEditable, startContainer);
-    const endFirstLevel = getBlockElement(contentEditable, endContainer);
+    const startFirstLevel = getElement(contentEditable, startContainer, [Display.FirstLevel, Display.List]);
+    const endFirstLevel = getElement(contentEditable, endContainer, [Display.FirstLevel, Display.List]);
 
     if (startFirstLevel === endFirstLevel) {
-        tagAction(contentEditable, range, tag, action);
+        tagAction(contentEditable, range, tag, action, attributes);
         normalizeRootElements(contentEditable, initialCursorPosition);
         return;
     }
@@ -46,28 +46,28 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action) {
 
         if (element === startContainer.parentElement as HTMLElement) {
             cloneRange.setEnd(element, element.childNodes.length);
-            tagAction(contentEditable, cloneRange, tag, action);
+            tagAction(contentEditable, cloneRange, tag, action, attributes);
             continue;
         }
 
         if (element === endContainer.parentElement as HTMLElement) {
             cloneRange.setStart(element, 0);
             cloneRange.setEnd(endContainer, endOffset);
-            tagAction(contentEditable, cloneRange, tag, action);
+            tagAction(contentEditable, cloneRange, tag, action, attributes);
             continue;
         }
 
         cloneRange.setStart(element, 0);
         cloneRange.setEnd(element, element.childNodes.length);
-        tagAction(contentEditable, cloneRange, tag, action);
+        tagAction(contentEditable, cloneRange, tag, action, attributes);
     }
     normalizeRootElements(contentEditable, initialCursorPosition);
 }
 
-function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string, action: Action) {
+function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string, action: Action, attributes?: Map<string, string>) {
     switch (action) {
         case Action.Wrap:
-            wrapRangeInTag(contentEditable, cloneRange, tag);
+            wrapRangeInTag(contentEditable, cloneRange, tag, attributes);
             break
         case Action.Unwrap:
             unwrapRangeFromTag(contentEditable, cloneRange, tag);
@@ -75,10 +75,15 @@ function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string,
     }
 }
 
-function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string) {
+function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string, attributes?: Map<string, string>) {
     const documentFragment: DocumentFragment = range.extractContents();
 
     const tagElement = document.createElement(tag);
+    if (attributes) {
+        for (const [key, value] of attributes) {
+            tagElement.setAttribute(key, value);
+        }
+    }
     tagElement.appendChild(documentFragment);
     range.insertNode(tagElement);
     const rootElement = getRootElement(contentEditable, tagElement);

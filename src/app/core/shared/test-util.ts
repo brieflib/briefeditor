@@ -10,7 +10,8 @@ export function replaceSpaces(html: string) {
     return html
         .replaceAll("\n", "")
         .replaceAll(" ", "")
-        .replaceAll("class", " class");
+        .replaceAll("class", " class")
+        .replaceAll("href", " href");
 }
 
 export function getFirstChild(wrapper: HTMLElement, querySelector: string) {

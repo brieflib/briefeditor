@@ -2,7 +2,6 @@ import {changeBlock, tag} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
 import {Action} from "@/core/command/type/command";
 import {createWrapper, getFirstChild, getLastChild, replaceSpaces} from "@/core/shared/test-util";
-import execCommand from "@/core/command/exec-command";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -688,6 +687,34 @@ describe("Change first level", () => {
                 <li>zero</li>
                 <li>first</li>
             </ul>
+        `));
+    });
+});
+
+describe("Wrap in tag with attributes", () => {
+    test("Should create link", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+            <p class="end">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "A", Action.Wrap, new Map<string, string>([
+            ["href", "http://www.briefeditor.com"]
+        ]));
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <p class="start">
+                ze
+                <a href="http://www.briefeditor.com">ro</a>
+            </p>
+            <p class="end">
+                <a href="http://www.briefeditor.com">first</a>
+            </p>
         `));
     });
 });

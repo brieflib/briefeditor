@@ -60,20 +60,11 @@ export function moveListWrappersOutOfLi(contentEditable: HTMLElement, element: H
         if (!li) {
             continue;
         }
-        let previousLi: Element | undefined | null = lis[i - 1];
-        if (!previousLi) {
-            previousLi = li.previousElementSibling;
-        }
-        if (!previousLi) {
-            previousLi = li.parentElement?.previousElementSibling;
-        }
-        if (!previousLi) {
-            previousLi = li.parentElement?.parentElement?.previousElementSibling
-        }
+        const previousLi = getPreviousLi(li, lis[i - 1]);
 
         const listWrappers = getDirectChildren(li, [Display.ListWrapper]);
         if (previousLi && countListWrapperParents(contentEditable, li) > countListWrapperParents(contentEditable, previousLi)) {
-            const liToAppend = previousLi.querySelector(":scope li:nth-last-child(1)");
+            const liToAppend = getLiAtNestingLevel(contentEditable, li, previousLi);
             listWrappers.forEach(listWrapper => liToAppend?.appendChild(listWrapper));
             continue;
         }
@@ -99,6 +90,29 @@ export function getDirectChildren(li: Element, display: Display[]) {
     return listWrappers;
 }
 
+function getLiAtNestingLevel(contentEditable: HTMLElement, li: Element, previousLi: Element | null) {
+    while (previousLi && countListWrapperParents(contentEditable, li) !== countListWrapperParents(contentEditable, previousLi)) {
+        previousLi = previousLi.querySelector(":scope li:nth-last-child(1)");
+    }
+
+    return previousLi;
+}
+
+function getPreviousLi(li: Element, previousLi?: Element): Element | null | undefined {
+    if (previousLi) {
+        return previousLi;
+    }
+
+    if (li.previousElementSibling) {
+        return li.previousElementSibling;
+    }
+
+    if (li.parentElement) {
+        return getPreviousLi(li.parentElement);
+    }
+
+    return null;
+}
 function moveToPreviousLi(listWrapper: Element) {
     const previousLi = listWrapper.previousElementSibling;
     if (previousLi && isSchemaContain(previousLi, [Display.List])) {

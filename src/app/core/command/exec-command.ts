@@ -3,6 +3,7 @@ import {changeBlock, isElementsEqualToTags, isListWrapper, tag} from "@/core/com
 import {getSelectedBlock, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 import {minusIndent, plusIndent} from "@/core/list/list";
+import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command) {
     const cursorPosition = getSelectionOffset(contentEditable);
@@ -10,14 +11,24 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         return;
     }
 
+    // if (command.action === Action.Link) {
+    //     const hasHref = command.attributes?.get("href");
+    //
+    //     if (sharedTags.includes(tagName)) {
+    //         tag(contentEditable, tagName, Action.Unwrap, command.attributes);
+    //     } else {
+    //         tag(contentEditable, tagName, Action.Wrap, command.attributes);
+    //     }
+    // }
+
     if (command.action === Action.Tag) {
         const sharedTags: string[] = getSelectedSharedTags(contentEditable);
         const tagName = (command.tag as string).toUpperCase();
 
         if (sharedTags.includes(tagName)) {
-            tag(contentEditable, tagName, Action.Unwrap);
+            tag(contentEditable, tagName, Action.Unwrap, command.attributes);
         } else {
-            tag(contentEditable, tagName, Action.Wrap);
+            tag(contentEditable, tagName, Action.Wrap, command.attributes);
         }
     }
 
