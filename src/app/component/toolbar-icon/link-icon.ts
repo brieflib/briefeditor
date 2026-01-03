@@ -19,6 +19,7 @@ class LinkIcon extends HTMLElement implements Icon {
 
     private isOpen: boolean;
     private isSaved: boolean;
+    private isInputFocused: boolean;
     private cursorPosition: CursorPosition | null;
 
     constructor() {
@@ -61,9 +62,9 @@ class LinkIcon extends HTMLElement implements Icon {
     setContentEditable(contentEditable: HTMLElement) {
         this.contentEditableElement = contentEditable;
 
-        document.addEventListener("selectionchange", () => {
+        document.addEventListener("selectionchange", (event) => {
             let range = getRange().cloneRange();
-            if (range.endContainer === this.tooltip) {
+            if (range.endContainer === this.tooltip || event.target === this.input) {
                 return;
             }
 
@@ -73,7 +74,7 @@ class LinkIcon extends HTMLElement implements Icon {
             }
 
             const cursorPosition = getSelectionOffset(this.contentEditableElement);
-            if (!isCursorPositionEqual(cursorPosition, this.cursorPosition)) {
+            if (!isCursorPositionEqual(cursorPosition, this.cursorPosition) && !this.isInputFocused) {
                 this.cursorPosition = cursorPosition;
                 this.closeTooltip();
             }
@@ -111,6 +112,14 @@ class LinkIcon extends HTMLElement implements Icon {
 
         this.input.addEventListener("change", () => {
             this.isSaved = false;
+        });
+
+        this.input.addEventListener("focus", () => {
+            this.isInputFocused = true;
+        });
+
+        this.input.addEventListener("blur", () => {
+            this.isInputFocused = false;
         });
     }
 
