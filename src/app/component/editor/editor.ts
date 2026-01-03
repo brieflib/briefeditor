@@ -18,6 +18,7 @@ class Editor extends HTMLElement {
         contentEditable.className = "bf-editor";
         contentEditable.setAttribute("contenteditable", "true");
         document.getElementById("content").appendChild(contentEditable);
+        contentEditable.focus();
     }
 
     addToolbarItem(toolbar: HTMLElement) {

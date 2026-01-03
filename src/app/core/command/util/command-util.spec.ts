@@ -703,9 +703,9 @@ describe("Wrap in tag with attributes", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        tag(wrapper, "A", Action.Wrap, new Map<string, string>([
-            ["href", "http://www.briefeditor.com"]
-        ]));
+        tag(wrapper, "A", Action.Wrap, {
+            href: "http://www.briefeditor.com"
+        });
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p class="start">

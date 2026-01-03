@@ -5,7 +5,7 @@ import Tooltip from "@/component/popup/tooltip";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {getSelectedLink, getSelectedSharedTags} from "@/core/selection/selection";
-import {getRange} from "@/core/shared/range-util";
+import {getRange, isRangeIn} from "@/core/shared/range-util";
 import {CursorPosition, isCursorPositionEqual} from "@/core/cursor/type/cursor-position";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 
@@ -26,7 +26,7 @@ class LinkIcon extends HTMLElement implements Icon {
         super();
         initShadowRoot(this, toolbarIconCss);
         this.shadowRoot.innerHTML = `
-          <button type="button" class="icon" id="button">
+          <button type="button" class="icon" id="button" disabled>
             <svg viewBox="0 0 18 18">
               <line class="stroke" x1="7" x2="11" y1="7" y2="11"></line>
               <path class="stroke" d="M8.9,4.577a3.476,3.476,0,0,1,.36,4.679A3.476,3.476,0,0,1,4.577,8.9C3.185,7.5,2.035,6.4,4.217,4.217S7.5,3.185,8.9,4.577Z"></path>
@@ -51,10 +51,15 @@ class LinkIcon extends HTMLElement implements Icon {
         }
     }
 
-    setEnabled(isEnabled: boolean) {
+    setEnabled() {
         this.button.setAttribute("disabled", "true");
 
-        if (isEnabled) {
+        const range = getRange();
+        if (!isRangeIn(this.contentEditableElement, range)) {
+            return;
+        }
+
+        if (!range.collapsed || this.isLinkSelected() || this.isInputFocused) {
             this.button.removeAttribute("disabled");
         }
     }

@@ -3,15 +3,17 @@ import initShadowRoot from "@/component/shared/shadow-root";
 import {Icon} from "@/component/toolbar-icon/type/icon";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
+import {isRangeIn} from "@/core/shared/range-util";
 
 class ItalicIcon extends HTMLElement implements Icon {
-    private readonly button: HTMLElement | null;
+    private contentEditableElement: HTMLElement;
+    private readonly button: HTMLElement;
 
     constructor() {
         super();
         initShadowRoot(this, toolbarIconCss);
         this.shadowRoot.innerHTML = `
-          <button type="button" class="icon" id="button">
+          <button type="button" class="icon" id="button" disabled>
             <svg viewBox="0 0 18 18">
               <line class="stroke" x1="7" x2="13" y1="4" y2="4"></line>
               <line class="stroke" x1="5" x2="11" y1="14" y2="14"></line>
@@ -19,14 +21,10 @@ class ItalicIcon extends HTMLElement implements Icon {
             </svg>
           </button>
         `;
-        this.button = this.shadowRoot.getElementById("button");
+        this.button = this.shadowRoot.getElementById("button") as HTMLElement;
     }
 
     setActive(tags: string[]) {
-        if (!this.button) {
-            return;
-        }
-
         if (tags.includes("EM")) {
             this.button.className = "icon active"
         } else {
@@ -34,10 +32,16 @@ class ItalicIcon extends HTMLElement implements Icon {
         }
     }
 
-    setContentEditable(contentEditable: HTMLElement) {
-        if (!this.button) {
-            return;
+    setEnabled() {
+        this.button.setAttribute("disabled", "true");
+
+        if (isRangeIn(this.contentEditableElement)) {
+            this.button.removeAttribute("disabled");
         }
+    }
+
+    setContentEditable(contentEditable: HTMLElement) {
+        this.contentEditableElement = contentEditable;
 
         this.button.addEventListener("click", () => execCommand(contentEditable, {
             action: Action.Tag,

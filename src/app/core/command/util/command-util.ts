@@ -9,9 +9,9 @@ import {
     getSelectedListWrapper
 } from "@/core/selection/selection";
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
-import {Action} from "@/core/command/type/command";
+import {Action, Attributes} from "@/core/command/type/command";
 
-export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Map<string, string | null>) {
+export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Attributes) {
     const initialCursorPosition = getSelectionOffset(contentEditable);
     if (!initialCursorPosition) {
         return;
@@ -64,7 +64,7 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
     normalizeRootElements(contentEditable, initialCursorPosition);
 }
 
-function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string, action: Action, attributes?: Map<string, string | null>) {
+function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string, action: Action, attributes?: Attributes) {
     switch (action) {
         case Action.Wrap:
             wrapRangeInTag(contentEditable, cloneRange, tag, attributes);
@@ -75,14 +75,17 @@ function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string,
     }
 }
 
-function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string, attributes?: Map<string, string | null>) {
+function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string, attributes?: Attributes) {
     const documentFragment: DocumentFragment = range.extractContents();
 
     const tagElement = document.createElement(tag);
     if (attributes) {
-        for (const [key, value] of attributes) {
-            if (value) {
-                tagElement.setAttribute(key, value);
+        for (const key in attributes) {
+            if (attributes.hasOwnProperty(key)) {
+                const value = attributes[key as keyof Attributes];
+                if (typeof value === "string") {
+                    tagElement.setAttribute(key, value);
+                }
             } else {
                 tagElement.removeAttribute(key);
             }

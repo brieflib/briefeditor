@@ -11,7 +11,7 @@ class BlockquoteIcon extends HTMLElement implements Icon {
         super();
         initShadowRoot(this, toolbarIconCss);
         this.shadowRoot.innerHTML = `
-          <button type="button" class="icon" id="button">
+          <button type="button" class="icon" id="button" disabled>
             <svg viewBox="0 1 18 18">
               <rect class="fill stroke" height="3" width="3" x="4" y="5"></rect>
               <rect class="fill stroke" height="3" width="3" x="11" y="5"></rect>

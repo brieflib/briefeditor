@@ -33,6 +33,8 @@ class HeadingIcon extends HTMLElement implements Icon {
                 this.showIcons(isShow);
             });
         }
+
+        this.button.get("H0").setAttribute("disabled", "true");
     }
 
     setActive(tags: string[]) {

@@ -13,6 +13,8 @@ import PlusIndentIcon from "@/component/toolbar-icon/plus-indent";
 import MinusIndentIcon from "@/component/toolbar-icon/minus-indent";
 import {isNextListNotNested} from "@/core/list/list";
 import LinkIcon from "@/component/toolbar-icon/link-icon";
+import ImageIcon from "@/component/toolbar-icon/image-icon";
+import {getRange, isRangeIn} from "@/core/shared/range-util";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;
@@ -26,8 +28,9 @@ export default class Toolbar {
         this.addToolbarIcons();
 
         document.addEventListener("selectionchange", () => {
-            const sharedTags = getSelectedSharedTags(contentEditable);
-            const isEnabled = isNextListNotNested(contentEditable);
+            const r = getRange();
+            const sharedTags = getSelectedSharedTags(this.contentEditable);
+            const isEnabled = isNextListNotNested(this.contentEditable) && isRangeIn(this.contentEditable);
             for (const item of this.items) {
                 if (item.setActive) {
                     item.setActive(sharedTags);
@@ -53,6 +56,7 @@ export default class Toolbar {
         this.addIcon(new PlusIndentIcon());
         this.addEmptyItem();
         this.addIcon(new LinkIcon());
+        this.addIcon(new ImageIcon());
     }
 
     private addIcon(icon: Icon) {

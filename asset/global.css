@@ -193,3 +193,7 @@ editor-layout :where(be-tooltip) {
     display: inline-flex;
     align-items: baseline;
 }
+
+editor-layout :where(img) {
+    max-width: 100%;
+}

@@ -3,7 +3,7 @@ import {changeBlock, isElementsEqualToTags, isListWrapper, tag} from "@/core/com
 import {getSelectedBlock, getSelectedLink, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, selectElement, setCursorPosition} from "@/core/cursor/cursor";
 import {minusIndent, plusIndent} from "@/core/list/list";
-import {getRange} from "@/core/shared/range-util";
+import {getRange, isRangeIn} from "@/core/shared/range-util";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command) {
     const cursorPosition = getSelectionOffset(contentEditable);
@@ -11,10 +11,32 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         return;
     }
 
+    if (command.action === Action.Image) {
+        const image = command.attributes?.image;
+
+        if (image) {
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                const img = document.createElement("img");
+                img.src = event.target?.result as string;
+
+                const range = getRange();
+                if (isRangeIn(contentEditable, range)) {
+                    range.insertNode(img);
+
+                    setCursorPosition(contentEditable, cursorPosition);
+                }
+            };
+
+            reader.readAsDataURL(image);
+        }
+    }
+
     if (command.action === Action.Link) {
         const linkTag = "A";
         const sharedTags: string[] = getSelectedSharedTags(contentEditable);
-        const href = command.attributes?.get("href");
+        const href = command.attributes?.href;
         const range = getRange();
         const isCollapsed = range.collapsed;
         const isLinkSelected = sharedTags.includes(linkTag);

@@ -129,9 +129,11 @@ describe("Link command", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "f".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.Link, tag: ["A"], attributes: new Map<string, string>([
-                ["href", "first"]
-            ])});
+        execCommand(wrapper, {
+            action: Action.Link, tag: ["A"], attributes: {
+                href: "first"
+            }
+        });
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <p>

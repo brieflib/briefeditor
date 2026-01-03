@@ -91,3 +91,7 @@ button[disabled] .icon-svg {
 #heading-container.show-icons .icon {
     display: block;
 }
+
+.be-image-input {
+    display: none;
+}

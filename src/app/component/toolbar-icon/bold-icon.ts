@@ -3,22 +3,24 @@ import initShadowRoot from "@/component/shared/shadow-root";
 import {Icon} from "@/component/toolbar-icon/type/icon";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
+import {isRangeIn} from "@/core/shared/range-util";
 
 class BoldIcon extends HTMLElement implements Icon {
-    private readonly button: HTMLElement | null;
+    private contentEditableElement: HTMLElement;
+    private readonly button: HTMLElement;
 
     constructor() {
         super();
         initShadowRoot(this, toolbarIconCss);
         this.shadowRoot.innerHTML = `
-          <button type="button" class="icon" id="button">
+          <button type="button" class="icon" id="button" disabled>
               <svg viewBox="0 0 18 18">
                  <path class="stroke" d="M5,4H9.5A2.5,2.5,0,0,1,12,6.5v0A2.5,2.5,0,0,1,9.5,9H5A0,0,0,0,1,5,9V4A0,0,0,0,1,5,4Z"></path>
                  <path class="stroke" d="M5,9h5.5A2.5,2.5,0,0,1,13,11.5v0A2.5,2.5,0,0,1,10.5,14H5a0,0,0,0,1,0,0V9A0,0,0,0,1,5,9Z"></path>
               </svg>
           </button>
         `;
-        this.button = this.shadowRoot.getElementById("button");
+        this.button = this.shadowRoot.getElementById("button") as HTMLElement;
     }
 
     setActive(tags: string[]) {
@@ -33,10 +35,16 @@ class BoldIcon extends HTMLElement implements Icon {
         }
     }
 
-    setContentEditable(contentEditable: HTMLElement) {
-        if (!this.button) {
-            return;
+    setEnabled() {
+        this.button.setAttribute("disabled", "true");
+
+        if (isRangeIn(this.contentEditableElement)) {
+            this.button.removeAttribute("disabled");
         }
+    }
+
+    setContentEditable(contentEditable: HTMLElement) {
+        this.contentEditableElement = contentEditable;
 
         this.button.addEventListener("click", () => execCommand(contentEditable, {
             action: Action.Tag,

@@ -3,16 +3,18 @@ import initShadowRoot from "@/component/shared/shadow-root";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {Icon} from "@/component/toolbar-icon/type/icon";
+import {isRangeIn} from "@/core/shared/range-util";
 
 class UnorderedListIcon extends HTMLElement implements Icon {
-    private readonly button: HTMLElement | null;
+    private contentEditableElement: HTMLElement;
+    private readonly button: HTMLElement;
     private isActive: boolean;
 
     constructor() {
         super();
         initShadowRoot(this, toolbarIconCss);
         this.shadowRoot.innerHTML = `
-          <button type="button" class="icon" id="button">
+          <button type="button" class="icon" id="button" disabled>
             <svg viewBox="0 0 18 18">
                 <line class="stroke" x1="6" x2="15" y1="4" y2="4"></line>
                 <line class="stroke" x1="6" x2="15" y1="9" y2="9"></line>
@@ -23,14 +25,10 @@ class UnorderedListIcon extends HTMLElement implements Icon {
             </svg>
           </button>
         `;
-        this.button = this.shadowRoot.getElementById("button");
+        this.button = this.shadowRoot.getElementById("button") as HTMLElement;
     }
 
     setActive(tags: string[]) {
-        if (!this.button) {
-            return;
-        }
-
         this.isActive = tags.includes("UL");
         if (this.isActive) {
             this.button.className = "icon active"
@@ -40,17 +38,19 @@ class UnorderedListIcon extends HTMLElement implements Icon {
     }
 
     setEnabled(isEnabled: boolean) {
-        this.button?.setAttribute("disabled", "true");
+        this.button.setAttribute("disabled", "true");
+
+        if (!isRangeIn(this.contentEditableElement)) {
+            return;
+        }
 
         if (isEnabled || !this.isActive) {
-            this.button?.removeAttribute("disabled");
+            this.button.removeAttribute("disabled");
         }
     }
 
     setContentEditable(contentEditable: HTMLElement) {
-        if (!this.button) {
-            return;
-        }
+        this.contentEditableElement = contentEditable;
 
         this.button.addEventListener("click", () => {
             execCommand(contentEditable, {
