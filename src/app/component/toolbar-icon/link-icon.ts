@@ -5,10 +5,9 @@ import Tooltip from "@/component/popup/tooltip";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {getSelectedLink, getSelectedSharedTags} from "@/core/selection/selection";
-import {addRange, getRange} from "@/core/shared/range-util";
-import {CursorPosition} from "@/core/cursor/type/cursor-position";
+import {getRange} from "@/core/shared/range-util";
+import {CursorPosition, isCursorPositionEqual} from "@/core/cursor/type/cursor-position";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
-import {isNextListNotNested} from "@/core/list/list";
 
 new Tooltip();
 
@@ -19,6 +18,8 @@ class LinkIcon extends HTMLElement implements Icon {
     private readonly input: HTMLInputElement;
 
     private isOpen: boolean;
+    private isSaved: boolean;
+    private cursorPosition: CursorPosition | null;
 
     constructor() {
         super();
@@ -32,7 +33,7 @@ class LinkIcon extends HTMLElement implements Icon {
             </svg>
           </button>
           <be-tooltip>
-            <input class="be-link-input"/>
+            <input class="be-link-input" placeholder="Write url here"/>
           </be-tooltip>
         `;
 
@@ -50,10 +51,9 @@ class LinkIcon extends HTMLElement implements Icon {
     }
 
     setEnabled(isEnabled: boolean) {
-        const range = getRange();
         this.button.setAttribute("disabled", "true");
 
-        if (isEnabled || this.isLinkSelected() || !range.collapsed) {
+        if (isEnabled) {
             this.button.removeAttribute("disabled");
         }
     }
@@ -62,31 +62,32 @@ class LinkIcon extends HTMLElement implements Icon {
         this.contentEditableElement = contentEditable;
 
         document.addEventListener("selectionchange", () => {
-            const range = getRange().cloneRange();
-            const link = getSelectedLink(this.contentEditableElement, range);
-            const linkLength = range.endContainer.textContent?.length ?? range.endOffset;
-            const href = link[0].getAttribute("href") ?? "";
+            let range = getRange().cloneRange();
+            if (range.endContainer === this.tooltip) {
+                return;
+            }
 
-            if (range.endContainer !== this.tooltip && this.isLinkSelected() && range.collapsed) {
+            if (!this.isSaved) {
+                this.link(this.input.value);
+                this.isSaved = true;
+            }
+
+            const cursorPosition = getSelectionOffset(this.contentEditableElement);
+            if (!isCursorPositionEqual(cursorPosition, this.cursorPosition)) {
+                this.cursorPosition = cursorPosition;
+                this.closeTooltip();
+            }
+            range = getRange().cloneRange();
+            const link = getSelectedLink(this.contentEditableElement, range)[0];
+            const linkLength = range.endContainer.textContent?.length ?? range.endOffset;
+            const href = link?.getAttribute("href") ?? "";
+
+            if (this.isLinkSelected() && range.collapsed) {
                 range.setEnd(range.endContainer, linkLength);
                 const rect = range.getBoundingClientRect();
                 const left = -rect.width;
                 this.openTooltip(href, linkLength, left);
             }
-        });
-
-        document.addEventListener("click", (event) => {
-            const range = getRange();
-
-            if (this.isLinkSelected() && range.collapsed) {
-                return;
-            }
-
-            if (event.target === this || event.target === this.input) {
-                return;
-            }
-
-            this.closeTooltip();
         });
 
         this.button.addEventListener("click", () => {
@@ -96,14 +97,20 @@ class LinkIcon extends HTMLElement implements Icon {
             }
 
             if (this.isLinkSelected() && !range.collapsed) {
+                this.sendLinkCommand(null);
                 return;
             }
 
-            const link = getSelectedLink(this.contentEditableElement, range);
-            const href = link[0].getAttribute("href") ?? "";
+            const link = getSelectedLink(this.contentEditableElement, range)[0];
+            const href = link?.getAttribute("href") ?? "";
             const rect = range.getBoundingClientRect();
             const left = -rect.width / 2;
             this.openTooltip(href, range.endOffset, left);
+            this.input.focus();
+        });
+
+        this.input.addEventListener("change", () => {
+            this.isSaved = false;
         });
     }
 
@@ -116,12 +123,6 @@ class LinkIcon extends HTMLElement implements Icon {
         const leftPx = `${left}px`;
         this.tooltip.open(endOffset, leftPx);
         this.isOpen = true;
-
-        const nextLoopTimeout = 0;
-        setTimeout(() => {
-            this.setActive(["A"]);
-            this.setEnabled(true);
-        }, nextLoopTimeout);
     }
 
     private closeTooltip() {
@@ -129,6 +130,27 @@ class LinkIcon extends HTMLElement implements Icon {
         this.tooltip.close();
         this.shadowRoot.appendChild(this.tooltip);
         this.isOpen = false;
+    }
+
+    private link(href: string | null) {
+        const clickCursorPosition = getSelectionOffset(this.contentEditableElement);
+
+        if (this.cursorPosition) {
+            setCursorPosition(this.contentEditableElement, this.cursorPosition);
+            this.sendLinkCommand(href);
+        }
+
+        if (clickCursorPosition) {
+            setCursorPosition(this.contentEditableElement, clickCursorPosition);
+        }
+    }
+
+    private sendLinkCommand(href: string | null) {
+        execCommand(this.contentEditableElement, {
+            action: Action.Link, tag: ["A"], attributes: new Map<string, string | null>([
+                ["href", href]
+            ])
+        });
     }
 }
 

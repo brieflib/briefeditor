@@ -11,7 +11,7 @@ import {
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 import {Action} from "@/core/command/type/command";
 
-export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Map<string, string>) {
+export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Map<string, string | null>) {
     const initialCursorPosition = getSelectionOffset(contentEditable);
     if (!initialCursorPosition) {
         return;
@@ -64,7 +64,7 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
     normalizeRootElements(contentEditable, initialCursorPosition);
 }
 
-function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string, action: Action, attributes?: Map<string, string>) {
+function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string, action: Action, attributes?: Map<string, string | null>) {
     switch (action) {
         case Action.Wrap:
             wrapRangeInTag(contentEditable, cloneRange, tag, attributes);
@@ -75,20 +75,22 @@ function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string,
     }
 }
 
-function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string, attributes?: Map<string, string>) {
+function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string, attributes?: Map<string, string | null>) {
     const documentFragment: DocumentFragment = range.extractContents();
 
     const tagElement = document.createElement(tag);
     if (attributes) {
         for (const [key, value] of attributes) {
-            tagElement.setAttribute(key, value);
+            if (value) {
+                tagElement.setAttribute(key, value);
+            } else {
+                tagElement.removeAttribute(key);
+            }
         }
     }
     tagElement.appendChild(documentFragment);
     range.insertNode(tagElement);
     const rootElement = getRootElement(contentEditable, tagElement);
-
-    normalize(contentEditable, rootElement);
 }
 
 function unwrapRangeFromTag(contentEditable: HTMLElement, range: Range, tag: string) {

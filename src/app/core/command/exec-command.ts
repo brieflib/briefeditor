@@ -1,9 +1,9 @@
 import {Action, Command} from "@/core/command/type/command";
 import {changeBlock, isElementsEqualToTags, isListWrapper, tag} from "@/core/command/util/command-util";
-import {getSelectedBlock, getSelectedSharedTags} from "@/core/selection/selection";
-import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
+import {getSelectedBlock, getSelectedLink, getSelectedSharedTags} from "@/core/selection/selection";
+import {getSelectionOffset, selectElement, setCursorPosition} from "@/core/cursor/cursor";
 import {minusIndent, plusIndent} from "@/core/list/list";
-import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
+import {getRange} from "@/core/shared/range-util";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command) {
     const cursorPosition = getSelectionOffset(contentEditable);
@@ -11,15 +11,37 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         return;
     }
 
-    // if (command.action === Action.Link) {
-    //     const hasHref = command.attributes?.get("href");
-    //
-    //     if (sharedTags.includes(tagName)) {
-    //         tag(contentEditable, tagName, Action.Unwrap, command.attributes);
-    //     } else {
-    //         tag(contentEditable, tagName, Action.Wrap, command.attributes);
-    //     }
-    // }
+    if (command.action === Action.Link) {
+        const linkTag = "A";
+        const sharedTags: string[] = getSelectedSharedTags(contentEditable);
+        const href = command.attributes?.get("href");
+        const range = getRange();
+        const isCollapsed = range.collapsed;
+        const isLinkSelected = sharedTags.includes(linkTag);
+
+        if (href && isCollapsed && isLinkSelected) {
+            const link = getSelectedLink(contentEditable, range)[0];
+            if (link) {
+                link.setAttribute("href", href);
+            }
+        }
+
+        if (!href && isCollapsed && isLinkSelected) {
+            const link = getSelectedLink(contentEditable, range)[0];
+            if (link) {
+                selectElement(link);
+                tag(contentEditable, linkTag, Action.Unwrap, command.attributes);
+            }
+        }
+
+        if (!href && !isCollapsed && isLinkSelected) {
+            tag(contentEditable, linkTag, Action.Unwrap, command.attributes);
+        }
+
+        if (href && !isCollapsed && !isLinkSelected) {
+            tag(contentEditable, linkTag, Action.Wrap, command.attributes);
+        }
+    }
 
     if (command.action === Action.Tag) {
         const sharedTags: string[] = getSelectedSharedTags(contentEditable);

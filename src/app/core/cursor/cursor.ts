@@ -66,6 +66,19 @@ export function restoreRange(contentEditable: HTMLElement, cursorPosition: Curso
     return range;
 }
 
+export function selectElement(element: HTMLElement) {
+    const selection = window.getSelection();
+    const range = document.createRange();
+
+    if (!selection) {
+        return;
+    }
+
+    range.selectNodeContents(element);
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
 function isShift(previousText: Node | undefined, range: Range, container: Node, offset: number) {
     if (!previousText) {
         return false;

@@ -102,7 +102,7 @@ export function getSelected(findTill: HTMLElement | null, range: Range, type: Se
                 if (!findTill) {
                     return [];
                 }
-                block = getElement(findTill, leafNode as HTMLElement, [Display.ListWrapper]);
+                block = getElement(findTill, leafNode as HTMLElement, [Display.FirstLevel, Display.ListWrapper]);
                 break;
             case SelectionType.Link:
                 if (!findTill) {
@@ -111,7 +111,7 @@ export function getSelected(findTill: HTMLElement | null, range: Range, type: Se
                 block = getElement(findTill, leafNode as HTMLElement, [Display.Link]);
                 break;
         }
-        if (!selected.includes(block)) {
+        if (block !== null && !selected.includes(block)) {
             selected.push(block);
         }
     }

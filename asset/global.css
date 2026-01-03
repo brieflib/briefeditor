@@ -186,7 +186,6 @@ editor-layout :where(input.be-link-input) {
     width: 15em;
     height: 2.5em;
     border-radius: 0.375em;
-    text-decoration: underline;
     color: #0000EE;
 }
 

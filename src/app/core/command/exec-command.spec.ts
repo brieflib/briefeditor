@@ -8,7 +8,7 @@ jest.mock("../shared/range-util", () => ({
     })
 );
 
-describe("Cursor position", () => {
+describe("Exec command with different cursor position", () => {
     test("Should apply bold when cursor located at start", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>
@@ -112,6 +112,31 @@ describe("Cursor position", () => {
                     </ul>
                 </li>
             </ul>
+        `));
+    });
+});
+
+describe("Link command", () => {
+    test("Should set tag for link when cursor is inside link", () => {
+        const wrapper = createWrapper(`
+            <p>
+                <a href="zero">zero <em class="start">first</em></a>
+            </p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "f".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "f".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        execCommand(wrapper, {action: Action.Link, tag: ["A"], attributes: new Map<string, string>([
+                ["href", "first"]
+            ])});
+
+        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+            <p>
+                <a href="first">zero <em class="start">first</em></a>
+            </p>
         `));
     });
 });

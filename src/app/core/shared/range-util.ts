@@ -9,8 +9,3 @@ export function getRange(): Range {
     range.setEnd(document.body, 0);
     return range;
 }
-
-export function addRange(range: Range) {
-    window.getSelection().removeAllRanges();
-    document.getSelection().addRange(range)
-}

@@ -13,6 +13,10 @@ export function getElement(findTill: HTMLElement, child: HTMLElement, display: D
         child = child.parentElement;
     }
 
+    if (child.parentElement === findTill && !isSchemaContain(child, display)) {
+        return null;
+    }
+
     return child;
 }
 

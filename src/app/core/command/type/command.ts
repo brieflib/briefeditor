@@ -11,5 +11,5 @@ export enum Action {
 export interface Command {
     action: Action,
     tag?: string | string[],
-    attributes?: Map<string, string>
+    attributes?: Map<string, string | null>
 }
