@@ -161,9 +161,9 @@ class LinkIcon extends HTMLElement implements Icon {
 
     private sendLinkCommand(href: string | null) {
         execCommand(this.contentEditableElement, {
-            action: Action.Link, tag: ["A"], attributes: new Map<string, string | null>([
-                ["href", href]
-            ])
+            action: Action.Link, tag: ["A"], attributes: {
+                href: href
+            }
         });
     }
 }
