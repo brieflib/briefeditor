@@ -6,10 +6,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Brief Editor</title>
     <link rel="stylesheet" href="asset/initial.css">
+    <style>
+        .be-content-editable {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .be-content-editable-container {
+            width: 80%;
+            max-width: 1200px;
+            height: calc(100vh - 8em);
+            margin: 2.5em;
+        }
+
+        .be-content-editable-scroll {
+            height: 100%;
+            overflow: auto;
+            scrollbar-color: var(--color-gray-400) var(--color-gray-100);
+            background-color: color-mix(in oklab, white 70%, transparent);
+        }
+
+        .be-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            opacity: 0.2;
+            background-image: radial-gradient(in oklab, oklch(69.6% .17 162.48) 0%, color-mix(in oklab, oklch(64.8% .2 131.684) 50%, transparent) 50%, transparent 100%);
+        }
+    </style>
 </head>
 <body>
 
-<div id="bf-editor">
+<div id="be-editor">
     <h1>Editor Reference Guide</h1>
 
     <h2>Text Formatting Elements</h2>

@@ -1,14 +1,25 @@
 import {Action, Command} from "@/core/command/type/command";
-import {changeBlock, isElementsEqualToTags, isListWrapper, tag} from "@/core/command/util/command-util";
+import {
+    applyAttributes,
+    changeBlock,
+    isElementsEqualToTags,
+    isListWrapper,
+    tag
+} from "@/core/command/util/command-util";
 import {getSelectedBlock, getSelectedLink, getSelectedSharedTags} from "@/core/selection/selection";
 import {getSelectionOffset, selectElement, setCursorPosition} from "@/core/cursor/cursor";
 import {minusIndent, plusIndent} from "@/core/list/list";
 import {getRange, isRangeIn} from "@/core/shared/range-util";
+import {getElementByTagName} from "@/core/shared/element-util";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command) {
     const cursorPosition = getSelectionOffset(contentEditable);
     if (!cursorPosition) {
         return;
+    }
+
+    if (command.action === Action.Attribute) {
+        applyAttributesCommand(contentEditable, command);
     }
 
     if (command.action === Action.Image) {
@@ -18,7 +29,8 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             const reader = new FileReader();
 
             reader.onload = (event) => {
-                const img = document.createElement("img");
+                const imgTag = "img";
+                const img = document.createElement(imgTag);
                 img.src = event.target?.result as string;
 
                 const range = getRange();
@@ -34,12 +46,12 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     }
 
     if (command.action === Action.Link) {
-        const linkTag = "A";
+        const tagName = (command.tag as string).toUpperCase();
         const sharedTags: string[] = getSelectedSharedTags(contentEditable);
         const href = command.attributes?.href;
         const range = getRange();
         const isCollapsed = range.collapsed;
-        const isLinkSelected = sharedTags.includes(linkTag);
+        const isLinkSelected = sharedTags.includes(tagName);
 
         if (href && isCollapsed && isLinkSelected) {
             const link = getSelectedLink(contentEditable, range)[0];
@@ -52,22 +64,22 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             const link = getSelectedLink(contentEditable, range)[0];
             if (link) {
                 selectElement(link);
-                tag(contentEditable, linkTag, Action.Unwrap, command.attributes);
+                tag(contentEditable, tagName, Action.Unwrap, command.attributes);
             }
         }
 
         if (!href && !isCollapsed && isLinkSelected) {
-            tag(contentEditable, linkTag, Action.Unwrap, command.attributes);
+            tag(contentEditable, tagName, Action.Unwrap, command.attributes);
         }
 
         if (href && !isCollapsed && !isLinkSelected) {
-            tag(contentEditable, linkTag, Action.Wrap, command.attributes);
+            tag(contentEditable, tagName, Action.Wrap, command.attributes);
         }
     }
 
     if (command.action === Action.Tag) {
-        const sharedTags: string[] = getSelectedSharedTags(contentEditable);
         const tagName = (command.tag as string).toUpperCase();
+        const sharedTags: string[] = getSelectedSharedTags(contentEditable);
 
         if (sharedTags.includes(tagName)) {
             tag(contentEditable, tagName, Action.Unwrap, command.attributes);
@@ -77,16 +89,27 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     }
 
     if (command.action === Action.FirstLevel) {
-        let tags = (command.tag as string[]).map(tag => tag.toUpperCase());
-        const tag = tags[0];
-        if (!tag) {
-            return;
-        }
-
-        if (isListWrapper(contentEditable) && !getSelectedSharedTags(contentEditable).includes(tag)) {
-            changeBlock(contentEditable, [tag]);
+        const tagName = (command.tag as string).toUpperCase();
+        if (!getSelectedSharedTags(contentEditable).includes(tagName)) {
+            changeBlock(contentEditable, [tagName]);
         } else {
             const blockElements = getSelectedBlock(contentEditable);
+            const isParagraph = isElementsEqualToTags(blockElements, [tagName]);
+            let tags = [tagName];
+            if (isParagraph) {
+                tags = ["P"];
+            }
+            changeBlock(contentEditable, tags);
+        }
+    }
+
+    if (command.action === Action.List) {
+        const tagName = (command.tag as string).toUpperCase();
+        if (isListWrapper(contentEditable) && !getSelectedSharedTags(contentEditable).includes(tagName)) {
+            changeBlock(contentEditable, [tagName]);
+        } else {
+            const blockElements = getSelectedBlock(contentEditable);
+            let tags = [tagName, "LI"];
             const isParagraph = isElementsEqualToTags(blockElements, tags);
             if (isParagraph) {
                 tags = ["P"];
@@ -105,4 +128,16 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
 
     contentEditable.focus();
     setCursorPosition(contentEditable, cursorPosition);
+
+    if (command.action !== Action.Attribute && command.tag) {
+        applyAttributesCommand(contentEditable, command);
+    }
+}
+
+function applyAttributesCommand(contentEditable: HTMLElement, command: Command) {
+    const tagName = (command.tag as string).toUpperCase();
+    const target = getElementByTagName(contentEditable, tagName);
+    if (target) {
+        applyAttributes(target as HTMLElement, command.attributes);
+    }
 }

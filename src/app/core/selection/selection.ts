@@ -48,8 +48,8 @@ export function getSelectedListWrapper(findTill: HTMLElement, range: Range = get
     return getSelected(findTill, range, SelectionType.ListWrapper);
 }
 
-export function getSelectedElements(range: Range) {
-    return getSelected(null, range, SelectionType.Element);
+export function getSelectedParentElements(range: Range) {
+    return getSelected(null, range, SelectionType.ParentElement);
 }
 
 export function getInitialBlocks(contentEditable: HTMLElement, initialCursorPosition: CursorPosition) {

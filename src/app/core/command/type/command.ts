@@ -3,8 +3,10 @@ export enum Action {
     Link = "Link",
     Image = "Image",
     FirstLevel = "FirstLevel",
+    List = "List",
     PlusIndent = "PlusIndent",
     MinusIndent = "MinusIndent",
+    Attribute = "Attribute",
     Wrap = "Wrap",
     Unwrap = "Unwrap",
 }
@@ -17,6 +19,6 @@ export interface Attributes {
 
 export interface Command {
     action: Action,
-    tag?: string | string[],
-    attributes?: Attributes
+    tag?: string,
+    attributes?: Attributes | undefined
 }

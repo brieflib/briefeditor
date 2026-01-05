@@ -1,3 +1,4 @@
+// @ts-ignore
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 import {Icon} from "@/component/toolbar-icon/type/icon";
@@ -12,20 +13,20 @@ import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 new Tooltip();
 
 class LinkIcon extends HTMLElement implements Icon {
-    private contentEditableElement: HTMLElement;
+    private contentEditableElement?: HTMLElement;
     private readonly button: HTMLElement;
     private readonly tooltip: Tooltip;
     private readonly input: HTMLInputElement;
 
-    private isOpen: boolean;
-    private isSaved: boolean;
-    private isInputFocused: boolean;
-    private cursorPosition: CursorPosition | null;
+    private isOpen?: boolean;
+    private isSaved?: boolean;
+    private isInputFocused?: boolean;
+    private cursorPosition?: CursorPosition | null;
 
     constructor() {
         super();
-        initShadowRoot(this, toolbarIconCss);
-        this.shadowRoot.innerHTML = `
+        const shadowRoot = initShadowRoot(this, toolbarIconCss);
+        shadowRoot.innerHTML = `
           <button type="button" class="icon" id="button" disabled>
             <svg viewBox="0 0 18 18">
               <line class="stroke" x1="7" x2="11" y1="7" y2="11"></line>
@@ -38,9 +39,9 @@ class LinkIcon extends HTMLElement implements Icon {
           </be-tooltip>
         `;
 
-        this.button = this.shadowRoot.querySelector("#button");
-        this.tooltip = this.shadowRoot.querySelector("be-tooltip");
-        this.input = this.shadowRoot.querySelector(".be-link-input");
+        this.button = shadowRoot.querySelector("#button") as HTMLElement;
+        this.tooltip = shadowRoot.querySelector("be-tooltip") as Tooltip;
+        this.input = shadowRoot.querySelector(".be-link-input") as HTMLInputElement;
     }
 
     setActive(tags: string[]) {
@@ -55,7 +56,7 @@ class LinkIcon extends HTMLElement implements Icon {
         this.button.setAttribute("disabled", "true");
 
         const range = getRange();
-        if (!isRangeIn(this.contentEditableElement, range)) {
+        if (!isRangeIn(this.getContentEditableSafe(), range)) {
             return;
         }
 
@@ -78,13 +79,13 @@ class LinkIcon extends HTMLElement implements Icon {
                 this.isSaved = true;
             }
 
-            const cursorPosition = getSelectionOffset(this.contentEditableElement);
+            const cursorPosition = getSelectionOffset(this.getContentEditableSafe());
             if (!isCursorPositionEqual(cursorPosition, this.cursorPosition) && !this.isInputFocused) {
                 this.cursorPosition = cursorPosition;
                 this.closeTooltip();
             }
             range = getRange().cloneRange();
-            const link = getSelectedLink(this.contentEditableElement, range)[0];
+            const link = getSelectedLink(this.getContentEditableSafe(), range)[0];
             const linkLength = range.endContainer.textContent?.length ?? range.endOffset;
             const href = link?.getAttribute("href") ?? "";
 
@@ -107,7 +108,7 @@ class LinkIcon extends HTMLElement implements Icon {
                 return;
             }
 
-            const link = getSelectedLink(this.contentEditableElement, range)[0];
+            const link = getSelectedLink(this.getContentEditableSafe(), range)[0];
             const href = link?.getAttribute("href") ?? "";
             const rect = range.getBoundingClientRect();
             const left = -rect.width / 2;
@@ -129,7 +130,7 @@ class LinkIcon extends HTMLElement implements Icon {
     }
 
     private isLinkSelected() {
-        return getSelectedSharedTags(this.contentEditableElement).includes("A");
+        return getSelectedSharedTags(this.getContentEditableSafe()).includes("A");
     }
 
     private openTooltip(href: string, endOffset: number, left: number) {
@@ -142,29 +143,37 @@ class LinkIcon extends HTMLElement implements Icon {
     private closeTooltip() {
         this.input.blur();
         this.tooltip.close();
-        this.shadowRoot.appendChild(this.tooltip);
+        this.shadowRoot?.appendChild(this.tooltip);
         this.isOpen = false;
     }
 
     private link(href: string | null) {
-        const clickCursorPosition = getSelectionOffset(this.contentEditableElement);
+        const clickCursorPosition = getSelectionOffset(this.getContentEditableSafe());
 
         if (this.cursorPosition) {
-            setCursorPosition(this.contentEditableElement, this.cursorPosition);
+            setCursorPosition(this.getContentEditableSafe(), this.cursorPosition);
             this.sendLinkCommand(href);
         }
 
         if (clickCursorPosition) {
-            setCursorPosition(this.contentEditableElement, clickCursorPosition);
+            setCursorPosition(this.getContentEditableSafe(), clickCursorPosition);
         }
     }
 
     private sendLinkCommand(href: string | null) {
-        execCommand(this.contentEditableElement, {
-            action: Action.Link, tag: ["A"], attributes: {
+        execCommand(this.getContentEditableSafe(), {
+            action: Action.Link, tag: "A", attributes: {
                 href: href
             }
         });
+    }
+
+    private getContentEditableSafe() {
+        if (!this.contentEditableElement) {
+            throw new Error("ContentEditable is not defined");
+        }
+
+        return this.contentEditableElement;
     }
 }
 

@@ -5,7 +5,7 @@ export interface CursorPosition {
     isEndShift: boolean
 }
 
-export function isCursorPositionEqual(comparable: CursorPosition | null, compareTo: CursorPosition | null) {
+export function isCursorPositionEqual(comparable?: CursorPosition | null, compareTo?: CursorPosition | null) {
     if (!comparable || !compareTo) {
         return false;
     }

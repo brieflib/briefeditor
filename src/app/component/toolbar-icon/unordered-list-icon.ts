@@ -1,3 +1,4 @@
+// @ts-ignore
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 import execCommand from "@/core/command/exec-command";
@@ -6,14 +7,14 @@ import {Icon} from "@/component/toolbar-icon/type/icon";
 import {isRangeIn} from "@/core/shared/range-util";
 
 class UnorderedListIcon extends HTMLElement implements Icon {
-    private contentEditableElement: HTMLElement;
+    private contentEditableElement?: HTMLElement;
     private readonly button: HTMLElement;
-    private isActive: boolean;
+    private isActive?: boolean;
 
     constructor() {
         super();
-        initShadowRoot(this, toolbarIconCss);
-        this.shadowRoot.innerHTML = `
+        const shadowRoot = initShadowRoot(this, toolbarIconCss);
+        shadowRoot.innerHTML = `
           <button type="button" class="icon" id="button" disabled>
             <svg viewBox="0 0 18 18">
                 <line class="stroke" x1="6" x2="15" y1="4" y2="4"></line>
@@ -25,11 +26,12 @@ class UnorderedListIcon extends HTMLElement implements Icon {
             </svg>
           </button>
         `;
-        this.button = this.shadowRoot.getElementById("button") as HTMLElement;
+        this.button = shadowRoot.getElementById("button") as HTMLElement;
     }
 
     setActive(tags: string[]) {
         this.isActive = tags.includes("UL");
+
         if (this.isActive) {
             this.button.className = "icon active"
         } else {
@@ -54,8 +56,8 @@ class UnorderedListIcon extends HTMLElement implements Icon {
 
         this.button.addEventListener("click", () => {
             execCommand(contentEditable, {
-                action: Action.FirstLevel,
-                tag: ["UL", "LI"]
+                action: Action.List,
+                tag: "UL"
             });
         });
     }

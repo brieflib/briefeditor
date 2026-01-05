@@ -5,7 +5,7 @@ import {getElement, getRootElement} from "@/core/shared/element-util";
 export enum SelectionType {
     Root = "Root",
     Block = "Block",
-    Element = "Element",
+    ParentElement = "ParentElement",
     ListWrapper = "ListWrapper",
     Link = "Link"
 }
@@ -83,7 +83,7 @@ export function getSelected(findTill: HTMLElement | null, range: Range, type: Se
     for (const leafNode of leafNodes) {
         let block;
         switch (type) {
-            case SelectionType.Element:
+            case SelectionType.ParentElement:
                 block = leafNode.parentElement as HTMLElement;
                 break;
             case SelectionType.Root:

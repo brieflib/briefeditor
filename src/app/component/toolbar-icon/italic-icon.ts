@@ -1,3 +1,4 @@
+// @ts-ignore
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 import {Icon} from "@/component/toolbar-icon/type/icon";
@@ -6,13 +7,13 @@ import {Action} from "@/core/command/type/command";
 import {isRangeIn} from "@/core/shared/range-util";
 
 class ItalicIcon extends HTMLElement implements Icon {
-    private contentEditableElement: HTMLElement;
+    private contentEditableElement?: HTMLElement;
     private readonly button: HTMLElement;
 
     constructor() {
         super();
-        initShadowRoot(this, toolbarIconCss);
-        this.shadowRoot.innerHTML = `
+        const shadowRoot = initShadowRoot(this, toolbarIconCss);
+        shadowRoot.innerHTML = `
           <button type="button" class="icon" id="button" disabled>
             <svg viewBox="0 0 18 18">
               <line class="stroke" x1="7" x2="13" y1="4" y2="4"></line>
@@ -21,7 +22,7 @@ class ItalicIcon extends HTMLElement implements Icon {
             </svg>
           </button>
         `;
-        this.button = this.shadowRoot.getElementById("button") as HTMLElement;
+        this.button = shadowRoot.getElementById("button") as HTMLElement;
     }
 
     setActive(tags: string[]) {

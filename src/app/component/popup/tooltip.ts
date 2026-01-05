@@ -1,3 +1,4 @@
+// @ts-ignore
 import tooltipCss from "@/component/popup/asset/tooltip.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 import {getRange} from "@/core/shared/range-util";
@@ -8,8 +9,8 @@ class Tooltip extends HTMLElement {
 
     constructor() {
         super();
-        initShadowRoot(this, tooltipCss);
-        this.shadowRoot.innerHTML = `
+        const shadowRoot = initShadowRoot(this, tooltipCss);
+        shadowRoot.innerHTML = `
           <span class="be-tooltip-wrapper">
             <span class="be-tooltip">
               <slot></slot>
@@ -17,8 +18,8 @@ class Tooltip extends HTMLElement {
           </span>
         `;
         
-        this.wrapper = this.shadowRoot.querySelector(".be-tooltip-wrapper") as HTMLElement;
-        this.tooltip = this.shadowRoot.querySelector(".be-tooltip") as HTMLElement;
+        this.wrapper = shadowRoot.querySelector(".be-tooltip-wrapper") as HTMLElement;
+        this.tooltip = shadowRoot.querySelector(".be-tooltip") as HTMLElement;
     }
 
     open(endOffset: number, leftPx: string) {

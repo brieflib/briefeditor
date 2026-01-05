@@ -1,16 +1,17 @@
+// @ts-ignore
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 
 class EmptyIcon extends HTMLElement {
-    private readonly button: HTMLElement | null;
+    private readonly button?: HTMLElement;
 
     constructor() {
         super();
-        initShadowRoot(this, toolbarIconCss);
-        this.shadowRoot.innerHTML = `
+        const shadowRoot = initShadowRoot(this, toolbarIconCss);
+        shadowRoot.innerHTML = `
           <button type="button" class="empty-icon" id="button"></button>
         `;
-        this.button = this.shadowRoot.getElementById("button");
+        this.button = shadowRoot.getElementById("button") as HTMLElement;
     }
 }
 

@@ -1,6 +1,7 @@
 export function createWrapper(html: string) {
     const wrapper = document.createElement("div");
     wrapper.innerHTML = replaceSpaces(html);
+    document.body.innerHTML = "";
     document.body.appendChild(wrapper);
 
     return wrapper;
@@ -11,6 +12,7 @@ export function replaceSpaces(html: string) {
         .replaceAll("\n", "")
         .replaceAll(" ", "")
         .replaceAll("class", " class")
+        .replaceAll("id", " id")
         .replaceAll("href", " href");
 }
 

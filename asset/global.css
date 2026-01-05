@@ -50,7 +50,7 @@ editor-layout :where(table) {
     border-spacing: 0;
 }
 
-#bf-editor {
+#be-editor {
     visibility: visible !important;
 }
 

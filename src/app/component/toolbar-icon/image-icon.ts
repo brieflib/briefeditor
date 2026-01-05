@@ -1,19 +1,20 @@
+// @ts-ignore
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 import {Icon} from "@/component/toolbar-icon/type/icon";
 import {getRange, isRangeIn} from "@/core/shared/range-util";
 import execCommand from "@/core/command/exec-command";
-import {Action, Attributes} from "@/core/command/type/command";
+import {Action} from "@/core/command/type/command";
 
 class ImageIcon extends HTMLElement implements Icon {
-    private contentEditableElement: HTMLElement;
+    private contentEditableElement?: HTMLElement;
     private readonly button: HTMLElement;
     private readonly input: HTMLInputElement;
 
     constructor() {
         super();
-        initShadowRoot(this, toolbarIconCss);
-        this.shadowRoot.innerHTML = `
+        const shadowRoot = initShadowRoot(this, toolbarIconCss);
+        shadowRoot.innerHTML = `
           <button type="button" class="icon" id="button" disabled>
             <svg viewBox="0 0 18 18">
                 <rect class="stroke" height="10" width="12" x="3" y="4"></rect>
@@ -24,8 +25,8 @@ class ImageIcon extends HTMLElement implements Icon {
           <input type="file" class="be-image-input" accept="image/*">
         `;
 
-        this.button = this.shadowRoot.getElementById("button") as HTMLElement;
-        this.input = this.shadowRoot.querySelector(".be-image-input") as HTMLInputElement;
+        this.button = shadowRoot.getElementById("button") as HTMLElement;
+        this.input = shadowRoot.querySelector(".be-image-input") as HTMLInputElement;
     }
 
     setEnabled() {
@@ -44,32 +45,21 @@ class ImageIcon extends HTMLElement implements Icon {
         });
 
         this.input.addEventListener("change", (event) => {
-            const image = event.target.files[0];
+            const element = event.target as HTMLInputElement;
+            const files = element.files;
+            if (!files) {
+                return;
+            }
+            const image = files[0];
             execCommand(contentEditable, {
                 action: Action.Image,
-                tag: ["IMG"],
+                tag: "IMG",
                 attributes: {
-                    image: image
+                    image: image as Blob
                 }
             });
             this.input.value = "";
         });
-    }
-
-    insertImage(file) {
-        const reader = new FileReader();
-
-        reader.onload = (event) => {
-            const img = document.createElement("img");
-            img.src = event.target.result;
-
-            const range = getRange();
-            if (isRangeIn(this.contentEditableElement, range)) {
-                range.insertNode(img);
-            }
-        };
-
-        reader.readAsDataURL(file);
     }
 }
 

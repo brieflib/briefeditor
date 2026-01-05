@@ -1,3 +1,4 @@
+// @ts-ignore
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 import {Icon} from "@/component/toolbar-icon/type/icon";
@@ -6,13 +7,13 @@ import {Action} from "@/core/command/type/command";
 import {isPlusIndentEnabled} from "@/core/list/list";
 
 class PlusIndentIcon extends HTMLElement implements Icon {
-    private readonly button: HTMLElement | null;
-    private contentEditableElement: HTMLElement;
+    private readonly button: HTMLElement;
+    private contentEditableElement?: HTMLElement;
 
     constructor() {
         super();
-        initShadowRoot(this, toolbarIconCss);
-        this.shadowRoot.innerHTML = `
+        const shadowRoot = initShadowRoot(this, toolbarIconCss);
+        shadowRoot.innerHTML = `
           <button type="button" class="icon" id="button" disabled>
             <svg viewBox="0 0 18 18">
               <line class="stroke" x1="3" x2="15" y1="14" y2="14"></line>
@@ -22,22 +23,18 @@ class PlusIndentIcon extends HTMLElement implements Icon {
             </svg>
           </button>
         `;
-        this.button = this.shadowRoot.getElementById("button");
+        this.button = shadowRoot.getElementById("button") as HTMLElement;
     }
 
     setEnabled() {
-        this.button?.setAttribute("disabled", "true");
+        this.button.setAttribute("disabled", "true");
 
-        if (isPlusIndentEnabled(this.contentEditableElement)) {
-            this.button?.removeAttribute("disabled");
+        if (this.contentEditableElement && isPlusIndentEnabled(this.contentEditableElement)) {
+            this.button.removeAttribute("disabled");
         }
     }
 
     setContentEditable(contentEditable: HTMLElement) {
-        if (!this.button) {
-            return;
-        }
-
         this.contentEditableElement = contentEditable;
 
         this.button.addEventListener("click", () => execCommand(contentEditable, {

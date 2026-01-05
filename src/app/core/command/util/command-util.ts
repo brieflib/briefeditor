@@ -5,7 +5,7 @@ import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/co
 import {
     getInitialBlocks,
     getSelectedBlock,
-    getSelectedElements,
+    getSelectedParentElements,
     getSelectedListWrapper
 } from "@/core/selection/selection";
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
@@ -31,10 +31,10 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
         return;
     }
 
-    let length = getSelectedElements(range).length;
+    let length = getSelectedParentElements(range).length;
     for (let i = 0; i < length; i++) {
         const initialRange = restoreRange(contentEditable, initialCursorPosition);
-        const elements = getSelectedElements(initialRange);
+        const elements = getSelectedParentElements(initialRange);
         length = elements.length;
 
         const element = elements[i];
@@ -75,25 +75,31 @@ function tagAction(contentEditable: HTMLElement, cloneRange: Range, tag: string,
     }
 }
 
-function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string, attributes?: Attributes) {
-    const documentFragment: DocumentFragment = range.extractContents();
-
-    const tagElement = document.createElement(tag);
+export function applyAttributes(element: HTMLElement, attributes?: Attributes) {
     if (attributes) {
         for (const key in attributes) {
             if (attributes.hasOwnProperty(key)) {
                 const value = attributes[key as keyof Attributes];
-                if (typeof value === "string") {
-                    tagElement.setAttribute(key, value);
+                if (!value) {
+                    element.removeAttribute(key);
+
+                    continue;
                 }
-            } else {
-                tagElement.removeAttribute(key);
+                if (typeof value === "string") {
+                    element.setAttribute(key, value);
+                }
             }
         }
     }
+}
+
+function wrapRangeInTag(contentEditable: HTMLElement, range: Range, tag: string, attributes?: Attributes) {
+    const documentFragment: DocumentFragment = range.extractContents();
+
+    const tagElement = document.createElement(tag);
+    applyAttributes(tagElement, attributes);
     tagElement.appendChild(documentFragment);
     range.insertNode(tagElement);
-    const rootElement = getRootElement(contentEditable, tagElement);
 }
 
 function unwrapRangeFromTag(contentEditable: HTMLElement, range: Range, tag: string) {

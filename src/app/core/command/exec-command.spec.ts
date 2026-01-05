@@ -41,7 +41,7 @@ describe("Exec command with different cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.FirstLevel, tag: ["UL", "LI"]});
+        execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -67,7 +67,7 @@ describe("Exec command with different cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.FirstLevel, tag: ["UL", "LI"]});
+        execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -99,7 +99,7 @@ describe("Exec command with different cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.FirstLevel, tag: ["UL", "LI"]});
+        execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         expect(wrapper.innerHTML).toBe(replaceSpaces(`
             <ul>
@@ -130,7 +130,7 @@ describe("Link command", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         execCommand(wrapper, {
-            action: Action.Link, tag: ["A"], attributes: {
+            action: Action.Link, tag: "A", attributes: {
                 href: "first"
             }
         });

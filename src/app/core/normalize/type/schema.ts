@@ -6,11 +6,12 @@ export enum Display {
     Link = "Link",
     ListWrapper = "ListWrapper",
     Nested = "Nested",
+    Image = "Nested",
 }
 
 const schema: Map<string, Display[]> = new Map<string, Display[]>();
 schema.set("BR", [Display.SelfClose]);
-schema.set("IMG", [Display.SelfClose]);
+schema.set("IMG", [Display.SelfClose, Display.Image]);
 
 schema.set("LI", [Display.List]);
 
