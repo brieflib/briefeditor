@@ -76,7 +76,7 @@ npm install briefeditor
 </div>
 
 <script type="module">
-    import BriefEditor from "/src/app/brief-editor";
+    import BriefEditor from "briefeditor";
 
     new BriefEditor();
 </script>
