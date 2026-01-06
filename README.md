@@ -33,7 +33,7 @@ JavaScript that works anywhere.
 
 * **Zero Framework Overhead:** No virtual DOM, no reactivity system, no unnecessary abstractions
 * **Direct DOM Manipulation:** 2-3x faster than framework-based editors
-* **Optimized Operations:*8 Custom implementations of only what's needed
+* **Optimized Operations:** Custom implementations of only what's needed
 
 ### 🔒 Security
 

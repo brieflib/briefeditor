@@ -1,10 +1,16 @@
 {
   "name": "briefeditor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Minimal WYSIWYG text editor for the web with no dependencies",
   "license": "MIT",
   "author": "Artem Tsukerman",
   "homepage": "https://briefeditor.io",
+  "keywords": [
+    "briefeditor",
+    "editor",
+    "rich text",
+    "wysiwyg"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/brieflib/briefeditor.git"
