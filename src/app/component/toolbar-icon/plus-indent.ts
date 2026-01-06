@@ -43,6 +43,6 @@ class PlusIndentIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("plus-indent-icon", PlusIndentIcon);
+customElements.define("be-plus-indent-icon", PlusIndentIcon);
 
 export default PlusIndentIcon;

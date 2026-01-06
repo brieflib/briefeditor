@@ -1,6 +1,6 @@
 /* Reset */
 
-editor-layout :where(div, span, applet, object, iframe,
+be-editor-layout :where(div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre,
 a, abbr, acronym, address, big, cite, code,
 del, dfn, em, img, ins, kbd, q, s, samp,
@@ -21,31 +21,31 @@ time, mark, audio, video) {
     vertical-align: baseline;
 }
 
-editor-layout :where(input) {
+be-editor-layout :where(input) {
     border: none;
     outline: none;
 }
 
-editor-layout :where(article, aside, details, figcaption, figure,
+be-editor-layout :where(article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section) {
     display: block;
 }
 
-editor-layout :where(ol, ul) {
+be-editor-layout :where(ol, ul) {
     list-style: none;
 }
 
-editor-layout :where(blockquote, q) {
+be-editor-layout :where(blockquote, q) {
     quotes: none;
 }
 
-editor-layout :where(blockquote:before, blockquote:after,
+be-editor-layout :where(blockquote:before, blockquote:after,
 q:before, q:after) {
     content: '';
     content: none;
 }
 
-editor-layout :where(table) {
+be-editor-layout :where(table) {
     border-collapse: collapse;
     border-spacing: 0;
 }
@@ -56,7 +56,7 @@ editor-layout :where(table) {
 
 /* Variables */
 
-editor-layout {
+be-editor-layout {
     --color-gray-50: oklch(98.5% .002 247.839);
     --color-gray-100: oklch(96.7% .003 264.542);
     --color-gray-200: oklch(92.8% .006 264.531);
@@ -69,38 +69,38 @@ editor-layout {
 
 /* Element styles */
 
-editor-layout {
+be-editor-layout {
     font-family: sans-serif;
     line-height: 1.75;
     color: var(--color-gray-700);
 }
 
-editor-layout p {
+be-editor-layout p {
     margin-bottom: 1.25em;
 }
 
-editor-layout strong {
+be-editor-layout strong {
     font-weight: bold;
     color: var(--color-gray-900);
 }
 
-editor-layout a {
+be-editor-layout a {
     color: #0000EE;
 }
 
-editor-layout a strong {
+be-editor-layout a strong {
     color: #0000EE;
 }
 
-editor-layout em {
+be-editor-layout em {
     font-style: italic;
 }
 
-editor-layout :where(h1, h2, h3, h4, h5) {
+be-editor-layout :where(h1, h2, h3, h4, h5) {
     color: var(--color-gray-900);
 }
 
-editor-layout h1 {
+be-editor-layout h1 {
     font-size: 2em;
     line-height: calc(2 / 1.5);
     font-weight: 900;
@@ -109,7 +109,7 @@ editor-layout h1 {
     margin-bottom: 1rem;
 }
 
-editor-layout h2 {
+be-editor-layout h2 {
     margin-top: 2em;
     margin-bottom: 1em;
     font-size: 1.5em;
@@ -117,7 +117,7 @@ editor-layout h2 {
     line-height: 1.33333;
 }
 
-editor-layout h3 {
+be-editor-layout h3 {
     margin-top: 1.6em;
     margin-bottom: .6em;
     font-size: 1.25em;
@@ -125,7 +125,7 @@ editor-layout h3 {
     line-height: 1.6;
 }
 
-editor-layout h4 {
+be-editor-layout h4 {
     margin-top: 1.5em;
     margin-bottom: .5em;
     font-size: 1em;
@@ -133,7 +133,7 @@ editor-layout h4 {
     line-height: 1.5;
 }
 
-editor-layout h5 {
+be-editor-layout h5 {
     margin-top: 1.4em;
     margin-bottom: .4em;
     font-size: .8em;
@@ -141,7 +141,7 @@ editor-layout h5 {
     line-height: 1.5;
 }
 
-editor-layout blockquote {
+be-editor-layout blockquote {
     border-left: 4px solid var(--color-gray-200);
     margin-top: 1.6em;
     margin-bottom: 1.6em;
@@ -149,39 +149,39 @@ editor-layout blockquote {
     font-weight: 500;
 }
 
-editor-layout :where(ul, ol) {
+be-editor-layout :where(ul, ol) {
     padding-inline-start: 1.625em;
     margin-top: .75em;
     margin-bottom: .75em;
 }
 
-editor-layout :where(ul) {
+be-editor-layout :where(ul) {
     list-style-type: disc;
 }
 
-editor-layout :where(ol) {
+be-editor-layout :where(ol) {
     padding-inline-start: 1.75em;
     list-style-type: decimal;
 }
 
-editor-layout :where(ul > li, ol > li) {
+be-editor-layout :where(ul > li, ol > li) {
     padding-inline-start: .375em;
 }
 
-editor-layout :where(ul > li)::marker {
+be-editor-layout :where(ul > li)::marker {
     color: var(--color-gray-300);
 }
 
-editor-layout :where(ol > li)::marker {
+be-editor-layout :where(ol > li)::marker {
     color: var(--color-gray-500);
 }
 
-editor-layout :where(li) {
+be-editor-layout :where(li) {
     margin-top: .75em;
     margin-bottom: .75em;
 }
 
-editor-layout :where(input.be-link-input) {
+be-editor-layout :where(input.be-link-input) {
     padding: 0 0.5em;
     width: 15em;
     height: 2.5em;
@@ -189,11 +189,11 @@ editor-layout :where(input.be-link-input) {
     color: #0000EE;
 }
 
-editor-layout :where(be-tooltip) {
+be-editor-layout :where(be-tooltip) {
     display: inline-flex;
     align-items: baseline;
 }
 
-editor-layout :where(img) {
+be-editor-layout :where(img) {
     max-width: 100%;
 }

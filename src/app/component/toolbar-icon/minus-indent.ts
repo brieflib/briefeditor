@@ -43,6 +43,6 @@ class MinusIndentIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("minus-indent-icon", MinusIndentIcon);
+customElements.define("be-minus-indent-icon", MinusIndentIcon);
 
 export default MinusIndentIcon;

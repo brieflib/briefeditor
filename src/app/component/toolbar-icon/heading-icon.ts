@@ -103,6 +103,6 @@ class HeadingIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("heading-icon", HeadingIcon);
+customElements.define("be-heading-icon", HeadingIcon);
 
 export default HeadingIcon;

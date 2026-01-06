@@ -29,6 +29,6 @@ class Editor extends HTMLElement {
     }
 }
 
-customElements.define("editor-layout", Editor);
+customElements.define("be-editor-layout", Editor);
 
 export default Editor;

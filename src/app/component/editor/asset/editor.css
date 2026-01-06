@@ -1,7 +1,8 @@
 .be-content-editable-toolbar {
     display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
 
-    height: 4em;
     padding: 1.25em;
     width: 100%;
     border-radius: .75em .75em 0 0;

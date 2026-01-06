@@ -50,6 +50,6 @@ class UnderlineIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("underline-icon", UnderlineIcon);
+customElements.define("be-underline-icon", UnderlineIcon);
 
 export default UnderlineIcon;

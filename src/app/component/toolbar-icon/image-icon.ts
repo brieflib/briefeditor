@@ -63,6 +63,6 @@ class ImageIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("image-icon", ImageIcon);
+customElements.define("be-image-icon", ImageIcon);
 
 export default ImageIcon;

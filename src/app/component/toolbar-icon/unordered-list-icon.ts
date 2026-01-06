@@ -63,6 +63,6 @@ class UnorderedListIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("unordered-list-icon", UnorderedListIcon);
+customElements.define("be-unordered-list-icon", UnorderedListIcon);
 
 export default UnorderedListIcon;

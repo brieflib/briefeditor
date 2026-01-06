@@ -51,6 +51,6 @@ class ItalicIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("italic-icon", ItalicIcon);
+customElements.define("be-italic-icon", ItalicIcon);
 
 export default ItalicIcon;

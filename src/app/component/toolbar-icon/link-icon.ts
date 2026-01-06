@@ -177,6 +177,6 @@ class LinkIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("link-icon", LinkIcon);
+customElements.define("be-link-icon", LinkIcon);
 
 export default LinkIcon;

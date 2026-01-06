@@ -1,11 +1,12 @@
+// @ts-ignore
 import popupCss from "@/component/popup/asset/popup.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 
 class Popup extends HTMLElement {
     constructor() {
         super();
-        initShadowRoot(this, popupCss);
-        this.shadowRoot.innerHTML = `
+        const shadowRoot = initShadowRoot(this, popupCss);
+        shadowRoot.innerHTML = `
           <div class="backdrop"></div>
           <div class="content">
             <button class="close">×</button>
@@ -13,16 +14,15 @@ class Popup extends HTMLElement {
           </div>
         `;
 
-        this.shadowRoot.querySelector(".backdrop").addEventListener("click", () => this.close());
-        this.shadowRoot.querySelector(".close").addEventListener("click", () => this.close());
+        shadowRoot.querySelector(".backdrop")?.addEventListener("click", () => this.close());
+        shadowRoot.querySelector(".close")?.addEventListener("click", () => this.close());
     }
 
     static get observedAttributes() {
         return ["open"];
     }
 
-    attributeChangedCallback(name, oldValue, newValue) {
-        console.log(name, oldValue, newValue);
+    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
         if (name === "open") {
             document.body.style.overflow = newValue !== null ? "hidden" : "";
         }

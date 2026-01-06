@@ -50,6 +50,6 @@ class BoldIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("bold-icon", BoldIcon);
+customElements.define("be-bold-icon", BoldIcon);
 
 export default BoldIcon;

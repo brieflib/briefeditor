@@ -5,8 +5,11 @@
     <link rel="icon" type="image/svg+xml" href="/asset/icon.svg"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Brief Editor</title>
-    <link rel="stylesheet" href="asset/initial.css">
     <style>
+        #be-editor {
+            visibility: hidden;
+        }
+
         .be-content-editable {
             display: flex;
             justify-content: center;
@@ -38,6 +41,11 @@
             background-image: radial-gradient(in oklab, oklch(69.6% .17 162.48) 0%, color-mix(in oklab, oklch(64.8% .2 131.684) 50%, transparent) 50%, transparent 100%);
         }
     </style>
+    <script type="module">
+        import BriefEditor from "/src/app/brief-editor";
+
+        new BriefEditor();
+    </script>
 </head>
 <body>
 
@@ -89,12 +97,6 @@
     <h4>Level 4 Heading</h4>
     <h5>Level 5 Heading</h5>
 </div>
-
-<script type="module">
-    import BriefEditor from "/src/app/brief-editor";
-
-    new BriefEditor();
-</script>
 
 </body>
 </html>

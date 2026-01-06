@@ -63,6 +63,6 @@ class OrderedListIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("ordered-list-icon", OrderedListIcon);
+customElements.define("be-ordered-list-icon", OrderedListIcon);
 
 export default OrderedListIcon;

@@ -5,7 +5,7 @@ import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 
-interface Settings {
+export interface Settings {
     hasToolbar?: boolean
 }
 

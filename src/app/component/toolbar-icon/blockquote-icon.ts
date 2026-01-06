@@ -48,6 +48,6 @@ class BlockquoteIcon extends HTMLElement implements Icon {
     }
 }
 
-customElements.define("blockquote-icon", BlockquoteIcon);
+customElements.define("be-blockquote-icon", BlockquoteIcon);
 
 export default BlockquoteIcon;

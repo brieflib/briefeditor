@@ -15,6 +15,6 @@ class EmptyIcon extends HTMLElement {
     }
 }
 
-customElements.define("empty-icon", EmptyIcon);
+customElements.define("be-empty-icon", EmptyIcon);
 
 export default EmptyIcon;
