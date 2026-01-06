@@ -1,6 +1,6 @@
 {
   "name": "briefeditor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Minimal WYSIWYG text editor for the web with no dependencies",
   "license": "MIT",
   "author": "Artem Tsukerman",
