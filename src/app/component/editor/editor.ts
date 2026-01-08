@@ -1,7 +1,11 @@
 import "@/component/editor/asset/editor.css"
+import Toolbar from "@/component/toolbar/toolbar";
+import {Settings} from "@/brief-editor";
+import {handleEvent} from "@/core/keyboard/keyboard";
+import {cleanElementWhitespace, pasteParagraph} from "@/core/shared/element-util";
 
 class Editor extends HTMLElement {
-    constructor(contentEditable: HTMLElement, hasToolbar?: boolean) {
+    constructor(contentEditable: HTMLElement, settings: Settings) {
         super();
 
         this.innerHTML = `
@@ -14,6 +18,14 @@ class Editor extends HTMLElement {
           </div>
         `;
 
+        this.initContentEditable(contentEditable, settings?.hasToolbar);
+        if (settings?.hasToolbar) {
+            new Toolbar(contentEditable, this);
+        }
+        cleanElementWhitespace(contentEditable);
+    }
+
+    private initContentEditable(contentEditable: HTMLElement, hasToolbar?: boolean) {
         contentEditable.after(this);
         contentEditable.className = "be-editor";
         contentEditable.setAttribute("contenteditable", "true");
@@ -21,7 +33,14 @@ class Editor extends HTMLElement {
         if (!hasToolbar) {
             document.getElementById("be-toolbar")?.remove();
         }
+        pasteParagraph(contentEditable);
         contentEditable.focus();
+
+        this.addKeyboardEvent(contentEditable);
+    }
+
+    private addKeyboardEvent(contentEditable: HTMLElement) {
+        contentEditable.addEventListener("keydown", (event) => handleEvent(contentEditable, event));
     }
 
     addToolbarItem(toolbar: HTMLElement) {

@@ -70,16 +70,16 @@ describe("Shared tags", () => {
         expect(shared).toStrictEqual(["STRONG", "P"]);
     });
 
-    test("Should find shared parents when selecting end of the previous text", () => {
+    test("Should find shared parents when selecting is at the end of the previous text", () => {
         const wrapper = createWrapper(`
             <p class="start">
-                zero 
+                zero
                 <strong class="end">first</strong>
             </p>
         `);
 
         const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setStart(getFirstChild(wrapper, ".start"), "zero ".length);
         range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 

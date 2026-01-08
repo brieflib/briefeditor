@@ -1,7 +1,7 @@
 import {changeBlock, tag} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
 import {Action} from "@/core/command/type/command";
-import {createWrapper, getFirstChild, getLastChild, replaceSpaces} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -13,10 +13,7 @@ describe("Unwrap tag", () => {
         const wrapper = createWrapper(`
             <p>
                 <strong>
-                    <u class="end">
-                        <i class="start">zero</i>
-                        first
-                    </u>
+                    <u class="end"><i class="start">zero</i>first</u>
                 </strong>
                 second
             </p>
@@ -29,23 +26,20 @@ describe("Unwrap tag", () => {
 
         tag(wrapper, "STRONG", Action.Unwrap);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
              <p>
                 <strong>
                     <u class="end">
                         <i class="start">ze</i>
                     </u>
                 </strong>
-                <u class="end">
-                    <i class="start">ro</i>
-                    fi
-                </u>
+                <u class="end"><i class="start">ro</i>fi</u>
                 <strong>
                     <u class="end">rst</u>
                 </strong>
                 second
             </p>
-        `));
+        `);
     });
 
     test("Should unwrap strong from different li", () => {
@@ -63,22 +57,19 @@ describe("Unwrap tag", () => {
 
         tag(wrapper, "STRONG", Action.Unwrap);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first</li>
             </ul>
-        `));
+        `);
     });
 });
 
 describe("Wrap in tag", () => {
     test("Should wrap selection in italic", () => {
         const wrapper = createWrapper(`
-            <p class="end">
-                <strong class="start">zero</strong>
-                first
-            </p>
+            <p class="end"><strong class="start">zero</strong>first</p>
         `);
 
         const range = new Range();
@@ -88,13 +79,9 @@ describe("Wrap in tag", () => {
 
         tag(wrapper, "em", Action.Wrap);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
-            <p class="end">
-                <strong class="start">zero</strong>
-                <em>fi</em>
-                rst
-            </p>
-        `));
+        expectHtml(wrapper.innerHTML, `
+            <p class="end"><strong class="start">zero</strong><em>fi</em>rst</p>
+        `);
     });
 
     test("Should wrap selection from the different paragraphs in italic", () => {
@@ -113,20 +100,15 @@ describe("Wrap in tag", () => {
 
         tag(wrapper, "em", Action.Wrap);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
-            <p class="start">zer
-                <em>o</em>
-            </p>
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zer<em>o</em></p>
             <p>
                 <strong>
                     <em>first</em>
                 </strong>
             </p>
-            <p class="end">
-                <em>se</em>
-                cond
-            </p>
-        `));
+            <p class="end"><em>se</em>cond</p>
+        `);
     });
 
     test("Should wrap selection from different elements in bold", () => {
@@ -143,11 +125,9 @@ describe("Wrap in tag", () => {
 
         tag(wrapper, "strong", Action.Wrap);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
-            <p class="start">zer
-                <strong class="end">o first</strong>
-            </p>
-        `));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zer<strong class="end">o first</strong></p>
+        `);
     });
 
     test("Should wrap unordered list in bold", () => {
@@ -170,7 +150,7 @@ describe("Wrap in tag", () => {
 
         tag(wrapper, "strong", Action.Wrap);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <u class="start">fi</u>
@@ -182,12 +162,9 @@ describe("Wrap in tag", () => {
                 <li>
                     <strong>third</strong>
                 </li>
-                <li class="end">
-                    <strong>fo</strong>
-                    urth
-                </li>
+                <li class="end"><strong>fo</strong>urth</li>
             </ul>
-        `));
+        `);
     });
 
     test("Should wrap unordered list and paragraph in bold", () => {
@@ -205,17 +182,12 @@ describe("Wrap in tag", () => {
 
         tag(wrapper, "strong", Action.Wrap);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">ze
-                    <strong>ro</strong>
-                </li>
+                <li class="start">ze<strong>ro</strong></li>
             </ul>
-            <p class="end">
-                <strong>fi</strong>
-                rst
-            </p>
-        `));
+            <p class="end"><strong>fi</strong>rst</p>
+        `);
     });
 });
 
@@ -232,9 +204,9 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["H1"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <h1>zero</h1>
-        `));
+        `);
     });
 
     test("Should wrap strong in heading", () => {
@@ -251,11 +223,11 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["H1"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <h1>
                 <strong class="start">zero</strong>
             </h1>
-        `));
+        `);
     });
 
     test("Should wrap strong in unordered list", () => {
@@ -272,13 +244,13 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["UL", "LI"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>
                     <strong class="start">zero</strong>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should unwrap list to paragraph", () => {
@@ -301,14 +273,14 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["P"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
             </ul>
             <p>
                 <strong class="start">first</strong>
             </p>
-        `));
+        `);
     });
 
     test("Should change ordered list to paragraph", () => {
@@ -325,9 +297,9 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["P"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <p>zero</p>
-        `));
+        `);
     });
 
     test("Should wrap paragraph element to ordered list", () => {
@@ -345,12 +317,12 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["UL", "LI"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first</li>
             </ul>
-        `));
+        `);
     });
 
     test("Should change tag from the li to the paragraph", () => {
@@ -369,7 +341,7 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["P"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
             </ul>
@@ -377,7 +349,7 @@ describe("Change first level", () => {
             <ul>
                 <li>second</li>
             </ul>
-        `));
+        `);
     });
 
     // test("Should insert unordered list", () => {
@@ -410,9 +382,9 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["P"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <p>zero<br>first</p>
-        `));
+        `);
     });
 
     test("Should change list with strong to paragraph", () => {
@@ -432,12 +404,12 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["P"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <p>
                 <strong>zero</strong>
                 first
             </p>
-        `));
+        `);
     });
 
     test("Should change list with strong divided by br to paragraph", () => {
@@ -454,11 +426,11 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["P"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <p>
                 <strong>zero<br>first</strong>
             </p>
-        `));
+        `);
     });
 
     test("Should change nested lists to two paragraphs", () => {
@@ -479,10 +451,10 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["P"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <p>zero</p>
             <p>first</p>
-        `));
+        `);
     });
 
     test("Should change paragraph divided by br to list", () => {
@@ -497,11 +469,11 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["UL", "LI"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero<br>first</li>
             </ul>
-        `));
+        `);
     });
 
     test("Should change paragraph with strong tag to list", () => {
@@ -519,14 +491,14 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["UL", "LI"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <strong>first</strong>
                     second
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should change multiple lists to paragraph", () => {
@@ -545,11 +517,11 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["P"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <p>zero</p>
             <p>first</p>
             <p>second</p>
-        `));
+        `);
     });
 
     test("Should change inner unordered list to ordered", () => {
@@ -569,25 +541,23 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["OL"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <ol>
                     <li class="start">first</li>
                 </ol>
             </ul>
-        `));
+        `);
     });
 
     test("Should change flat ordered list to unordered", () => {
-        const wrapper = document.createElement("div");
-        wrapper.innerHTML = replaceSpaces(`
+        const wrapper = createWrapper(`
             <ul>
                 <li>zero</li>
                 <li class="start">first</li>
             </ul>
         `);
-        document.body.appendChild(wrapper);
 
         const range = new Range();
         range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
@@ -597,14 +567,14 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["OL"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
             </ul>
             <ol>
                 <li class="start">first</li>
             </ol>
-        `));
+        `);
     });
 
     test("Should change one of the nested ordered list to unordered", () => {
@@ -626,7 +596,7 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["UL"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -637,7 +607,7 @@ describe("Change first level", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should change parent ordered list to unordered", () => {
@@ -658,7 +628,7 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["UL"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li class="start">zero
                     <ol>
@@ -666,7 +636,7 @@ describe("Change first level", () => {
                     </ol>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should change paragraphs to list", () => {
@@ -682,12 +652,12 @@ describe("Change first level", () => {
 
         changeBlock(wrapper, ["UL", "LI"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first</li>
             </ul>
-        `));
+        `);
     });
 });
 
@@ -707,14 +677,11 @@ describe("Wrap in tag with attributes", () => {
             href: "http://www.briefeditor.com"
         });
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
-            <p class="start">
-                ze
-                <a href="http://www.briefeditor.com">ro</a>
-            </p>
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">ze<a href="http://www.briefeditor.com">ro</a></p>
             <p class="end">
                 <a href="http://www.briefeditor.com">first</a>
             </p>
-        `));
+        `);
     });
 });

@@ -11,31 +11,47 @@ import {
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 import {getNextNode} from "@/core/shared/element-util";
 
-export function isNextListNotNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
-    const lastList = lists[lists.length - 1];
-    if (!lastList) {
+export function isListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
+    const firstList = lists[0];
+    if (!firstList) {
         return true;
     }
-    if (!isSchemaContain(lastList, [Display.List])) {
+    if (!isSchemaContain(firstList, [Display.List])) {
         return true;
+    }
+    const listWrapperChildren = getDirectChildren(firstList, [Display.ListWrapper]);
+    if (listWrapperChildren.length) {
+        return true;
+    }
+
+    return false;
+}
+
+export function isNextListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
+    const lastList = lists[lists.length - 1];
+    if (!lastList) {
+        return false;
+    }
+    if (!isSchemaContain(lastList, [Display.List])) {
+        return false;
     }
     const listWrapperChildren = getDirectChildren(lastList, [Display.ListWrapper]);
     if (listWrapperChildren.length) {
-        return false;
+        return true;
     }
     const maybeNextList = getNextNode(contentEditable, lastList);
     if (!maybeNextList) {
-        return true;
+        return false;
     }
     const nestedLevel = countListWrapperParents(contentEditable, maybeNextList as HTMLElement);
     if (isSchemaContain(maybeNextList, [Display.List])) {
-        return nestedLevel === 1;
+        return nestedLevel !== 1;
     }
     if (isSchemaContain(maybeNextList, [Display.ListWrapper])) {
-        return nestedLevel === 0;
+        return nestedLevel !== 0;
     }
 
-    return true;
+    return false;
 }
 
 export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {

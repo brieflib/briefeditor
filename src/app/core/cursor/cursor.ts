@@ -1,7 +1,8 @@
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {findNodeAndOffset, isOutsideElement} from "@/core/cursor/util/cursor-util";
+import {findNodeAndOffset, isOutsideElement, isShift} from "@/core/cursor/util/cursor-util";
 import {getRange} from "@/core/shared/range-util";
 import {getPreviousNode} from "@/core/shared/element-util";
+import {getSelectedBlock} from "@/core/selection/selection";
 
 export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition | null {
     const range: Range = getRange();
@@ -66,26 +67,27 @@ export function restoreRange(contentEditable: HTMLElement, cursorPosition: Curso
     return range;
 }
 
-export function selectElement(element: HTMLElement) {
-    const selection = window.getSelection();
-    const range = document.createRange();
-
-    if (!selection) {
-        return;
-    }
-
-    range.selectNodeContents(element);
-    selection.removeAllRanges();
-    selection.addRange(range);
-}
-
-function isShift(previousText: Node | undefined, range: Range, container: Node, offset: number) {
-    if (!previousText) {
+export function isCursorAtEndOfBlock(contentEditable: HTMLElement, range = getRange()) {
+    if (!range.collapsed) {
         return false;
     }
 
-    const previousRangeStart: Range = range.cloneRange();
-    previousRangeStart.selectNodeContents(previousText);
-    previousRangeStart.setEnd(container, offset);
-    return range.startOffset === 0 && previousText?.textContent?.length === previousRangeStart.toString().length;
+    const block = getSelectedBlock(contentEditable)[0];
+    if (!block) {
+        return false;
+    }
+
+    const endRange: Range = range.cloneRange();
+    endRange.selectNodeContents(block);
+    endRange.setEnd(range.endContainer, range.endOffset);
+
+    const blockWithoutListWrappers = block.cloneNode(true) as HTMLElement;
+    const nestedListWrappers = blockWithoutListWrappers.querySelectorAll("ul, ol");
+    nestedListWrappers.forEach(listWrapper => {
+        listWrapper.remove();
+    });
+    const endOffset = endRange.toString().length;
+    const elementLength = blockWithoutListWrappers.textContent.length;
+
+    return endOffset === elementLength;
 }

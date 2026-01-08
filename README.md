@@ -2,15 +2,14 @@
 
 **Work in progress**
 
-A minimal, zero-Dependency WYSIWYG text editor for modern web applications. BriefEditor is a lightweight, performant,
-and secure rich text editor built entirely with vanilla TypeScript. No frameworks, no dependencies, just pure, fast
-JavaScript that works anywhere.
+BriefEditor is a lightweight, performant, and secure rich text editor built entirely with vanilla TypeScript. No
+frameworks, no dependencies, just pure, fast JavaScript that works anywhere.
 
 ## ✨ Features
 
 ### 🎨 Core Formatting
 
-* Bold, Italic, Underline text styling
+* Bold, italic, underline text styling
 * Multiple heading levels
 * Blockquotes
 * Ordered and unordered lists
@@ -90,7 +89,8 @@ You can use BriefEditor without toolbar. It provides an API for managing content
 
 |Method|Description|
 |---|----|
-|`toggleTag(tagName: string, attributes?: {})`|Adds or removes a node. Attributes is an object with **class**, **href** and **image** keys|
+|`toggleTag(tagName: string, attributes?: {})`|Adds or removes a node. Attributes is an object with **class**, **
+href** and **image** keys|
 |`changeAttribute(tagName: string, attributes?: {})`|Adds or removes an attribute|
 |`plusIndent()`|Plus indent list item|
 |`minusIndent()`|Minus indent list item|

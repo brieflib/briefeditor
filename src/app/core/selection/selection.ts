@@ -2,7 +2,8 @@ import {
     filterListWrapperTag,
     getParentTags,
     getSelected,
-    getSelectedLeaves, SelectionType
+    getSelectedLeaves,
+    SelectionType
 } from "@/core/selection/util/selection-util";
 import {getRange} from "@/core/shared/range-util";
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
@@ -55,4 +56,17 @@ export function getSelectedParentElements(range: Range) {
 export function getInitialBlocks(contentEditable: HTMLElement, initialCursorPosition: CursorPosition) {
     const initialRange = restoreRange(contentEditable, initialCursorPosition);
     return getSelectedBlock(contentEditable, initialRange);
+}
+
+export function selectElement(element: HTMLElement) {
+    const selection = window.getSelection();
+    const range = document.createRange();
+
+    if (!selection) {
+        return;
+    }
+
+    range.selectNodeContents(element);
+    selection.removeAllRanges();
+    selection.addRange(range);
 }

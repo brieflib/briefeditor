@@ -46,3 +46,14 @@ export function isOutsideElement(element: HTMLElement, start: Node, end: Node): 
 
     return startParent.nodeName === "HTML" || endParent.nodeName === "HTML"
 }
+
+export function isShift(previousText: Node | undefined, range: Range, container: Node, offset: number) {
+    if (!previousText) {
+        return false;
+    }
+
+    const previousRangeStart: Range = range.cloneRange();
+    previousRangeStart.selectNodeContents(previousText);
+    previousRangeStart.setEnd(container, offset);
+    return range.startOffset === 0 && previousText?.textContent?.length === previousRangeStart.toString().length;
+}

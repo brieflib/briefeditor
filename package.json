@@ -1,10 +1,10 @@
 {
   "name": "briefeditor",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Minimal WYSIWYG text editor for the web with no dependencies",
   "license": "MIT",
   "author": "Artem Tsukerman",
-  "homepage": "https://briefeditor.io",
+  "homepage": "https://www.briefeditor.io",
   "keywords": [
     "briefeditor",
     "editor",

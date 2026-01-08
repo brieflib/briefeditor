@@ -1,7 +1,7 @@
 import {getRange} from "@/core/shared/range-util";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
-import {createWrapper, getFirstChild, replaceSpaces} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -22,12 +22,12 @@ describe("Exec command with different cursor position", () => {
 
         execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <p class="start">
                 <strong>zero</strong>
             </p>
             <p class="end">first</p>
-        `));
+        `);
     });
 
     test("Should change paragraph to unordered list", () => {
@@ -43,20 +43,17 @@ describe("Exec command with different cursor position", () => {
 
         execCommand(wrapper, {action: Action.List, tag: "UL"});
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
             </ul>
             <p class="end">first</p>
-        `));
+        `);
     });
 
     test("Should change paragraphs to unordered list with a text element", () => {
         const wrapper = createWrapper(`
-            <p>
-                <strong class="start">zero</strong> 
-                first
-            </p>
+            <p><strong class="start">zero</strong>first</p>
             <p>
                 <strong class="end">second</strong>
             </p>
@@ -69,17 +66,14 @@ describe("Exec command with different cursor position", () => {
 
         execCommand(wrapper, {action: Action.List, tag: "UL"});
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>
-                    <strong class="start">zero</strong>
-                    first
-                </li>
+                <li><strong class="start">zero</strong>first</li>
                 <li>
                     <strong class="end">second</strong>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should change ordered list to unordered list when cursor is at start", () => {
@@ -101,7 +95,7 @@ describe("Exec command with different cursor position", () => {
 
         execCommand(wrapper, {action: Action.List, tag: "UL"});
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -112,7 +106,7 @@ describe("Exec command with different cursor position", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 });
 
@@ -135,10 +129,10 @@ describe("Link command", () => {
             }
         });
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <p>
                 <a href="first">zero <em class="start">first</em></a>
             </p>
-        `));
+        `);
     });
 });

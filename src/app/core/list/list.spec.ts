@@ -1,6 +1,6 @@
 import {getRange} from "@/core/shared/range-util";
 import {isMinusIndentEnabled, isPlusIndentEnabled, minusIndent, plusIndent} from "@/core/list/list";
-import {createWrapper, getFirstChild, getLastChild, replaceSpaces} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -146,7 +146,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ul>
@@ -155,7 +155,7 @@ describe("Plus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should indent one direct descendent lists when cursor at the end of the first", () => {
@@ -174,7 +174,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li class="start">first
@@ -183,7 +183,7 @@ describe("Plus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should indent list with nested list", () => {
@@ -206,7 +206,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ul>
@@ -217,7 +217,7 @@ describe("Plus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should indent middle list", () => {
@@ -244,7 +244,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first
@@ -255,7 +255,7 @@ describe("Plus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should indent two lists with different nesting level", () => {
@@ -278,7 +278,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ul>
@@ -291,7 +291,7 @@ describe("Plus indent", () => {
                     </ul>
                 </li>          
             </ul>
-        `));
+        `);
     });
 
     test("Should indent an ordered list located after an unordered list", () => {
@@ -311,7 +311,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -319,7 +319,7 @@ describe("Plus indent", () => {
                     </ol>
                 </li>          
             </ul>
-        `));
+        `);
     });
 
     test("Should indent an ordered list (with child) located after an unordered list", () => {
@@ -343,7 +343,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -352,7 +352,7 @@ describe("Plus indent", () => {
                     </ol>
                 </li>          
             </ul>
-        `));
+        `);
     });
 
     test("Should indent list containing an ordered list", () => {
@@ -374,7 +374,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ul>
@@ -385,7 +385,7 @@ describe("Plus indent", () => {
                     </ol>
                 </li>         
             </ul>
-        `));
+        `);
     });
 
     test("Should indent an ordered list after an unordered list", () => {
@@ -406,7 +406,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -417,7 +417,7 @@ describe("Plus indent", () => {
             <ol>
                 <li>second</li>
             </ol>
-        `));
+        `);
     });
 
     test("Should indent last ordered list after an unordered list", () => {
@@ -438,7 +438,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
             </ul>
@@ -449,7 +449,7 @@ describe("Plus indent", () => {
                     </ol>               
                 </li>
             </ol>
-        `));
+        `);
     });
 
     test("Should indent list wrappers with different types", () => {
@@ -476,7 +476,7 @@ describe("Plus indent", () => {
 
         plusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -491,7 +491,7 @@ describe("Plus indent", () => {
                     </ol>
                 </li>
             </ul>
-        `));
+        `);
     });
 });
 
@@ -675,7 +675,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first</li>
@@ -686,7 +686,7 @@ describe("Minus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should minus indent middle nested list", () => {
@@ -710,7 +710,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first
@@ -724,7 +724,7 @@ describe("Minus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should minus indent last nested list", () => {
@@ -747,7 +747,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first
@@ -757,7 +757,7 @@ describe("Minus indent", () => {
                 </li>
                 <li class="start">third</li>
             </ul>
-        `));
+        `);
     });
 
     test("Should minus indent lists with different nesting level", () => {
@@ -783,7 +783,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first</li>
@@ -793,7 +793,7 @@ describe("Minus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should minus indent lists with different nesting level and additional previous list", () => {
@@ -820,7 +820,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first
@@ -834,7 +834,7 @@ describe("Minus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should minus indent for some lists with different nesting level", () => {
@@ -861,7 +861,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first</li>
@@ -875,7 +875,7 @@ describe("Minus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should minus indent first ordered list located inside unordered list", () => {
@@ -897,7 +897,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
             </ul>
@@ -908,7 +908,7 @@ describe("Minus indent", () => {
                     </ol>
                 </li>
             </ol>
-        `));
+        `);
     });
 
     test("Should minus indent two ordered list inside unordered list", () => {
@@ -930,7 +930,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
             </ul>
@@ -938,7 +938,7 @@ describe("Minus indent", () => {
                 <li class="start">first</li>
                 <li class="end">second</li>
             </ol>
-        `));
+        `);
     });
 
     test("Should minus indent middle ordered list inside unordered list", () => {
@@ -963,7 +963,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first
@@ -982,7 +982,7 @@ describe("Minus indent", () => {
             <ul>
                 <li>fifth</li>
             </ul>
-        `));
+        `);
     });
 
     test("Should minus indent nested unordered list located before ordered list", () => {
@@ -1010,7 +1010,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -1025,7 +1025,7 @@ describe("Minus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should minus indent multiple nested unordered list with different node names", () => {
@@ -1053,7 +1053,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -1067,7 +1067,7 @@ describe("Minus indent", () => {
                     </ol>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should minus indent for nested list wrappers with different types", () => {
@@ -1097,7 +1097,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li>first</li>
@@ -1113,7 +1113,7 @@ describe("Minus indent", () => {
                     </ul>
                 </li>
             </ol>
-        `));
+        `);
     });
 
     test("Should minus indent for nested list wrappers with different types and nested levels", () => {
@@ -1148,7 +1148,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -1169,7 +1169,7 @@ describe("Minus indent", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should minus indent two same level different type lists", () => {
@@ -1196,7 +1196,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
             </ul>
@@ -1210,7 +1210,7 @@ describe("Minus indent", () => {
                     </ol>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Move nested lis to same level list wrapper", () => {
@@ -1240,7 +1240,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>zero
                     <ol>
@@ -1254,7 +1254,7 @@ describe("Minus indent", () => {
                     </ol>
                 </li>
             </ol>
-        `));
+        `);
     });
 
     test("Move nested li to same level list wrapper", () => {
@@ -1284,7 +1284,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>zero
                     <ol>
@@ -1298,7 +1298,7 @@ describe("Minus indent", () => {
                     </ol>
                 </li>
             </ol>
-        `));
+        `);
     });
 
     test("Minus indent with strong tag inside li", () => {
@@ -1322,7 +1322,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>zero</li>
                 <li class="start">
@@ -1330,7 +1330,7 @@ describe("Minus indent", () => {
                     rst
                 </li>
             </ol>
-        `));
+        `);
     });
 
     test("Minus indent for deep nested li in mixed list", () => {
@@ -1359,7 +1359,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -1374,7 +1374,7 @@ describe("Minus indent", () => {
                     </ol>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Minus indent for ol inside li in mixed list", () => {
@@ -1402,7 +1402,7 @@ describe("Minus indent", () => {
 
         minusIndent(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -1415,6 +1415,6 @@ describe("Minus indent", () => {
                     </ol>
                 </li>
             </ul>
-        `));
+        `);
     });
 });

@@ -1,4 +1,4 @@
-import {createWrapper, getFirstChild, replaceSpaces} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import BriefEditor from "@/brief-editor";
 
@@ -30,11 +30,11 @@ describe("BriefEditor API", () => {
 
         briefEditor.toggleTag("EM", {class: "zero"});
 
-        expect(wrapper.querySelector("#be-editor")?.innerHTML).toBe(replaceSpaces(`
+        expectHtml((wrapper.querySelector("#be-editor") as HTMLElement).innerHTML, `
             <span class="start">
                 <em class="zero">zero</em>
             </span>
-        `));
+        `);
     });
 
     test("Should change first level and add class", () => {
@@ -59,11 +59,11 @@ describe("BriefEditor API", () => {
 
         briefEditor.toggleTag("P", {class: "zero"});
 
-        expect(wrapper.querySelector("#be-editor")?.innerHTML).toBe(replaceSpaces(`
+        expectHtml((wrapper.querySelector("#be-editor") as HTMLElement).innerHTML, `
             <p class="zero">
                 <em class="start">zero</em>
             </p>            
-        `));
+        `);
     });
 
     test("Should wrap in A tag and add href and class", () => {
@@ -86,13 +86,13 @@ describe("BriefEditor API", () => {
 
         briefEditor.toggleTag("A", {class: "zero", href: "zero"});
 
-        expect(wrapper.querySelector("#be-editor")?.innerHTML).toBe(replaceSpaces(`
+        expectHtml((wrapper.querySelector("#be-editor") as HTMLElement).innerHTML, `
             <p>
                 <a class="zero" href="zero">
                     <em class="start">zero</em>
                 </a>
             </p>                   
-        `));
+        `);
     });
 
     test("Should wrap in ordered list and set class", () => {
@@ -117,13 +117,13 @@ describe("BriefEditor API", () => {
 
         briefEditor.toggleTag("ol", {class: "zero"});
 
-        expect(wrapper.querySelector("#be-editor")?.innerHTML).toBe(replaceSpaces(`
+        expectHtml((wrapper.querySelector("#be-editor") as HTMLElement).innerHTML, `
             <ol class="zero">
                 <li>
                     <em class="start">zero</em>
                 </li>
             </ol>
-        `));
+        `);
     });
 
     test("Should set class attribute", () => {
@@ -146,10 +146,10 @@ describe("BriefEditor API", () => {
 
         briefEditor.changeAttribute("em", {class: "zero"});
 
-        expect(wrapper.querySelector("#be-editor")?.innerHTML).toBe(replaceSpaces(`
+        expectHtml((wrapper.querySelector("#be-editor") as HTMLElement).innerHTML, `
             <p>
                 <em class="zero">zero</em>
             </p>
-        `));
+        `);
     });
 });

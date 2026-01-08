@@ -1,6 +1,7 @@
-import {createWrapper, replaceSpaces} from "@/core/shared/test-util";
+import {createWrapper, expectHtml} from "@/core/shared/test-util";
 import {
-    getLisWithFirstChildListWrapper, moveListWrappersOutOfLi,
+    getLisWithFirstChildListWrapper,
+    moveListWrappersOutOfLi,
     moveListWrapperToPreviousLi
 } from "@/core/list/util/list-util";
 import normalize from "@/core/normalize/normalize";
@@ -19,7 +20,7 @@ describe("Move elements after normalization to conform list structure", () => {
 
         moveListWrapperToPreviousLi(wrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ul>
@@ -28,7 +29,7 @@ describe("Move elements after normalization to conform list structure", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Move second level list wrapper to li in previous list wrapper", () => {
@@ -46,7 +47,7 @@ describe("Move elements after normalization to conform list structure", () => {
         const secondLevelListWrapper = wrapper.querySelector(".start") as HTMLElement;
         moveListWrapperToPreviousLi(secondLevelListWrapper);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
@@ -54,7 +55,7 @@ describe("Move elements after normalization to conform list structure", () => {
                     </ol>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Select lis with first child list wrapper", () => {
@@ -101,7 +102,7 @@ describe("Move elements after normalization to conform list structure", () => {
         moveListWrappersOutOfLi(wrapper, root);
         normalize(wrapper, root);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul class="start">
                 <li>zero
                     <ul>
@@ -109,7 +110,7 @@ describe("Move elements after normalization to conform list structure", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should move deeper ul to ul in previous li", () => {
@@ -137,7 +138,7 @@ describe("Move elements after normalization to conform list structure", () => {
         moveListWrappersOutOfLi(wrapper, root);
         normalize(wrapper, root);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul class="start">
                 <li>zero
                     <ul>
@@ -149,7 +150,7 @@ describe("Move elements after normalization to conform list structure", () => {
                     </ul>
                 </li>
             </ul>
-        `));
+        `);
     });
 
     test("Should move nested ol to previous ol", () => {
@@ -173,7 +174,7 @@ describe("Move elements after normalization to conform list structure", () => {
         moveListWrappersOutOfLi(wrapper, root);
         normalize(wrapper, root);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
             </ul>
@@ -184,6 +185,6 @@ describe("Move elements after normalization to conform list structure", () => {
                     </ol>
                 </li>
             </ol>
-        `));
+        `);
     });
 });

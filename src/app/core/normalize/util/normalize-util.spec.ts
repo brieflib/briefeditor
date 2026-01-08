@@ -8,7 +8,7 @@ import {
     sortLeafParents
 } from "@/core/normalize/util/normalize-util";
 import {Leaf} from "@/core/normalize/type/leaf";
-import {createWrapper, getFirstChild, replaceSpaces} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
 
 test("Should find all leaves", () => {
     const wrapper = createWrapper(`
@@ -24,8 +24,8 @@ test("Should find all leaves", () => {
 
     expect(leaves[0]?.textContent).toBe("zero");
     expect(leaves[1]?.textContent).toBe("first");
-    expect(leaves[2]?.textContent).toBe("second");
-    expect(leaves[3]?.textContent).toBe("third");
+    expect(leaves[2]?.textContent).toBe(" second ");
+    expect(leaves[3]?.textContent).toBe(" third");
 });
 
 test("Should find all leaf's parents", () => {
@@ -243,5 +243,5 @@ function createLeafFromNode(element: Node, nodeNames: string[]) {
 
 function testCollapse(toCollapse: Leaf[], result: string) {
     const collapsed = collapseLeaves(toCollapse);
-    expect(replaceSpaces((collapsed.firstChild as HTMLElement).innerHTML)).toBe(replaceSpaces(result));
+    expectHtml((collapsed.firstChild as HTMLElement).innerHTML, result);
 }

@@ -162,17 +162,37 @@ be-editor-layout :where(ul) {
 be-editor-layout :where(ol) {
     padding-inline-start: 1.75em;
     list-style-type: decimal;
+    counter-reset: list-counter;
 }
 
-be-editor-layout :where(ul > li, ol > li) {
+be-editor-layout :where(ul > li) {
+    display: block;
+    line-height: 1.46;
     padding-inline-start: .375em;
 }
 
-be-editor-layout :where(ul > li)::marker {
+be-editor-layout :where(ol > li) {
+    display: block;
+    line-height: 1.75;
+    padding-inline-start: .375em;
+    counter-increment: list-counter;
+}
+
+be-editor-layout :where(ul > li)::before {
+    content: "•";
+    font-size: 1.2em;
+    margin-left: -1.2em;
+    width: 1.2em;
+    display: inline-block;
     color: var(--color-gray-300);
 }
 
-be-editor-layout :where(ol > li)::marker {
+be-editor-layout :where(ol > li)::before {
+    content: counter(list-counter)".";
+    font-size: 1em;
+    margin-left: -1.5em;
+    width: 1.5em;
+    display: inline-block;
     color: var(--color-gray-500);
 }
 

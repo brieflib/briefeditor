@@ -73,3 +73,58 @@ export function getFirstText(node: Node) {
 
     return node;
 }
+
+export function cleanElementWhitespace(element: HTMLElement) {
+    Array.from(element.childNodes).forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            const textContent = node.textContent;
+            if (textContent) {
+                node.textContent = textContent.replace(/ +/g, " ");
+            }
+        }
+
+        if (isSchemaContain(element, [Display.List]) &&
+            node.nodeType === Node.TEXT_NODE &&
+            isSchemaContain(node.nextSibling, [Display.ListWrapper])) {
+            const textContent = node.textContent
+            if (textContent) {
+                node.textContent = textContent.trimEnd();
+            }
+        }
+
+        if (isSchemaContain(element, [Display.FirstLevel, Display.List]) &&
+            !node.nextSibling &&
+            node.nodeType === Node.TEXT_NODE) {
+            const textContent = node.textContent;
+            if (textContent) {
+                node.textContent = textContent.trimEnd();
+            }
+        }
+
+        if (isSchemaContain(element, [Display.FirstLevel, Display.List]) &&
+            !node.previousSibling &&
+            node.nodeType === Node.TEXT_NODE) {
+            const textContent = node.textContent;
+            if (textContent) {
+                node.textContent = textContent.trimStart();
+            }
+        }
+
+        if (node.nodeType === Node.TEXT_NODE &&
+            node.textContent?.trim() === "") {
+            node.remove();
+        }
+    });
+
+    element.querySelectorAll("*").forEach(child => {
+        cleanElementWhitespace(child as HTMLElement);
+    });
+}
+
+export function pasteParagraph(contentEditable: HTMLElement) {
+    if (!contentEditable.firstChild) {
+        const p = document.createElement("p");
+        p.innerHTML = "<br>";
+        contentEditable.appendChild(p);
+    }
+}

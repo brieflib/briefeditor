@@ -1,6 +1,5 @@
 import "/asset/global.css";
 import Editor from "@/component/editor/editor";
-import Toolbar from "@/component/toolbar/toolbar";
 import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
@@ -19,14 +18,9 @@ export default class BriefEditor {
         if (!contentEditable) {
             throw new Error("There is no #be-editor");
         }
-        const contentEditableHTML = contentEditable as HTMLElement;
-        const editor = new Editor(contentEditableHTML, settings?.hasToolbar);
-        if (settings?.hasToolbar) {
-            new Toolbar(contentEditableHTML, editor);
-        }
+        new Editor(contentEditable as HTMLElement, settings);
 
-        this.contentEditableElement = contentEditableHTML;
-        this.cleanElementWhitespace(contentEditableHTML);
+        this.contentEditableElement = contentEditable as HTMLElement;
     }
 
     public toggleTag(tagName: string, attributes?: {}) {
@@ -78,18 +72,5 @@ export default class BriefEditor {
         }
 
         return Action.Tag;
-    }
-
-    private cleanElementWhitespace(element: HTMLElement) {
-        Array.from(element.childNodes).forEach(node => {
-            if (node.nodeType === Node.TEXT_NODE &&
-                node.textContent?.trim() === '') {
-                node.remove();
-            }
-        });
-
-        element.querySelectorAll("*").forEach(child => {
-            this.cleanElementWhitespace(child as HTMLElement);
-        });
     }
 }

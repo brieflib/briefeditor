@@ -1,12 +1,12 @@
 import {getRange} from "@/core/shared/range-util";
-import normalize, {normalizeRootElements, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {getElement, getRootElement} from "@/core/shared/element-util";
+import {normalizeRootElements, removeTags, replaceTags} from "@/core/normalize/normalize";
+import {getElement} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {
     getInitialBlocks,
     getSelectedBlock,
-    getSelectedParentElements,
-    getSelectedListWrapper
+    getSelectedListWrapper,
+    getSelectedParentElements
 } from "@/core/selection/selection";
 import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 import {Action, Attributes} from "@/core/command/type/command";

@@ -1,21 +1,15 @@
 import normalize, {appendTags, removeDistantTags, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {createWrapper, getLastChild, replaceSpaces} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getLastChild, testNormalize} from "@/core/shared/test-util";
 
 describe("Should normalize tags", () => {
     test("Should sort tags by priority", () => {
         testNormalize(`
             <strong>zero</strong>
-            <em>
-                <strong>first</strong>
-                second
-            </em>
+            <em><strong>first</strong>second</em>
             third
         `,
             `
-            <strong>
-                zero 
-                <em>first</em>
-            </strong>
+            <strong>zero<em>first</em></strong>
             <em>second</em>
             third
         `);
@@ -83,7 +77,7 @@ describe("Should normalize tags", () => {
                 </strong>
             </strong>`,
             `
-            <strong>zero first 
+            <strong>zero first
                 <em>second</em>
             </strong>
         `);
@@ -101,7 +95,7 @@ describe("Should normalize tags", () => {
                 </strong>
             </div>`,
             `
-            <div>zero 
+            <div>zero
                 <strong>first second</strong>
             </div>
         `);
@@ -148,8 +142,7 @@ describe("Should normalize tags", () => {
         testNormalize(`
             <ul>
                 <li>zero</li>
-            </ul>
-            <ul>
+            </ul><ul>
                 <li>first</li>
             </ul>`,
             `
@@ -186,19 +179,15 @@ describe("Should normalize tags", () => {
 
     test("Should remove empty tags", () => {
         const wrapper = createWrapper(`
-            <div class="start">zero
-                <ul>
-                    <li></li>
-                </ul>
-            </div>
+            <div class="start">zero<ul><li></li></ul></div>
         `);
 
         const div = wrapper.querySelector(".start") as HTMLElement;
         normalize(wrapper, div);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <div class="start">zero</div>
-        `));
+        `);
     });
 
     test("Should preserve paragraphs duplication", () => {
@@ -222,10 +211,7 @@ describe("Should remove tags", () => {
     test("Should remove strong tag from text", () => {
         const wrapper = createWrapper(`
             <strong>
-                <u class="start">
-                    <i>zero</i>
-                    first
-                </u>
+                <u class="start"><i>zero</i>first</u>
             </strong>
             second
         `);
@@ -233,7 +219,7 @@ describe("Should remove tags", () => {
         const toRemove = getLastChild(wrapper, ".start") as HTMLElement;
         removeTags(wrapper, toRemove, ["STRONG"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <strong>
                 <u class="start">
                     <i>zero</i>
@@ -241,7 +227,7 @@ describe("Should remove tags", () => {
             </strong>
             <u class="start">first</u>
             second
-        `));
+        `);
     });
 
     test("Should remove strong tag from div", () => {
@@ -261,20 +247,17 @@ describe("Should remove tags", () => {
         const toRemove = wrapper.querySelector(".start");
         removeTags(wrapper, toRemove as HTMLElement, ["STRONG"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <strong>
                 <u>
                     <i>zero</i>
                 </u>
             </strong>
             <div class="start">
-                <u>
-                    <span>first</span>
-                    second
-                </u>
+                <u><span>first</span>second</u>
             </div>
             third
-        `));
+        `);
     });
 
     test("Should remove distant UL and LI", () => {
@@ -292,12 +275,12 @@ describe("Should remove tags", () => {
         const toRemove = wrapper.querySelector(".first") as HTMLElement;
         removeDistantTags(wrapper, ul, [toRemove], ["UL", "LI"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
                 <li class="first">first</li>
             </ul>
-        `));
+        `);
     });
 });
 
@@ -319,7 +302,7 @@ describe("Should replace tags", () => {
         const toReplace = wrapper.querySelector(".start") as HTMLElement;
         replaceTags(wrapper, toReplace, ["DIV"], ["UL", "LI"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <strong>
                 <u>
                     <i>zero</i>
@@ -340,7 +323,7 @@ describe("Should replace tags", () => {
                 </li>
             </ul>
             third
-        `));
+        `);
     });
 });
 
@@ -355,7 +338,7 @@ describe("Should append tags", () => {
         const toAppend = wrapper.querySelector(".start") as HTMLElement;
         appendTags(wrapper, toAppend, ["UL", "LI"]);
 
-        expect(wrapper.innerHTML).toBe(replaceSpaces(`
+        expectHtml(wrapper.innerHTML, `
             <p>
                 <ul>
                     <li>
@@ -363,16 +346,6 @@ describe("Should append tags", () => {
                     </li>
                 </ul>
             </p>
-        `));
+        `);
     });
 });
-
-function testNormalize(initial: string, result: string) {
-    const wrapper = document.createElement("div");
-    const toNormalize = document.createElement("div");
-    toNormalize.innerHTML = replaceSpaces(initial);
-    wrapper.appendChild(toNormalize);
-
-    normalize(toNormalize, toNormalize);
-    expect(wrapper.innerHTML).toBe(replaceSpaces(result));
-}
