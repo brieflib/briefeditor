@@ -89,8 +89,7 @@ You can use BriefEditor without toolbar. It provides an API for managing content
 
 |Method|Description|
 |---|----|
-|`toggleTag(tagName: string, attributes?: {})`|Adds or removes a node. Attributes is an object with **class**, **
-href** and **image** keys|
+|`toggleTag(tagName: string, attributes?: {})`|Adds or removes a node. Attributes is an object with **class**, **href** and **image** keys|
 |`changeAttribute(tagName: string, attributes?: {})`|Adds or removes an attribute|
 |`plusIndent()`|Plus indent list item|
 |`minusIndent()`|Minus indent list item|

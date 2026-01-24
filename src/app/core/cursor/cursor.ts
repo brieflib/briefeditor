@@ -3,6 +3,7 @@ import {findNodeAndOffset, isOutsideElement, isShift} from "@/core/cursor/util/c
 import {getRange} from "@/core/shared/range-util";
 import {getPreviousNode} from "@/core/shared/element-util";
 import {getSelectedBlock} from "@/core/selection/selection";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition | null {
     const range: Range = getRange();
@@ -35,8 +36,8 @@ export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition
     };
 }
 
-export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    const range: Range = restoreRange(contentEditable, cursorPosition);
+export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: CursorPosition, isShiftEnabled = true) {
+    const range: Range = restoreRange(contentEditable, cursorPosition, isShiftEnabled);
     const selection: Selection | null = window.getSelection();
     if (!selection) {
         return;
@@ -45,12 +46,12 @@ export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: 
     selection.addRange(range);
 }
 
-export function restoreRange(contentEditable: HTMLElement, cursorPosition: CursorPosition): Range {
+export function restoreRange(contentEditable: HTMLElement, cursorPosition: CursorPosition, isShiftEnabled = true): Range {
     const range: Range = getRange().cloneRange();
     range.selectNode(contentEditable);
 
-    const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset, cursorPosition.isStartShift);
-    const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset, cursorPosition.isEndShift);
+    const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset, cursorPosition.isStartShift && isShiftEnabled);
+    const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset, cursorPosition.isEndShift && isShiftEnabled);
 
     if (start.node) {
         range.setStart(start.node, start.offset);
@@ -81,13 +82,46 @@ export function isCursorAtEndOfBlock(contentEditable: HTMLElement, range = getRa
     endRange.selectNodeContents(block);
     endRange.setEnd(range.endContainer, range.endOffset);
 
+    const endOffset = endRange.toString().length;
+    if (!isSchemaContain(block, [Display.List])) {
+        return endOffset === block.textContent.length;
+    }
+
     const blockWithoutListWrappers = block.cloneNode(true) as HTMLElement;
     const nestedListWrappers = blockWithoutListWrappers.querySelectorAll("ul, ol");
     nestedListWrappers.forEach(listWrapper => {
         listWrapper.remove();
     });
-    const endOffset = endRange.toString().length;
     const elementLength = blockWithoutListWrappers.textContent.length;
 
     return endOffset === elementLength;
+}
+
+export function isCursorAtStartOfBlock(contentEditable: HTMLElement, range = getRange()) {
+    if (!range.collapsed) {
+        return false;
+    }
+
+    const block = getSelectedBlock(contentEditable)[0];
+    if (!block) {
+        return false;
+    }
+
+    const startRange: Range = range.cloneRange();
+    startRange.selectNodeContents(block);
+    startRange.setStart(range.startContainer, range.startOffset);
+
+    const endRange: Range = range.cloneRange();
+    endRange.selectNodeContents(block);
+    endRange.setEnd(range.endContainer, range.endOffset);
+
+    return endRange.toString().length === 0;
+}
+
+export function isCursorIntersectBlocks(contentEditable: HTMLElement, range = getRange()) {
+    if (range.collapsed) {
+        return false;
+    }
+
+    return getSelectedBlock(contentEditable).length > 1;
 }

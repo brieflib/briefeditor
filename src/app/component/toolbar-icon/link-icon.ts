@@ -10,8 +10,6 @@ import {getRange, isRangeIn} from "@/core/shared/range-util";
 import {CursorPosition, isCursorPositionEqual} from "@/core/cursor/type/cursor-position";
 import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
 
-new Tooltip();
-
 class LinkIcon extends HTMLElement implements Icon {
     private contentEditableElement?: HTMLElement;
     private readonly button: HTMLElement;
@@ -25,6 +23,9 @@ class LinkIcon extends HTMLElement implements Icon {
 
     constructor() {
         super();
+
+        new Tooltip();
+
         const shadowRoot = initShadowRoot(this, toolbarIconCss);
         shadowRoot.innerHTML = `
           <button type="button" class="icon" id="button" disabled>
@@ -84,16 +85,12 @@ class LinkIcon extends HTMLElement implements Icon {
                 this.cursorPosition = cursorPosition;
                 this.closeTooltip();
             }
-            range = getRange().cloneRange();
-            const link = getSelectedLink(this.getContentEditableSafe(), range)[0];
-            const linkLength = range.endContainer.textContent?.length ?? range.endOffset;
-            const href = link?.getAttribute("href") ?? "";
 
+            range = getRange().cloneRange();
             if (this.isLinkSelected() && range.collapsed) {
-                range.setEnd(range.endContainer, linkLength);
-                const rect = range.getBoundingClientRect();
-                const left = -rect.width;
-                this.openTooltip(href, linkLength, left);
+                const link = getSelectedLink(this.getContentEditableSafe(), range)[0];
+                const href = link?.getAttribute("href") ?? "";
+                this.openTooltip(href);
             }
         });
 
@@ -110,9 +107,7 @@ class LinkIcon extends HTMLElement implements Icon {
 
             const link = getSelectedLink(this.getContentEditableSafe(), range)[0];
             const href = link?.getAttribute("href") ?? "";
-            const rect = range.getBoundingClientRect();
-            const left = -rect.width / 2;
-            this.openTooltip(href, range.endOffset, left);
+            this.openTooltip(href);
             this.input.focus();
         });
 
@@ -133,10 +128,9 @@ class LinkIcon extends HTMLElement implements Icon {
         return getSelectedSharedTags(this.getContentEditableSafe()).includes("A");
     }
 
-    private openTooltip(href: string, endOffset: number, left: number) {
+    private openTooltip(href: string) {
         this.input.value = href;
-        const leftPx = `${left}px`;
-        this.tooltip.open(endOffset, leftPx);
+        this.tooltip.open();
         this.isOpen = true;
     }
 

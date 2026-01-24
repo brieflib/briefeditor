@@ -1,7 +1,7 @@
 .be-tooltip-wrapper {
     opacity: 0;
     visibility: hidden;
-    position: relative;
+    position: absolute;
     bottom: .75em;
 }
 

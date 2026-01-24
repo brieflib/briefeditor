@@ -69,6 +69,11 @@ be-editor-layout {
 
 /* Element styles */
 
+be-editor-layout .be-editor :where(div, p, h1, h2, h3, h4, h5, h6, blockquote, li) {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
 be-editor-layout {
     font-family: sans-serif;
     line-height: 1.75;
@@ -199,19 +204,6 @@ be-editor-layout :where(ol > li)::before {
 be-editor-layout :where(li) {
     margin-top: .75em;
     margin-bottom: .75em;
-}
-
-be-editor-layout :where(input.be-link-input) {
-    padding: 0 0.5em;
-    width: 15em;
-    height: 2.5em;
-    border-radius: 0.375em;
-    color: #0000EE;
-}
-
-be-editor-layout :where(be-tooltip) {
-    display: inline-flex;
-    align-items: baseline;
 }
 
 be-editor-layout :where(img) {

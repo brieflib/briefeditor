@@ -95,3 +95,13 @@ button[disabled] .icon-svg {
 .be-image-input {
     display: none;
 }
+
+.be-link-input {
+    border: none;
+    outline: none;
+    padding: 0 0.5em;
+    width: 15em;
+    height: 2.5em;
+    border-radius: 0.375em;
+    color: #0000EE;
+}

@@ -113,6 +113,7 @@ function getPreviousLi(li: Element, previousLi?: Element): Element | null | unde
 
     return null;
 }
+
 function moveToPreviousLi(listWrapper: Element) {
     const previousLi = listWrapper.previousElementSibling;
     if (previousLi && isSchemaContain(previousLi, [Display.List])) {

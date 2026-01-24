@@ -158,18 +158,18 @@ describe("Plus indent", () => {
         `);
     });
 
-    test("Should indent one direct descendent lists when cursor at the end of the first", () => {
+    test("Should indent one direct descendent lists", () => {
         const wrapper = createWrapper(`
             <ul>
                 <li>zero</li>
-                <li class="start">first</li>
-                <li class="end">second</li>
+                <li>first</li>
+                <li class="start">second</li>
             </ul>
         `);
 
         const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
+        range.setStart(getFirstChild(wrapper, ".start"), "second".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         plusIndent(wrapper);
@@ -177,9 +177,9 @@ describe("Plus indent", () => {
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero</li>
-                <li class="start">first
+                <li>first
                     <ul>
-                        <li class="end">second</li>
+                        <li class="start">second</li>
                     </ul>
                 </li>
             </ul>

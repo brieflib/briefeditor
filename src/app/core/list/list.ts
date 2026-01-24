@@ -14,10 +14,10 @@ import {getNextNode} from "@/core/shared/element-util";
 export function isListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const firstList = lists[0];
     if (!firstList) {
-        return true;
+        return false;
     }
     if (!isSchemaContain(firstList, [Display.List])) {
-        return true;
+        return false;
     }
     const listWrapperChildren = getDirectChildren(firstList, [Display.ListWrapper]);
     if (listWrapperChildren.length) {
@@ -159,4 +159,13 @@ export function minusIndent(contentEditable: HTMLElement, lists: HTMLElement[] =
     firstRootElement = getFirstSelectedRoot(contentEditable, initialCursorPosition);
     moveListWrappersOutOfLi(contentEditable, firstRootElement);
     normalizeRootElements(contentEditable, initialCursorPosition);
+}
+
+export function getNestingLevel(contentEditable: HTMLElement) {
+    const lis = getSelectedBlock(contentEditable);
+    const firstLi = lis[0];
+    if (!firstLi) {
+        return 0;
+    }
+    return countListWrapperParents(contentEditable, firstLi);
 }

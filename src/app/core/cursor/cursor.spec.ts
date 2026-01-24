@@ -1,6 +1,8 @@
 import {createWrapper, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
-import {isCursorAtEndOfBlock} from "@/core/cursor/cursor";
+import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
+import execCommand from "@/core/command/exec-command";
+import {Action} from "@/core/command/type/command";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -73,5 +75,81 @@ describe("Cursor location", () => {
         const isAtEnd = isCursorAtEndOfBlock(wrapper);
 
         expect(isAtEnd).toBe(true);
+    });
+
+    test("Cursor is at the start of em, but not at the start of paragraph", () => {
+        const wrapper = createWrapper(`
+            <p>zero<em class="start">first</em></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isAtStart = isCursorAtStartOfBlock(wrapper);
+
+        expect(isAtStart).toBe(false);
+    });
+
+    test("Cursor is at the start of em and at the start of paragraph", () => {
+        const wrapper = createWrapper(`
+            <p><em class="start">zero</em>first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isAtStart = isCursorAtStartOfBlock(wrapper);
+
+        expect(isAtStart).toBe(true);
+    });
+
+    test("Cursor is at the start of paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<em>first</em></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isAtStart = isCursorAtStartOfBlock(wrapper);
+
+        expect(isAtStart).toBe(true);
+    });
+
+    test("Cursor does not intersect paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<em>first</em></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isIntersect = isCursorIntersectBlocks(wrapper);
+
+        expect(isIntersect).toBe(false);
+    });
+
+    test("Cursor intersects paragraphs", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+            <p class="end">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isIntersect = isCursorIntersectBlocks(wrapper);
+
+        expect(isIntersect).toBe(true);
     });
 });
