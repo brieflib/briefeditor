@@ -1,6 +1,7 @@
 import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {mergePreviousBlock, mergeNextBlock, mergeBlocks} from "@/core/keyboard/util/keyboard-util";
+import {mergeListItemWithPrevious} from "@/core/list/list";
 import {getSelectionOffset} from "@/core/cursor/cursor";
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
 
@@ -21,7 +22,8 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        const cursorPosition = getSelectionOffset(wrapper) as CursorPosition;
+        mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>zerofirst <em>second</em></p>
@@ -41,7 +43,7 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        mergeListItemWithPrevious(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -63,7 +65,7 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        mergeListItemWithPrevious(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <p>zerofirst <em>second</em></p>
@@ -86,7 +88,7 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        mergeListItemWithPrevious(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -112,7 +114,7 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        mergeListItemWithPrevious(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>

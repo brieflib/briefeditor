@@ -1,9 +1,7 @@
 import {getSelectedBlock} from "@/core/selection/selection";
 import {getRange} from "@/core/shared/range-util";
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
-import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getNestingLevel, isMinusIndentEnabled, minusIndent} from "@/core/list/list";
+import {restoreRange} from "@/core/cursor/cursor";
 
 export function mergeNextBlock(contentEditable: HTMLElement) {
     const block = getSelectedBlock(contentEditable)[0];
@@ -23,33 +21,14 @@ export function mergeNextBlock(contentEditable: HTMLElement) {
     block.normalize();
 }
 
-export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition = getSelectionOffset(contentEditable)) {
-    if (!cursorPosition) {
-        return;
-    }
-
-    let block = getSelectedBlock(contentEditable)[0];
-    if (!block) {
-        return;
-    }
-    const isList = isSchemaContain(block, [Display.List]);
-    const isMergeAllowed = isListMergeAllowed(contentEditable);
-    if (isList && !isMergeAllowed) {
-        return false;
-    }
-    if (isList && isMergeAllowed) {
-        minusIndent(contentEditable);
-    }
-
+export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
     const range = restoreRange(contentEditable, cursorPosition);
-    block = getSelectedBlock(contentEditable, range)[0];
+    const block = getSelectedBlock(contentEditable, range)[0];
     if (!block) {
         return;
     }
-    const hasPrevious = block.previousElementSibling;
-    const wrapper = isList && !hasPrevious ? block.parentElement : block;
 
-    const previous = wrapper?.previousElementSibling;
+    const previous = block.previousElementSibling;
     if (!previous) {
         return;
     }
@@ -59,9 +38,6 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition 
     }
 
     block.remove();
-    if (!wrapper.firstChild) {
-        wrapper.remove();
-    }
     previous.normalize();
 
     return true;
@@ -104,15 +80,6 @@ export function isSpecialKey(event: KeyboardEvent) {
         "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
         "CapsLock", "NumLock", "ScrollLock", "Pause"
     ].includes(event.key);
-}
-
-function isListMergeAllowed(contentEditable: HTMLElement) {
-    if (isMinusIndentEnabled(contentEditable)) {
-        return true;
-    }
-
-    const nestingLevel = getNestingLevel(contentEditable);
-    return nestingLevel === 1;
 }
 
 function isKeyPrintable(key: string) {

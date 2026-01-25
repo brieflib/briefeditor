@@ -8,7 +8,7 @@ import {
     moveListWrappersOutOfLi,
     moveListWrapperToPreviousLi
 } from "@/core/list/util/list-util";
-import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
+import {getSelectionOffset, restoreRange, setCursorPosition} from "@/core/cursor/cursor";
 import {getNextNode} from "@/core/shared/element-util";
 
 export function isListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
@@ -168,4 +168,60 @@ export function getNestingLevel(contentEditable: HTMLElement) {
         return 0;
     }
     return countListWrapperParents(contentEditable, firstLi);
+}
+
+export function isListMergeAllowed(contentEditable: HTMLElement) {
+    if (isMinusIndentEnabled(contentEditable)) {
+        return true;
+    }
+
+    const nestingLevel = getNestingLevel(contentEditable);
+    return nestingLevel === 1;
+}
+
+export function mergeListItemWithPrevious(contentEditable: HTMLElement): boolean {
+    const cursorPosition = getSelectionOffset(contentEditable);
+    if (!cursorPosition) {
+        return false;
+    }
+
+    let block = getSelectedBlock(contentEditable)[0];
+    if (!block || !isSchemaContain(block, [Display.List])) {
+        return false;
+    }
+
+    if (!isListMergeAllowed(contentEditable)) {
+        return true;
+    }
+
+    minusIndent(contentEditable);
+
+    const range = restoreRange(contentEditable, cursorPosition);
+    block = getSelectedBlock(contentEditable, range)[0];
+    if (!block) {
+        return true;
+    }
+
+    const hasPrevious = block.previousElementSibling;
+    const wrapper = !hasPrevious ? block.parentElement : block;
+
+    const previous = wrapper?.previousElementSibling;
+    if (!previous) {
+        return true;
+    }
+
+    while (block.firstChild) {
+        previous.appendChild(block.firstChild);
+    }
+
+    block.remove();
+    if (wrapper && !wrapper.firstChild) {
+        wrapper.remove();
+    }
+    previous.normalize();
+
+    cursorPosition.endOffset = cursorPosition.startOffset;
+    setCursorPosition(contentEditable, cursorPosition, false);
+
+    return true;
 }

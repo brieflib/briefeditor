@@ -1,7 +1,7 @@
 import {
     getSelectionOffset,
     isCursorAtEndOfBlock,
-    isCursorAtStartOfBlock, isCursorIntersectBlocks, restoreRange,
+    isCursorAtStartOfBlock, isCursorIntersectBlocks,
     setCursorPosition
 } from "@/core/cursor/cursor";
 import {
@@ -9,7 +9,7 @@ import {
     mergeNextBlock,
     mergeBlocks, isSpecialKey
 } from "@/core/keyboard/util/keyboard-util";
-import {pasteParagraph} from "@/core/shared/element-util";
+import {mergeListItemWithPrevious} from "@/core/list/list";
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
 
 export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent) {
@@ -33,9 +33,11 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent) 
 
     if (event.key === "Backspace" && isCursorAtStartOfBlock(contentEditable)) {
         event.preventDefault();
-        const isMerged = mergePreviousBlock(contentEditable);
-        if (isMerged) {
-            setCursorPositionAtStart(contentEditable, cursorPosition);
+        if (!mergeListItemWithPrevious(contentEditable)) {
+            const isMerged = mergePreviousBlock(contentEditable, cursorPosition);
+            if (isMerged) {
+                setCursorPositionAtStart(contentEditable, cursorPosition);
+            }
         }
         return;
     }
