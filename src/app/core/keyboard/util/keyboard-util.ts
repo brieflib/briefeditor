@@ -1,71 +1,91 @@
 import {getSelectedBlock} from "@/core/selection/selection";
 import {getRange} from "@/core/shared/range-util";
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {restoreRange} from "@/core/cursor/cursor";
-
-export function mergeNextBlock(contentEditable: HTMLElement) {
-    const block = getSelectedBlock(contentEditable)[0];
-    if (!block) {
-        return;
-    }
-    const next = block.nextElementSibling;
-    if (!next) {
-        return;
-    }
-
-    while (next.firstChild) {
-        block.appendChild(next.firstChild);
-    }
-
-    next.remove();
-    block.normalize();
-}
+import {restoreRange, setCursorPosition} from "@/core/cursor/cursor";
+import {isListMergeAllowed} from "@/core/list/list";
+import {getFirstText, getLastText, getNextNode, getPreviousNode} from "@/core/shared/element-util";
+import {normalizeRootElements} from "@/core/normalize/normalize";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    const range = restoreRange(contentEditable, cursorPosition);
-    const block = getSelectedBlock(contentEditable, range)[0];
-    if (!block) {
+    const range = getRange();
+    const previousNode = getPreviousNode(contentEditable, range.startContainer);
+    const lastChild = getLastText(previousNode);
+
+    const isRemoved = removeEmptyBlock(contentEditable);
+    if (isRemoved) {
+        setCursorPosition(contentEditable, cursorPosition);
         return;
     }
 
-    const previous = block.previousElementSibling;
-    if (!previous) {
+    if (!lastChild) {
+        (previousNode as Element)?.remove();
         return;
     }
 
-    while (block.firstChild) {
-        previous.appendChild(block.firstChild);
+    if (lastChild.textContent) {
+        range.setStart(lastChild, lastChild.textContent.length);
+        mergeBlocks(contentEditable, cursorPosition, "", range);
     }
-
-    block.remove();
-    previous.normalize();
-
-    return true;
 }
 
-export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey: string, range = getRange()) {
+export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const isRemoved = removeEmptyBlock(contentEditable);
+    if (isRemoved) {
+        setCursorPosition(contentEditable, cursorPosition);
+        return;
+    }
+
+    const range = getRange();
+    const nextNode = getNextNode(contentEditable, range.endContainer);
+    const firstChild = getFirstText(nextNode);
+
+    if (!firstChild) {
+        (nextNode as Element)?.remove();
+        return;
+    }
+
+    range.setEnd(firstChild, 0);
+    mergeBlocks(contentEditable, cursorPosition, "", range);
+}
+
+export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = "", range = getRange()) {
+    if (!isListMergeAllowed(contentEditable)) {
+        return;
+    }
+
+    let shiftRange = range;
     if (isKeyPrintable(pressedKey)) {
         const textNode = document.createTextNode(pressedKey);
         range.insertNode(textNode);
         cursorPosition.startOffset = cursorPosition.startOffset + 1;
         cursorPosition.endOffset = cursorPosition.endOffset + 1;
+        shiftRange = restoreRange(contentEditable, cursorPosition, true);
     }
-    const shiftRange = restoreRange(contentEditable, cursorPosition);
 
-    const blocks = getSelectedBlock(contentEditable);
+    const blocks = getSelectedBlock(contentEditable, shiftRange);
     const firstBlock = blocks[0];
     const lastBlock = blocks[blocks.length - 1];
-    if (!firstBlock || !lastBlock) {
+    if (!firstBlock || !lastBlock || firstBlock === lastBlock) {
         return;
     }
 
     shiftRange.deleteContents();
 
     while (lastBlock.firstChild) {
-        firstBlock.appendChild(lastBlock.firstChild);
+        const nestedListWrapper = firstBlock.querySelector("ul, ol");
+        if (nestedListWrapper) {
+            nestedListWrapper.before(lastBlock.firstChild);
+        } else {
+            firstBlock.appendChild(lastBlock.firstChild);
+        }
+        removeEmptyListWrapper(contentEditable, lastBlock);
     }
     lastBlock.remove();
     firstBlock.normalize();
+
+    cursorPosition.endOffset = cursorPosition.startOffset;
+    normalizeRootElements(contentEditable, cursorPosition);
+    setCursorPosition(contentEditable, cursorPosition, false);
 }
 
 export function isSpecialKey(event: KeyboardEvent) {
@@ -74,7 +94,7 @@ export function isSpecialKey(event: KeyboardEvent) {
     }
 
     return [
-        "Tab", "Enter", "Shift", "Control", "Alt", "Meta",
+        "Enter", "Tab", "Shift", "Control", "Alt", "Meta",
         "Escape", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
         "Home", "End", "PageUp", "PageDown", "Insert",
         "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
@@ -82,6 +102,30 @@ export function isSpecialKey(event: KeyboardEvent) {
     ].includes(event.key);
 }
 
+function removeEmptyListWrapper(contentEditable: HTMLElement, list: HTMLElement) {
+    const parent = list.parentElement;
+    if (!list.firstChild) {
+        list.remove();
+    }
+    if (parent && parent !== contentEditable) {
+        removeEmptyListWrapper(contentEditable, parent);
+    }
+}
+
 function isKeyPrintable(key: string) {
     return key.length === 1;
+}
+
+function removeEmptyBlock(contentEditable: HTMLElement) {
+    const block = getSelectedBlock(contentEditable);
+    const firstBlock = block[0];
+    if (!firstBlock) {
+        return true;
+    }
+    if (!getFirstText(firstBlock)) {
+        firstBlock.remove();
+        return true;
+    }
+
+    return false;
 }

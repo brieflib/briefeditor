@@ -1,4 +1,4 @@
-import {getFirstText, getNextNode, getRootElement} from "@/core/shared/element-util";
+import {getFirstText, getNextNode, getPreviousNode, getRootElement} from "@/core/shared/element-util";
 
 interface NodeOffset {
     node: Node | null,
@@ -13,10 +13,8 @@ export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: 
         if (!current) {
             break;
         }
-
         if (current.nodeType === Node.TEXT_NODE) {
             const textContentLength = current.textContent?.length ?? 0;
-
             if (position + textContentLength >= targetPosition) {
                 if (isShift) {
                     const node = getNextNode(contentEditable, current);
@@ -24,6 +22,8 @@ export function findNodeAndOffset(contentEditable: HTMLElement, targetPosition: 
                         const textNode = getFirstText(node);
                         if (textNode) {
                             return {node: textNode, offset: 0};
+                        } else {
+                            return {node: node, offset: 0};
                         }
                     }
                 }

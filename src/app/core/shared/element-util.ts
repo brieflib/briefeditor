@@ -39,13 +39,7 @@ export function getNextNode(findTill: HTMLElement, node: Node) {
         node = node.parentElement as HTMLElement;
     }
 
-    node = node.nextSibling as Node;
-
-    if (!node || !node.firstChild) {
-        return;
-    }
-
-    return node;
+    return node.nextSibling;
 }
 
 export function getPreviousNode(findTill: HTMLElement, node: Node) {
@@ -66,9 +60,18 @@ export function getPreviousNode(findTill: HTMLElement, node: Node) {
     return node;
 }
 
-export function getFirstText(node: Node) {
+export function getFirstText(node: Node | null) {
     while (node && node.nodeType !== Node.TEXT_NODE) {
-        node = node.firstChild as Node;
+        node = node.firstChild;
+    }
+
+    return node;
+}
+
+export function getLastText(node: Node | null | undefined) {
+    while (node && node.nodeType !== Node.TEXT_NODE) {
+        const childNodes = node.childNodes;
+        node = childNodes[childNodes.length - 1];
     }
 
     return node;

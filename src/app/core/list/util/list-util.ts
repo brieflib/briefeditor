@@ -1,5 +1,5 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getRootElement} from "@/core/shared/element-util";
+import {getNextNode, getRootElement} from "@/core/shared/element-util";
 
 export function countListWrapperParents(findTill: HTMLElement, element: Element) {
     let count = 0;

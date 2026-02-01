@@ -77,6 +77,21 @@ describe("Cursor location", () => {
         expect(isAtEnd).toBe(true);
     });
 
+    test("Cursor is at empty element", () => {
+        const wrapper = createWrapper(`
+            <p class="start"><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".start") as Node, "".length);
+        range.setEnd(wrapper.querySelector(".start") as Node, "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const isAtEnd = isCursorAtEndOfBlock(wrapper);
+
+        expect(isAtEnd).toBe(true);
+    });
+
     test("Cursor is at the start of em, but not at the start of paragraph", () => {
         const wrapper = createWrapper(`
             <p>zero<em class="start">first</em></p>

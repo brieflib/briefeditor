@@ -47,25 +47,25 @@ export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: 
 }
 
 export function restoreRange(contentEditable: HTMLElement, cursorPosition: CursorPosition, isShiftEnabled = true): Range {
-    const range: Range = getRange().cloneRange();
-    range.selectNode(contentEditable);
+    const cloneRange: Range = getRange().cloneRange();
+    cloneRange.selectNode(contentEditable);
 
     const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset, cursorPosition.isStartShift && isShiftEnabled);
     const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset, cursorPosition.isEndShift && isShiftEnabled);
 
     if (start.node) {
-        range.setStart(start.node, start.offset);
+        cloneRange.setStart(start.node, start.offset);
     } else {
-        range.setStart(contentEditable, 0);
+        cloneRange.setStart(contentEditable, 0);
     }
 
     if (end.node) {
-        range.setEnd(end.node, end.offset);
+        cloneRange.setEnd(end.node, end.offset);
     } else {
-        range.setEnd(contentEditable, 0);
+        cloneRange.setEnd(contentEditable, 0);
     }
 
-    return range;
+    return cloneRange;
 }
 
 export function isCursorAtEndOfBlock(contentEditable: HTMLElement, range = getRange()) {

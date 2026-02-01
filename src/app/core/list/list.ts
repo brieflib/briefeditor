@@ -8,7 +8,7 @@ import {
     moveListWrappersOutOfLi,
     moveListWrapperToPreviousLi
 } from "@/core/list/util/list-util";
-import {getSelectionOffset, restoreRange, setCursorPosition} from "@/core/cursor/cursor";
+import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
 import {getNextNode} from "@/core/shared/element-util";
 
 export function isListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
@@ -161,67 +161,92 @@ export function minusIndent(contentEditable: HTMLElement, lists: HTMLElement[] =
     normalizeRootElements(contentEditable, initialCursorPosition);
 }
 
-export function getNestingLevel(contentEditable: HTMLElement) {
-    const lis = getSelectedBlock(contentEditable);
-    const firstLi = lis[0];
-    if (!firstLi) {
-        return 0;
-    }
-    return countListWrapperParents(contentEditable, firstLi);
-}
-
-export function isListMergeAllowed(contentEditable: HTMLElement) {
-    if (isMinusIndentEnabled(contentEditable)) {
-        return true;
-    }
-
-    const nestingLevel = getNestingLevel(contentEditable);
-    return nestingLevel === 1;
-}
-
-export function mergeListItemWithPrevious(contentEditable: HTMLElement): boolean {
-    const cursorPosition = getSelectionOffset(contentEditable);
-    if (!cursorPosition) {
+export function isListMergeAllowed(contentEditable: HTMLElement): boolean {
+    const blocks = getSelectedBlock(contentEditable);
+    const firstBlock = blocks[0];
+    let lastBlock = blocks[blocks.length - 1];
+    if (!firstBlock || !lastBlock) {
         return false;
     }
 
-    let block = getSelectedBlock(contentEditable)[0];
-    if (!block || !isSchemaContain(block, [Display.List])) {
-        return false;
+    const nestedLi = lastBlock.querySelector("ul, ol")?.querySelector("li");
+    if (nestedLi) {
+        lastBlock = nestedLi;
+    } else {
+        const nextNode = getNextNode(contentEditable, lastBlock);
+        if (!nextNode) {
+            return true;
+        }
+        if (isSchemaContain(nextNode, [Display.List])) {
+            lastBlock = nextNode as HTMLElement;
+        } else {
+            const nextLi = (nextNode as HTMLElement).querySelector("li");
+            if (!nextLi) {
+                return true;
+            }
+            lastBlock = nextLi;
+        }
     }
 
-    if (!isListMergeAllowed(contentEditable)) {
-        return true;
-    }
+    const firstNestingLevel = countListWrapperParents(contentEditable, firstBlock);
+    const lastNestingLevel = countListWrapperParents(contentEditable, lastBlock);
 
-    minusIndent(contentEditable);
-
-    const range = restoreRange(contentEditable, cursorPosition);
-    block = getSelectedBlock(contentEditable, range)[0];
-    if (!block) {
-        return true;
-    }
-
-    const hasPrevious = block.previousElementSibling;
-    const wrapper = !hasPrevious ? block.parentElement : block;
-
-    const previous = wrapper?.previousElementSibling;
-    if (!previous) {
-        return true;
-    }
-
-    while (block.firstChild) {
-        previous.appendChild(block.firstChild);
-    }
-
-    block.remove();
-    if (wrapper && !wrapper.firstChild) {
-        wrapper.remove();
-    }
-    previous.normalize();
-
-    cursorPosition.endOffset = cursorPosition.startOffset;
-    setCursorPosition(contentEditable, cursorPosition, false);
-
-    return true;
+    return firstNestingLevel === lastNestingLevel || firstNestingLevel === lastNestingLevel - 1;
 }
+
+// export function getNestingLevel(contentEditable: HTMLElement) {
+//     const lis = getSelectedBlock(contentEditable);
+//     const firstLi = lis[0];
+//     if (!firstLi) {
+//         return 0;
+//     }
+//     return countListWrapperParents(contentEditable, firstLi);
+// }
+
+// export function isListMergeAllowed(contentEditable: HTMLElement) {
+//     if (isMinusIndentEnabled(contentEditable)) {
+//         return true;
+//     }
+//
+//     const nestingLevel = getNestingLevel(contentEditable);
+//     return nestingLevel === 1;
+// }
+//
+// export function mergeListItemWithPrevious(contentEditable: HTMLElement, cursorPosition: CursorPosition): boolean {
+//     let block = getSelectedBlock(contentEditable)[0];
+//     if (!block || !isSchemaContain(block, [Display.List])) {
+//         return false;
+//     }
+//
+//     if (!isListMergeAllowed(contentEditable)) {
+//         return true;
+//     }
+//
+//     minusIndent(contentEditable);
+//
+//     const range = restoreRange(contentEditable, cursorPosition);
+//     block = getSelectedBlock(contentEditable, range)[0];
+//     if (!block) {
+//         return true;
+//     }
+//
+//     const hasPrevious = block.previousElementSibling;
+//     const wrapper = !hasPrevious ? block.parentElement : block;
+//
+//     const previous = wrapper?.previousElementSibling;
+//     if (!previous) {
+//         return true;
+//     }
+//
+//     while (block.firstChild) {
+//         previous.appendChild(block.firstChild);
+//     }
+//
+//     block.remove();
+//     if (wrapper && !wrapper.firstChild) {
+//         wrapper.remove();
+//     }
+//     previous.normalize();
+//
+//     return true;
+// }
