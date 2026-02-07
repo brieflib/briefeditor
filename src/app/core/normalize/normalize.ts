@@ -14,7 +14,8 @@ import {getRange} from "@/core/shared/range-util";
 import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {getInitialBlocks} from "@/core/selection/selection";
+import {getInitialBlocks, getSelectedParentElements} from "@/core/selection/selection";
+import {restoreRange} from "@/core/cursor/cursor";
 
 export default function normalize(contentEditable: HTMLElement, element: HTMLElement) {
     const leaves = getLeafNodes(element)
@@ -124,9 +125,13 @@ export function normalizeRootElements(contentEditable: HTMLElement, cursorPositi
         return;
     }
     firstRootElement.before(wrapper);
+
     wrapper.append(...rootElements);
-    wrapper.normalize();
     removeTags(contentEditable, wrapper, ["DELETED"]);
+
+    const initialRange = restoreRange(contentEditable, cursorPosition);
+    const parents = getSelectedParentElements(initialRange);
+    parents.forEach(parent => parent.normalize());
 }
 
 function buildElementsToReplace(replaceTo: string[]) {

@@ -19,11 +19,8 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
 
     const range: Range = getRange();
 
-    const startContainer = range.startContainer as HTMLElement;
-    const endContainer = range.endContainer as HTMLElement;
-    const endOffset = range.endOffset;
-    const startFirstLevel = getElement(contentEditable, startContainer, [Display.FirstLevel, Display.List]);
-    const endFirstLevel = getElement(contentEditable, endContainer, [Display.FirstLevel, Display.List]);
+    const startFirstLevel = getElement(contentEditable, range.startContainer as HTMLElement, [Display.FirstLevel, Display.List]);
+    const endFirstLevel = getElement(contentEditable, range.endContainer as HTMLElement, [Display.FirstLevel, Display.List]);
 
     if (startFirstLevel === endFirstLevel) {
         tagAction(contentEditable, range, tag, action, attributes);
@@ -31,28 +28,27 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
         return;
     }
 
-    let length = getSelectedParentElements(range).length;
-    for (let i = 0; i < length; i++) {
+    const length = getSelectedParentElements(range).length;
+    for (let i = length - 1; i >= 0; i--) {
         const initialRange = restoreRange(contentEditable, initialCursorPosition);
         const elements = getSelectedParentElements(initialRange);
-        length = elements.length;
 
         const element = elements[i];
         if (!element) {
             continue;
         }
 
-        const cloneRange = range.cloneRange();
+        const cloneRange = initialRange.cloneRange();
 
-        if (element === startContainer.parentElement as HTMLElement) {
+        if (i === 0) {
             cloneRange.setEnd(element, element.childNodes.length);
             tagAction(contentEditable, cloneRange, tag, action, attributes);
             continue;
         }
 
-        if (element === endContainer.parentElement as HTMLElement) {
+        if (i === length - 1) {
             cloneRange.setStart(element, 0);
-            cloneRange.setEnd(endContainer, endOffset);
+            cloneRange.setEnd(initialRange.endContainer, initialRange.endOffset);
             tagAction(contentEditable, cloneRange, tag, action, attributes);
             continue;
         }

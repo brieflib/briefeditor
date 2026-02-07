@@ -64,6 +64,29 @@ describe("Unwrap tag", () => {
             </ul>
         `);
     });
+
+    test("Should unwrap part of strong from different li", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li><strong class="start">zero</strong></li>
+                <li><strong class="end">first</strong></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "STRONG", Action.Unwrap);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li><strong class="start">ze</strong>ro</li>
+                <li>fi<strong class="end">rst</strong></li>
+            </ul>
+        `);
+    });
 });
 
 describe("Wrap in tag", () => {
@@ -127,6 +150,25 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">zer<strong class="end">o first</strong></p>
+        `);
+    });
+
+    test("Should wrap selection in bold when cursor is at the end of element", () => {
+        const wrapper = createWrapper(`
+            <p>ze<strong class="start">r</strong>o</p>
+            <p class="end">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "r".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "strong", Action.Wrap);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze<strong>ro</strong></p>
+            <p class="end"><strong>fi</strong>rst</p>
         `);
     });
 

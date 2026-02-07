@@ -7,7 +7,7 @@ import {
     tag
 } from "@/core/command/util/command-util";
 import {getSelectedBlock, getSelectedLink, getSelectedSharedTags, selectElement} from "@/core/selection/selection";
-import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
+import {getSelectionOffset, restoreRange, setCursorPosition} from "@/core/cursor/cursor";
 import {minusIndent, plusIndent} from "@/core/list/list";
 import {getRange, isRangeIn} from "@/core/shared/range-util";
 import {getElementByTagName} from "@/core/shared/element-util";
