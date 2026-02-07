@@ -28,10 +28,10 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
         return;
     }
 
-    const length = getSelectedParentElements(range).length;
-    for (let i = length - 1; i >= 0; i--) {
+    let length = getSelectedBlock(contentEditable).length;
+    for (let i = 0; i < length; i++) {
         const initialRange = restoreRange(contentEditable, initialCursorPosition);
-        const elements = getSelectedParentElements(initialRange);
+        const elements = getSelectedBlock(contentEditable, initialRange);
 
         const element = elements[i];
         if (!element) {

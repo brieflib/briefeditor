@@ -31,9 +31,9 @@ describe("BriefEditor API", () => {
         briefEditor.toggleTag("EM", {class: "zero"});
 
         expectHtml((wrapper.querySelector("#be-editor") as HTMLElement).innerHTML, `
-            <span class="start">
-                <em class="zero">zero</em>
-            </span>
+            <em class="zero">
+                <span class="start">zero</span>
+            </em>
         `);
     });
 

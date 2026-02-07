@@ -14,7 +14,7 @@ import {getRange} from "@/core/shared/range-util";
 import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {getInitialBlocks, getSelectedParentElements} from "@/core/selection/selection";
+import {getInitialBlocks, getSelectedParentElements, getSelectedRoot} from "@/core/selection/selection";
 import {restoreRange} from "@/core/cursor/cursor";
 
 export default function normalize(contentEditable: HTMLElement, element: HTMLElement) {
@@ -85,34 +85,27 @@ export function appendTags(contentEditable: HTMLElement, appendTagTo: HTMLElemen
 }
 
 export function normalizeRootElements(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    const initialBlocks = getInitialBlocks(contentEditable, cursorPosition);
-    const firstBlock = initialBlocks[0];
-    if (!firstBlock) {
+    const range = restoreRange(contentEditable, cursorPosition);
+    const rootElements = getSelectedRoot(contentEditable, range);
+
+    const firstRoot = rootElements[0];
+    if (!firstRoot) {
         return;
     }
-
-    const rootElements: HTMLElement[] = [];
-
-    const firstRoot = getRootElement(contentEditable, firstBlock);
-    rootElements.push(firstRoot);
 
     // Fill array with previous ul, ol and li
-    let firstRootElement = rootElements[0];
-    if (!firstRootElement) {
-        return;
-    }
-    let previousListWrapper = firstRootElement.previousElementSibling;
+    let previousListWrapper = firstRoot.previousElementSibling;
     while (previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper, Display.List])) {
         rootElements.unshift(previousListWrapper as HTMLElement);
         previousListWrapper = previousListWrapper.previousElementSibling;
     }
 
     // Fill array with next ul, ol and li
-    const lastRootElement = rootElements[rootElements.length - 1];
-    if (!lastRootElement) {
+    const lastRoot = rootElements[rootElements.length - 1];
+    if (!lastRoot) {
         return;
     }
-    let nextListWrapper = lastRootElement.nextElementSibling;
+    let nextListWrapper = lastRoot.nextElementSibling;
     while (nextListWrapper && isSchemaContain(nextListWrapper, [Display.ListWrapper, Display.List])) {
         rootElements.push(nextListWrapper as HTMLElement);
         nextListWrapper = nextListWrapper.nextElementSibling;
@@ -120,12 +113,7 @@ export function normalizeRootElements(contentEditable: HTMLElement, cursorPositi
 
     // Wrap all elements in tag and normalize
     const wrapper = document.createElement("DELETED");
-    firstRootElement = rootElements[0];
-    if (!firstRootElement) {
-        return;
-    }
-    firstRootElement.before(wrapper);
-
+    firstRoot.before(wrapper);
     wrapper.append(...rootElements);
     removeTags(contentEditable, wrapper, ["DELETED"]);
 
