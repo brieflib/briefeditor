@@ -13,7 +13,7 @@ import {getRange, isRangeIn} from "@/core/shared/range-util";
 import {getElementByTagName} from "@/core/shared/element-util";
 import {CursorPosition} from "@/core/shared/type/cursor-position";
 
-export default function execCommand(contentEditable: HTMLElement, command: Command) {
+export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     switch (command.action)  {
         case Action.Attribute:
             applyAttributesCommand(contentEditable, command);
@@ -42,11 +42,12 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     }
 
     contentEditable.focus();
-    //setCursorPosition(contentEditable, cursorPosition);
 
     if (command.action !== Action.Attribute && command.tag) {
         applyAttributesCommand(contentEditable, command);
     }
+
+    return getCursorPosition();
 }
 
 function applyAttributesCommand(contentEditable: HTMLElement, command: Command) {
