@@ -8,8 +8,9 @@ import {
     moveListWrappersOutOfLi,
     moveListWrapperToPreviousLi
 } from "@/core/list/util/list-util";
-import {getSelectionOffset, restoreRange} from "@/core/cursor/cursor";
-import {getNextNode} from "@/core/shared/element-util";
+import {getCursorPosition, restoreRange} from "@/core/cursor/cursor";
+import {getNextNode, getPreviousNode, getRootElement} from "@/core/shared/element-util";
+import {getRange} from "@/core/shared/range-util";
 
 export function isNextListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const lastList = lists[lists.length - 1];
@@ -71,10 +72,7 @@ export function plusIndent(contentEditable: HTMLElement, lists: HTMLElement[] = 
         return;
     }
 
-    const initialCursorPosition = getSelectionOffset(contentEditable);
-    if (!initialCursorPosition) {
-        return;
-    }
+    const initialCursorPosition = getCursorPosition();
 
     for (let i = 0; i < lists.length; i++) {
         const initialRange = restoreRange(contentEditable, initialCursorPosition);
@@ -133,47 +131,43 @@ export function minusIndent(contentEditable: HTMLElement, lists: HTMLElement[] =
         return;
     }
 
-    const initialCursorPosition = getSelectionOffset(contentEditable);
-    if (!initialCursorPosition) {
-        return;
-    }
-
-    let firstRootElement = getFirstSelectedRoot(contentEditable, initialCursorPosition);
+    let cursorPosition = getCursorPosition();
+    let firstRootElement = getFirstSelectedRoot(contentEditable, cursorPosition);
     removeDistantTags(contentEditable, firstRootElement, lists, [firstRootElement.nodeName, "LI"]);
-    firstRootElement = getFirstSelectedRoot(contentEditable, initialCursorPosition);
+    firstRootElement = getFirstSelectedRoot(contentEditable, cursorPosition);
     moveListWrappersOutOfLi(contentEditable, firstRootElement);
-    normalizeRootElements(contentEditable, initialCursorPosition);
+    normalizeRootElements(contentEditable, cursorPosition);
 }
 
 export function isListMergeAllowed(contentEditable: HTMLElement): boolean {
-    const blocks = getSelectedBlock(contentEditable);
+    const range = getRange();
+    const blocks = getSelectedBlock(contentEditable, range);
     const firstBlock = blocks[0];
-    let lastBlock = blocks[blocks.length - 1];
+    const lastBlock = blocks[blocks.length - 1];
     if (!firstBlock || !lastBlock) {
         return false;
     }
 
-    const nestedLi = lastBlock.querySelector("ul, ol")?.querySelector("li");
-    if (nestedLi) {
-        lastBlock = nestedLi;
-    } else {
-        const nextNode = getNextNode(contentEditable, lastBlock);
-        if (!nextNode) {
-            return true;
-        }
-        if (isSchemaContain(nextNode, [Display.List])) {
-            lastBlock = nextNode as HTMLElement;
-        } else {
-            const nextLi = (nextNode as HTMLElement).querySelector("li");
-            if (!nextLi) {
-                return true;
-            }
-            lastBlock = nextLi;
-        }
-    }
-
+    const nodeAfterLast = getNextNode(contentEditable, range.endContainer);
     const firstNestingLevel = countListWrapperParents(contentEditable, firstBlock);
     const lastNestingLevel = countListWrapperParents(contentEditable, lastBlock);
+
+    const nextNodeIsListWrapper = isSchemaContain(nodeAfterLast, [Display.ListWrapper]);
+    const nextNodeIsOutsideSelection = !lastBlock.contains(nodeAfterLast);
+    const nestingLevelsMismatch = firstNestingLevel !== lastNestingLevel;
+    if (nextNodeIsListWrapper && (nextNodeIsOutsideSelection || nestingLevelsMismatch)) {
+        return false;
+    }
+
+    const selectionContainsFirstLevel = isSchemaContain(firstBlock, [Display.FirstLevel]) || isSchemaContain(lastBlock, [Display.FirstLevel]);
+    const nextNodeIsNotListItem = !isSchemaContain(nodeAfterLast, [Display.List]);
+    if (selectionContainsFirstLevel && nextNodeIsNotListItem) {
+        return true;
+    }
+
+    if (lastNestingLevel === 1) {
+        return true;
+    }
 
     return firstNestingLevel === lastNestingLevel || firstNestingLevel === lastNestingLevel - 1;
 }

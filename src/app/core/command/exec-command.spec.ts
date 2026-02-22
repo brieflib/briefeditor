@@ -38,7 +38,7 @@ describe("Exec command with different cursor position", () => {
 
         const range = new Range();
         range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         execCommand(wrapper, {action: Action.List, tag: "UL"});

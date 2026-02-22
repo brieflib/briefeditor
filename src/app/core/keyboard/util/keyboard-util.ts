@@ -1,21 +1,24 @@
 import {getSelectedBlock} from "@/core/selection/selection";
 import {getRange} from "@/core/shared/range-util";
-import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {restoreRange, setCursorPosition} from "@/core/cursor/cursor";
+import {CursorPosition} from "@/core/shared/type/cursor-position";
+import {setCursorPosition} from "@/core/cursor/cursor";
 import {isListMergeAllowed} from "@/core/list/list";
 import {getFirstText, getLastText, getNextNode, getPreviousNode} from "@/core/shared/element-util";
 import {normalizeRootElements} from "@/core/normalize/normalize";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    const range = getRange();
-    const previousNode = getPreviousNode(contentEditable, range.startContainer);
-    const lastChild = getLastText(previousNode);
-
     const isRemoved = removeEmptyBlock(contentEditable);
     if (isRemoved) {
         setCursorPosition(contentEditable, cursorPosition);
         return;
     }
+
+    const range = getRange();
+    const previousNode = getPreviousNode(contentEditable, range.startContainer);
+    if (!previousNode) {
+        return;
+    }
+    const lastChild = getLastText(previousNode);
 
     if (!lastChild) {
         (previousNode as Element)?.remove();
@@ -37,9 +40,12 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
 
     const range = getRange();
     const nextNode = getNextNode(contentEditable, range.endContainer);
+    if (!nextNode) {
+        return;
+    }
     const firstChild = getFirstText(nextNode);
 
-    if (!firstChild) {
+    if (!firstChild.textContent) {
         (nextNode as Element)?.remove();
         return;
     }
@@ -53,23 +59,19 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
         return;
     }
 
-    let shiftRange = range;
-    if (isKeyPrintable(pressedKey)) {
-        const textNode = document.createTextNode(pressedKey);
-        range.insertNode(textNode);
-        cursorPosition.startOffset = cursorPosition.startOffset + 1;
-        cursorPosition.endOffset = cursorPosition.endOffset + 1;
-        shiftRange = restoreRange(contentEditable, cursorPosition, true);
-    }
-
-    const blocks = getSelectedBlock(contentEditable, shiftRange);
+    const blocks = getSelectedBlock(contentEditable, range);
     const firstBlock = blocks[0];
     const lastBlock = blocks[blocks.length - 1];
     if (!firstBlock || !lastBlock || firstBlock === lastBlock) {
         return;
     }
 
-    shiftRange.deleteContents();
+    range.deleteContents();
+
+    if (isKeyPrintable(pressedKey)) {
+        const textNode = document.createTextNode(pressedKey);
+        lastBlock.firstChild?.before(textNode);
+    }
 
     while (lastBlock.firstChild) {
         const nestedListWrapper = firstBlock.querySelector("ul, ol");
@@ -78,14 +80,17 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
         } else {
             firstBlock.appendChild(lastBlock.firstChild);
         }
-        removeEmptyListWrapper(contentEditable, lastBlock);
     }
     lastBlock.remove();
-    firstBlock.normalize();
 
-    cursorPosition.endOffset = cursorPosition.startOffset;
+    cursorPosition = {
+        startContainer: cursorPosition.startContainer,
+        startOffset: cursorPosition.startOffset,
+        endContainer: cursorPosition.endContainer,
+        endOffset: 0
+    }
     normalizeRootElements(contentEditable, cursorPosition);
-    setCursorPosition(contentEditable, cursorPosition, false);
+    //setCursorPosition(contentEditable, cursorPosition, false);
 }
 
 export function isSpecialKey(event: KeyboardEvent) {
@@ -102,13 +107,13 @@ export function isSpecialKey(event: KeyboardEvent) {
     ].includes(event.key);
 }
 
-function removeEmptyListWrapper(contentEditable: HTMLElement, list: HTMLElement) {
-    const parent = list.parentElement;
-    if (!list.firstChild) {
-        list.remove();
+function removeEmptyElement(contentEditable: HTMLElement, element: HTMLElement) {
+    const parent = element.parentElement;
+    if (!element.firstChild) {
+        element.remove();
     }
     if (parent && parent !== contentEditable) {
-        removeEmptyListWrapper(contentEditable, parent);
+        removeEmptyElement(contentEditable, parent);
     }
 }
 
@@ -122,7 +127,7 @@ function removeEmptyBlock(contentEditable: HTMLElement) {
     if (!firstBlock) {
         return true;
     }
-    if (!getFirstText(firstBlock)) {
+    if (!getFirstText(firstBlock).textContent) {
         firstBlock.remove();
         return true;
     }

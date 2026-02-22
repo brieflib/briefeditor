@@ -35,46 +35,44 @@ export function getElementByTagName(findTill: HTMLElement, tagName: string, rang
 }
 
 export function getNextNode(findTill: HTMLElement, node: Node) {
-    while (node !== findTill && !node.nextSibling) {
-        node = node.parentElement as HTMLElement;
+    while (node.parentElement && node !== findTill && !node.nextSibling) {
+        node = node.parentElement;
     }
 
     return node.nextSibling;
 }
 
 export function getPreviousNode(findTill: HTMLElement, node: Node) {
-    while (node !== findTill && !node.previousSibling) {
-        node = node.parentElement as HTMLElement;
+    while (node.parentElement && node !== findTill && !node.previousSibling) {
+        node = node.parentElement;
     }
 
-    node = node.previousSibling as Node;
-
-    if (node?.nodeType === Node.TEXT_NODE) {
-        return node;
-    }
-
-    if (!node || !node.firstChild) {
-        return;
-    }
-
-    return node;
+    return node.previousSibling;
 }
 
-export function getFirstText(node: Node | null) {
-    while (node && node.nodeType !== Node.TEXT_NODE) {
+export function getFirstText(node: Node) {
+    while (node && node.firstChild && node.nodeType !== Node.TEXT_NODE) {
         node = node.firstChild;
     }
 
     return node;
 }
 
-export function getLastText(node: Node | null | undefined) {
-    while (node && node.nodeType !== Node.TEXT_NODE) {
-        const childNodes = node.childNodes;
-        node = childNodes[childNodes.length - 1];
+export function getLastText(node: Node): Node {
+    let currentNode: Node = node;
+
+    while (currentNode.nodeType !== Node.TEXT_NODE) {
+        const childNodes = currentNode.childNodes;
+        const lastChild = childNodes[childNodes.length - 1];
+
+        if (!lastChild) {
+            return currentNode;
+        }
+
+        currentNode = lastChild;
     }
 
-    return node;
+    return currentNode;
 }
 
 export function cleanElementWhitespace(element: HTMLElement) {

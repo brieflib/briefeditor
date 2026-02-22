@@ -6,7 +6,7 @@ import {
     SelectionType
 } from "@/core/selection/util/selection-util";
 import {getRange} from "@/core/shared/range-util";
-import {CursorPosition} from "@/core/cursor/type/cursor-position";
+import {CursorPosition} from "@/core/shared/type/cursor-position";
 import {restoreRange} from "@/core/cursor/cursor";
 
 export function getSelectedSharedTags(findTill: HTMLElement, range = getRange()) {

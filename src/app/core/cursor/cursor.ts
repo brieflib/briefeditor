@@ -1,43 +1,44 @@
-import {CursorPosition} from "@/core/cursor/type/cursor-position";
-import {findNodeAndOffset, isOutsideElement, isShift} from "@/core/cursor/util/cursor-util";
+import {CursorPosition} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
-import {getPreviousNode} from "@/core/shared/element-util";
 import {getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {collectTextSiblings, computeOffset, isIndexInArray, replaceWithMerged} from "@/core/cursor/util/cursor-util";
+import {getFirstText, getLastText} from "@/core/shared/element-util";
 
-export function getSelectionOffset(contentEditable: HTMLElement): CursorPosition | null {
-    const range: Range = getRange();
-
-    const startRange: Range = range.cloneRange();
-    startRange.selectNodeContents(contentEditable);
-    startRange.setEnd(range.startContainer, range.startOffset);
-
-    const endRange: Range = range.cloneRange();
-    endRange.selectNodeContents(contentEditable);
-    endRange.setEnd(range.endContainer, range.endOffset);
-
-    if (isOutsideElement(contentEditable, range.startContainer, range.endContainer)) {
-        return null;
+export function getCursorPosition(range = getRange(), documentFragment?: DocumentFragment): CursorPosition {
+    if (!documentFragment) {
+        return {
+            startContainer: range.startContainer,
+            endContainer: range.endContainer,
+            startOffset: range.startOffset,
+            endOffset: range.endOffset
+        };
     }
-
-    const startOffset = startRange.toString().length;
-    const endOffset = endRange.toString().length;
-
-    const previousText = getPreviousNode(contentEditable, range.startContainer);
-
-    const isStartShift = isShift(previousText, range, range.startContainer, range.startOffset);
-    const isEndShift = isShift(previousText, range, range.endContainer, range.endOffset);
+    const startNode = getFirstText(documentFragment);
+    const endNode = getLastText(documentFragment);
 
     return {
-        startOffset: startOffset,
-        endOffset: endOffset,
-        isStartShift: isStartShift,
-        isEndShift: isEndShift
+        startContainer: startNode.textContent ? startNode : endNode,
+        endContainer: endNode,
+        startOffset: 0,
+        endOffset: endNode.textContent?.length ?? range.endOffset
     };
 }
 
-export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: CursorPosition, isShiftEnabled = true) {
-    const range: Range = restoreRange(contentEditable, cursorPosition, isShiftEnabled);
+export function getCursorPosition2(cp: CursorPosition, nodes: Node[]): CursorPosition {
+    const startNode = getFirstText(nodes[0] as Node);
+    const endNode = getLastText(nodes[nodes.length - 1] as Node);
+
+    return {
+        startContainer: startNode,
+        endContainer: endNode,
+        startOffset: 0,
+        endOffset: endNode?.textContent?.length ?? cp.endOffset
+    };
+}
+
+export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const range: Range = restoreRange(contentEditable, cursorPosition);
     const selection: Selection | null = window.getSelection();
     if (!selection) {
         return;
@@ -46,26 +47,13 @@ export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: 
     selection.addRange(range);
 }
 
-export function restoreRange(contentEditable: HTMLElement, cursorPosition: CursorPosition, isShiftEnabled = true): Range {
-    const cloneRange: Range = getRange().cloneRange();
-    cloneRange.selectNode(contentEditable);
+export function restoreRange(contentEditable: HTMLElement, cursorPosition: CursorPosition): Range {
+    const range = new Range();
 
-    const start = findNodeAndOffset(contentEditable, cursorPosition.startOffset, cursorPosition.isStartShift && isShiftEnabled);
-    const end = findNodeAndOffset(contentEditable, cursorPosition.endOffset, cursorPosition.isEndShift && isShiftEnabled);
+    range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
+    range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
 
-    if (start.node) {
-        cloneRange.setStart(start.node, start.offset);
-    } else {
-        cloneRange.setStart(contentEditable, 0);
-    }
-
-    if (end.node) {
-        cloneRange.setEnd(end.node, end.offset);
-    } else {
-        cloneRange.setEnd(contentEditable, 0);
-    }
-
-    return cloneRange;
+    return range;
 }
 
 export function isCursorAtEndOfBlock(contentEditable: HTMLElement, range = getRange()) {
@@ -124,4 +112,33 @@ export function isCursorIntersectBlocks(contentEditable: HTMLElement, range = ge
     }
 
     return getSelectedBlock(contentEditable).length > 1;
+}
+
+export function mergeSiblingTextNodes(cursorPosition: CursorPosition): CursorPosition {
+    let {startContainer, endContainer, startOffset, endOffset} = cursorPosition;
+
+    if (startContainer.nodeType !== Node.TEXT_NODE || endContainer.nodeType !== Node.TEXT_NODE) {
+        return cursorPosition;
+    }
+
+    const startSiblings = collectTextSiblings(startContainer);
+    const startIndex = startSiblings.indexOf(startContainer);
+    const endIndex = startSiblings.indexOf(endContainer);
+
+    startOffset = computeOffset(startSiblings, startIndex, startOffset);
+    startContainer = replaceWithMerged(startSiblings);
+    if (isIndexInArray(endIndex)) {
+        endOffset = computeOffset(startSiblings, endIndex, endOffset);
+        endContainer = startContainer;
+    }
+
+    if (!isIndexInArray(endIndex)) {
+        const endSiblings = collectTextSiblings(endContainer);
+        const endIndex = endSiblings.indexOf(endContainer);
+
+        endOffset = computeOffset(endSiblings, endIndex, endOffset);
+        endContainer = replaceWithMerged(endSiblings);
+    }
+
+    return {...cursorPosition, startContainer, startOffset, endContainer, endOffset};
 }

@@ -7,8 +7,8 @@ import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {getSelectedLink, getSelectedSharedTags} from "@/core/selection/selection";
 import {getRange, isRangeIn} from "@/core/shared/range-util";
-import {CursorPosition, isCursorPositionEqual} from "@/core/cursor/type/cursor-position";
-import {getSelectionOffset, setCursorPosition} from "@/core/cursor/cursor";
+import {CursorPosition, isCursorPositionEqual} from "@/core/shared/type/cursor-position";
+import {getCursorPosition, setCursorPosition} from "@/core/cursor/cursor";
 
 class LinkIcon extends HTMLElement implements Icon {
     private contentEditableElement?: HTMLElement;
@@ -80,7 +80,7 @@ class LinkIcon extends HTMLElement implements Icon {
                 this.isSaved = true;
             }
 
-            const cursorPosition = getSelectionOffset(this.getContentEditableSafe());
+            const cursorPosition = getCursorPosition();
             if (!isCursorPositionEqual(cursorPosition, this.cursorPosition) && !this.isInputFocused) {
                 this.cursorPosition = cursorPosition;
                 this.closeTooltip();
@@ -142,7 +142,7 @@ class LinkIcon extends HTMLElement implements Icon {
     }
 
     private link(href: string | null) {
-        const clickCursorPosition = getSelectionOffset(this.getContentEditableSafe());
+        const clickCursorPosition = getCursorPosition();
 
         if (this.cursorPosition) {
             setCursorPosition(this.getContentEditableSafe(), this.cursorPosition);

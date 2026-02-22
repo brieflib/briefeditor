@@ -7,24 +7,19 @@ import {
     tag
 } from "@/core/command/util/command-util";
 import {getSelectedBlock, getSelectedLink, getSelectedSharedTags, selectElement} from "@/core/selection/selection";
-import {getSelectionOffset, restoreRange, setCursorPosition} from "@/core/cursor/cursor";
+import {getCursorPosition, setCursorPosition} from "@/core/cursor/cursor";
 import {minusIndent, plusIndent} from "@/core/list/list";
 import {getRange, isRangeIn} from "@/core/shared/range-util";
 import {getElementByTagName} from "@/core/shared/element-util";
-import {CursorPosition} from "@/core/cursor/type/cursor-position";
+import {CursorPosition} from "@/core/shared/type/cursor-position";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command) {
-    const cursorPosition = getSelectionOffset(contentEditable);
-    if (!cursorPosition) {
-        return;
-    }
-
     switch (command.action)  {
         case Action.Attribute:
             applyAttributesCommand(contentEditable, command);
             break;
         case Action.Image:
-            applyImageCommand(contentEditable, command, cursorPosition);
+            applyImageCommand(contentEditable, command);
             break;
         case Action.Link:
             applyLinkCommand(contentEditable, command);
@@ -47,7 +42,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     }
 
     contentEditable.focus();
-    setCursorPosition(contentEditable, cursorPosition);
+    //setCursorPosition(contentEditable, cursorPosition);
 
     if (command.action !== Action.Attribute && command.tag) {
         applyAttributesCommand(contentEditable, command);
@@ -62,7 +57,8 @@ function applyAttributesCommand(contentEditable: HTMLElement, command: Command) 
     }
 }
 
-function applyImageCommand(contentEditable: HTMLElement, command: Command, cursorPosition: CursorPosition) {
+function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
+    const cursorPosition = getCursorPosition();
     const image = command.attributes?.image;
 
     if (image) {

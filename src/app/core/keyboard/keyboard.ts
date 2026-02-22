@@ -1,5 +1,5 @@
 import {
-    getSelectionOffset,
+    getCursorPosition,
     isCursorAtEndOfBlock,
     isCursorAtStartOfBlock,
     isCursorIntersectBlocks
@@ -7,7 +7,7 @@ import {
 import {isSpecialKey, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
 
 export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent) {
-    const cursorPosition = getSelectionOffset(contentEditable);
+    const cursorPosition = getCursorPosition();
     if (!cursorPosition || isSpecialKey(event)) {
         return;
     }
