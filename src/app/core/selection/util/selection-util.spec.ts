@@ -27,7 +27,7 @@ test("Should find selected leaf nodes", () => {
     range.setEnd(end, "se".length);
     (getRange as jest.Mock).mockReturnValue(range);
 
-    const leaves = getSelectedLeaves();
+    const leaves = getSelectedLeaves(wrapper);
 
     expect(leaves).toStrictEqual([start, end]);
 });

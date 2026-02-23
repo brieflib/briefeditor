@@ -1,7 +1,7 @@
 // @ts-ignore
 import tooltipCss from "@/component/popup/asset/tooltip.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
-import {getRange} from "@/core/shared/range-util";
+import {getBoundingClientRect, getCursorPosition} from "@/core/shared/type/cursor-position";
 
 class Tooltip extends HTMLElement {
     private readonly wrapper: HTMLElement;
@@ -30,8 +30,8 @@ class Tooltip extends HTMLElement {
     }
 
     open() {
-        const range = getRange();
-        if (range.startContainer === range.endContainer && range.startContainer === this) {
+        const cursorPosition = getCursorPosition();
+        if (cursorPosition.startContainer === cursorPosition.endContainer && cursorPosition.startContainer === this) {
             return;
         }
 
@@ -46,8 +46,8 @@ class Tooltip extends HTMLElement {
     }
 
     private move() {
-        const range = getRange();
-        const rect = range.getBoundingClientRect();
+        const cursorPosition = getCursorPosition();
+        const rect = getBoundingClientRect(cursorPosition);
         this.wrapper.style.top = `${rect.top}px`;
         this.wrapper.style.left = `${rect.left + rect.width / 2}px`;
     }

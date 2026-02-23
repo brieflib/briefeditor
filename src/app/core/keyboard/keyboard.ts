@@ -1,10 +1,10 @@
 import {
-    getCursorPosition,
     isCursorAtEndOfBlock,
     isCursorAtStartOfBlock,
     isCursorIntersectBlocks
 } from "@/core/cursor/cursor";
 import {isSpecialKey, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent) {
     const cursorPosition = getCursorPosition();

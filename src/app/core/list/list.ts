@@ -8,9 +8,8 @@ import {
     moveListWrappersOutOfLi,
     moveListWrapperToPreviousLi
 } from "@/core/list/util/list-util";
-import {getCursorPosition, restoreRange} from "@/core/cursor/cursor";
-import {getNextNode, getPreviousNode, getRootElement} from "@/core/shared/element-util";
-import {getRange} from "@/core/shared/range-util";
+import {getNextNode} from "@/core/shared/element-util";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 export function isNextListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const lastList = lists[lists.length - 1];
@@ -72,11 +71,10 @@ export function plusIndent(contentEditable: HTMLElement, lists: HTMLElement[] = 
         return;
     }
 
-    const initialCursorPosition = getCursorPosition();
+    const cursorPosition = getCursorPosition();
 
     for (let i = 0; i < lists.length; i++) {
-        const initialRange = restoreRange(contentEditable, initialCursorPosition);
-        const li = getSelectedBlock(contentEditable, initialRange)[i];
+        const li = getSelectedBlock(contentEditable, cursorPosition)[i];
         if (!li) {
             continue;
         }
@@ -89,12 +87,11 @@ export function plusIndent(contentEditable: HTMLElement, lists: HTMLElement[] = 
         appendTags(contentEditable, li, [listWrapper.nodeName]);
     }
 
-    const initialRange = restoreRange(contentEditable, initialCursorPosition);
-    const rootElements = getSelectedRoot(contentEditable, initialRange);
+    const rootElements = getSelectedRoot(contentEditable, cursorPosition);
     for (const rootElement of rootElements) {
         moveListWrapperToPreviousLi(rootElement);
     }
-    normalizeRootElements(contentEditable, initialCursorPosition);
+    normalizeRootElements(contentEditable, cursorPosition);
 }
 
 export function isMinusIndentEnabled(contentEditable: HTMLElement) {
@@ -140,15 +137,15 @@ export function minusIndent(contentEditable: HTMLElement, lists: HTMLElement[] =
 }
 
 export function isListMergeAllowed(contentEditable: HTMLElement): boolean {
-    const range = getRange();
-    const blocks = getSelectedBlock(contentEditable, range);
+    const cursorPosition = getCursorPosition();
+    const blocks = getSelectedBlock(contentEditable, cursorPosition);
     const firstBlock = blocks[0];
     const lastBlock = blocks[blocks.length - 1];
     if (!firstBlock || !lastBlock) {
         return false;
     }
 
-    const nodeAfterLast = getNextNode(contentEditable, range.endContainer);
+    const nodeAfterLast = getNextNode(contentEditable, cursorPosition.endContainer);
     const firstNestingLevel = countListWrapperParents(contentEditable, firstBlock);
     const lastNestingLevel = countListWrapperParents(contentEditable, lastBlock);
 

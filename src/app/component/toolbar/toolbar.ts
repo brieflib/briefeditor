@@ -14,7 +14,7 @@ import MinusIndentIcon from "@/component/toolbar-icon/minus-indent";
 import {isNextListNested} from "@/core/list/list";
 import LinkIcon from "@/component/toolbar-icon/link-icon";
 import ImageIcon from "@/component/toolbar-icon/image-icon";
-import {isRangeIn} from "@/core/shared/range-util";
+import {isRangeIn} from "@/core/shared/type/cursor-position";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;

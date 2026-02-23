@@ -5,18 +5,16 @@ import {
     getSelectedLeaves,
     SelectionType
 } from "@/core/selection/util/selection-util";
-import {getRange} from "@/core/shared/range-util";
-import {CursorPosition} from "@/core/shared/type/cursor-position";
-import {restoreRange} from "@/core/cursor/cursor";
+import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
 
-export function getSelectedSharedTags(findTill: HTMLElement, range = getRange()) {
-    const leafNodes = getSelectedLeaves();
+export function getSelectedSharedTags(findTill: HTMLElement, cursorPosition = getCursorPosition()) {
+    const leafNodes = getSelectedLeaves(findTill);
 
-    if (leafNodes.length > 1 && range.endOffset === 0) {
+    if (leafNodes.length > 1 && cursorPosition.endOffset === 0) {
         leafNodes.pop();
     }
 
-    if (leafNodes.length > 1 && range.startContainer.textContent?.length === range.startOffset) {
+    if (leafNodes.length > 1 && cursorPosition.startContainer.textContent?.length === cursorPosition.startOffset) {
         leafNodes.shift();
     }
 
@@ -30,13 +28,12 @@ export function getSelectedSharedTags(findTill: HTMLElement, range = getRange())
     return shared[0]?.filter(element => shared.every(arr => arr.includes(element))) ?? [];
 }
 
-export function getSelectedRoot(findTill: HTMLElement, range: Range = getRange()): HTMLElement[] {
-    return getSelected(findTill, range, SelectionType.Root);
+export function getSelectedRoot(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): HTMLElement[] {
+    return getSelected(findTill, cursorPosition, SelectionType.Root);
 }
 
 export function getFirstSelectedRoot(contentEditable: HTMLElement, cursorPosition: CursorPosition): HTMLElement {
-    const range = restoreRange(contentEditable, cursorPosition);
-    const selectedRoots = getSelected(contentEditable, range, SelectionType.Root);
+    const selectedRoots = getSelected(contentEditable, cursorPosition, SelectionType.Root);
     const firstSelectedRoot = selectedRoots[0];
     if (!firstSelectedRoot) {
         throw new Error("Selected root not found");
@@ -45,25 +42,16 @@ export function getFirstSelectedRoot(contentEditable: HTMLElement, cursorPositio
     return firstSelectedRoot;
 }
 
-export function getSelectedBlock(findTill: HTMLElement, range: Range = getRange()): HTMLElement[] {
-    return getSelected(findTill, range, SelectionType.Block);
+export function getSelectedBlock(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): HTMLElement[] {
+    return getSelected(findTill, cursorPosition, SelectionType.Block);
 }
 
-export function getSelectedLink(findTill: HTMLElement, range: Range = getRange()): HTMLElement[] {
-    return getSelected(findTill, range, SelectionType.Link);
+export function getSelectedLink(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): HTMLElement[] {
+    return getSelected(findTill, cursorPosition, SelectionType.Link);
 }
 
-export function getSelectedListWrapper(findTill: HTMLElement, range: Range = getRange()): HTMLElement[] {
-    return getSelected(findTill, range, SelectionType.ListWrapper);
-}
-
-export function getSelectedParentElements(range: Range) {
-    return getSelected(null, range, SelectionType.ParentElement);
-}
-
-export function getInitialBlocks(contentEditable: HTMLElement, initialCursorPosition: CursorPosition) {
-    const initialRange = restoreRange(contentEditable, initialCursorPosition);
-    return getSelectedBlock(contentEditable, initialRange);
+export function getSelectedListWrapper(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): HTMLElement[] {
+    return getSelected(findTill, cursorPosition, SelectionType.ListWrapper);
 }
 
 export function selectElement(element: HTMLElement) {

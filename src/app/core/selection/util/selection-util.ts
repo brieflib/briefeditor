@@ -1,6 +1,10 @@
-import {getRange} from "@/core/shared/range-util";
 import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {getElement, getRootElement} from "@/core/shared/element-util";
+import {getElement, getNextNode, getRootElement} from "@/core/shared/element-util";
+import {
+    commonAncestorContainer,
+    CursorPosition,
+    getCursorPosition,
+} from "@/core/shared/type/cursor-position";
 
 export enum SelectionType {
     Root = "Root",
@@ -10,30 +14,32 @@ export enum SelectionType {
     Link = "Link"
 }
 
-export function getSelectedLeaves(range = getRange()) {
-    const textNodes: Node[] = [];
-
-    if (range.startContainer === range.endContainer) {
-        return [range.startContainer];
+export function getSelectedLeaves(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+    if (cursorPosition.startContainer === cursorPosition.endContainer) {
+        return [cursorPosition.startContainer];
     }
 
-    const walker = document.createTreeWalker(
-        range.commonAncestorContainer,
-        NodeFilter.SHOW_TEXT,
-        {
-            acceptNode: function (node) {
-                return range.intersectsNode(node) ?
-                    NodeFilter.FILTER_ACCEPT :
-                    NodeFilter.FILTER_REJECT;
-            }
-        }
-    );
+    const textNodes: Node[] = [];
+    let current: Node | null = cursorPosition.startContainer;
 
-    while (walker.nextNode()) {
-        textNodes.push(walker.currentNode);
+    while (current) {
+        if (current.nodeType === Node.TEXT_NODE) {
+            textNodes.push(current);
+        }
+        if (current === cursorPosition.endContainer) {
+            break;
+        }
+        current = nextInOrder(findTill, current);
     }
 
     return textNodes;
+}
+
+function nextInOrder(findTill: HTMLElement, node: Node): Node | null {
+    if (node.firstChild) {
+        return node.firstChild;
+    }
+    return getNextNode(findTill, node);
 }
 
 export function getParentTags(findTill: HTMLElement, node: Node) {
@@ -68,9 +74,9 @@ export function filterListWrapperTag(parents: string[]) {
     return filtered;
 }
 
-export function getSelected(findTill: HTMLElement | null, range: Range, type: SelectionType) {
+export function getSelected(findTill: HTMLElement, cursorPosition: CursorPosition, type: SelectionType) {
     const selected: HTMLElement[] = [];
-    const leafNodes = getSelectedLeaves(range);
+    const leafNodes = getSelectedLeaves(findTill, cursorPosition);
 
     for (const leafNode of leafNodes) {
         let block;

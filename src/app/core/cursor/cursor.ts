@@ -1,63 +1,16 @@
-import {CursorPosition} from "@/core/shared/type/cursor-position";
-import {getRange} from "@/core/shared/range-util";
+import {
+    cloneRange,
+    CursorPosition,
+    getCursorPosition, getLength,
+    isCollapsed,
+    selectNodeContents, setRangeEnd
+} from "@/core/shared/type/cursor-position";
 import {getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {collectTextSiblings, computeOffset, isIndexInArray, replaceWithMerged} from "@/core/cursor/util/cursor-util";
-import {getFirstText, getLastText} from "@/core/shared/element-util";
 
-export function getCursorPosition(range = getRange(), documentFragment?: DocumentFragment): CursorPosition {
-    if (!documentFragment) {
-        return {
-            startContainer: range.startContainer,
-            endContainer: range.endContainer,
-            startOffset: range.startOffset,
-            endOffset: range.endOffset
-        };
-    }
-    const startNode = getFirstText(documentFragment);
-    const endNode = getLastText(documentFragment);
-
-    return {
-        startContainer: startNode.textContent ? startNode : endNode,
-        endContainer: endNode,
-        startOffset: 0,
-        endOffset: endNode.textContent?.length ?? range.endOffset
-    };
-}
-
-export function getCursorPosition2(cp: CursorPosition, nodes: Node[]): CursorPosition {
-    const startNode = getFirstText(nodes[0] as Node);
-    const endNode = getLastText(nodes[nodes.length - 1] as Node);
-
-    return {
-        startContainer: startNode,
-        endContainer: endNode,
-        startOffset: 0,
-        endOffset: endNode?.textContent?.length ?? cp.endOffset
-    };
-}
-
-export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    const range: Range = restoreRange(contentEditable, cursorPosition);
-    const selection: Selection | null = window.getSelection();
-    if (!selection) {
-        return;
-    }
-    selection.removeAllRanges();
-    selection.addRange(range);
-}
-
-export function restoreRange(contentEditable: HTMLElement, cursorPosition: CursorPosition): Range {
-    const range = new Range();
-
-    range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
-    range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
-
-    return range;
-}
-
-export function isCursorAtEndOfBlock(contentEditable: HTMLElement, range = getRange()) {
-    if (!range.collapsed) {
+export function isCursorAtEndOfBlock(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
+    if (!isCollapsed(cursorPosition)) {
         return false;
     }
 
@@ -66,11 +19,11 @@ export function isCursorAtEndOfBlock(contentEditable: HTMLElement, range = getRa
         return false;
     }
 
-    const endRange: Range = range.cloneRange();
-    endRange.selectNodeContents(block);
-    endRange.setEnd(range.endContainer, range.endOffset);
+    let endPosition = cloneRange(cursorPosition);
+    selectNodeContents(endPosition, block);
+    setRangeEnd(endPosition);
 
-    const endOffset = endRange.toString().length;
+    const endOffset = getLength(endPosition);
     if (!isSchemaContain(block, [Display.List])) {
         return endOffset === block.textContent.length;
     }
@@ -85,8 +38,8 @@ export function isCursorAtEndOfBlock(contentEditable: HTMLElement, range = getRa
     return endOffset === elementLength;
 }
 
-export function isCursorAtStartOfBlock(contentEditable: HTMLElement, range = getRange()) {
-    if (!range.collapsed) {
+export function isCursorAtStartOfBlock(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
+    if (!isCollapsed(cursorPosition)) {
         return false;
     }
 
@@ -95,19 +48,15 @@ export function isCursorAtStartOfBlock(contentEditable: HTMLElement, range = get
         return false;
     }
 
-    const startRange: Range = range.cloneRange();
-    startRange.selectNodeContents(block);
-    startRange.setStart(range.startContainer, range.startOffset);
+    let endRange = cloneRange(cursorPosition);
+    selectNodeContents(endRange, block);
+    setRangeEnd(endRange);
 
-    const endRange: Range = range.cloneRange();
-    endRange.selectNodeContents(block);
-    endRange.setEnd(range.endContainer, range.endOffset);
-
-    return endRange.toString().length === 0;
+    return getLength(endRange) === 0;
 }
 
-export function isCursorIntersectBlocks(contentEditable: HTMLElement, range = getRange()) {
-    if (range.collapsed) {
+export function isCursorIntersectBlocks(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
+    if (isCollapsed(cursorPosition)) {
         return false;
     }
 
@@ -142,3 +91,4 @@ export function mergeSiblingTextNodes(cursorPosition: CursorPosition): CursorPos
 
     return {...cursorPosition, startContainer, startOffset, endContainer, endOffset};
 }
+

@@ -1,8 +1,7 @@
 import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
-import {getCursorPosition} from "@/core/cursor/cursor";
-import {CursorPosition} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -162,8 +161,7 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeNextBlock(wrapper, cursorPosition);
+        mergeNextBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">zerofirst <em>second</em></p>

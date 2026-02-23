@@ -10,7 +10,3 @@ export function getRange(): Range {
     return range;
 }
 
-export function isRangeIn(element?: HTMLElement, range = getRange()) {
-    return element?.contains(range.startContainer) &&
-        element?.contains(range.endContainer);
-}

@@ -6,9 +6,13 @@ import Tooltip from "@/component/popup/tooltip";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {getSelectedLink, getSelectedSharedTags} from "@/core/selection/selection";
-import {getRange, isRangeIn} from "@/core/shared/range-util";
-import {CursorPosition, isCursorPositionEqual} from "@/core/shared/type/cursor-position";
-import {getCursorPosition, setCursorPosition} from "@/core/cursor/cursor";
+import {
+    CursorPosition,
+    getCursorPosition, isCollapsed,
+    isCursorPositionEqual,
+    isRangeIn,
+    setCursorPosition
+} from "@/core/shared/type/cursor-position";
 
 class LinkIcon extends HTMLElement implements Icon {
     private contentEditableElement?: HTMLElement;
@@ -56,12 +60,12 @@ class LinkIcon extends HTMLElement implements Icon {
     setEnabled() {
         this.button.setAttribute("disabled", "true");
 
-        const range = getRange();
-        if (!isRangeIn(this.getContentEditableSafe(), range)) {
+        const cursorPosition = getCursorPosition();
+        if (!isRangeIn(this.getContentEditableSafe(), cursorPosition)) {
             return;
         }
 
-        if (!range.collapsed || this.isLinkSelected() || this.isInputFocused) {
+        if (!isCollapsed(cursorPosition) || this.isLinkSelected() || this.isInputFocused) {
             this.button.removeAttribute("disabled");
         }
     }
@@ -70,8 +74,8 @@ class LinkIcon extends HTMLElement implements Icon {
         this.contentEditableElement = contentEditable;
 
         document.addEventListener("selectionchange", (event) => {
-            let range = getRange().cloneRange();
-            if (range.endContainer === this.tooltip || event.target === this.input) {
+            let cursorPosition = getCursorPosition();
+            if (cursorPosition.endContainer === this.tooltip || event.target === this.input) {
                 return;
             }
 
@@ -80,32 +84,32 @@ class LinkIcon extends HTMLElement implements Icon {
                 this.isSaved = true;
             }
 
-            const cursorPosition = getCursorPosition();
+            cursorPosition = getCursorPosition();
             if (!isCursorPositionEqual(cursorPosition, this.cursorPosition) && !this.isInputFocused) {
                 this.cursorPosition = cursorPosition;
                 this.closeTooltip();
             }
 
-            range = getRange().cloneRange();
-            if (this.isLinkSelected() && range.collapsed) {
-                const link = getSelectedLink(this.getContentEditableSafe(), range)[0];
+            cursorPosition = getCursorPosition();
+            if (this.isLinkSelected() && isCollapsed(cursorPosition)) {
+                const link = getSelectedLink(this.getContentEditableSafe(), cursorPosition)[0];
                 const href = link?.getAttribute("href") ?? "";
                 this.openTooltip(href);
             }
         });
 
         this.button.addEventListener("click", () => {
-            const range = getRange();
-            if (range.collapsed) {
+            const cursorPosition = getCursorPosition();
+            if (isCollapsed(cursorPosition)) {
                 return;
             }
 
-            if (this.isLinkSelected() && !range.collapsed) {
+            if (this.isLinkSelected() && !isCollapsed(cursorPosition)) {
                 this.sendLinkCommand(null);
                 return;
             }
 
-            const link = getSelectedLink(this.getContentEditableSafe(), range)[0];
+            const link = getSelectedLink(this.getContentEditableSafe(), cursorPosition)[0];
             const href = link?.getAttribute("href") ?? "";
             this.openTooltip(href);
             this.input.focus();

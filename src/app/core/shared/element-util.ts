@@ -1,5 +1,5 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getRange} from "@/core/shared/range-util";
+import {commonAncestorContainer, getCursorPosition} from "@/core/shared/type/cursor-position";
 
 export function getRootElement(findTill: HTMLElement, child: HTMLElement) {
     while (child.parentElement && child.parentElement !== findTill) {
@@ -21,8 +21,8 @@ export function getElement(findTill: HTMLElement, child: HTMLElement, display: D
     return child;
 }
 
-export function getElementByTagName(findTill: HTMLElement, tagName: string, range = getRange()) {
-    let child = range.commonAncestorContainer;
+export function getElementByTagName(findTill: HTMLElement, tagName: string, cursorPosition = getCursorPosition()) {
+    let child = commonAncestorContainer(cursorPosition);
     while (child.parentElement && child.parentElement !== findTill && child.nodeName !== tagName) {
         child = child.parentElement;
     }

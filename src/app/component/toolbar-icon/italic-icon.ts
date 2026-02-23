@@ -4,7 +4,7 @@ import initShadowRoot from "@/component/shared/shadow-root";
 import {Icon} from "@/component/toolbar-icon/type/icon";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
-import {isRangeIn} from "@/core/shared/range-util";
+import {isRangeIn} from "@/core/shared/type/cursor-position";
 
 class ItalicIcon extends HTMLElement implements Icon {
     private contentEditableElement?: HTMLElement;

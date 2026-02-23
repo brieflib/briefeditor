@@ -4,7 +4,7 @@ import initShadowRoot from "@/component/shared/shadow-root";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {Icon} from "@/component/toolbar-icon/type/icon";
-import {isRangeIn} from "@/core/shared/range-util";
+import {isRangeIn} from "@/core/shared/type/cursor-position";
 
 class OrderedListIcon extends HTMLElement implements Icon {
     private contentEditableElement?: HTMLElement;

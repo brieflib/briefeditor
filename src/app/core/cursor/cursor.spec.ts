@@ -1,8 +1,6 @@
 import {createWrapper, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
-import execCommand from "@/core/command/exec-command";
-import {Action} from "@/core/command/type/command";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()

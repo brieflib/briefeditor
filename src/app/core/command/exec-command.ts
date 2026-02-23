@@ -7,11 +7,15 @@ import {
     tag
 } from "@/core/command/util/command-util";
 import {getSelectedBlock, getSelectedLink, getSelectedSharedTags, selectElement} from "@/core/selection/selection";
-import {getCursorPosition, setCursorPosition} from "@/core/cursor/cursor";
 import {minusIndent, plusIndent} from "@/core/list/list";
-import {getRange, isRangeIn} from "@/core/shared/range-util";
 import {getElementByTagName} from "@/core/shared/element-util";
-import {CursorPosition} from "@/core/shared/type/cursor-position";
+import {
+    CursorPosition,
+    getCursorPosition, insertNode,
+    isCollapsed,
+    isRangeIn,
+    setCursorPosition
+} from "@/core/shared/type/cursor-position";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     switch (command.action)  {
@@ -59,7 +63,6 @@ function applyAttributesCommand(contentEditable: HTMLElement, command: Command) 
 }
 
 function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
-    const cursorPosition = getCursorPosition();
     const image = command.attributes?.image;
 
     if (image) {
@@ -70,10 +73,9 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
             const img = document.createElement(imgTag);
             img.src = event.target?.result as string;
 
-            const range = getRange();
-            if (isRangeIn(contentEditable, range)) {
-                range.insertNode(img);
-
+            const cursorPosition = getCursorPosition();
+            if (isRangeIn(contentEditable, cursorPosition)) {
+                insertNode(cursorPosition, img);
                 setCursorPosition(contentEditable, cursorPosition);
             }
         };
@@ -86,30 +88,30 @@ function applyLinkCommand(contentEditable: HTMLElement, command: Command) {
     const tagName = (command.tag as string).toUpperCase();
     const sharedTags: string[] = getSelectedSharedTags(contentEditable);
     const href = command.attributes?.href;
-    const range = getRange();
-    const isCollapsed = range.collapsed;
+    const cursorPosition = getCursorPosition();
+    const collapsed = isCollapsed(cursorPosition);
     const isLinkSelected = sharedTags.includes(tagName);
 
-    if (href && isCollapsed && isLinkSelected) {
-        const link = getSelectedLink(contentEditable, range)[0];
+    if (href && collapsed && isLinkSelected) {
+        const link = getSelectedLink(contentEditable, cursorPosition)[0];
         if (link) {
             link.setAttribute("href", href);
         }
     }
 
-    if (!href && isCollapsed && isLinkSelected) {
-        const link = getSelectedLink(contentEditable, range)[0];
+    if (!href && collapsed && isLinkSelected) {
+        const link = getSelectedLink(contentEditable, cursorPosition)[0];
         if (link) {
             selectElement(link);
             tag(contentEditable, tagName, Action.Unwrap, command.attributes);
         }
     }
 
-    if (!href && !isCollapsed && isLinkSelected) {
+    if (!href && !collapsed && isLinkSelected) {
         tag(contentEditable, tagName, Action.Unwrap, command.attributes);
     }
 
-    if (href && !isCollapsed && !isLinkSelected) {
+    if (href && !collapsed && !isLinkSelected) {
         tag(contentEditable, tagName, Action.Wrap, command.attributes);
     }
 }

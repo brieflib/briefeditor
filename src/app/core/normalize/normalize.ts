@@ -10,12 +10,10 @@ import {
     setLeafParents,
     sortLeafParents
 } from "@/core/normalize/util/normalize-util";
-import {getRange} from "@/core/shared/range-util";
-import {getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
+import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {CursorPosition} from "@/core/shared/type/cursor-position";
-import {getInitialBlocks, getSelectedParentElements, getSelectedRoot} from "@/core/selection/selection";
-import {restoreRange} from "@/core/cursor/cursor";
+import {CursorPosition, getCursorPosition, insertNode, selectNode} from "@/core/shared/type/cursor-position";
+import {getSelectedRoot} from "@/core/selection/selection";
 
 export default function normalize(contentEditable: HTMLElement, element: HTMLElement) {
     const leaves = getLeafNodes(element)
@@ -84,9 +82,8 @@ export function appendTags(contentEditable: HTMLElement, appendTagTo: HTMLElemen
     return replaceElement(fragment, rootElement);
 }
 
-export function normalizeRootElements(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    const range = restoreRange(contentEditable, cursorPosition);
-    const rootElements = getSelectedRoot(contentEditable, range);
+export function normalizeRootElements(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+    const rootElements = getSelectedRoot(contentEditable, cursorPosition);
 
     const firstRoot = rootElements[0];
     if (!firstRoot) {
@@ -133,8 +130,8 @@ function buildElementsToReplace(replaceTo: string[]) {
 }
 
 function replaceElement(fragment: DocumentFragment, replaceableElement: HTMLElement) {
-    const range = getRange();
-    range.selectNode(replaceableElement);
+    const cursorPosition = getCursorPosition();
+    selectNode(cursorPosition, replaceableElement);
     replaceableElement.remove();
     const childNodes = fragment.firstChild?.childNodes;
     const innerFragment = new DocumentFragment();
@@ -142,8 +139,6 @@ function replaceElement(fragment: DocumentFragment, replaceableElement: HTMLElem
         innerFragment.append(...childNodes);
     }
 
-    // const startNode = getFirstText(innerFragment) as Node;
-    // const endNode = getLastText(innerFragment) as Node;
     const insertedNodes: Node[] = [];
     let child: Node | null = innerFragment.firstChild;
     while (child) {
@@ -151,9 +146,7 @@ function replaceElement(fragment: DocumentFragment, replaceableElement: HTMLElem
         child = child.nextSibling;
     }
 
-    range.insertNode(innerFragment);
+    insertNode(cursorPosition, innerFragment);
 
     return insertedNodes;
-
-    //return innerFragment;
 }

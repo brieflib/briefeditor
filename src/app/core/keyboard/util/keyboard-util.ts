@@ -1,7 +1,11 @@
 import {getSelectedBlock} from "@/core/selection/selection";
-import {getRange} from "@/core/shared/range-util";
-import {CursorPosition} from "@/core/shared/type/cursor-position";
-import {setCursorPosition} from "@/core/cursor/cursor";
+import {
+    CursorPosition,
+    deleteContents,
+    getCursorPosition,
+    getCursorPositionFrom,
+    setCursorPosition
+} from "@/core/shared/type/cursor-position";
 import {isListMergeAllowed} from "@/core/list/list";
 import {getFirstText, getLastText, getNextNode, getPreviousNode} from "@/core/shared/element-util";
 import {normalizeRootElements} from "@/core/normalize/normalize";
@@ -13,8 +17,7 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
         return;
     }
 
-    const range = getRange();
-    const previousNode = getPreviousNode(contentEditable, range.startContainer);
+    const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
     if (!previousNode) {
         return;
     }
@@ -26,20 +29,19 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
     }
 
     if (lastChild.textContent) {
-        range.setStart(lastChild, lastChild.textContent.length);
-        mergeBlocks(contentEditable, cursorPosition, "", range);
+        cursorPosition = {...cursorPosition, startContainer: lastChild, startOffset: lastChild.textContent.length};
+        mergeBlocks(contentEditable, cursorPosition, "");
     }
 }
 
-export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const isRemoved = removeEmptyBlock(contentEditable);
     if (isRemoved) {
         setCursorPosition(contentEditable, cursorPosition);
         return;
     }
 
-    const range = getRange();
-    const nextNode = getNextNode(contentEditable, range.endContainer);
+    const nextNode = getNextNode(contentEditable, cursorPosition.endContainer);
     if (!nextNode) {
         return;
     }
@@ -50,23 +52,23 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
         return;
     }
 
-    range.setEnd(firstChild, 0);
-    mergeBlocks(contentEditable, cursorPosition, "", range);
+    cursorPosition = {...cursorPosition, endContainer: firstChild, endOffset: 0};
+    mergeBlocks(contentEditable, cursorPosition, "");
 }
 
-export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = "", range = getRange()) {
+export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = "") {
     if (!isListMergeAllowed(contentEditable)) {
         return;
     }
 
-    const blocks = getSelectedBlock(contentEditable, range);
+    const blocks = getSelectedBlock(contentEditable, cursorPosition);
     const firstBlock = blocks[0];
     const lastBlock = blocks[blocks.length - 1];
     if (!firstBlock || !lastBlock || firstBlock === lastBlock) {
         return;
     }
 
-    range.deleteContents();
+    deleteContents(cursorPosition);
 
     if (isKeyPrintable(pressedKey)) {
         const textNode = document.createTextNode(pressedKey);
@@ -83,12 +85,10 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
     }
     lastBlock.remove();
 
-    cursorPosition = {
-        startContainer: cursorPosition.startContainer,
-        startOffset: cursorPosition.startOffset,
-        endContainer: cursorPosition.endContainer,
-        endOffset: 0
-    }
+    cursorPosition = getCursorPositionFrom(cursorPosition.startContainer,
+        cursorPosition.startOffset,
+        cursorPosition.endContainer,
+        0);
     normalizeRootElements(contentEditable, cursorPosition);
     //setCursorPosition(contentEditable, cursorPosition, false);
 }

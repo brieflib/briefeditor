@@ -1,10 +1,13 @@
 import normalize, {normalizeRootElements, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {getElement, getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
+import {getElement, getRootElement} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {getInitialBlocks, getSelectedBlock, getSelectedListWrapper} from "@/core/selection/selection";
-import {getCursorPosition, getCursorPosition2, restoreRange} from "@/core/cursor/cursor";
+import {getSelectedBlock, getSelectedListWrapper} from "@/core/selection/selection";
 import {Action, Attributes} from "@/core/command/type/command";
-import {CursorPosition} from "@/core/shared/type/cursor-position";
+import {
+    CursorPosition, extractContents,
+    getCursorPosition, getCursorPosition2, getCursorPositionFrom,
+    getCursorPositionFromDocumentFragment, insertNode
+} from "@/core/shared/type/cursor-position";
 
 export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Attributes) {
     let cursorPosition = getCursorPosition();
@@ -20,57 +23,43 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
 
     let length = getSelectedBlock(contentEditable).length;
     for (let i = 0; i < length; i++) {
-        const initialRange = restoreRange(contentEditable, cursorPosition);
-        const elements = getSelectedBlock(contentEditable, initialRange);
+        const elements = getSelectedBlock(contentEditable, cursorPosition);
 
         const element = elements[i];
         if (!element) {
             continue;
         }
 
-        //const cloneRange = initialRange.cloneRange();
-
         if (i === 0) {
-            const cursorPositionClone = {
-                startContainer: cursorPosition.startContainer,
-                startOffset: cursorPosition.startOffset,
-                endContainer: element,
-                endOffset: element.childNodes.length
-            }
-            //cloneRange.setEnd(element, element.childNodes.length);
+            const cursorPositionClone = getCursorPositionFrom(cursorPosition.startContainer,
+                cursorPosition.startOffset,
+                element,
+                element.childNodes.length);
             const cp = tagAction(contentEditable, cursorPositionClone, tag, action, attributes);
-            cursorPosition = {
-                startContainer: cp.startContainer,
-                startOffset: cp.startOffset,
-                endContainer: cursorPosition.endContainer,
-                endOffset: cursorPosition.endOffset
-            }
+            cursorPosition = getCursorPositionFrom(cp.startContainer,
+                cp.startOffset,
+                cursorPosition.endContainer,
+                cursorPosition.endOffset);
             continue;
         }
 
         if (i === length - 1) {
-            const cursorPositionClone = {
-                startContainer: element,
-                startOffset: 0,
-                endContainer: cursorPosition.endContainer,
-                endOffset: cursorPosition.endOffset
-            }
+            const cursorPositionClone = getCursorPositionFrom(element,
+                0,
+                cursorPosition.endContainer,
+                cursorPosition.endOffset);
             const cp = tagAction(contentEditable, cursorPositionClone, tag, action, attributes);
-            cursorPosition = {
-                startContainer: cursorPosition.startContainer,
-                startOffset: cursorPosition.startOffset,
-                endContainer: cp.endContainer,
-                endOffset: cp.endOffset
-            }
+            cursorPosition = getCursorPositionFrom(cursorPosition.startContainer,
+                cursorPosition.startOffset,
+                cp.endContainer,
+                cp.endOffset);
             continue;
         }
 
-        const cursorPositionClone = {
-            startContainer: element,
-            startOffset: 0,
-            endContainer: element,
-            endOffset: element.childNodes.length
-        }
+        const cursorPositionClone = getCursorPositionFrom(element,
+            0,
+            element,
+            element.childNodes.length);
         tagAction(contentEditable, cursorPositionClone, tag, action, attributes);
     }
     normalizeRootElements(contentEditable, cursorPosition);
@@ -106,14 +95,13 @@ export function applyAttributes(element: HTMLElement, attributes?: Attributes) {
 }
 
 function wrapRangeInTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, attributes?: Attributes): CursorPosition {
-    const range = restoreRange(contentEditable, cursorPosition);
-    const documentFragment: DocumentFragment = range.extractContents();
-    const cp = getCursorPosition(range, documentFragment);
+    const documentFragment: DocumentFragment = extractContents(cursorPosition);
+    const cp = getCursorPositionFromDocumentFragment(documentFragment);
 
     const tagElement = document.createElement(tag);
     applyAttributes(tagElement, attributes);
     tagElement.appendChild(documentFragment);
-    range.insertNode(tagElement);
+    insertNode(cursorPosition, tagElement);
 
     const rootElement = getRootElement(contentEditable, tagElement);
     const df = normalize(contentEditable, rootElement);
@@ -122,14 +110,13 @@ function wrapRangeInTag(contentEditable: HTMLElement, cursorPosition: CursorPosi
 }
 
 function unwrapRangeFromTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string): CursorPosition {
-    const range = restoreRange(contentEditable, cursorPosition);
-    const documentFragment: DocumentFragment = range.extractContents();
-    const cp = getCursorPosition(range, documentFragment);
+    const documentFragment: DocumentFragment = extractContents(cursorPosition);
+
+    const cp = getCursorPositionFromDocumentFragment(documentFragment);
 
     const removeTagFrom = document.createElement("DELETED");
     removeTagFrom.appendChild(documentFragment);
-    range.insertNode(removeTagFrom);
-
+    insertNode(cursorPosition, removeTagFrom);
     removeTags(contentEditable, removeTagFrom, [tag, "DELETED"]);
 
     return cp;
@@ -138,11 +125,12 @@ function unwrapRangeFromTag(contentEditable: HTMLElement, cursorPosition: Cursor
 export function changeBlock(contentEditable: HTMLElement, replaceTo: string[]) {
     const isList = replaceTo.length === 1 && isSchemaContainNodeName(replaceTo[0], [Display.ListWrapper]);
 
-    const initialCursorPosition = getCursorPosition();
+    let cursorPosition = getCursorPosition();
     const blocks = getSelectedBlock(contentEditable);
     let df;
     for (let i = blocks.length - 1; i >= 0; i--) {
-        const block = getInitialBlocks(contentEditable, initialCursorPosition)[i];
+        const b = getSelectedBlock(contentEditable, cursorPosition);
+        const block = b[i];
         if (!block) {
             continue;
         }
@@ -152,7 +140,7 @@ export function changeBlock(contentEditable: HTMLElement, replaceTo: string[]) {
     }
 
     if (df) {
-        const cp = getCursorPosition2(initialCursorPosition, df);
+        const cp = getCursorPosition2(cursorPosition, df);
         normalizeRootElements(contentEditable, cp);
     }
 }

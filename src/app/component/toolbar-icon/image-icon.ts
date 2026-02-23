@@ -2,9 +2,9 @@
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 import {Icon} from "@/component/toolbar-icon/type/icon";
-import {getRange, isRangeIn} from "@/core/shared/range-util";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
+import {isRangeIn} from "@/core/shared/type/cursor-position";
 
 class ImageIcon extends HTMLElement implements Icon {
     private contentEditableElement?: HTMLElement;
