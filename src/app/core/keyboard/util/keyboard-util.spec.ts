@@ -1,7 +1,7 @@
 import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
-import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -147,6 +147,30 @@ describe("Merge previous element", () => {
             </ul>
         `);
     });
+
+    test("When cursor is at the start and next element is list should merge two elements", () => {
+        const wrapper = createWrapper(`
+            <p>zero</p>
+            <h1 class="start">first</h1>
+            <ul>
+                <li>second</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergePreviousBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zerofirst</p>
+            <ul>
+                <li>second</li>
+            </ul>
+        `);
+    });
 });
 
 describe("Merge next element", () => {
@@ -203,6 +227,28 @@ describe("Merge next element", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
+        `);
+    });
+
+    test("When cursor is at the end and next element is list should merge two elements", () => {
+        const wrapper = createWrapper(`
+            <p>zero</p>
+            <h1 class="start">first</h1>
+            <ul>
+                <li>second</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergeNextBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <h1 class="start">firstsecond</h1>
         `);
     });
 });

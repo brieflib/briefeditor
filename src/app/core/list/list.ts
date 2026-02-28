@@ -4,7 +4,7 @@ import {appendTags, normalizeRootElements, removeDistantTags} from "@/core/norma
 import {
     countListWrapperParents,
     getDirectChildren,
-    isChildrenContain,
+    isChildrenContain, isNextSiblingDoesNotExist,
     moveListWrappersOutOfLi,
     moveListWrapperToPreviousLi
 } from "@/core/list/util/list-util";
@@ -145,23 +145,20 @@ export function isListMergeAllowed(contentEditable: HTMLElement): boolean {
         return false;
     }
 
-    const nodeAfterLast = getNextNode(contentEditable, cursorPosition.endContainer);
-    const firstNestingLevel = countListWrapperParents(contentEditable, firstBlock);
-    const lastNestingLevel = countListWrapperParents(contentEditable, lastBlock);
-
-    const nextNodeIsListWrapper = isSchemaContain(nodeAfterLast, [Display.ListWrapper]);
-    const nextNodeIsOutsideSelection = !lastBlock.contains(nodeAfterLast);
-    const nestingLevelsMismatch = firstNestingLevel !== lastNestingLevel;
-    if (nextNodeIsListWrapper && (nextNodeIsOutsideSelection || nestingLevelsMismatch)) {
-        return false;
-    }
-
-    const selectionContainsFirstLevel = isSchemaContain(firstBlock, [Display.FirstLevel]) || isSchemaContain(lastBlock, [Display.FirstLevel]);
-    const nextNodeIsNotListItem = !isSchemaContain(nodeAfterLast, [Display.List]);
-    if (selectionContainsFirstLevel && nextNodeIsNotListItem) {
+    if (isSchemaContain(lastBlock, [Display.FirstLevel])) {
         return true;
     }
 
+    const lastBlockHasNestedChildren = getDirectChildren(lastBlock, [Display.ListWrapper]).length > 0;
+    if (isSchemaContain(firstBlock, [Display.FirstLevel])) {
+        return !lastBlockHasNestedChildren && isNextSiblingDoesNotExist(contentEditable, lastBlock);
+    }
+
+    const firstNestingLevel = countListWrapperParents(contentEditable, firstBlock);
+    const lastNestingLevel = countListWrapperParents(contentEditable, lastBlock);
+    if (lastBlockHasNestedChildren && firstNestingLevel < lastNestingLevel) {
+        return false;
+    }
     if (lastNestingLevel === 1) {
         return true;
     }

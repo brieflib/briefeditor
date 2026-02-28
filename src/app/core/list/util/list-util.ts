@@ -90,6 +90,17 @@ export function getDirectChildren(li: Element, display: Display[]) {
     return listWrappers;
 }
 
+export function isNextSiblingDoesNotExist(contentEditable: HTMLElement, element: Element): boolean {
+    let current: Element | null = element;
+    while (current && current.parentElement && current.parentElement !== contentEditable) {
+        if (current.nextElementSibling) {
+            return false;
+        }
+        current = current.parentElement;
+    }
+    return true;
+}
+
 function getLiAtNestingLevel(contentEditable: HTMLElement, li: Element, previousLi: Element | null) {
     while (previousLi && countListWrapperParents(contentEditable, li) !== countListWrapperParents(contentEditable, previousLi)) {
         previousLi = previousLi.querySelector(":scope li:nth-last-child(1)");

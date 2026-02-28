@@ -10,7 +10,7 @@ import {isListMergeAllowed} from "@/core/list/list";
 import {getFirstText, getLastText, getNextNode, getPreviousNode} from "@/core/shared/element-util";
 import {normalizeRootElements} from "@/core/normalize/normalize";
 
-export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const isRemoved = removeEmptyBlock(contentEditable);
     if (isRemoved) {
         setCursorPosition(contentEditable, cursorPosition);
