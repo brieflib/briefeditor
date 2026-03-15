@@ -18,6 +18,8 @@ import {
 } from "@/core/shared/type/cursor-position";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
+    let cursorPosition = getCursorPosition();
+
     switch (command.action)  {
         case Action.Attribute:
             applyAttributesCommand(contentEditable, command);
@@ -26,10 +28,10 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             applyImageCommand(contentEditable, command);
             break;
         case Action.Link:
-            applyLinkCommand(contentEditable, command);
+            cursorPosition = applyLinkCommand(contentEditable, command);
             break;
         case Action.Tag:
-            applyTagCommand(contentEditable, command);
+            cursorPosition = applyTagCommand(contentEditable, command);
             break;
         case Action.FirstLevel:
             applyFirstLevelCommand(contentEditable, command);
@@ -45,13 +47,13 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             break;
     }
 
-    contentEditable.focus();
-
     if (command.action !== Action.Attribute && command.tag) {
         applyAttributesCommand(contentEditable, command);
     }
 
-    return getCursorPosition();
+    contentEditable.focus();
+    setCursorPosition(contentEditable, cursorPosition);
+    return cursorPosition;
 }
 
 function applyAttributesCommand(contentEditable: HTMLElement, command: Command) {
@@ -88,7 +90,7 @@ function applyLinkCommand(contentEditable: HTMLElement, command: Command) {
     const tagName = (command.tag as string).toUpperCase();
     const sharedTags: string[] = getSelectedSharedTags(contentEditable);
     const href = command.attributes?.href;
-    const cursorPosition = getCursorPosition();
+    let cursorPosition = getCursorPosition();
     const collapsed = isCollapsed(cursorPosition);
     const isLinkSelected = sharedTags.includes(tagName);
 
@@ -103,27 +105,29 @@ function applyLinkCommand(contentEditable: HTMLElement, command: Command) {
         const link = getSelectedLink(contentEditable, cursorPosition)[0];
         if (link) {
             selectElement(link);
-            tag(contentEditable, tagName, Action.Unwrap, command.attributes);
+            cursorPosition = tag(contentEditable, tagName, Action.Unwrap, command.attributes);
         }
     }
 
     if (!href && !collapsed && isLinkSelected) {
-        tag(contentEditable, tagName, Action.Unwrap, command.attributes);
+        cursorPosition = tag(contentEditable, tagName, Action.Unwrap, command.attributes);
     }
 
     if (href && !collapsed && !isLinkSelected) {
-        tag(contentEditable, tagName, Action.Wrap, command.attributes);
+        cursorPosition = tag(contentEditable, tagName, Action.Wrap, command.attributes);
     }
+
+    return cursorPosition;
 }
 
-function applyTagCommand(contentEditable: HTMLElement, command: Command) {
+function applyTagCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     const tagName = (command.tag as string).toUpperCase();
     const sharedTags: string[] = getSelectedSharedTags(contentEditable);
 
     if (sharedTags.includes(tagName)) {
-        tag(contentEditable, tagName, Action.Unwrap, command.attributes);
+        return tag(contentEditable, tagName, Action.Unwrap, command.attributes);
     } else {
-        tag(contentEditable, tagName, Action.Wrap, command.attributes);
+        return tag(contentEditable, tagName, Action.Wrap, command.attributes);
     }
 }
 

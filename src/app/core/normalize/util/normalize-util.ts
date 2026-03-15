@@ -1,6 +1,7 @@
 import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
 
 export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     if (element.nodeType === Node.TEXT_NODE || isSchemaContain(element, [Display.SelfClose])) {
@@ -9,9 +10,10 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     }
 
     for (const child of element.childNodes) {
-        if (child.textContent || isSchemaContain(child, [Display.SelfClose, Display.FirstLevel, Display.List])) {
-            getLeafNodes(child, leafNodes);
-        }
+        // if (child.textContent || isSchemaContain(child, [Display.SelfClose, Display.FirstLevel, Display.List])) {
+        //     getLeafNodes(child, leafNodes);
+        // }
+        getLeafNodes(child, leafNodes);
     }
 
     return leafNodes;
@@ -73,7 +75,8 @@ export function sortLeafParents(toSort: Leaf) {
     return toSort;
 }
 
-export function collapseLeaves(leaves: Leaf[],
+export function  collapseLeaves(leaves: Leaf[],
+                               cursorPosition: CursorPosition = getCursorPosition(),
                                container: DocumentFragment = nodeToFragment(document.createElement("div"))) {
     const parent = getSameFirstParent(leaves);
 
@@ -84,7 +87,7 @@ export function collapseLeaves(leaves: Leaf[],
         if (!firstParentElement) {
             return container;
         }
-        const fragment = collapseLeaves(leafGroup.leaves, nodeToFragment(firstParentElement));
+        const fragment = collapseLeaves(leafGroup.leaves, cursorPosition, nodeToFragment(firstParentElement));
         insertAfterLastChild(container, fragment);
     }
 
@@ -233,9 +236,14 @@ export function removeConsecutiveDuplicates(leaf: Leaf, isDisabled = false): Lea
     return leaf;
 }
 
-export function filterEmptyParents(leaf: Leaf) {
-    leaf.setParents(leaf.getParents().filter(parent => !(isSchemaContain(parent, [Display.SelfClose]) && parent.textContent?.length)));
-    return leaf;
+export function isLeafEmpty(leaf: Leaf) {
+    for (const node of leaf.getParents()) {
+        if (!isSchemaContain(node, [Display.SelfClose]) && !node.textContent) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function nodeToFragment(node: Node) {

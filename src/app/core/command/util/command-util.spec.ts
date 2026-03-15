@@ -42,6 +42,23 @@ describe("Unwrap tag", () => {
         `);
     });
 
+    test("Should unwrap whole strong tag", () => {
+        const wrapper = createWrapper(`
+            <p><strong class="start">zero</strong>first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "STRONG", Action.Unwrap);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zerofirst</p>
+        `);
+    });
+
     test("Should unwrap strong from different li", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -457,7 +474,7 @@ describe("Change first level", () => {
     test("Should change list with strong divided by br to paragraph", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li class="start"><strong>zero<br>first</strong></li>
+                <li><strong class="start">zero<br>first</strong></li>
             </ul>
         `);
 
@@ -470,7 +487,7 @@ describe("Change first level", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>
-                <strong>zero<br>first</strong>
+                <strong class="start">zero<br>first</strong>
             </p>
         `);
     });

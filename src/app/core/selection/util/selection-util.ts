@@ -1,10 +1,6 @@
 import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {getElement, getNextNode, getRootElement} from "@/core/shared/element-util";
-import {
-    commonAncestorContainer,
-    CursorPosition,
-    getCursorPosition,
-} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPosition,} from "@/core/shared/type/cursor-position";
 
 export enum SelectionType {
     Root = "Root",
@@ -29,13 +25,13 @@ export function getSelectedLeaves(findTill: HTMLElement, cursorPosition: CursorP
         if (current === cursorPosition.endContainer) {
             break;
         }
-        current = nextInOrder(findTill, current);
+        current = firstChildOrNextNode(findTill, current);
     }
 
     return textNodes;
 }
 
-function nextInOrder(findTill: HTMLElement, node: Node): Node | null {
+function firstChildOrNextNode(findTill: HTMLElement, node: Node): Node | null {
     if (node.firstChild) {
         return node.firstChild;
     }

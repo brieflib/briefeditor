@@ -1,5 +1,6 @@
 import normalize, {appendTags, removeDistantTags, removeTags, replaceTags} from "@/core/normalize/normalize";
 import {createWrapper, expectHtml, getLastChild, testNormalize} from "@/core/shared/test-util";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 describe("Should normalize tags", () => {
     test("Should sort tags by priority", () => {
@@ -217,7 +218,7 @@ describe("Should remove tags", () => {
         `);
 
         const toRemove = getLastChild(wrapper, ".start") as HTMLElement;
-        removeTags(wrapper, toRemove, ["STRONG"]);
+        removeTags(wrapper, toRemove, ["STRONG"], getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <strong>
@@ -245,7 +246,7 @@ describe("Should remove tags", () => {
         `);
 
         const toRemove = wrapper.querySelector(".start");
-        removeTags(wrapper, toRemove as HTMLElement, ["STRONG"]);
+        removeTags(wrapper, toRemove as HTMLElement, ["STRONG"], getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <strong>

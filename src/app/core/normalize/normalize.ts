@@ -2,9 +2,9 @@ import {
     appendLeafParents,
     collapseLeaves,
     filterDistantLeafParents,
-    filterEmptyParents,
     filterLeafParents,
     getLeafNodes,
+    isLeafEmpty,
     removeConsecutiveDuplicates,
     replaceLeafParents,
     setLeafParents,
@@ -14,30 +14,33 @@ import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {CursorPosition, getCursorPosition, insertNode, selectNode} from "@/core/shared/type/cursor-position";
 import {getSelectedRoot} from "@/core/selection/selection";
+import {mergeEmptyTextNodes} from "@/core/cursor/cursor";
 
-export default function normalize(contentEditable: HTMLElement, element: HTMLElement) {
+export default function normalize(contentEditable: HTMLElement, element: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const leaves = getLeafNodes(element)
         .map(node => setLeafParents(contentEditable, node))
         .map(leaf => sortLeafParents(leaf))
-        .map(leaf => removeConsecutiveDuplicates(leaf))
-        .map(leaf => filterEmptyParents(leaf));
+        .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    const fragment = collapseLeaves(leaves);
-    return replaceElement(fragment, element);
+    const fragment = collapseLeaves(leaves, cursorPosition);
+    replaceElement(fragment, element, cursorPosition);
 }
 
-export function removeTags(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[]) {
+export function removeTags(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition, clearEmpty = false) {
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
-    const leaves = getLeafNodes(rootElement)
+    let leaves = getLeafNodes(rootElement)
         .map(node => setLeafParents(contentEditable, node))
         .filter(leaf => filterLeafParents(removeTagFrom, tags, leaf))
         .map(leaf => sortLeafParents(leaf))
-        .map(leaf => removeConsecutiveDuplicates(leaf))
-        .map(leaf => filterEmptyParents(leaf));
+        .map(leaf => removeConsecutiveDuplicates(leaf));
+
+    if (clearEmpty) {
+        leaves = leaves.filter(leaf => isLeafEmpty(leaf));
+    }
 
     const fragment = collapseLeaves(leaves);
-    replaceElement(fragment, rootElement);
+    replaceElement(fragment, rootElement, cursorPosition);
 }
 
 export function removeDistantTags(contentEditable: HTMLElement, wrapper: HTMLElement, toRemoveFrom: HTMLElement[], tags: string[]) {
@@ -47,8 +50,7 @@ export function removeDistantTags(contentEditable: HTMLElement, wrapper: HTMLEle
         .map(node => setLeafParents(contentEditable, node))
         .filter(leaf => filterDistantLeafParents(toRemoveFrom, [...tags], leaf))
         .map(leaf => sortLeafParents(leaf))
-        .map(leaf => removeConsecutiveDuplicates(leaf))
-        .map(leaf => filterEmptyParents(leaf));
+        .map(leaf => removeConsecutiveDuplicates(leaf));
 
     const fragment = collapseLeaves(leaves);
     replaceElement(fragment, rootElement);
@@ -65,7 +67,7 @@ export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLEl
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
     const fragment = collapseLeaves(leaves);
-    return replaceElement(fragment, rootElement);
+    replaceElement(fragment, rootElement);
 }
 
 export function appendTags(contentEditable: HTMLElement, appendTagTo: HTMLElement, appendTags: string[]) {
@@ -79,10 +81,27 @@ export function appendTags(contentEditable: HTMLElement, appendTagTo: HTMLElemen
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
     const fragment = collapseLeaves(leaves);
-    return replaceElement(fragment, rootElement);
+    replaceElement(fragment, rootElement);
 }
 
-export function normalizeRootElements(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+export function clearEmptyElements(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const rootElements = getSelectedRoot(contentEditable, cursorPosition);
+    const firstRootElement = rootElements[0];
+    if (!firstRootElement) {
+        return cursorPosition;
+    }
+
+    cursorPosition = mergeEmptyTextNodes(contentEditable, cursorPosition);
+
+    const wrapper = document.createElement("DELETED");
+    firstRootElement.before(wrapper);
+    wrapper.append(...rootElements);
+    removeTags(contentEditable, wrapper, ["DELETED"], cursorPosition, true);
+
+    return cursorPosition;
+}
+
+export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const rootElements = getSelectedRoot(contentEditable, cursorPosition);
 
     const firstRoot = rootElements[0];
@@ -112,11 +131,7 @@ export function normalizeRootElements(contentEditable: HTMLElement, cursorPositi
     const wrapper = document.createElement("DELETED");
     firstRoot.before(wrapper);
     wrapper.append(...rootElements);
-    removeTags(contentEditable, wrapper, ["DELETED"]);
-
-    // const initialRange = restoreRange(contentEditable, cursorPosition);
-    // const parents = getSelectedParentElements(initialRange);
-    // parents.forEach(parent => parent.normalize());
+    removeTags(contentEditable, wrapper, ["DELETED"], cursorPosition);
 }
 
 function buildElementsToReplace(replaceTo: string[]) {
@@ -129,8 +144,7 @@ function buildElementsToReplace(replaceTo: string[]) {
     return elementsToReplace;
 }
 
-function replaceElement(fragment: DocumentFragment, replaceableElement: HTMLElement) {
-    const cursorPosition = getCursorPosition();
+function replaceElement(fragment: DocumentFragment, replaceableElement: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     selectNode(cursorPosition, replaceableElement);
     replaceableElement.remove();
     const childNodes = fragment.firstChild?.childNodes;
@@ -139,14 +153,5 @@ function replaceElement(fragment: DocumentFragment, replaceableElement: HTMLElem
         innerFragment.append(...childNodes);
     }
 
-    const insertedNodes: Node[] = [];
-    let child: Node | null = innerFragment.firstChild;
-    while (child) {
-        insertedNodes.push(child);
-        child = child.nextSibling;
-    }
-
     insertNode(cursorPosition, innerFragment);
-
-    return insertedNodes;
 }

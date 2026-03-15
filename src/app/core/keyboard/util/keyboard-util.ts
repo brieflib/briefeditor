@@ -8,7 +8,7 @@ import {
 } from "@/core/shared/type/cursor-position";
 import {isListMergeAllowed} from "@/core/list/list";
 import {getFirstText, getLastText, getNextNode, getPreviousNode} from "@/core/shared/element-util";
-import {normalizeRootElements} from "@/core/normalize/normalize";
+import {mergeLists} from "@/core/normalize/normalize";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const isRemoved = removeEmptyBlock(contentEditable);
@@ -89,8 +89,7 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
         cursorPosition.startOffset,
         cursorPosition.endContainer,
         0);
-    normalizeRootElements(contentEditable, cursorPosition);
-    //setCursorPosition(contentEditable, cursorPosition, false);
+    mergeLists(contentEditable, cursorPosition);
 }
 
 export function isSpecialKey(event: KeyboardEvent) {
@@ -105,16 +104,6 @@ export function isSpecialKey(event: KeyboardEvent) {
         "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
         "CapsLock", "NumLock", "ScrollLock", "Pause"
     ].includes(event.key);
-}
-
-function removeEmptyElement(contentEditable: HTMLElement, element: HTMLElement) {
-    const parent = element.parentElement;
-    if (!element.firstChild) {
-        element.remove();
-    }
-    if (parent && parent !== contentEditable) {
-        removeEmptyElement(contentEditable, parent);
-    }
 }
 
 function isKeyPrintable(key: string) {

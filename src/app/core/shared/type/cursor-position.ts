@@ -1,5 +1,4 @@
 import {getRange} from "@/core/shared/range-util";
-import {getFirstText, getLastText} from "@/core/shared/element-util";
 
 export interface CursorPosition {
     readonly startContainer: Node,
@@ -28,6 +27,21 @@ export function getCursorPosition(): CursorPosition {
         startOffset: range.startOffset,
         endOffset: range.endOffset,
         range: range
+    };
+}
+
+export function getCursorPositionFrom(startContainer: Node, startOffset: number, endContainer: Node, endOffset: number): CursorPosition {
+    const cursorPosition = {
+        startContainer: startContainer,
+        endContainer: endContainer,
+        startOffset: startOffset,
+        endOffset: endOffset,
+        range: new Range()
+    }
+
+    return {
+        ...cursorPosition,
+        range: getRangeFromCursorPosition(cursorPosition)
     };
 }
 
@@ -91,57 +105,6 @@ export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: 
 export function isRangeIn(element?: HTMLElement, cursorPosition = getCursorPosition()) {
     return element?.contains(cursorPosition.startContainer) &&
         element?.contains(cursorPosition.endContainer);
-}
-
-export function getCursorPositionFromDocumentFragment(documentFragment: DocumentFragment): CursorPosition {
-    const startNode = getFirstText(documentFragment);
-    const endNode = getLastText(documentFragment);
-
-    const cursorPosition = {
-        startContainer: startNode,
-        endContainer: endNode,
-        startOffset: 0,
-        endOffset: endNode.textContent?.length ?? 0,
-        range: new Range()
-    }
-
-    return {
-        ...cursorPosition,
-        range: getRangeFromCursorPosition(cursorPosition)
-    };
-}
-
-export function getCursorPosition2(cp: CursorPosition, nodes: Node[]): CursorPosition {
-    const startNode = getFirstText(nodes[0] as Node);
-    const endNode = getLastText(nodes[nodes.length - 1] as Node);
-
-    const cursorPosition = {
-        startContainer: startNode,
-        endContainer: endNode,
-        startOffset: 0,
-        endOffset: endNode?.textContent?.length ?? cp.endOffset,
-        range: new Range()
-    }
-
-    return {
-        ...cursorPosition,
-        range: getRangeFromCursorPosition(cursorPosition)
-    };
-}
-
-export function getCursorPositionFrom(startContainer: Node, startOffset: number, endContainer: Node, endOffset: number): CursorPosition {
-    const cursorPosition = {
-        startContainer: startContainer,
-        endContainer: endContainer,
-        startOffset: startOffset,
-        endOffset: endOffset,
-        range: new Range()
-    }
-
-    return {
-        ...cursorPosition,
-        range: getRangeFromCursorPosition(cursorPosition)
-    };
 }
 
 export function intersectsNode(cursorPosition: CursorPosition, node: Node) {

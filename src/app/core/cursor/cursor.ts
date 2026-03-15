@@ -1,13 +1,15 @@
 import {
     cloneRange,
     CursorPosition,
-    getCursorPosition, getLength,
+    getCursorPosition,
+    getLength,
     isCollapsed,
-    selectNodeContents, setRangeEnd
+    selectNodeContents,
+    setRangeEnd
 } from "@/core/shared/type/cursor-position";
 import {getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {collectTextSiblings, computeOffset, isIndexInArray, replaceWithMerged} from "@/core/cursor/util/cursor-util";
+import {computeNodeOffset} from "@/core/cursor/util/cursor-util";
 
 export function isCursorAtEndOfBlock(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
     if (!isCollapsed(cursorPosition)) {
@@ -19,7 +21,7 @@ export function isCursorAtEndOfBlock(contentEditable: HTMLElement, cursorPositio
         return false;
     }
 
-    let endPosition = cloneRange(cursorPosition);
+    const endPosition = cloneRange(cursorPosition);
     selectNodeContents(endPosition, block);
     setRangeEnd(endPosition);
 
@@ -48,7 +50,7 @@ export function isCursorAtStartOfBlock(contentEditable: HTMLElement, cursorPosit
         return false;
     }
 
-    let endRange = cloneRange(cursorPosition);
+    const endRange = cloneRange(cursorPosition);
     selectNodeContents(endRange, block);
     setRangeEnd(endRange);
 
@@ -63,32 +65,17 @@ export function isCursorIntersectBlocks(contentEditable: HTMLElement, cursorPosi
     return getSelectedBlock(contentEditable).length > 1;
 }
 
-export function mergeSiblingTextNodes(cursorPosition: CursorPosition): CursorPosition {
+export function mergeEmptyTextNodes(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
     let {startContainer, endContainer, startOffset, endOffset} = cursorPosition;
 
-    if (startContainer.nodeType !== Node.TEXT_NODE || endContainer.nodeType !== Node.TEXT_NODE) {
-        return cursorPosition;
-    }
+    const startNodeOffset = computeNodeOffset(contentEditable, startContainer, startOffset);
+    const endNodeOffset = computeNodeOffset(contentEditable, endContainer, endOffset);
 
-    const startSiblings = collectTextSiblings(startContainer);
-    const startIndex = startSiblings.indexOf(startContainer);
-    const endIndex = startSiblings.indexOf(endContainer);
+    startContainer = startNodeOffset.node;
+    endContainer = endNodeOffset.node;
+    startOffset = startNodeOffset.offset;
+    endOffset = endNodeOffset.offset;
 
-    startOffset = computeOffset(startSiblings, startIndex, startOffset);
-    startContainer = replaceWithMerged(startSiblings);
-    if (isIndexInArray(endIndex)) {
-        endOffset = computeOffset(startSiblings, endIndex, endOffset);
-        endContainer = startContainer;
-    }
-
-    if (!isIndexInArray(endIndex)) {
-        const endSiblings = collectTextSiblings(endContainer);
-        const endIndex = endSiblings.indexOf(endContainer);
-
-        endOffset = computeOffset(endSiblings, endIndex, endOffset);
-        endContainer = replaceWithMerged(endSiblings);
-    }
-
-    return {...cursorPosition, startContainer, startOffset, endContainer, endOffset};
+    return {...cursorPosition, startContainer, endContainer, startOffset, endOffset};
 }
 
