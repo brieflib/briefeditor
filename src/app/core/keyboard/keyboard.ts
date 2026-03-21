@@ -4,29 +4,32 @@ import {
     isCursorIntersectBlocks
 } from "@/core/cursor/cursor";
 import {isSpecialKey, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
-import {getCursorPosition} from "@/core/shared/type/cursor-position";
+import {getCursorPosition, setCursorPosition} from "@/core/shared/type/cursor-position";
 
 export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent) {
-    const cursorPosition = getCursorPosition();
-    if (!cursorPosition || isSpecialKey(event)) {
+    let cursorPosition = getCursorPosition();
+    if (isSpecialKey(event)) {
         return;
     }
 
     if (isCursorIntersectBlocks(contentEditable)) {
         event.preventDefault();
-        mergeBlocks(contentEditable, cursorPosition, event.key);
+        cursorPosition = mergeBlocks(contentEditable, cursorPosition, event.key);
+        setCursorPosition(contentEditable, cursorPosition);
         return;
     }
 
     if (event.key === "Delete" && isCursorAtEndOfBlock(contentEditable)) {
         event.preventDefault();
-        mergeNextBlock(contentEditable, cursorPosition);
+        cursorPosition = mergeNextBlock(contentEditable, cursorPosition);
+        setCursorPosition(contentEditable, cursorPosition);
         return;
     }
 
     if (event.key === "Backspace" && isCursorAtStartOfBlock(contentEditable)) {
         event.preventDefault();
-        mergePreviousBlock(contentEditable, cursorPosition);
+        cursorPosition = mergePreviousBlock(contentEditable, cursorPosition);
+        setCursorPosition(contentEditable, cursorPosition);
         return;
     }
 }

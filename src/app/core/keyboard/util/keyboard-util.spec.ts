@@ -1,4 +1,4 @@
-import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
@@ -28,24 +28,24 @@ describe("Merge previous element", () => {
         `);
     });
 
-    // test("When cursor is at the start should remove previous empty element", () => {
-    //     const wrapper = createWrapper(`
-    //         <p></p>
-    //         <h1 class="start">first <em>second</em></h1>
-    //     `);
-    //
-    //     const range = new Range();
-    //     range.setStart(getFirstChild(wrapper, ".start"), "".length);
-    //     range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-    //     (getRange as jest.Mock).mockReturnValue(range);
-    //
-    //     const cursorPosition = getSelectionOffset(wrapper) as CursorPosition;
-    //     mergePreviousBlock(wrapper, cursorPosition);
-    //
-    //     expectHtml(wrapper.innerHTML, `
-    //         <h1 class="start">first <em>second</em></h1>
-    //     `);
-    // });
+    test("When cursor is at the start should remove previous empty element", () => {
+        const wrapper = createWrapper(`
+            <p><br/></p>
+            <h1 class="start">first <em>second</em></h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        mergePreviousBlock(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1 class="start">first <em>second</em></h1>
+        `);
+    });
 
     test("When cursor is at the start should merge li with li", () => {
         const wrapper = createWrapper(`
@@ -891,5 +891,99 @@ describe("Merge mixed UL/OL selections", () => {
                 <li class="start">ze cond</li>
             </ul>
         `);
+    });
+});
+
+describe("Cursor position after key press", () => {
+    test("Cursor after merging two blocks", () => {
+        const wrapper = createWrapper(`
+            <p class="start">first</p>
+            <p class="end">second</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
+
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe(2);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+
+    test("When cursor is at the start of empty element should remove previous empty element", () => {
+        const wrapper = createWrapper(`
+            <p><br/></p>
+            <p class="start"><br/></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start"><br/></p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+
+    test("When cursor is at the start of empty element should remove previous empty element", () => {
+        const wrapper = createWrapper(`
+            <p class="start"><br/></p>
+            <p><br/></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeNextBlock(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start"><br/></p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+
+    test("When cursor is at the start of empty element should remove start element", () => {
+        const wrapper = createWrapper(`
+            <p class="start"><br/></p>
+            <p class="end">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeNextBlock(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="end">first</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".end"));
+        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".end"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 });
