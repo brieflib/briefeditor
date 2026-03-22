@@ -5,7 +5,6 @@ export enum Display {
     List = "List",
     Link = "Link",
     ListWrapper = "ListWrapper",
-    Nested = "Nested",
     Image = "Image",
 }
 
@@ -15,8 +14,8 @@ schema.set("IMG", [Display.SelfClose, Display.Image]);
 
 schema.set("LI", [Display.List]);
 
-schema.set("UL", [Display.FirstLevel, Display.ListWrapper, Display.Nested, Display.Collapse]);
-schema.set("OL", [Display.FirstLevel, Display.ListWrapper, Display.Nested, Display.Collapse]);
+schema.set("UL", [Display.FirstLevel, Display.ListWrapper, Display.Collapse]);
+schema.set("OL", [Display.FirstLevel, Display.ListWrapper, Display.Collapse]);
 
 schema.set("DIV", [Display.FirstLevel]);
 schema.set("P", [Display.FirstLevel]);

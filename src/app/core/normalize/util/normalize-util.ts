@@ -75,7 +75,7 @@ export function sortLeafParents(toSort: Leaf) {
     return toSort;
 }
 
-export function  collapseLeaves(leaves: Leaf[],
+export function collapseLeaves(leaves: Leaf[],
                                cursorPosition: CursorPosition = getCursorPosition(),
                                container: DocumentFragment = nodeToFragment(document.createElement("div"))) {
     const parent = getSameFirstParent(leaves);
@@ -216,13 +216,17 @@ export function removeConsecutiveDuplicates(leaf: Leaf, isDisabled = false): Lea
             continue;
         }
 
-        if (i === 0) {
+        if (i === 0 && !hasDuplicateList(parent)) {
             result.push(parent);
         }
         if (!nextParent) {
             continue;
         }
-        if (isSchemaContain(nextParent, [Display.Nested])) {
+
+        if (hasDuplicateList(nextParent)) {
+            continue;
+        }
+        if (isSchemaContain(nextParent, [Display.ListWrapper])) {
             result.push(nextParent);
             continue;
         }
@@ -234,6 +238,27 @@ export function removeConsecutiveDuplicates(leaf: Leaf, isDisabled = false): Lea
     leaf.setParents(result);
 
     return leaf;
+}
+
+function hasDuplicateList(node: Node | undefined) {
+    if (!node) {
+        return false;
+    }
+
+    if (isSchemaContain(node, [Display.List])) {
+        if (isSchemaContain(node.firstChild, [Display.ListWrapper])) {
+            return true;
+        }
+    }
+
+    if (isSchemaContain(node, [Display.ListWrapper])) {
+        const li = (node as Element).querySelectorAll("li")[0];
+        if (li && isSchemaContain(li.firstChild, [Display.ListWrapper])) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 export function isLeafEmpty(leaf: Leaf) {

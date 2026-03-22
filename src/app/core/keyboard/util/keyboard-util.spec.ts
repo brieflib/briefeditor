@@ -174,6 +174,37 @@ describe("Merge previous element", () => {
 });
 
 describe("Merge next element", () => {
+    test("Should merge first empty list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">
+                    <ul>
+                        <li>first</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>second</p>
+        `);
+
+        const emptyText = document.createTextNode("");
+        const start = wrapper.querySelector(".start") as Node;
+        start.insertBefore(emptyText, start.firstChild);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergeNextBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>first</li>
+            </ul>
+            <p>second</p>
+        `);
+    });
+
     test("When cursor is at the end should merge two elements", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>
@@ -366,6 +397,46 @@ describe("Merge P and List selections", () => {
 });
 
 describe("Merge nested list selections", () => {
+    test("Should merge nested lists of different type", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero
+                    <ol>
+                        <li class="end">first
+                            <ul>
+                                <li>second</li>
+                            </ul>
+                            <ol>
+                                <li>third</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        mergeBlocks(wrapper, cursorPosition, " ");
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start">ze rst
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+    });
+
     test("Selection from start LI into nested LI should merge and flatten", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -440,7 +511,7 @@ describe("Merge nested list selections", () => {
 
         const range = new Range();
         range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
@@ -448,13 +519,9 @@ describe("Merge nested list selections", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">zero
+                <li class="start">ze rst
                     <ul>
-                        <li class="end">first
-                            <ul>
-                                <li>second</li>
-                            </ul>
-                        </li>
+                        <li>second</li>
                     </ul>
                 </li>
             </ul>
@@ -579,13 +646,9 @@ describe("Merge P and nested list selections", () => {
         mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">zero</p>
+            <p class="start">ze rst</p>
             <ul>
-                <li class="end">first
-                    <ul>
-                        <li>second</li>
-                    </ul>
-                </li>
+                <li>second</li>
             </ul>
         `);
     });
@@ -618,21 +681,10 @@ describe("Merge P and nested list selections", () => {
         mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">zero</p>
-            <ul>
-                <li>first
-                    <ol>
-                        <li>second
-                            <ul>
-                                <li class="end">third</li>
-                            </ul>
-                        </li>
-                    </ol>
-                    <ol>
-                        <li>fourth</li>
-                    </ol>
-                </li>
-            </ul>
+            <p class="start">ze ird</p>
+            <ol>
+                <li>fourth</li>
+            </ol>
         `);
     });
 
@@ -693,7 +745,7 @@ describe("Merge P and nested list selections", () => {
         `);
     });
 
-    test("Selection from P spanning outer and first nested LI should not merge", () => {
+    test("Selection from P spanning outer and first nested LI should merge", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>
             <ul>
@@ -715,7 +767,46 @@ describe("Merge P and nested list selections", () => {
         mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">zero</p>
+            <p class="start">ze cond</p>
+            <ul>
+                <li>third</li>
+            </ul>
+        `);
+    });
+
+    test("Selection from H1 spanning outer and first nested LI should merge", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+            <ul>
+                <li class="end">first
+                    <ul>
+                        <li>second</li>
+                        <li>third</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        mergeBlocks(wrapper, cursorPosition, " ");
+
+        expectHtml(wrapper.innerHTML, `
+            <h1 class="start">ze rst</h1>
+            <ul>
+                <li>second</li>
+                <li>third</li>
+            </ul>
+        `);
+    });
+
+    test("Selection from H1 spanning outer and second nested LI should merge", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
             <ul>
                 <li>first
                     <ul>
@@ -723,6 +814,21 @@ describe("Merge P and nested list selections", () => {
                         <li>third</li>
                     </ul>
                 </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        mergeBlocks(wrapper, cursorPosition, " ");
+
+        expectHtml(wrapper.innerHTML, `
+            <h1 class="start">ze cond</h1>
+            <ul>
+                <li>third</li>
             </ul>
         `);
     });

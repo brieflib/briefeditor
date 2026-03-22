@@ -136,32 +136,32 @@ export function minusIndent(contentEditable: HTMLElement, lists: HTMLElement[] =
     mergeLists(contentEditable, cursorPosition);
 }
 
-export function isListMergeAllowed(contentEditable: HTMLElement): boolean {
-    const cursorPosition = getCursorPosition();
-    const blocks = getSelectedBlock(contentEditable, cursorPosition);
-    const firstBlock = blocks[0];
-    const lastBlock = blocks[blocks.length - 1];
-    if (!firstBlock || !lastBlock) {
-        return false;
-    }
-
-    if (isSchemaContain(lastBlock, [Display.FirstLevel])) {
-        return true;
-    }
-
-    const lastBlockHasNestedChildren = getDirectChildren(lastBlock, [Display.ListWrapper]).length > 0;
-    if (isSchemaContain(firstBlock, [Display.FirstLevel])) {
-        return !lastBlockHasNestedChildren && isNextSiblingDoesNotExist(contentEditable, lastBlock);
-    }
-
-    const firstNestingLevel = countListWrapperParents(contentEditable, firstBlock);
-    const lastNestingLevel = countListWrapperParents(contentEditable, lastBlock);
-    if (lastBlockHasNestedChildren && firstNestingLevel < lastNestingLevel) {
-        return false;
-    }
-    if (lastNestingLevel === 1) {
-        return true;
-    }
-
-    return firstNestingLevel === lastNestingLevel || firstNestingLevel === lastNestingLevel - 1;
-}
+// export function isListMergeAllowed(contentEditable: HTMLElement): boolean {
+//     const cursorPosition = getCursorPosition();
+//     const blocks = getSelectedBlock(contentEditable, cursorPosition);
+//     const firstBlock = blocks[0];
+//     const lastBlock = blocks[blocks.length - 1];
+//     if (!firstBlock || !lastBlock) {
+//         return false;
+//     }
+//
+//     if (isSchemaContain(lastBlock, [Display.FirstLevel])) {
+//         return true;
+//     }
+//
+//     const lastBlockHasNestedChildren = getDirectChildren(lastBlock, [Display.ListWrapper]).length > 0;
+//     if (isSchemaContain(firstBlock, [Display.FirstLevel])) {
+//         return !lastBlockHasNestedChildren && isNextSiblingDoesNotExist(contentEditable, lastBlock);
+//     }
+//
+//     const firstNestingLevel = countListWrapperParents(contentEditable, firstBlock);
+//     const lastNestingLevel = countListWrapperParents(contentEditable, lastBlock);
+//     if (lastBlockHasNestedChildren && firstNestingLevel < lastNestingLevel) {
+//         return false;
+//     }
+//     if (lastNestingLevel === 1) {
+//         return true;
+//     }
+//
+//     return firstNestingLevel === lastNestingLevel || firstNestingLevel === lastNestingLevel - 1;
+// }

@@ -9,6 +9,7 @@ import {getCursorPosition, setCursorPosition} from "@/core/shared/type/cursor-po
 export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent) {
     let cursorPosition = getCursorPosition();
     if (isSpecialKey(event)) {
+        event.preventDefault();
         return;
     }
 
