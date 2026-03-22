@@ -174,7 +174,7 @@ describe("Merge previous element", () => {
 });
 
 describe("Merge next element", () => {
-    test("Should merge first empty list", () => {
+    test("Should merge next first empty list", () => {
         const wrapper = createWrapper(`
             <ul>
                 <li class="start">
@@ -202,6 +202,312 @@ describe("Merge next element", () => {
                 <li>first</li>
             </ul>
             <p>second</p>
+        `);
+    });
+
+    test("Should merge next first empty list with two other nested lists", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">
+                    <ul>
+                        <li>first</li>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>third</p>
+        `);
+
+        const emptyText = document.createTextNode("");
+        const start = wrapper.querySelector(".start") as Node;
+        start.insertBefore(emptyText, start.firstChild);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergeNextBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>third</p>
+        `);
+    });
+
+    test("Should merge next first empty list with two other nested lists with different types", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">
+                    <ul>
+                        <li>first</li>
+                    </ul>
+                    <ol>
+                        <li>second</li>                    
+                    </ol>
+                </li>
+            </ul>
+            <p>second</p>
+        `);
+
+        const emptyText = document.createTextNode("");
+        const start = wrapper.querySelector(".start") as Node;
+        start.insertBefore(emptyText, start.firstChild);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergeNextBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>first
+                    <ol>
+                        <li>second</li>
+                    </ol>                 
+                </li>
+            </ul>
+            <p>second</p>
+        `);
+    });
+
+    test("Should merge next first empty list with different type", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+                <li>second</li>
+            </ul>
+            <p>third</p>
+        `);
+
+        const emptyText = document.createTextNode("");
+        const start = wrapper.querySelector(".start") as Node;
+        start.insertBefore(emptyText, start.firstChild);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergeNextBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>first</li>
+            </ol>
+            <ul>
+                <li>second</li>
+            </ul>
+            <p>third</p>
+        `);
+    });
+
+    test("Should merge previous first empty list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>
+                    <ul>
+                        <li class="start">first</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>second</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergePreviousBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start">first</li>
+            </ul>
+            <p>second</p>
+        `);
+    });
+
+    test("Should merge previous first empty list with different type", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>
+                    <ol>
+                        <li class="start">first</li>
+                    </ol>
+                </li>
+            </ul>
+            <p>second</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergePreviousBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li class="start">first</li>
+            </ol>
+            <p>second</p>
+        `);
+    });
+
+    test("Should merge previous first empty list with different type and keep other nested list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>
+                    <ol>
+                        <li class="start">first</li>
+                    </ol>
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>third</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergePreviousBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li class="start">first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+            <p>third</p>
+        `);
+    });
+
+    test("Should merge previous first empty list with different type and keep other nested lists", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>
+                    <ul>
+                        <li class="start">first</li>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+            <p>third</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergePreviousBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li class="start">first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+            <p>third</p>
+        `);
+    });
+
+    test("Should merge previous first empty list with different type and keep other nested lists and heading", () => {
+        const wrapper = createWrapper(`
+            <h1>first</h1>
+            <ol>
+                <li class="start">
+                    <ol>
+                        <li class="end">second</li>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ol>
+            <p>fourth</p>
+        `);
+
+        const emptyText = document.createTextNode("");
+        const start = wrapper.querySelector(".start") as Node;
+        start.insertBefore(emptyText, start.firstChild);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".end"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergePreviousBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>first</h1>
+            <ol>
+                <li class="start">second
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ol>
+            <p>fourth</p>
+        `);
+    });
+
+
+    test("Should merge previous first empty list (with br) with different type and keep other nested lists and heading", () => {
+        const wrapper = createWrapper(`
+            <h1>first</h1>
+            <ol>
+                <li class="start"><br/>
+                    <ol>
+                        <li class="end">second</li>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ol>
+            <p>fourth</p>
+        `);
+
+        const emptyText = document.createTextNode("");
+        const start = wrapper.querySelector(".start") as Node;
+        start.insertBefore(emptyText, start.firstChild);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".end"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        mergePreviousBlock(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>first</h1>
+            <ol>
+                <li class="start">second
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ol>
+            <p>fourth</p>
         `);
     });
 

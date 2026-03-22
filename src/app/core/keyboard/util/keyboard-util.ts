@@ -10,6 +10,11 @@ import {mergeLists} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+    const emptyParentResult = removeEmptyParentListItem(contentEditable, cursorPosition);
+    if (emptyParentResult) {
+        return emptyParentResult;
+    }
+
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
     if (!previousNode) {
         return cursorPosition;
@@ -76,12 +81,12 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
         lastBlock.firstChild?.before(textNode);
     }
 
+    const nestedListWrapper = firstBlock.querySelector("ul, ol");
     while (lastBlock.firstChild) {
         const child = lastBlock.firstChild;
         if (isSchemaContain(child, [Display.ListWrapper]) && !isSchemaContain(firstBlock, [Display.List])) {
             firstBlock.after(child);
         } else {
-            const nestedListWrapper = firstBlock.querySelector("ul, ol");
             if (nestedListWrapper) {
                 nestedListWrapper.before(child);
             } else {
@@ -117,20 +122,52 @@ function removeFirstEmptyBlock(contentEditable: HTMLElement, cursorPosition: Cur
     if (firstBlock) {
         const firstChild = getFirstText(firstBlock);
         if (!firstChild.textContent) {
-            const parentLi = firstBlock.parentElement;
-            let lastNode;
-            if (parentLi) {
-                while (firstBlock.firstChild) {
-                    lastNode = firstBlock.firstChild;
-                    parentLi.before(lastNode);
-                }
-                parentLi.remove();
-                (firstChild as Element).remove();
-            }
-            if (!lastNode) {
+            const parentListWrapper = firstBlock.parentElement;
+            if (!parentListWrapper) {
                 return null;
             }
-            return {...cursorPosition, endContainer: getFirstText(lastNode), endOffset: 0};
+
+            const firstNestedList = Array.from(firstBlock.children)
+                .find(child => isSchemaContain(child, [Display.ListWrapper])) as HTMLElement | undefined;
+            if (!firstNestedList?.firstElementChild) {
+                return null;
+            }
+
+            const firstNestedListTag = firstNestedList.nodeName;
+            const isSameType = firstNestedListTag === parentListWrapper.nodeName;
+
+            const promotedLi = firstNestedList.firstElementChild;
+            promotedLi.remove();
+
+            if (firstNestedList.firstElementChild) {
+                promotedLi.appendChild(firstNestedList);
+            } else {
+                firstNestedList.remove();
+            }
+
+            while (firstBlock.firstChild) {
+                const child = firstBlock.firstChild;
+                if (isSchemaContain(child, [Display.ListWrapper])) {
+                    promotedLi.appendChild(child);
+                } else {
+                    child.remove();
+                }
+            }
+
+            if (isSameType) {
+                firstBlock.before(promotedLi);
+            } else {
+                const wrapper = document.createElement(firstNestedListTag);
+                wrapper.appendChild(promotedLi);
+                parentListWrapper.before(wrapper);
+            }
+
+            firstBlock.remove();
+            if (!parentListWrapper.firstElementChild) {
+                parentListWrapper.remove();
+            }
+
+            return {...cursorPosition, endContainer: getFirstText(promotedLi), endOffset: 0};
         }
     } else {
         return null;
@@ -139,6 +176,71 @@ function removeFirstEmptyBlock(contentEditable: HTMLElement, cursorPosition: Cur
 
 function isKeyPrintable(key: string) {
     return key.length === 1;
+}
+
+function removeEmptyParentListItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition | null {
+    const firstBlock = getSelectedBlock(contentEditable, cursorPosition)[0];
+    if (!firstBlock || !firstBlock.parentElement || !isSchemaContain(firstBlock.parentElement, [Display.ListWrapper])) {
+        return null;
+    }
+
+    const listWrapper = firstBlock.parentElement;
+    const parentLi = listWrapper.parentElement;
+    if (!parentLi || !isSchemaContain(parentLi, [Display.List])) {
+        return null;
+    }
+
+    const hasNonListContent = Array.from(parentLi.childNodes).some(
+        child => !isSchemaContain(child, [Display.ListWrapper]) &&
+            !(child.nodeType === Node.TEXT_NODE && !child.textContent) &&
+            !isSchemaContain(child, [Display.SelfClose])
+    );
+    if (hasNonListContent) {
+        return null;
+    }
+
+    const parentListWrapper = parentLi.parentElement;
+    if (!parentListWrapper || !isSchemaContain(parentListWrapper, [Display.ListWrapper])) {
+        return null;
+    }
+
+    while (listWrapper.nextSibling) {
+        const sibling = listWrapper.nextSibling;
+        if (isSchemaContain(sibling, [Display.ListWrapper])) {
+            firstBlock.appendChild(sibling);
+        } else {
+            sibling.remove();
+        }
+    }
+
+    Array.from(parentLi.childNodes).forEach(child => {
+        if ((child.nodeType === Node.TEXT_NODE && !child.textContent) || isSchemaContain(child, [Display.SelfClose])) {
+            child.remove();
+        }
+    });
+
+    const hasRemainingLis = listWrapper.children.length > 1;
+    if (hasRemainingLis) {
+        while (firstBlock.firstChild) {
+            listWrapper.before(firstBlock.firstChild);
+        }
+        for (const attr of Array.from(firstBlock.attributes)) {
+            if (!parentLi.hasAttribute(attr.name)) {
+                parentLi.setAttribute(attr.name, attr.value);
+            }
+        }
+        firstBlock.remove();
+    } else {
+        while (parentLi.firstChild) {
+            parentListWrapper.before(parentLi.firstChild);
+        }
+        parentLi.remove();
+        if (!parentListWrapper.firstElementChild) {
+            parentListWrapper.remove();
+        }
+    }
+
+    return cursorPosition;
 }
 
 function removeEmptyBlock(contentEditable: HTMLElement, node: Node) {
