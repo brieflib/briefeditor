@@ -211,7 +211,7 @@ describe("Plus indent", () => {
                 <li>zero
                     <ul>
                         <li>fi
-                            <strong>rst</strong>
+                            <strong class="end">rst</strong>
                         </li>
                         <li>second</li>
                     </ul>

@@ -45,6 +45,35 @@ describe("Parse to ListClass", () => {
         expect(lists[3]?.nestedLevel).toBe(1);
         expect(lists[3]?.listContent.textContent).toBe("fourth");
     });
+
+    test("Parse multiple list wrappers", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+            </ol>
+            <ul class="start">
+                <li>first</li>
+            </ul>
+            <ol>
+                <li>second</li>
+            </ol>
+        `);
+
+        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const lists = parseList(rootWrapper);
+
+        expect(lists[0]?.listWrapper).toBe(ListWrapper.OL);
+        expect(lists[0]?.nestedLevel).toBe(0);
+        expect(lists[0]?.listContent.textContent).toBe("zero");
+
+        expect(lists[1]?.listWrapper).toBe(ListWrapper.UL);
+        expect(lists[1]?.nestedLevel).toBe(0);
+        expect(lists[1]?.listContent.textContent).toBe("first");
+
+        expect(lists[2]?.listWrapper).toBe(ListWrapper.OL);
+        expect(lists[2]?.nestedLevel).toBe(0);
+        expect(lists[2]?.listContent.textContent).toBe("second");
+    });
 });
 
 describe("Convert ListClass to DOM", () => {
@@ -265,7 +294,8 @@ describe("Plus indent", () => {
         const result = plusOrderNumbers(lists, orderNumbers);
 
         expect(result[0]?.nestedLevel).toBe(0);
-        expect(result[1]?.nestedLevel).toBe(1);
+        expect(result[1]?.nestedLevel).toBe(0);
+        expect(result[2]?.nestedLevel).toBe(1);
     });
 
     test("Plus indent of nesting level list with nested ul list wrapper", () => {
@@ -298,7 +328,7 @@ describe("Plus indent", () => {
         expect(result[3]?.nestedLevel).toBe(1);
     });
 
-    test("test", () => {
+    test("Plus indent of multiple nested list wrappers", () => {
         const wrapper = createWrapper(`
             <ul>
                 <li>zero

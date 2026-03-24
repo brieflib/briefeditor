@@ -12,7 +12,18 @@ export class ListClass {
 
 export function parseList(rootWrapper: HTMLElement): ListClass[] {
     const result: ListClass[] = [];
-    parseListWrapper(rootWrapper, toListWrapper(rootWrapper), 0, result);
+
+    let firstWrapper: Element = rootWrapper;
+    while (firstWrapper.previousElementSibling && isListWrapper(firstWrapper.previousElementSibling)) {
+        firstWrapper = firstWrapper.previousElementSibling;
+    }
+
+    let current: Element | null = firstWrapper;
+    while (current && isListWrapper(current)) {
+        parseListWrapper(current as HTMLElement, toListWrapper(current), 0, result);
+        current = current.nextElementSibling;
+    }
+
     return result;
 }
 
@@ -44,8 +55,8 @@ export function convertList(lists: ListClass[]): HTMLElement | null {
             currentLi = nextWrapper;
         }
 
-        if (list.nestedLevel === nextList.nestedLevel + 1) {
-            currentLi = currentLi?.parentElement?.parentElement;
+        if (list.nestedLevel === nextList.nestedLevel + 1 && list.listWrapper === nextList.listWrapper) {
+            currentLi = currentLi?.parentElement?.parentElement?.parentElement;
         }
 
         if (list.nestedLevel === nextList.nestedLevel && list.listWrapper !== nextList.listWrapper) {
@@ -53,6 +64,10 @@ export function convertList(lists: ListClass[]): HTMLElement | null {
             const nextWrapper = document.createElement(nextList.listWrapper);
             currentLi?.appendChild(nextWrapper);
             currentLi = nextWrapper;
+        }
+
+        if (list.nestedLevel === nextList.nestedLevel && list.listWrapper === nextList.listWrapper) {
+            currentLi = currentLi?.parentElement;
         }
 
         const li = document.createElement("li");
