@@ -4,12 +4,13 @@ import {appendTags, mergeLists, removeDistantTags} from "@/core/normalize/normal
 import {
     countListWrapperParents,
     getDirectChildren,
-    isChildrenContain,
+    isChildrenContain, listsOrderNumbers,
     moveListWrappersOutOfLi,
     moveListWrapperToPreviousLi
 } from "@/core/list/util/list-util";
 import {getNextNode} from "@/core/shared/element-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
+import {convertList, parseList, plusOrderNumbers} from "@/core/list/type/list-class";
 
 export function isNextListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const lastList = lists[lists.length - 1];
@@ -66,31 +67,41 @@ export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLEle
     return true;
 }
 
-export function plusIndent(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
-    if (!isPlusIndentEnabled(contentEditable, lists)) {
+export function plusIndent(contentEditable: HTMLElement) {
+    if (!isPlusIndentEnabled(contentEditable, getSelectedBlock(contentEditable))) {
         return;
     }
 
     const cursorPosition = getCursorPosition();
-
-    for (let i = 0; i < lists.length; i++) {
-        const li = getSelectedBlock(contentEditable, cursorPosition)[i];
-        if (!li) {
-            continue;
-        }
-
-        const listWrapper = li.parentElement;
-        if (!listWrapper) {
-            continue;
-        }
-
-        appendTags(contentEditable, li, [listWrapper.nodeName]);
+    const rootWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
+    const orderNumbers = listsOrderNumbers(contentEditable);
+    const lists = parseList(rootWrapper);
+    const plussedLists = plusOrderNumbers(lists, orderNumbers);
+    const listWrapper = convertList(plussedLists);
+    if (listWrapper) {
+        rootWrapper.before(listWrapper);
+        rootWrapper.remove();
     }
 
-    const rootElements = getSelectedRoot(contentEditable, cursorPosition);
-    for (const rootElement of rootElements) {
-        moveListWrapperToPreviousLi(rootElement);
-    }
+
+    // for (let i = 0; i < lists.length; i++) {
+    //     const li = getSelectedBlock(contentEditable, cursorPosition)[i];
+    //     if (!li) {
+    //         continue;
+    //     }
+    //
+    //     const listWrapper = li.parentElement;
+    //     if (!listWrapper) {
+    //         continue;
+    //     }
+    //
+    //     appendTags(contentEditable, li, [listWrapper.nodeName]);
+    // }
+    //
+    // const rootElements = getSelectedRoot(contentEditable, cursorPosition);
+    // for (const rootElement of rootElements) {
+    //     moveListWrapperToPreviousLi(rootElement);
+    // }
     mergeLists(contentEditable, cursorPosition);
 }
 

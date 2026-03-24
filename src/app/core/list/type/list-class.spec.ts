@@ -1,8 +1,16 @@
-import {createWrapper, expectHtml} from "@/core/shared/test-util";
-import {convertList, ListClass, ListWrapper, parseList} from "@/core/list/type/list-class";
+import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {convertList, ListWrapper, minusOrderNumbers, parseList, plusOrderNumbers} from "@/core/list/type/list-class";
+import {getRange} from "@/core/shared/range-util";
+import {getFirstSelectedRoot} from "@/core/selection/selection";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
+import {listsOrderNumbers} from "@/core/list/util/list-util";
+
+jest.mock("../../shared/range-util", () => ({
+        getRange: jest.fn()
+    })
+);
 
 describe("Parse to ListClass", () => {
-
     test("Parse nested list", () => {
         const wrapper = createWrapper(`
             <ul class="start">
@@ -37,64 +45,350 @@ describe("Parse to ListClass", () => {
         expect(lists[3]?.nestedLevel).toBe(1);
         expect(lists[3]?.listContent.textContent).toBe("fourth");
     });
-
 });
 
 describe("Convert ListClass to DOM", () => {
-
     test("Convert nested list", () => {
-        const lists = [];
+        const wrapper = createWrapper(`
+            <ul class="start">
+                <li>zero
+                    <ol>
+                        <li><strong>first </strong>second
+                            <ul>
+                                <li>third</li>
+                            </ul>
+                        </li>
+                        <li>fourth</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
 
-        const zeroList = new ListClass();
-        zeroList.listWrapper = ListWrapper.UL;
-        zeroList.nestedLevel = 0;
-        zeroList.listContent = new DocumentFragment();
-        const zeroTextContent = document.createTextNode("zero");
-        zeroList.listContent.appendChild(zeroTextContent);
-        lists.push(zeroList);
+        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const lists = parseList(rootWrapper);
 
-        const firstList = new ListClass();
-        firstList.listWrapper = ListWrapper.OL;
-        firstList.nestedLevel = 1;
-        firstList.listContent = new DocumentFragment();
-        const firstStrong = document.createElement("strong");
-        const firstStrongTextContent = document.createTextNode("first ");
-        firstStrong.appendChild(firstStrongTextContent);
-        firstList.listContent.appendChild(firstStrong);
-        const firstTextContent = document.createTextNode("second");
-        firstList.listContent.appendChild(firstTextContent);
-        lists.push(firstList);
-
-        const secondList = new ListClass();
-        secondList.listWrapper = ListWrapper.UL;
-        secondList.nestedLevel = 2;
-        secondList.listContent = new DocumentFragment();
-        const secondTextContent = document.createTextNode("third");
-        secondList.listContent.appendChild(secondTextContent);
-        lists.push(secondList);
-
-        const thirdList = new ListClass();
-        thirdList.listWrapper = ListWrapper.OL;
-        thirdList.nestedLevel = 1;
-        thirdList.listContent = new DocumentFragment();
-        const thirdTextContent = document.createTextNode("fourth");
-        thirdList.listContent.appendChild(thirdTextContent);
-        lists.push(thirdList);
-
-        const list = convertList(lists) as HTMLElement;
-        expectHtml(list.outerHTML, `
+        const listWrapper = convertList(lists) as HTMLElement;
+        expectHtml(listWrapper.outerHTML, `
             <ul>
-                <li>zero</li>
-                <ol>
-                    <li><strong>first </strong>second
-                        <ul>
-                            <li>third</li>
-                        </ul>
-                    </li>
-                    <li>fourth</li>
-                </ol>
+                <li>zero
+                    <ol>
+                        <li><strong>first </strong>second
+                            <ul>
+                                <li>third</li>
+                            </ul>
+                        </li>
+                        <li>fourth</li>
+                    </ol>
+                </li>
             </ul>
         `);
     });
 
+    test("Convert nested ordered list", () => {
+        const wrapper = createWrapper(`
+            <ol class="start">
+                <li>first
+                    <ol>
+                        <li>second</li>
+                    </ol>               
+                </li>
+            </ol>
+        `);
+
+        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const lists = parseList(rootWrapper);
+
+        const listWrapper = convertList(lists) as HTMLElement;
+        expectHtml(listWrapper.outerHTML, `
+            <ol>
+                <li>first
+                    <ol>
+                        <li>second</li>
+                    </ol>               
+                </li>
+            </ol>
+        `);
+    });
+
+    test("Convert list with different types", () => {
+        const wrapper = createWrapper(`
+            <ul class="start">
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ul>
+                                <li>second</li>
+                            </ul>
+                            <ol>
+                                <li>third</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const lists = parseList(rootWrapper);
+
+        const listWrapper = convertList(lists) as HTMLElement;
+        expectHtml(listWrapper.outerHTML, `
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ul>
+                                <li>second</li>
+                            </ul>
+                            <ol>
+                                <li>third</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+    });
+
+    test("Convert list with nested lists of different type", () => {
+        const wrapper = createWrapper(`
+            <ul class="start">
+                <li>zero
+                    <ul>
+                        <li>first
+                            <ul>
+                                <li>second</li>
+                            </ul>
+                        </li>
+                        <li>third</li>
+                    </ul>
+                </li>          
+            </ul>
+        `);
+
+        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const lists = parseList(rootWrapper);
+
+        const listWrapper = convertList(lists) as HTMLElement;
+        expectHtml(listWrapper.outerHTML, `
+            <ul>
+                <li>zero
+                    <ul>
+                        <li>first
+                            <ul>
+                                <li>second</li>
+                            </ul>
+                        </li>
+                        <li>third</li>
+                    </ul>
+                </li>          
+            </ul>
+        `);
+    });
+});
+
+describe("Plus indent", () => {
+    test("Plus indent of two same nesting level list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start">first</li>
+                <li class="end">second</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getLastChild(wrapper, ".start"), "".length);
+        range.setEnd(getLastChild(wrapper, ".end"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
+        const orderNumbers = listsOrderNumbers(wrapper);
+        const lists = parseList(rootWrapper);
+        const result = plusOrderNumbers(lists, orderNumbers);
+
+        expect(result[0]?.nestedLevel).toBe(0);
+        expect(result[1]?.nestedLevel).toBe(1);
+        expect(result[2]?.nestedLevel).toBe(1);
+    });
+
+    test("Plus indent of two different nesting level list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start">first</li>
+                <ol>
+                    <li class="end">second</li> 
+                    <li>third</li> 
+                </ol>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getLastChild(wrapper, ".start"), "".length);
+        range.setEnd(getLastChild(wrapper, ".end"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
+        const orderNumbers = listsOrderNumbers(wrapper);
+        const lists = parseList(rootWrapper);
+        const result = plusOrderNumbers(lists, orderNumbers);
+
+        expect(result[0]?.nestedLevel).toBe(0);
+        expect(result[1]?.nestedLevel).toBe(1);
+        expect(result[2]?.nestedLevel).toBe(2);
+        expect(result[3]?.nestedLevel).toBe(1);
+    });
+
+    test("Plus indent of nesting level list with previous ul list wrapper", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>         
+            </ul>
+            <ol>
+                <li>first</li>
+                <li class="start">second</li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getLastChild(wrapper, ".start"), "".length);
+        range.setEnd(getLastChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
+        const orderNumbers = listsOrderNumbers(wrapper);
+        const lists = parseList(rootWrapper);
+        const result = plusOrderNumbers(lists, orderNumbers);
+
+        expect(result[0]?.nestedLevel).toBe(0);
+        expect(result[1]?.nestedLevel).toBe(1);
+    });
+
+    test("Plus indent of nesting level list with nested ul list wrapper", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start">first
+                    <ul>
+                        <li class="end">second</li>
+                        <li>third</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
+        const orderNumbers = listsOrderNumbers(wrapper);
+        const lists = parseList(rootWrapper);
+        const result = plusOrderNumbers(lists, orderNumbers);
+
+        expect(result[0]?.nestedLevel).toBe(0);
+        expect(result[1]?.nestedLevel).toBe(1);
+        expect(result[2]?.nestedLevel).toBe(2);
+        expect(result[3]?.nestedLevel).toBe(1);
+    });
+
+    test("test", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                    <ul>
+                        <li class="start">second</li>
+                    </ul>
+                    <ol>
+                        <li class="end">third</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
+        const orderNumbers = listsOrderNumbers(wrapper);
+        const lists = parseList(rootWrapper);
+        const result = plusOrderNumbers(lists, orderNumbers);
+
+        expect(result[0]?.nestedLevel).toBe(0);
+        expect(result[1]?.nestedLevel).toBe(1);
+        expect(result[2]?.nestedLevel).toBe(2);
+        expect(result[3]?.nestedLevel).toBe(2);
+    });
+});
+
+describe("Minus indent", () => {
+    test("Minus indent of two same nesting level list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <ol>
+                    <li class="start">first</li>
+                    <li class="end">second</li>                
+                </ol>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getLastChild(wrapper, ".start"), "".length);
+        range.setEnd(getLastChild(wrapper, ".end"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
+        const orderNumbers = listsOrderNumbers(wrapper);
+        const lists = parseList(rootWrapper);
+        const result = minusOrderNumbers(lists, orderNumbers);
+
+        expect(result[0]?.nestedLevel).toBe(0);
+        expect(result[1]?.nestedLevel).toBe(0);
+        expect(result[2]?.nestedLevel).toBe(0);
+    });
+
+    test("Minus indent of two different nesting level list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <ul>
+                    <li class="start">first</li>
+                    <ol>
+                        <li class="end">second</li> 
+                        <li>third</li> 
+                    </ol>                
+                </ul>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getLastChild(wrapper, ".start"), "".length);
+        range.setEnd(getLastChild(wrapper, ".end"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
+        const orderNumbers = listsOrderNumbers(wrapper);
+        const lists = parseList(rootWrapper);
+        const result = minusOrderNumbers(lists, orderNumbers);
+
+        expect(result[0]?.nestedLevel).toBe(0);
+        expect(result[1]?.nestedLevel).toBe(0);
+        expect(result[2]?.nestedLevel).toBe(1);
+        expect(result[3]?.nestedLevel).toBe(2);
+    });
 });

@@ -400,8 +400,8 @@ describe("Cursor position after PlusIndent command", () => {
 
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
 
-        // After: <ul><li>zero<ul><li class="start">first</li></ul></li></ul>
-        const expectedNode = wrapper.querySelector(".start")?.firstChild;
+        // After: <ul><li>zero<ul><li>first</li></ul></li></ul>
+        const expectedNode = wrapper.querySelectorAll("li")[1]?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedNode);
         expect(cursorPosition.startOffset).toBe("fi".length);
         expect(cursorPosition.endContainer).toBe(expectedNode);

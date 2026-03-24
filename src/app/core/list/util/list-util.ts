@@ -1,5 +1,42 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getRootElement} from "@/core/shared/element-util";
+import {getElement, getNextNode, getRootElement} from "@/core/shared/element-util";
+import {getFirstSelectedRoot} from "@/core/selection/selection";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
+
+export function listsOrderNumbers(contentEditable: HTMLElement): number[] {
+    const cursorPosition = getCursorPosition();
+    const rootListElement = getFirstSelectedRoot(contentEditable, cursorPosition);
+    const startListElement = getStartListWrapper(rootListElement);
+
+    const startList = getElement(contentEditable, cursorPosition.startContainer as HTMLElement, [Display.List]);
+    const endList = getElement(contentEditable, cursorPosition.endContainer as HTMLElement, [Display.List]);
+
+    const orderNumbers: number[] = [];
+    let current: ChildNode | null = startList;
+    while (current) {
+        if (isSchemaContain(current, [Display.List])) {
+            orderNumbers.push(getListPosition(startListElement, current));
+        }
+        if (current === endList) {
+            break;
+        }
+        if (isSchemaContain(current, [Display.List, Display.ListWrapper])) {
+            current = current.firstChild;
+            continue;
+        }
+        current = getNextNode(contentEditable, current);
+    }
+
+    return orderNumbers;
+}
+
+function getStartListWrapper(listWrapper: Element) {
+    while(listWrapper.previousElementSibling && isSchemaContain(listWrapper, [Display.ListWrapper])) {
+        listWrapper = listWrapper.previousElementSibling;
+    }
+
+    return listWrapper as HTMLElement;
+}
 
 export function countListWrapperParents(findTill: HTMLElement, element: Element) {
     let count = 0;
@@ -145,4 +182,20 @@ function isLiWithFirstChildListWrapper(element: HTMLElement) {
     return isSchemaContain(element, [Display.List]) &&
         isSchemaContain(maybeListWrapper, [Display.ListWrapper]) &&
         maybeText?.nodeType === Node.TEXT_NODE;
+}
+
+function getListPosition(listWrapper: Element | null, list: ChildNode): number {
+    let offset = 0;
+    while(listWrapper && isSchemaContain(listWrapper, [Display.ListWrapper])) {
+        const allLists = listWrapper.querySelectorAll("li");
+        for (let i = 0; i < allLists.length; i++) {
+            if (allLists[i] === list) {
+                return i + offset;
+            }
+        }
+        offset += allLists.length;
+        listWrapper = listWrapper.nextElementSibling;
+    }
+
+    return 0;
 }

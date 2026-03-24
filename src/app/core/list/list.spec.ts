@@ -150,8 +150,8 @@ describe("Plus indent", () => {
             <ul>
                 <li>zero
                     <ul>
-                        <li class="start">first</li>
-                        <li class="end">second</li>
+                        <li>first</li>
+                        <li>second</li>
                     </ul>
                 </li>
             </ul>
@@ -179,7 +179,7 @@ describe("Plus indent", () => {
                 <li>zero</li>
                 <li>first
                     <ul>
-                        <li class="start">second</li>
+                        <li>second</li>
                     </ul>
                 </li>
             </ul>
@@ -210,8 +210,8 @@ describe("Plus indent", () => {
             <ul>
                 <li>zero
                     <ul>
-                        <li class="start">fi
-                            <strong class="end">rst</strong>
+                        <li>fi
+                            <strong>rst</strong>
                         </li>
                         <li>second</li>
                     </ul>
@@ -250,7 +250,7 @@ describe("Plus indent", () => {
                 <li>first
                     <ul>
                         <li>second</li>
-                        <li class="start">third</li>
+                        <li>third</li>
                         <li>fourth</li>
                     </ul>
                 </li>
@@ -282,9 +282,9 @@ describe("Plus indent", () => {
             <ul>
                 <li>zero
                     <ul>
-                        <li class="start">first
+                        <li>first
                             <ul>
-                                <li class="end">second</li>
+                                <li>second</li>
                             </ul>
                         </li>
                         <li>third</li>
@@ -315,7 +315,7 @@ describe("Plus indent", () => {
             <ul>
                 <li>zero
                     <ol>
-                        <li class="start">first</li>
+                        <li>first</li>
                     </ol>
                 </li>          
             </ul>
@@ -347,7 +347,7 @@ describe("Plus indent", () => {
             <ul>
                 <li>zero
                     <ol>
-                        <li class="start">first</li>
+                        <li>first</li>
                         <li>second</li>
                     </ol>
                 </li>          
@@ -378,7 +378,7 @@ describe("Plus indent", () => {
             <ul>
                 <li>zero
                     <ul>
-                        <li class="start">first</li>
+                        <li>first</li>
                     </ul>
                     <ol>
                         <li>second</li>
@@ -410,7 +410,7 @@ describe("Plus indent", () => {
             <ul>
                 <li>zero
                     <ol>
-                        <li class="start">first</li>
+                        <li>first</li>
                     </ol>
                 </li>
             </ul>
@@ -445,7 +445,7 @@ describe("Plus indent", () => {
             <ol>
                 <li>first
                     <ol>
-                        <li class="start">second</li>
+                        <li>second</li>
                     </ol>               
                 </li>
             </ol>
@@ -482,10 +482,10 @@ describe("Plus indent", () => {
                     <ol>
                         <li>first
                             <ul>
-                                <li class="start">second</li>
+                                <li>second</li>
                             </ul>
                             <ol>
-                                <li class="end">third</li>
+                                <li>third</li>
                             </ol>
                         </li>
                     </ol>

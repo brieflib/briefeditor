@@ -1,3 +1,4 @@
+
 export enum ListWrapper {
     UL = "UL",
     OL = "OL"
@@ -15,64 +16,84 @@ export function parseList(rootWrapper: HTMLElement): ListClass[] {
     return result;
 }
 
-export function convertList(lists: ListClass[]): HTMLElement | undefined {
-    const wrappers: HTMLElement[] = [];
-    let lastLi: HTMLElement | null = null;
-    let currentLevel = -1;
+export function convertList(lists: ListClass[]): HTMLElement | null {
+    const list = lists[0];
+    if (!list) {
+        return null;
+    }
 
-    for (let i = 0; i < lists.length; i++) {
-        const item = lists[i];
-        if (!item) {
-            return;
+    const rootWrapper: HTMLElement = document.createElement(list.listWrapper);
+    let currentLi: HTMLElement | null | undefined = document.createElement("li");
+    currentLi.appendChild(list.listContent);
+    rootWrapper.appendChild(currentLi);
+
+    for (let i = 0; i <= lists.length; i++) {
+        const list = lists[i];
+        if (!list) {
+            return rootWrapper;
         }
 
-        if (item.nestedLevel > currentLevel) {
-            const wrapper = document.createElement(item.listWrapper);
-
-            if (currentLevel < 0) {
-                wrappers[item.nestedLevel] = wrapper;
-            } else if (hasItemsAtLevel(lists, i, currentLevel)) {
-                lastLi?.appendChild(wrapper);
-            } else {
-                wrappers[currentLevel]?.appendChild(wrapper);
-            }
-
-            wrappers[item.nestedLevel] = wrapper;
+        const nextList = lists[i + 1];
+        if (!nextList) {
+            return rootWrapper;
         }
 
-        currentLevel = item.nestedLevel;
+        if (list.nestedLevel + 1  === nextList.nestedLevel) {
+            const nextWrapper = document.createElement(nextList.listWrapper);
+            currentLi?.appendChild(nextWrapper);
+            currentLi = nextWrapper;
+        }
+
+        if (list.nestedLevel === nextList.nestedLevel + 1) {
+            currentLi = currentLi?.parentElement?.parentElement;
+        }
+
+        if (list.nestedLevel === nextList.nestedLevel && list.listWrapper !== nextList.listWrapper) {
+            currentLi = currentLi?.parentElement?.parentElement;
+            const nextWrapper = document.createElement(nextList.listWrapper);
+            currentLi?.appendChild(nextWrapper);
+            currentLi = nextWrapper;
+        }
 
         const li = document.createElement("li");
-        li.appendChild(item.listContent);
-        wrappers[currentLevel]?.appendChild(li);
-        lastLi = li;
+        li.appendChild(nextList.listContent);
+        currentLi?.appendChild(li);
+        currentLi = li;
     }
 
-    return wrappers[0];
+    return rootWrapper;
 }
 
-function hasItemsAtLevel(lists: ListClass[], fromIndex: number, level: number): boolean {
-    for (let i = fromIndex; i < lists.length; i++) {
-        const list = lists[i];
-        if (list && list.nestedLevel === level) {
-            return true;
-        }
-        if (list && list?.nestedLevel < level) {
-            return false;
+export function plusOrderNumbers(lists: ListClass[], orderNumbers: number[]): ListClass[] {
+    for (const orderNumber of orderNumbers) {
+        const list = lists[orderNumber];
+        if (list) {
+            list.nestedLevel++;
         }
     }
-    return false;
+
+    return lists;
+}
+
+export function minusOrderNumbers(lists: ListClass[], orderNumbers: number[]): ListClass[] {
+    for (const orderNumber of orderNumbers) {
+        const list = lists[orderNumber];
+        if (list) {
+            list.nestedLevel--;
+        }
+    }
+
+    return lists;
 }
 
 function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[]) {
     for (const child of Array.from(wrapper.children)) {
         if (isList(child)) {
-            const clone = child.cloneNode(true) as HTMLElement;
-            clone.querySelectorAll("ul, ol").forEach(el => el.remove());
-
             const fragment = new DocumentFragment();
-            for (const node of Array.from(clone.childNodes)) {
-                fragment.appendChild(node);
+            for (const node of Array.from(child.childNodes)) {
+                if (!isListWrapper(node)) {
+                    fragment.appendChild(node);
+                }
             }
 
             const listClass = new ListClass();
@@ -96,7 +117,7 @@ function isList(element: Element): boolean {
     return element.nodeName === "LI";
 }
 
-function isListWrapper(element: Element): boolean {
+function isListWrapper(element: ChildNode): boolean {
     return element.nodeName === "UL" || element.nodeName === "OL";
 }
 
