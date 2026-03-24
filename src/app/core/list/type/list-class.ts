@@ -15,6 +15,55 @@ export function parseList(rootWrapper: HTMLElement): ListClass[] {
     return result;
 }
 
+export function convertList(lists: ListClass[]): HTMLElement | undefined {
+    const wrappers: HTMLElement[] = [];
+    let lastLi: HTMLElement | null = null;
+    let currentLevel = -1;
+
+    for (let i = 0; i < lists.length; i++) {
+        const item = lists[i];
+        if (!item) {
+            return;
+        }
+
+        if (item.nestedLevel > currentLevel) {
+            const wrapper = document.createElement(item.listWrapper);
+
+            if (currentLevel < 0) {
+                wrappers[item.nestedLevel] = wrapper;
+            } else if (hasItemsAtLevel(lists, i, currentLevel)) {
+                lastLi?.appendChild(wrapper);
+            } else {
+                wrappers[currentLevel]?.appendChild(wrapper);
+            }
+
+            wrappers[item.nestedLevel] = wrapper;
+        }
+
+        currentLevel = item.nestedLevel;
+
+        const li = document.createElement("li");
+        li.appendChild(item.listContent);
+        wrappers[currentLevel]?.appendChild(li);
+        lastLi = li;
+    }
+
+    return wrappers[0];
+}
+
+function hasItemsAtLevel(lists: ListClass[], fromIndex: number, level: number): boolean {
+    for (let i = fromIndex; i < lists.length; i++) {
+        const list = lists[i];
+        if (list && list.nestedLevel === level) {
+            return true;
+        }
+        if (list && list?.nestedLevel < level) {
+            return false;
+        }
+    }
+    return false;
+}
+
 function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[]) {
     for (const child of Array.from(wrapper.children)) {
         if (isList(child)) {
