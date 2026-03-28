@@ -3,8 +3,7 @@ import {getElement, getNextNode, getRootElement} from "@/core/shared/element-uti
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
-export function getListsOrderNumbers(contentEditable: HTMLElement): number[] {
-    const cursorPosition = getCursorPosition();
+export function getListsOrderNumbers(contentEditable: HTMLElement, cursorPosition = getCursorPosition()): number[] {
     const rootListElement = getFirstSelectedRoot(contentEditable, cursorPosition);
     const startListElement = getStartListWrapper(rootListElement);
 
@@ -31,7 +30,7 @@ export function getListsOrderNumbers(contentEditable: HTMLElement): number[] {
 }
 
 function getStartListWrapper(listWrapper: Element) {
-    while(listWrapper.previousElementSibling && isSchemaContain(listWrapper, [Display.ListWrapper])) {
+    while(listWrapper.previousElementSibling && isSchemaContain(listWrapper.previousElementSibling, [Display.ListWrapper])) {
         listWrapper = listWrapper.previousElementSibling;
     }
 
@@ -90,7 +89,7 @@ export function getDirectChildren(li: Element, display: Display[]) {
 
 export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: DocumentFragment) {
     let firstWrapper: Element = rootWrapper;
-    while (firstWrapper.previousElementSibling && isSchemaContain(firstWrapper, [Display.ListWrapper])) {
+    while (firstWrapper.previousElementSibling && isSchemaContain(firstWrapper.previousElementSibling, [Display.ListWrapper])) {
         firstWrapper = firstWrapper.previousElementSibling;
     }
     firstWrapper.before(listWrapper);

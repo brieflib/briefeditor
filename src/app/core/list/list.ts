@@ -73,7 +73,7 @@ export function plusIndent(contentEditable: HTMLElement) {
 
     const cursorPosition = getCursorPosition();
     const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
-    const listsOrderNumbers = getListsOrderNumbers(contentEditable);
+    const listsOrderNumbers = getListsOrderNumbers(contentEditable, cursorPosition);
     const lists = parseList(firstListWrapper);
     const plussedLists = plusOrderNumbers(lists, listsOrderNumbers);
     const listWrappers = convertList(plussedLists);
