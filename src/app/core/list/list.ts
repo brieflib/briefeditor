@@ -2,6 +2,7 @@ import {getFirstSelectedRoot, getSelectedBlock, getSelectedRoot} from "@/core/se
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {appendTags, mergeLists, removeDistantTags} from "@/core/normalize/normalize";
 import {
+    appendBeforeAndDelete,
     countListWrapperParents,
     getDirectChildren,
     isChildrenContain, listsOrderNumbers,
@@ -78,31 +79,11 @@ export function plusIndent(contentEditable: HTMLElement) {
     const lists = parseList(rootWrapper);
     const plussedLists = plusOrderNumbers(lists, orderNumbers);
     const listWrapper = convertList(plussedLists);
-    if (listWrapper.hasChildNodes()) {
-        rootWrapper.before(listWrapper);
-        rootWrapper.remove();
-    }
-
-
-    // for (let i = 0; i < lists.length; i++) {
-    //     const li = getSelectedBlock(contentEditable, cursorPosition)[i];
-    //     if (!li) {
-    //         continue;
-    //     }
-    //
-    //     const listWrapper = li.parentElement;
-    //     if (!listWrapper) {
-    //         continue;
-    //     }
-    //
-    //     appendTags(contentEditable, li, [listWrapper.nodeName]);
+    appendBeforeAndDelete(rootWrapper, listWrapper);
+    // if (listWrapper.hasChildNodes()) {
+    //     rootWrapper.before(listWrapper);
+    //     rootWrapper.remove();
     // }
-    //
-    // const rootElements = getSelectedRoot(contentEditable, cursorPosition);
-    // for (const rootElement of rootElements) {
-    //     moveListWrapperToPreviousLi(rootElement);
-    // }
-    mergeLists(contentEditable, cursorPosition);
 }
 
 export function isMinusIndentEnabled(contentEditable: HTMLElement) {

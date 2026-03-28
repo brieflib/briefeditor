@@ -1,3 +1,4 @@
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export enum ListWrapper {
     UL = "UL",
@@ -14,12 +15,12 @@ export function parseList(rootWrapper: HTMLElement): ListClass[] {
     const result: ListClass[] = [];
 
     let firstWrapper: Element = rootWrapper;
-    while (firstWrapper.previousElementSibling && isListWrapper(firstWrapper.previousElementSibling)) {
+    while (firstWrapper.previousElementSibling && isSchemaContain(firstWrapper.previousElementSibling, [Display.ListWrapper])) {
         firstWrapper = firstWrapper.previousElementSibling;
     }
 
     let current: Element | null = firstWrapper;
-    while (current && isListWrapper(current)) {
+    while (current && isSchemaContain(current, [Display.ListWrapper])) {
         parseListWrapper(current as HTMLElement, toListWrapper(current), 0, result);
         current = current.nextElementSibling;
     }
@@ -38,18 +39,28 @@ export function convertList(lists: ListClass[]): DocumentFragment {
     let currentLi: HTMLElement | null | undefined = document.createElement("li");
     currentLi.appendChild(list.listContent);
     rootWrapper.appendChild(currentLi);
+    const rootWrappers: HTMLElement[] = [rootWrapper];
 
     for (let i = 0; i <= lists.length; i++) {
         const list = lists[i];
         if (!list) {
-            fragment.appendChild(rootWrapper);
-            return fragment;
+            return appendToFragment(fragment, rootWrappers);
         }
 
         const nextList = lists[i + 1];
         if (!nextList) {
-            fragment.appendChild(rootWrapper);
-            return fragment;
+            return appendToFragment(fragment, rootWrappers);
+        }
+
+        const lastRootWrapper = rootWrappers[rootWrappers.length - 1];
+        if (lastRootWrapper && nextList.nestedLevel === 0 && nextList.listWrapper !== lastRootWrapper.nodeName) {
+            const newWrapper: HTMLElement = document.createElement(nextList.listWrapper);
+            rootWrappers.push(newWrapper);
+            const li = document.createElement("li");
+            li.appendChild(nextList.listContent);
+            newWrapper.appendChild(li);
+            currentLi = li;
+            continue;
         }
 
         if (list.nestedLevel + 1  === nextList.nestedLevel) {
@@ -79,7 +90,23 @@ export function convertList(lists: ListClass[]): DocumentFragment {
         currentLi = li;
     }
 
-    fragment.appendChild(rootWrapper);
+    return appendToFragment(fragment, rootWrappers);
+}
+
+function appendToFragment(fragment: DocumentFragment, rootWrappers: HTMLElement[]) {
+    const firstWrapper = rootWrappers[0];
+    if (!firstWrapper) {
+        return fragment;
+    }
+
+    fragment.appendChild(firstWrapper);
+    for (let i = 1; i < rootWrappers.length; i++) {
+        const rootWrapper = rootWrappers[i];
+        if (rootWrapper) {
+            fragment.appendChild(rootWrapper);
+        }
+    }
+
     return fragment;
 }
 
@@ -110,7 +137,7 @@ function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level:
         if (isList(child)) {
             const fragment = new DocumentFragment();
             for (const node of Array.from(child.childNodes)) {
-                if (!isListWrapper(node)) {
+                if (!isSchemaContain(node, [Display.ListWrapper])) {
                     fragment.appendChild(node);
                 }
             }
@@ -122,11 +149,11 @@ function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level:
             result.push(listClass);
 
             for (const liChild of Array.from(child.children)) {
-                if (isListWrapper(liChild)) {
+                if (isSchemaContain(liChild, [Display.ListWrapper])) {
                     parseListWrapper(liChild as HTMLElement, toListWrapper(liChild), level + 1, result);
                 }
             }
-        } else if (isListWrapper(child)) {
+        } else if (isSchemaContain(child, [Display.ListWrapper])) {
             parseListWrapper(child as HTMLElement, toListWrapper(child), level + 1, result);
         }
     }
@@ -134,10 +161,6 @@ function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level:
 
 function isList(element: Element): boolean {
     return element.nodeName === "LI";
-}
-
-function isListWrapper(element: ChildNode): boolean {
-    return element.nodeName === "UL" || element.nodeName === "OL";
 }
 
 function toListWrapper(element: Element): ListWrapper {

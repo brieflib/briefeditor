@@ -127,6 +127,21 @@ export function getDirectChildren(li: Element, display: Display[]) {
     return listWrappers;
 }
 
+export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: DocumentFragment) {
+    let firstWrapper: Element = rootWrapper;
+    while (firstWrapper.previousElementSibling && isSchemaContain(firstWrapper, [Display.ListWrapper])) {
+        firstWrapper = firstWrapper.previousElementSibling;
+    }
+    firstWrapper.before(listWrapper);
+
+    let current: Element | null = firstWrapper;
+    while (current && isSchemaContain(current, [Display.ListWrapper])) {
+        const next: Element | null = current.nextElementSibling;
+        current.remove();
+        current = next;
+    }
+}
+
 function getLiAtNestingLevel(contentEditable: HTMLElement, li: Element, previousLi: Element | null) {
     while (previousLi && countListWrapperParents(contentEditable, li) !== countListWrapperParents(contentEditable, previousLi)) {
         previousLi = previousLi.querySelector(":scope li:nth-last-child(1)");
