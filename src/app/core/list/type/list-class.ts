@@ -27,10 +27,11 @@ export function parseList(rootWrapper: HTMLElement): ListClass[] {
     return result;
 }
 
-export function convertList(lists: ListClass[]): HTMLElement | null {
+export function convertList(lists: ListClass[]): DocumentFragment {
+    const fragment = new DocumentFragment();
     const list = lists[0];
     if (!list) {
-        return null;
+        return fragment;
     }
 
     const rootWrapper: HTMLElement = document.createElement(list.listWrapper);
@@ -41,12 +42,14 @@ export function convertList(lists: ListClass[]): HTMLElement | null {
     for (let i = 0; i <= lists.length; i++) {
         const list = lists[i];
         if (!list) {
-            return rootWrapper;
+            fragment.appendChild(rootWrapper);
+            return fragment;
         }
 
         const nextList = lists[i + 1];
         if (!nextList) {
-            return rootWrapper;
+            fragment.appendChild(rootWrapper);
+            return fragment;
         }
 
         if (list.nestedLevel + 1  === nextList.nestedLevel) {
@@ -55,7 +58,7 @@ export function convertList(lists: ListClass[]): HTMLElement | null {
             currentLi = nextWrapper;
         }
 
-        if (list.nestedLevel === nextList.nestedLevel + 1 && list.listWrapper === nextList.listWrapper) {
+        if (list.nestedLevel === nextList.nestedLevel + 1) {
             currentLi = currentLi?.parentElement?.parentElement?.parentElement;
         }
 
@@ -76,7 +79,8 @@ export function convertList(lists: ListClass[]): HTMLElement | null {
         currentLi = li;
     }
 
-    return rootWrapper;
+    fragment.appendChild(rootWrapper);
+    return fragment;
 }
 
 export function plusOrderNumbers(lists: ListClass[], orderNumbers: number[]): ListClass[] {

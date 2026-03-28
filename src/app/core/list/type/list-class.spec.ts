@@ -96,7 +96,7 @@ describe("Convert ListClass to DOM", () => {
         const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
         const lists = parseList(rootWrapper);
 
-        const listWrapper = convertList(lists) as HTMLElement;
+        const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
             <ul>
                 <li>zero
@@ -127,7 +127,7 @@ describe("Convert ListClass to DOM", () => {
         const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
         const lists = parseList(rootWrapper);
 
-        const listWrapper = convertList(lists) as HTMLElement;
+        const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
             <ol>
                 <li>first
@@ -160,7 +160,7 @@ describe("Convert ListClass to DOM", () => {
         const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
         const lists = parseList(rootWrapper);
 
-        const listWrapper = convertList(lists) as HTMLElement;
+        const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
             <ul>
                 <li>zero
@@ -198,7 +198,7 @@ describe("Convert ListClass to DOM", () => {
         const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
         const lists = parseList(rootWrapper);
 
-        const listWrapper = convertList(lists) as HTMLElement;
+        const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
             <ul>
                 <li>zero

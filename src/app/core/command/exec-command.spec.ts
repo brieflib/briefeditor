@@ -425,8 +425,8 @@ describe("Cursor position after PlusIndent command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
 
         // After: <ul><li>zero<ul><li class="start">first</li><li class="end">second</li></ul></li></ul>
-        const expectedStart = wrapper.querySelector(".start")?.firstChild;
-        const expectedEnd = wrapper.querySelector(".end")?.firstChild;
+        const expectedStart = wrapper.querySelectorAll("ul li")[1]?.firstChild;
+        const expectedEnd = wrapper.querySelectorAll("ul li")[2]?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedStart);
         expect(cursorPosition.startOffset).toBe("fi".length);
         expect(cursorPosition.endContainer).toBe(expectedEnd);
@@ -454,8 +454,8 @@ describe("Cursor position after PlusIndent command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
 
         // After: <ul><li>zero<ul><li class="start">fi<strong class="end">rst</strong></li><li>second</li></ul></li></ul>
-        const expectedStart = wrapper.querySelector(".start")?.firstChild;
-        const expectedEnd = wrapper.querySelector(".end")?.firstChild;
+        const expectedStart = wrapper.querySelectorAll("ul li ul li")[0]?.firstChild;
+        const expectedEnd = wrapper.querySelectorAll("ul li ul li strong")[0]?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedStart);
         expect(cursorPosition.startOffset).toBe("fi".length);
         expect(cursorPosition.endContainer).toBe(expectedEnd);

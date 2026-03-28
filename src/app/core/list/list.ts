@@ -78,7 +78,7 @@ export function plusIndent(contentEditable: HTMLElement) {
     const lists = parseList(rootWrapper);
     const plussedLists = plusOrderNumbers(lists, orderNumbers);
     const listWrapper = convertList(plussedLists);
-    if (listWrapper) {
+    if (listWrapper.hasChildNodes()) {
         rootWrapper.before(listWrapper);
         rootWrapper.remove();
     }
