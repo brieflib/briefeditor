@@ -1,17 +1,15 @@
-import {getFirstSelectedRoot, getSelectedBlock, getSelectedRoot} from "@/core/selection/selection";
+import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {appendTags, mergeLists, removeDistantTags} from "@/core/normalize/normalize";
 import {
     appendBeforeAndDelete,
     countListWrapperParents,
     getDirectChildren,
-    isChildrenContain, listsOrderNumbers,
-    moveListWrappersOutOfLi,
-    moveListWrapperToPreviousLi
+    getListsOrderNumbers,
+    isChildrenContain
 } from "@/core/list/util/list-util";
 import {getNextNode} from "@/core/shared/element-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
-import {convertList, parseList, plusOrderNumbers} from "@/core/list/type/list-class";
+import {convertList, minusOrderNumbers, parseList, plusOrderNumbers} from "@/core/list/type/list-class";
 
 export function isNextListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const lastList = lists[lists.length - 1];
@@ -74,16 +72,12 @@ export function plusIndent(contentEditable: HTMLElement) {
     }
 
     const cursorPosition = getCursorPosition();
-    const rootWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
-    const orderNumbers = listsOrderNumbers(contentEditable);
-    const lists = parseList(rootWrapper);
-    const plussedLists = plusOrderNumbers(lists, orderNumbers);
-    const listWrapper = convertList(plussedLists);
-    appendBeforeAndDelete(rootWrapper, listWrapper);
-    // if (listWrapper.hasChildNodes()) {
-    //     rootWrapper.before(listWrapper);
-    //     rootWrapper.remove();
-    // }
+    const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
+    const listsOrderNumbers = getListsOrderNumbers(contentEditable);
+    const lists = parseList(firstListWrapper);
+    const plussedLists = plusOrderNumbers(lists, listsOrderNumbers);
+    const listWrappers = convertList(plussedLists);
+    appendBeforeAndDelete(firstListWrapper, listWrappers);
 }
 
 export function isMinusIndentEnabled(contentEditable: HTMLElement) {
@@ -115,15 +109,16 @@ export function isMinusIndentEnabled(contentEditable: HTMLElement) {
     return true;
 }
 
-export function minusIndent(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
+export function minusIndent(contentEditable: HTMLElement) {
     if (!isMinusIndentEnabled(contentEditable)) {
         return;
     }
 
     const cursorPosition = getCursorPosition();
-    let firstRootElement = getFirstSelectedRoot(contentEditable, cursorPosition);
-    removeDistantTags(contentEditable, firstRootElement, lists, [firstRootElement.nodeName, "LI"]);
-    firstRootElement = getFirstSelectedRoot(contentEditable, cursorPosition);
-    moveListWrappersOutOfLi(contentEditable, firstRootElement);
-    mergeLists(contentEditable, cursorPosition);
+    const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
+    const listsOrderNumbers = getListsOrderNumbers(contentEditable);
+    const lists = parseList(firstListWrapper);
+    const minusLists = minusOrderNumbers(lists, listsOrderNumbers);
+    const listWrappers = convertList(minusLists);
+    appendBeforeAndDelete(firstListWrapper, listWrappers);
 }

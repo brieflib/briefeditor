@@ -687,8 +687,8 @@ describe("Minus indent", () => {
             <ul>
                 <li>zero</li>
                 <li>first</li>
-                <li class="start">second</li>
-                <li class="end">third
+                <li>second</li>
+                <li>third
                     <ul>
                         <li>fourth</li>
                     </ul>
@@ -726,7 +726,7 @@ describe("Minus indent", () => {
                         <li>second</li>
                     </ul>
                 </li>
-                <li class="start">third
+                <li>third
                     <ul>
                         <li>fourth</li>
                     </ul>
@@ -763,7 +763,7 @@ describe("Minus indent", () => {
                         <li>second</li>
                     </ul>
                 </li>
-                <li class="start">third</li>
+                <li>third</li>
             </ul>
         `);
     });
@@ -795,9 +795,9 @@ describe("Minus indent", () => {
             <ul>
                 <li>zero</li>
                 <li>first</li>
-                <li class="start">second
+                <li>second
                     <ul>
-                        <li class="end">third</li>
+                        <li>third</li>
                     </ul>
                 </li>
             </ul>
@@ -836,9 +836,9 @@ describe("Minus indent", () => {
                         <li>second</li>
                     </ul>
                 </li>
-                <li class="start">third
+                <li>third
                     <ul>
-                        <li class="end">fourth</li>
+                        <li>fourth</li>
                     </ul>
                 </li>
             </ul>
@@ -873,9 +873,9 @@ describe("Minus indent", () => {
             <ul>
                 <li>zero</li>
                 <li>first</li>
-                <li class="start">second
+                <li>second
                     <ul>
-                        <li class="end">third
+                        <li>third
                             <ul>
                                 <li>fourth</li>
                             </ul>
@@ -910,7 +910,7 @@ describe("Minus indent", () => {
                 <li>zero</li>
             </ul>
             <ol>
-                <li class="start">first
+                <li>first
                     <ol>
                         <li>second</li>
                     </ol>
@@ -943,8 +943,8 @@ describe("Minus indent", () => {
                 <li>zero</li>
             </ul>
             <ol>
-                <li class="start">first</li>
-                <li class="end">second</li>
+                <li>first</li>
+                <li>second</li>
             </ol>
         `);
     });
@@ -981,7 +981,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
             <ol>
-                <li class="start">third
+                <li>third
                     <ol>
                         <li>fourth</li>
                     </ol>
@@ -1025,7 +1025,7 @@ describe("Minus indent", () => {
                         <li>first</li>
                     </ol>    
                     <ul>
-                        <li class="start">second
+                        <li>second
                             <ol>
                                 <li>third</li>
                             </ol>                        
@@ -1068,10 +1068,10 @@ describe("Minus indent", () => {
                         <li>first</li>
                     </ol>
                     <ul>
-                        <li class="start">second</li>
+                        <li>second</li>
                     </ul>
                     <ol>
-                        <li class="end">third</li>
+                        <li>third</li>
                     </ol>
                 </li>
             </ul>
@@ -1111,11 +1111,11 @@ describe("Minus indent", () => {
                 <li>first</li>
             </ul>
             <ol>
-                <li class="start">second
+                <li>second
                     <ul>
                         <li>third
                             <ol>
-                                <li class="end">fourth</li>
+                                <li>fourth</li>
                             </ol>
                         </li>
                     </ul>
@@ -1163,7 +1163,7 @@ describe("Minus indent", () => {
                         <li>first</li>
                     </ol>
                     <ul>
-                        <li class="start">second</li>
+                        <li>second</li>
                     </ul>
                     <ol>
                         <li>third</li>
@@ -1171,7 +1171,7 @@ describe("Minus indent", () => {
                     <ul>
                         <li>fourth
                             <ol>
-                                <li class="end">fifth</li>
+                                <li>fifth</li>
                             </ol>
                         </li>
                     </ul>
@@ -1209,10 +1209,10 @@ describe("Minus indent", () => {
                 <li>zero</li>
             </ul>
             <ol>
-                <li class="start">first</li>
+                <li>first</li>
             </ol>
             <ul>
-                <li class="end">second
+                <li>second
                     <ol>
                         <li>third</li>
                     </ol>
@@ -1253,12 +1253,12 @@ describe("Minus indent", () => {
                 <li>zero
                     <ol>
                         <li>first</li>
-                        <li class="start">second
+                        <li>second
                             <ol>
                                 <li>third</li>
                             </ol>
                         </li>
-                        <li class="end">fourth</li>
+                        <li>fourth</li>
                     </ol>
                 </li>
             </ol>
@@ -1299,7 +1299,7 @@ describe("Minus indent", () => {
                         <li>first
                             <ol>
                                 <li>second</li>
-                                <li class="start">third</li>
+                                <li>third</li>
                                 <li>fourth</li>
                             </ol>
                         </li>
@@ -1333,7 +1333,7 @@ describe("Minus indent", () => {
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>zero</li>
-                <li class="start">
+                <li>
                     <strong>fi</strong>
                     rst
                 </li>
@@ -1376,7 +1376,7 @@ describe("Minus indent", () => {
                                 <li>second</li>
                             </ul>
                             <ol>
-                                <li class="start">third</li>
+                                <li>third</li>
                             </ol>
                         </li>
                     </ol>
@@ -1419,7 +1419,7 @@ describe("Minus indent", () => {
                                 <li>second</li>
                             </ul>
                         </li>
-                        <li class="start">third</li>
+                        <li>third</li>
                     </ol>
                 </li>
             </ul>

@@ -3,7 +3,7 @@ import {getElement, getNextNode, getRootElement} from "@/core/shared/element-uti
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
-export function listsOrderNumbers(contentEditable: HTMLElement): number[] {
+export function getListsOrderNumbers(contentEditable: HTMLElement): number[] {
     const cursorPosition = getCursorPosition();
     const rootListElement = getFirstSelectedRoot(contentEditable, cursorPosition);
     const startListElement = getStartListWrapper(rootListElement);
@@ -62,19 +62,6 @@ export function isChildrenContain(children: HTMLCollection, containIn: HTMLEleme
     return false;
 }
 
-export function moveListWrapperToPreviousLi(rootElement: HTMLElement) {
-    const listWrappers = rootElement.querySelectorAll("ul, ol");
-
-    for (const listWrapper of listWrappers) {
-        moveToPreviousLi(listWrapper);
-    }
-
-    for (const listWrapper of listWrappers) {
-        moveToPreviousListWrapper(listWrapper);
-        moveToPreviousLi(listWrapper);
-    }
-}
-
 export function getLisWithFirstChildListWrapper(contentEditable: HTMLElement, element: HTMLElement) {
     const lis: HTMLElement[] = [];
 
@@ -87,32 +74,6 @@ export function getLisWithFirstChildListWrapper(contentEditable: HTMLElement, el
     }
 
     return lis;
-}
-
-export function moveListWrappersOutOfLi(contentEditable: HTMLElement, element: HTMLElement) {
-    const lis = getLisWithFirstChildListWrapper(contentEditable, element);
-
-    for (let i = lis.length; i >= 0; i--) {
-        const li = lis[i];
-        if (!li) {
-            continue;
-        }
-        const previousLi = getPreviousLi(li, lis[i - 1]);
-
-        const listWrappers = getDirectChildren(li, [Display.ListWrapper]);
-        if (previousLi && countListWrapperParents(contentEditable, li) > countListWrapperParents(contentEditable, previousLi)) {
-            const liToAppend = getLiAtNestingLevel(contentEditable, li, previousLi);
-            listWrappers.forEach(listWrapper => liToAppend?.appendChild(listWrapper));
-            continue;
-        }
-
-        if (previousLi) {
-            listWrappers.forEach(listWrapper => previousLi?.appendChild(listWrapper));
-            continue;
-        }
-
-        listWrappers.forEach(listWrapper => li.before(listWrapper));
-    }
 }
 
 export function getDirectChildren(li: Element, display: Display[]) {
@@ -139,48 +100,6 @@ export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: Doc
         const next: Element | null = current.nextElementSibling;
         current.remove();
         current = next;
-    }
-}
-
-function getLiAtNestingLevel(contentEditable: HTMLElement, li: Element, previousLi: Element | null) {
-    while (previousLi && countListWrapperParents(contentEditable, li) !== countListWrapperParents(contentEditable, previousLi)) {
-        previousLi = previousLi.querySelector(":scope li:nth-last-child(1)");
-    }
-
-    return previousLi;
-}
-
-function getPreviousLi(li: Element, previousLi?: Element): Element | null | undefined {
-    if (previousLi) {
-        return previousLi;
-    }
-
-    if (li.previousElementSibling) {
-        return li.previousElementSibling;
-    }
-
-    if (li.parentElement) {
-        return getPreviousLi(li.parentElement);
-    }
-
-    return null;
-}
-
-function moveToPreviousLi(listWrapper: Element) {
-    const previousLi = listWrapper.previousElementSibling;
-    if (previousLi && isSchemaContain(previousLi, [Display.List])) {
-        previousLi.appendChild(listWrapper);
-    }
-}
-
-function moveToPreviousListWrapper(listWrapper: Element) {
-    const parent = listWrapper.parentElement;
-    const previousListWrapper = parent?.previousElementSibling;
-    if (previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper])) {
-        previousListWrapper.appendChild(listWrapper);
-        if (!parent.textContent) {
-            parent.remove();
-        }
     }
 }
 

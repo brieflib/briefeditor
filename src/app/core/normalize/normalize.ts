@@ -1,7 +1,6 @@
 import {
     appendLeafParents,
     collapseLeaves,
-    filterDistantLeafParents,
     filterLeafParents,
     getLeafNodes,
     isLeafEmpty,
@@ -41,19 +40,6 @@ export function removeTags(contentEditable: HTMLElement, removeTagFrom: HTMLElem
 
     const fragment = collapseLeaves(leaves);
     replaceElement(fragment, rootElement, cursorPosition);
-}
-
-export function removeDistantTags(contentEditable: HTMLElement, wrapper: HTMLElement, toRemoveFrom: HTMLElement[], tags: string[]) {
-    const rootElement = getRootElement(contentEditable, wrapper);
-
-    const leaves = getLeafNodes(rootElement)
-        .map(node => setLeafParents(contentEditable, node))
-        .filter(leaf => filterDistantLeafParents(toRemoveFrom, [...tags], leaf))
-        .map(leaf => sortLeafParents(leaf))
-        .map(leaf => removeConsecutiveDuplicates(leaf));
-
-    const fragment = collapseLeaves(leaves);
-    replaceElement(fragment, rootElement);
 }
 
 export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[], isClosest = false) {

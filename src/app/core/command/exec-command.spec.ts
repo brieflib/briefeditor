@@ -484,7 +484,7 @@ describe("Cursor position after MinusIndent command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.MinusIndent});
 
         // After: <ul><li>zero</li><li>first</li><li class="start">second</li></ul>
-        const expectedNode = wrapper.querySelector(".start")?.firstChild;
+        const expectedNode = wrapper.querySelectorAll("ul li")[2]?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedNode);
         expect(cursorPosition.startOffset).toBe("se".length);
         expect(cursorPosition.endContainer).toBe(expectedNode);
@@ -513,8 +513,8 @@ describe("Cursor position after MinusIndent command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.MinusIndent});
 
         // After: <ul><li>zero</li><li>first</li><li class="start">second</li><li class="end">third<ul><li>fourth</li></ul></li></ul>
-        const expectedStart = wrapper.querySelector(".start")?.firstChild;
-        const expectedEnd = wrapper.querySelector(".end")?.firstChild;
+        const expectedStart = wrapper.querySelectorAll("ul li")[2]?.firstChild;
+        const expectedEnd = wrapper.querySelectorAll("ul li")[3]?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedStart);
         expect(cursorPosition.startOffset).toBe("se".length);
         expect(cursorPosition.endContainer).toBe(expectedEnd);
@@ -543,7 +543,7 @@ describe("Cursor position after MinusIndent command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.MinusIndent});
 
         // After: <ol><li>zero</li><li class="start"><strong>fi</strong>rst</li></ol>
-        const expectedNode = wrapper.querySelector(".start")?.lastChild;
+        const expectedNode = wrapper.querySelectorAll("ol li")[1]?.lastChild;
         expect(cursorPosition.startContainer).toBe(expectedNode);
         expect(cursorPosition.startOffset).toBe("r".length);
         expect(cursorPosition.endContainer).toBe(expectedNode);

@@ -3,7 +3,7 @@ import {convertList, ListWrapper, minusOrderNumbers, parseList, plusOrderNumbers
 import {getRange} from "@/core/shared/range-util";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
-import {listsOrderNumbers} from "@/core/list/util/list-util";
+import {getListsOrderNumbers} from "@/core/list/util/list-util";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -233,7 +233,7 @@ describe("Plus indent", () => {
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = listsOrderNumbers(wrapper);
+        const orderNumbers = getListsOrderNumbers(wrapper);
         const lists = parseList(rootWrapper);
         const result = plusOrderNumbers(lists, orderNumbers);
 
@@ -261,7 +261,7 @@ describe("Plus indent", () => {
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = listsOrderNumbers(wrapper);
+        const orderNumbers = getListsOrderNumbers(wrapper);
         const lists = parseList(rootWrapper);
         const result = plusOrderNumbers(lists, orderNumbers);
 
@@ -289,7 +289,7 @@ describe("Plus indent", () => {
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = listsOrderNumbers(wrapper);
+        const orderNumbers = getListsOrderNumbers(wrapper);
         const lists = parseList(rootWrapper);
         const result = plusOrderNumbers(lists, orderNumbers);
 
@@ -318,7 +318,7 @@ describe("Plus indent", () => {
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = listsOrderNumbers(wrapper);
+        const orderNumbers = getListsOrderNumbers(wrapper);
         const lists = parseList(rootWrapper);
         const result = plusOrderNumbers(lists, orderNumbers);
 
@@ -352,7 +352,7 @@ describe("Plus indent", () => {
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = listsOrderNumbers(wrapper);
+        const orderNumbers = getListsOrderNumbers(wrapper);
         const lists = parseList(rootWrapper);
         const result = plusOrderNumbers(lists, orderNumbers);
 
@@ -382,7 +382,7 @@ describe("Minus indent", () => {
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = listsOrderNumbers(wrapper);
+        const orderNumbers = getListsOrderNumbers(wrapper);
         const lists = parseList(rootWrapper);
         const result = minusOrderNumbers(lists, orderNumbers);
 
@@ -412,7 +412,7 @@ describe("Minus indent", () => {
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = listsOrderNumbers(wrapper);
+        const orderNumbers = getListsOrderNumbers(wrapper);
         const lists = parseList(rootWrapper);
         const result = minusOrderNumbers(lists, orderNumbers);
 

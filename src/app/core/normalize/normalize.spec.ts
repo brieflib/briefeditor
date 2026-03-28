@@ -1,4 +1,4 @@
-import normalize, {appendTags, removeDistantTags, removeTags, replaceTags} from "@/core/normalize/normalize";
+import normalize, {appendTags, removeTags, replaceTags} from "@/core/normalize/normalize";
 import {createWrapper, expectHtml, getLastChild, testNormalize} from "@/core/shared/test-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
@@ -258,29 +258,6 @@ describe("Should remove tags", () => {
                 <u><span>first</span>second</u>
             </div>
             third
-        `);
-    });
-
-    test("Should remove distant UL and LI", () => {
-        const wrapper = createWrapper(`
-            <ul class="zero">
-                <li>zero
-                    <ul>
-                        <li class="first">first</li>
-                    </ul>
-                </li>
-            </ul>
-        `);
-
-        const ul = wrapper.querySelector(".zero") as HTMLElement;
-        const toRemove = wrapper.querySelector(".first") as HTMLElement;
-        removeDistantTags(wrapper, ul, [toRemove], ["UL", "LI"]);
-
-        expectHtml(wrapper.innerHTML, `
-            <ul>
-                <li>zero</li>
-                <li class="first">first</li>
-            </ul>
         `);
     });
 });

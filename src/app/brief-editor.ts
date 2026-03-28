@@ -23,7 +23,7 @@ export default class BriefEditor {
         this.contentEditableElement = contentEditable as HTMLElement;
     }
 
-    public toggleTag(tagName: string, attributes?: {}) {
+    public toggleTag(tagName: string, attributes = {}) {
         const upperCaseTagName = tagName.toUpperCase();
         const action = this.getAction(upperCaseTagName);
         execCommand(this.contentEditableElement, {
@@ -33,7 +33,7 @@ export default class BriefEditor {
         });
     }
 
-    public changeAttribute(tagName: string, attributes?: {}) {
+    public changeAttribute(tagName: string, attributes = {}) {
         const upperCaseTagName = tagName.toUpperCase();
         execCommand(this.contentEditableElement, {
             action: Action.Attribute,
