@@ -1,13 +1,8 @@
 import {getSelectedBlock} from "@/core/selection/selection";
-import {
-    CursorPosition,
-    deleteContents,
-    getCursorPosition,
-    getCursorPositionFrom
-} from "@/core/shared/type/cursor-position";
-import {getFirstText, getLastText, getNextNode, getPreviousNode} from "@/core/shared/element-util";
-import {mergeLists} from "@/core/normalize/normalize";
+import {CursorPosition, deleteContents, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {getFirstText, getLastText, getNextNode, getPreviousNode, getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {prepareListsForDelete} from "@/core/list/list";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const emptyParentResult = removeEmptyParentListItem(contentEditable, cursorPosition);
@@ -47,7 +42,13 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
     const isRemoved = removeEmptyBlock(contentEditable, nextNode);
     const nextNodeFirstChild = getFirstText(nextNode);
     if (isRemoved) {
-        return {...cursorPosition, startContainer: nextNodeFirstChild, startOffset: 0, endContainer: nextNodeFirstChild, endOffset: 0};
+        return {
+            ...cursorPosition,
+            startContainer: nextNodeFirstChild,
+            startOffset: 0,
+            endContainer: nextNodeFirstChild,
+            endOffset: 0
+        };
     }
 
     if (!nextNode.textContent) {
@@ -67,14 +68,21 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
 }
 
 export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = ""): CursorPosition {
+    const lastRootElement = getRootElement(contentEditable, cursorPosition.endContainer);
+    const isInsideOneElement = lastRootElement.contains(cursorPosition.startContainer) &&
+        lastRootElement.contains(cursorPosition.endContainer)
+    if (isSchemaContain(lastRootElement, [Display.ListWrapper]) && !isInsideOneElement) {
+        prepareListsForDelete(contentEditable);
+    }
+
+    deleteContents(cursorPosition);
+
     const blocks = getSelectedBlock(contentEditable, cursorPosition);
     const firstBlock = blocks[0];
     const lastBlock = blocks[blocks.length - 1];
     if (!firstBlock || !lastBlock || firstBlock === lastBlock) {
         return cursorPosition;
     }
-
-    deleteContents(cursorPosition);
 
     if (isKeyPrintable(pressedKey)) {
         const textNode = document.createTextNode(pressedKey);
@@ -94,13 +102,13 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
             }
         }
     }
-    lastBlock.remove();
 
-    cursorPosition = getCursorPositionFrom(cursorPosition.startContainer,
-        cursorPosition.startOffset,
-        cursorPosition.endContainer,
-        0);
-    mergeLists(contentEditable, cursorPosition);
+    let forDelete = lastBlock;
+    while (forDelete.parentElement && !forDelete.textContent) {
+        const parentElement = forDelete.parentElement;
+        forDelete.remove();
+        forDelete = parentElement;
+    }
 
     return cursorPosition;
 }

@@ -58,7 +58,7 @@ export function isCollapsed(cursorPosition: CursorPosition) {
 }
 
 export function deleteContents(cursorPosition: CursorPosition) {
-    return cursorPosition.range.deleteContents();
+    return getRangeFromCursorPosition(cursorPosition).deleteContents();
 }
 
 export function getBoundingClientRect(cursorPosition: CursorPosition) {

@@ -5,7 +5,9 @@ import {
     getSelectedLeaves,
     SelectionType
 } from "@/core/selection/util/selection-util";
-import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {getFirstText, getLastText} from "@/core/shared/element-util";
 
 export function getSelectedSharedTags(findTill: HTMLElement, cursorPosition = getCursorPosition()) {
     const leafNodes = getSelectedLeaves(findTill);
@@ -65,4 +67,35 @@ export function selectElement(element: HTMLElement) {
     range.selectNodeContents(element);
     selection.removeAllRanges();
     selection.addRange(range);
+}
+
+export function getSelectedListWrappers(contentEditable: HTMLElement): CursorPosition[] {
+    const cursorPositions: CursorPosition[] = [];
+
+    const cursorPosition = getCursorPosition();
+    const listWrappers = getSelectedRoot(contentEditable, cursorPosition);
+    const startContainer = cursorPosition.startContainer;
+    const startOffset = cursorPosition.startOffset;
+    const endContainer = cursorPosition.endContainer;
+    const endOffset = cursorPosition.endOffset;
+
+    for (const listWrapper of listWrappers) {
+        if (!isSchemaContain(listWrapper, [Display.ListWrapper])) {
+            continue;
+        }
+
+        let cursorPositionInsideListWrapper = cursorPosition;
+        if (listWrapper.contains(startContainer) && !listWrapper.contains(endContainer)) {
+            const lastText = getLastText(listWrapper);
+            cursorPositionInsideListWrapper = getCursorPositionFrom(startContainer, startOffset, lastText, lastText.textContent?.length ?? 0);
+        }
+        if (!listWrapper.contains(startContainer) && listWrapper.contains(endContainer)) {
+            const firstText = getFirstText(listWrapper);
+            cursorPositionInsideListWrapper = getCursorPositionFrom(firstText, firstText.textContent?.length ?? 0, endContainer, endOffset);
+        }
+
+        cursorPositions.push(cursorPositionInsideListWrapper);
+    }
+
+    return cursorPositions;
 }

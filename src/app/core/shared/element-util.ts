@@ -1,12 +1,12 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {commonAncestorContainer, getCursorPosition} from "@/core/shared/type/cursor-position";
 
-export function getRootElement(findTill: HTMLElement, child: HTMLElement) {
+export function getRootElement(findTill: HTMLElement, child: HTMLElement | Node) {
     while (child.parentElement && child.parentElement !== findTill) {
         child = child.parentElement;
     }
 
-    return child;
+    return child as HTMLElement;
 }
 
 export function getElement(findTill: HTMLElement, child: HTMLElement, display: Display[]) {

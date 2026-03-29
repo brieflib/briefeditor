@@ -1,5 +1,5 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getElement, getNextNode, getRootElement} from "@/core/shared/element-util";
+import {getElement, getNextNode} from "@/core/shared/element-util";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
@@ -30,7 +30,7 @@ export function getListsOrderNumbers(contentEditable: HTMLElement, cursorPositio
 }
 
 function getStartListWrapper(listWrapper: Element) {
-    while(listWrapper.previousElementSibling && isSchemaContain(listWrapper.previousElementSibling, [Display.ListWrapper])) {
+    while (listWrapper.previousElementSibling && isSchemaContain(listWrapper.previousElementSibling, [Display.ListWrapper])) {
         listWrapper = listWrapper.previousElementSibling;
     }
 
@@ -61,20 +61,6 @@ export function isChildrenContain(children: HTMLCollection, containIn: HTMLEleme
     return false;
 }
 
-export function getLisWithFirstChildListWrapper(contentEditable: HTMLElement, element: HTMLElement) {
-    const lis: HTMLElement[] = [];
-
-    fillLisWithFirstChildListWrapper(element, lis);
-
-    let nextElement = getRootElement(contentEditable, element).nextElementSibling;
-    while (nextElement && isSchemaContain(nextElement, [Display.ListWrapper])) {
-        fillLisWithFirstChildListWrapper(nextElement as HTMLElement, lis);
-        nextElement = nextElement.nextElementSibling;
-    }
-
-    return lis;
-}
-
 export function getDirectChildren(li: Element, display: Display[]) {
     const listWrappers: Element[] = [];
 
@@ -102,24 +88,9 @@ export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: Doc
     }
 }
 
-function fillLisWithFirstChildListWrapper(element: HTMLElement, lis: HTMLElement[]) {
-    const nestedLis = element.querySelectorAll("li");
-    const lisWithFirstChild = Array.from(nestedLis).filter(isLiWithFirstChildListWrapper);
-    lis.push(...lisWithFirstChild);
-}
-
-function isLiWithFirstChildListWrapper(element: HTMLElement) {
-    const maybeListWrapper = element.firstChild;
-    const maybeText = maybeListWrapper?.firstChild?.firstChild;
-
-    return isSchemaContain(element, [Display.List]) &&
-        isSchemaContain(maybeListWrapper, [Display.ListWrapper]) &&
-        maybeText?.nodeType === Node.TEXT_NODE;
-}
-
 function getListPosition(listWrapper: Element | null, list: ChildNode): number {
     let offset = 0;
-    while(listWrapper && isSchemaContain(listWrapper, [Display.ListWrapper])) {
+    while (listWrapper && isSchemaContain(listWrapper, [Display.ListWrapper])) {
         const allLists = listWrapper.querySelectorAll("li");
         for (let i = 0; i < allLists.length; i++) {
             if (allLists[i] === list) {

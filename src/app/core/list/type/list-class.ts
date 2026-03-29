@@ -132,6 +132,31 @@ export function minusOrderNumbers(lists: ListClass[], orderNumbers: number[]): L
     return lists;
 }
 
+export function getListsPreparedToDelete(lists: ListClass[], orderNumbers: number[]): ListClass[] {
+    let currentNestedLevel = 0
+    for (let i = 0; i < lists.length; i++) {
+        if (orderNumbers.includes(i)) {
+            continue;
+        }
+        const list = lists[i];
+        if (list) {
+            list.nestedLevel = currentNestedLevel;
+        }
+        const nextList = lists[i + 1];
+        if (!nextList) {
+            continue;
+        }
+        if (nextList.nestedLevel > currentNestedLevel) {
+            currentNestedLevel++;
+        }
+        if (nextList.nestedLevel < currentNestedLevel) {
+            currentNestedLevel = nextList.nestedLevel;
+        }
+    }
+
+    return lists;
+}
+
 function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[]) {
     for (const child of Array.from(wrapper.children)) {
         if (isList(child)) {
@@ -152,7 +177,7 @@ function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level:
                 if (isSchemaContain(liChild, [Display.ListWrapper])) {
                     parseListWrapper(liChild as HTMLElement, toListWrapper(liChild), level + 1, result);
                 }
-            }
+             }
         } else if (isSchemaContain(child, [Display.ListWrapper])) {
             parseListWrapper(child as HTMLElement, toListWrapper(child), level + 1, result);
         }

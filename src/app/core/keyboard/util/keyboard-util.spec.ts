@@ -1104,8 +1104,11 @@ describe("Merge P and nested list selections", () => {
         expectHtml(wrapper.innerHTML, `
             <h1 class="start">ze rst</h1>
             <ul>
-                <li>second</li>
-                <li>third</li>
+                <li>second
+                    <ul>
+                        <li>third</li>                    
+                    </ul>
+                </li>
             </ul>
         `);
     });
@@ -1274,7 +1277,7 @@ describe("Merge mixed UL/OL selections", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">ze rst</li>
+                <li>ze rst</li>
             </ul>
         `);
     });
@@ -1300,7 +1303,7 @@ describe("Merge mixed UL/OL selections", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">ze cond</li>
+                <li>ze cond</li>
             </ul>
         `);
     });
@@ -1324,7 +1327,7 @@ describe("Cursor position after key press", () => {
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
         expect(cursorPosition.startOffset).toBe(2);
-        expect(cursorPosition.endOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(2);
     });
 
     test("When cursor is at the start of empty element should remove previous empty element", () => {
