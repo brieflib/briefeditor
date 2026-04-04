@@ -130,6 +130,43 @@ describe("Is plus indent enabled", () => {
 });
 
 describe("Plus indent", () => {
+
+    test("Should indent two lists with another one at nesting level zero", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start">first
+                    <ol>
+                        <li class="end">second</li>
+                    </ol>
+                </li>
+                <li>third</li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        plusIndent(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ol>
+                                <li>second</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+                <li>third</li>
+            </ol>            
+        `);
+    });
+
     test("Should indent two direct descendent lists", () => {
         const wrapper = createWrapper(`
             <ul>

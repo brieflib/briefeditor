@@ -69,8 +69,13 @@ export function convertList(lists: ListClass[]): DocumentFragment {
             currentLi = nextWrapper;
         }
 
-        if (list.nestedLevel === nextList.nestedLevel + 1) {
-            currentLi = currentLi?.parentElement?.parentElement?.parentElement;
+        if (list.nestedLevel > nextList.nestedLevel) {
+            let nestedLevel = list.nestedLevel;
+            while (nestedLevel > nextList.nestedLevel) {
+                nestedLevel--;
+                currentLi = currentLi?.parentElement?.parentElement;
+            }
+            currentLi = currentLi?.parentElement;
         }
 
         if (list.nestedLevel === nextList.nestedLevel && list.listWrapper !== nextList.listWrapper) {
