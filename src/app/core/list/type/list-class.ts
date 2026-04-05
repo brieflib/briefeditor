@@ -145,8 +145,7 @@ export function normalizeLists(lists: ListClass[]): ListClass[] {
     const result: ListClass[] = [];
     const levelMap = new Map<number, number>();
 
-    for (let i = 0; i < lists.length; i++) {
-        const list = lists[i];
+    for (const list of lists) {
         if (!list || !list.listContent.textContent) {
             continue;
         }
@@ -156,11 +155,11 @@ export function normalizeLists(lists: ListClass[]): ListClass[] {
         if (result.length === 0) {
             list.nestedLevel = 0;
         } else if (levelMap.has(origLevel)) {
-            list.nestedLevel = levelMap.get(origLevel)!;
+            list.nestedLevel = levelMap.get(origLevel) ?? origLevel;
         } else {
-            const prevLevel = result[result.length - 1]!.nestedLevel;
-            if (list.nestedLevel > prevLevel + 1) {
-                list.nestedLevel = prevLevel + 1;
+            const prev = result[result.length - 1];
+            if (prev && list.nestedLevel > prev.nestedLevel + 1) {
+                list.nestedLevel = prev.nestedLevel + 1;
             }
         }
 
