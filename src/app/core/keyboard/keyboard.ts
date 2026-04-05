@@ -15,7 +15,11 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent) 
 
     if (isCursorIntersectBlocks(contentEditable)) {
         event.preventDefault();
-        cursorPosition = mergeBlocks(contentEditable, cursorPosition, event.key);
+        let key = event.key;
+        if (event.key === "Delete" || event.key === "Backspace") {
+            key = "";
+        }
+        cursorPosition = mergeBlocks(contentEditable, cursorPosition, key);
         setCursorPosition(contentEditable, cursorPosition);
         return;
     }

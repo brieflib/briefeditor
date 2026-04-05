@@ -68,34 +68,3 @@ export function selectElement(element: HTMLElement) {
     selection.removeAllRanges();
     selection.addRange(range);
 }
-
-export function getSelectedListWrappers(contentEditable: HTMLElement): CursorPosition[] {
-    const cursorPositions: CursorPosition[] = [];
-
-    const cursorPosition = getCursorPosition();
-    const listWrappers = getSelectedRoot(contentEditable, cursorPosition);
-    const startContainer = cursorPosition.startContainer;
-    const startOffset = cursorPosition.startOffset;
-    const endContainer = cursorPosition.endContainer;
-    const endOffset = cursorPosition.endOffset;
-
-    for (const listWrapper of listWrappers) {
-        if (!isSchemaContain(listWrapper, [Display.ListWrapper])) {
-            continue;
-        }
-
-        let cursorPositionInsideListWrapper = cursorPosition;
-        if (listWrapper.contains(startContainer) && !listWrapper.contains(endContainer)) {
-            const lastText = getLastText(listWrapper);
-            cursorPositionInsideListWrapper = getCursorPositionFrom(startContainer, startOffset, lastText, lastText.textContent?.length ?? 0);
-        }
-        if (!listWrapper.contains(startContainer) && listWrapper.contains(endContainer)) {
-            const firstText = getFirstText(listWrapper);
-            cursorPositionInsideListWrapper = getCursorPositionFrom(firstText, firstText.textContent?.length ?? 0, endContainer, endOffset);
-        }
-
-        cursorPositions.push(cursorPositionInsideListWrapper);
-    }
-
-    return cursorPositions;
-}

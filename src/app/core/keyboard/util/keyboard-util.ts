@@ -1,8 +1,9 @@
-import {getSelectedBlock} from "@/core/selection/selection";
+import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {CursorPosition, deleteContents, getCursorPosition} from "@/core/shared/type/cursor-position";
-import {getFirstText, getLastText, getNextNode, getPreviousNode, getRootElement} from "@/core/shared/element-util";
+import {getChildFragment, getFirstText, getLastText, getNextNode, getPreviousNode} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {prepareListsForDelete} from "@/core/list/list";
+import {appendBeforeAndDelete, getListsOrderNumbers} from "@/core/list/util/list-util";
+import {convertList, minusOrderNumbers, normalizeLists, parseList} from "@/core/list/type/list-class";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const emptyParentResult = removeEmptyParentListItem(contentEditable, cursorPosition);
@@ -68,47 +69,16 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
 }
 
 export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = ""): CursorPosition {
-    const lastRootElement = getRootElement(contentEditable, cursorPosition.endContainer);
-    const isInsideOneElement = lastRootElement.contains(cursorPosition.startContainer) &&
-        lastRootElement.contains(cursorPosition.endContainer)
-    if (isSchemaContain(lastRootElement, [Display.ListWrapper]) && !isInsideOneElement) {
-        prepareListsForDelete(contentEditable);
-    }
-
     deleteContents(cursorPosition);
+    const lastBlock = appendToEndOfFirstBlock(contentEditable, cursorPosition, pressedKey);
 
-    const blocks = getSelectedBlock(contentEditable, cursorPosition);
-    const firstBlock = blocks[0];
-    const lastBlock = blocks[blocks.length - 1];
-    if (!firstBlock || !lastBlock || firstBlock === lastBlock) {
-        return cursorPosition;
-    }
+    const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
+    const lists = parseList(firstListWrapper);
+    const normalizedLists = normalizeLists(lists);
+    const listWrappers = convertList(normalizedLists);
+    appendBeforeAndDelete(firstListWrapper, listWrappers);
 
-    if (isKeyPrintable(pressedKey)) {
-        const textNode = document.createTextNode(pressedKey);
-        lastBlock.firstChild?.before(textNode);
-    }
-
-    const nestedListWrapper = firstBlock.querySelector("ul, ol");
-    while (lastBlock.firstChild) {
-        const child = lastBlock.firstChild;
-        if (isSchemaContain(child, [Display.ListWrapper]) && !isSchemaContain(firstBlock, [Display.List])) {
-            firstBlock.after(child);
-        } else {
-            if (nestedListWrapper) {
-                nestedListWrapper.before(child);
-            } else {
-                firstBlock.appendChild(child);
-            }
-        }
-    }
-
-    let forDelete = lastBlock;
-    while (forDelete.parentElement && !forDelete.textContent) {
-        const parentElement = forDelete.parentElement;
-        forDelete.remove();
-        forDelete = parentElement;
-    }
+    deleteEmptyBlocks(lastBlock);
 
     return cursorPosition;
 }
@@ -182,8 +152,38 @@ function removeFirstEmptyBlock(contentEditable: HTMLElement, cursorPosition: Cur
     }
 }
 
+function appendToEndOfFirstBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = "") {
+    const blocks = getSelectedBlock(contentEditable, cursorPosition);
+    const firstBlock = blocks[0];
+    const lastBlock = blocks[blocks.length - 1];
+    if (firstBlock && lastBlock && firstBlock !== lastBlock) {
+        if (isKeyPrintable(pressedKey)) {
+            const textNode = document.createTextNode(pressedKey);
+            getFirstText(lastBlock).before(textNode);
+            const fragment = getChildFragment(lastBlock);
+            const nestedListWrapper = firstBlock.querySelector("ul, ol");
+            if (nestedListWrapper) {
+                nestedListWrapper.before(fragment);
+            } else {
+                firstBlock.appendChild(fragment);
+            }
+        }
+    }
+
+    return lastBlock;
+}
+
+function deleteEmptyBlocks(lastBlock: HTMLElement | undefined) {
+    let forDelete = lastBlock;
+    while (forDelete?.parentElement && !forDelete.textContent) {
+        const parentElement = forDelete.parentElement;
+        forDelete.remove();
+        forDelete = parentElement;
+    }
+}
+
 function isKeyPrintable(key: string) {
-    return key.length === 1;
+    return key.length === 1 || key.length === 0;
 }
 
 function removeEmptyParentListItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition | null {

@@ -1,4 +1,4 @@
-import {getFirstSelectedRoot, getSelectedBlock, getSelectedListWrappers} from "@/core/selection/selection";
+import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     appendBeforeAndDelete,
@@ -9,13 +9,7 @@ import {
 } from "@/core/list/util/list-util";
 import {getNextNode} from "@/core/shared/element-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
-import {
-    convertList,
-    getListsPreparedToDelete,
-    minusOrderNumbers,
-    parseList,
-    plusOrderNumbers
-} from "@/core/list/type/list-class";
+import {convertList, minusOrderNumbers, parseList, plusOrderNumbers} from "@/core/list/type/list-class";
 
 export function isNextListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const lastList = lists[lists.length - 1];
@@ -127,15 +121,4 @@ export function minusIndent(contentEditable: HTMLElement) {
     const minusLists = minusOrderNumbers(lists, listsOrderNumbers);
     const listWrappers = convertList(minusLists);
     appendBeforeAndDelete(firstListWrapper, listWrappers);
-}
-
-export function prepareListsForDelete(contentEditable: HTMLElement) {
-    for (const cursorPosition of getSelectedListWrappers(contentEditable)) {
-        const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
-        const listsOrderNumbers = getListsOrderNumbers(contentEditable, cursorPosition);
-        const lists = parseList(firstListWrapper);
-        const preparedLists = getListsPreparedToDelete(lists, listsOrderNumbers);
-        const listWrappers = convertList(preparedLists);
-        appendBeforeAndDelete(firstListWrapper, listWrappers);
-    }
 }

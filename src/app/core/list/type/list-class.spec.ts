@@ -1,5 +1,12 @@
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
-import {convertList, ListWrapper, minusOrderNumbers, parseList, plusOrderNumbers} from "@/core/list/type/list-class";
+import {
+    convertList,
+    ListWrapper,
+    minusOrderNumbers,
+    normalizeLists,
+    parseList,
+    plusOrderNumbers
+} from "@/core/list/type/list-class";
 import {getRange} from "@/core/shared/range-util";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
@@ -77,6 +84,69 @@ describe("Parse to ListClass", () => {
 });
 
 describe("Convert ListClass to DOM", () => {
+    test("Normalize list", () => {
+        const wrapper = createWrapper(`
+            <ul class="start">
+                <li>zero
+                    <ol>
+                        <li>
+                            <ul>
+                                <li>second</li>
+                            </ul>
+                            <ol>
+                                <li>third</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
+        let lists = parseList(rootWrapper);
+        lists = normalizeLists(lists);
+        const listWrapper = convertList(lists).firstElementChild as HTMLElement;
+        expectHtml(listWrapper.outerHTML, `
+            <ul>
+                <li>zero
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+    });
+
+    test("Normalize list with different nesting level", () => {
+        const wrapper = createWrapper(`
+            <ul class="start">
+                <li>
+                    <ul>
+                        <li>second</li>
+                        <li>third</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
+        let lists = parseList(rootWrapper);
+        lists = normalizeLists(lists);
+        const listWrapper = convertList(lists).firstElementChild as HTMLElement;
+        expectHtml(listWrapper.outerHTML, `
+            <ul>
+                <li>second
+                    <ul>
+                        <li>third</li>                    
+                    </ul>
+                </li>
+            </ul>
+        `);
+    });
+
     test("Convert nested list", () => {
         const wrapper = createWrapper(`
             <ul class="start">

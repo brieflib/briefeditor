@@ -612,6 +612,153 @@ describe("Merge first levels", () => {
 });
 
 describe("Merge P and List selections", () => {
+
+    test("Merging two lists with P between them", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>first
+                    <ol>
+                        <li class="start">second</li>
+                    </ol>
+                </li>
+            </ul>
+            <p>third</p>
+            <ul>
+                <li>fourth
+                    <ol>
+                        <li class="end">fifth</li>
+                    </ol>
+                    <ul>
+                        <li>six</li>
+                    </ul>
+                    <ol>
+                        <li>seventh</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        mergeBlocks(wrapper, cursorPosition, " ");
+
+        expectHtml(wrapper.innerHTML, `
+             <ul>
+                 <li>first
+                     <ol>
+                         <li>se fth</li>
+                     </ol>
+                     <ul>
+                         <li>six</li>
+                     </ul>
+                     <ol>
+                         <li>seventh</li>
+                     </ol>
+                 </li>
+             </ul>
+        `);
+    });
+
+    test("Merging two lists", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>first
+                    <ol>
+                        <li class="start">second</li>
+                    </ol>
+                </li>
+                <li>fourth
+                    <ol>
+                        <li class="end">fifth</li>
+                    </ol>
+                    <ul>
+                        <li>six</li>
+                    </ul>
+                    <ol>
+                        <li>seventh</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        mergeBlocks(wrapper, cursorPosition, " ");
+
+        expectHtml(wrapper.innerHTML, `
+             <ul>
+                 <li>first
+                     <ol>
+                         <li>se fth</li>
+                     </ol>
+                     <ul>
+                         <li>six</li>
+                     </ul>
+                     <ol>
+                         <li>seventh</li>
+                     </ol>
+                 </li>
+             </ul>
+        `);
+    });
+
+    // test("Merging lists when end list is at deeper nesting level that start", () => {
+    //     const wrapper = createWrapper(`
+    //         <ul>
+    //             <li>first
+    //                 <ol>
+    //                     <li class="start">second</li>
+    //                 </ol>
+    //             </li>
+    //         </ul>
+    //         <p>third</p>
+    //         <ul>
+    //             <li>fourth
+    //                 <ol>
+    //                     <li class="end">fifth
+    //                         <ul>
+    //                             <li>six</li>
+    //                         </ul>
+    //                     </li>
+    //                     <li>seventh</li>
+    //                 </ol>
+    //             </li>
+    //         </ul>
+    //     `);
+    //
+    //     const range = new Range();
+    //     range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+    //     range.setEnd(getFirstChild(wrapper, ".end"), "fo".length);
+    //     (getRange as jest.Mock).mockReturnValue(range);
+    //
+    //     const cursorPosition = getCursorPosition();
+    //     mergeBlocks(wrapper, cursorPosition, " ");
+    //
+    //     expectHtml(wrapper.innerHTML, `
+    //         <ul>
+    //             <li>first
+    //                 <ol>
+    //                     <li>se fth</li>
+    //                 </ol>
+    //                 <ul>
+    //                     <li>six</li>
+    //                 </ul>
+    //                 <ol>
+    //                     <li>seventh</li>
+    //                 </ol>
+    //             </li>
+    //         </ul>
+    //     `);
+    // });
+
     test("Selection from P into first LI should merge into P", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>
@@ -673,7 +820,7 @@ describe("Merge P and List selections", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">ze rst</li>
+                <li>ze rst</li>
             </ul>
         `);
     });
@@ -696,7 +843,7 @@ describe("Merge P and List selections", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start"> rst</li>
+                <li> rst</li>
             </ul>
         `);
     });
@@ -731,7 +878,7 @@ describe("Merge nested list selections", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">ze rst
+                <li>ze rst
                     <ul>
                         <li>second</li>
                     </ul>
@@ -764,7 +911,7 @@ describe("Merge nested list selections", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">ze st</li>
+                <li>ze st</li>
             </ul>
         `);
     });
@@ -791,7 +938,7 @@ describe("Merge nested list selections", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">ze st
+                <li>ze st
                     <ul>
                         <li>second</li>
                     </ul>
@@ -825,7 +972,7 @@ describe("Merge nested list selections", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">ze rst
+                <li>ze rst
                     <ul>
                         <li>second</li>
                     </ul>
@@ -858,7 +1005,7 @@ describe("Merge nested list selections", () => {
             <ul>
                 <li>zero
                     <ul>
-                        <li class="start">fi cond</li>
+                        <li>fi cond</li>
                     </ul>
                 </li>
             </ul>
@@ -895,7 +1042,7 @@ describe("Merge nested list selections", () => {
                     <ul>
                         <li>first
                             <ul>
-                                <li class="start">se ird</li>
+                                <li>se ird</li>
                             </ul>
                         </li>
                     </ul>
@@ -1018,7 +1165,7 @@ describe("Merge P and nested list selections", () => {
             <ul>
                 <li>zero
                     <ul>
-                        <li class="start">fi cond</li>
+                        <li>fi cond</li>
                     </ul>
                 </li>
             </ul>
@@ -1172,7 +1319,7 @@ describe("Merge P and nested list selections", () => {
                     <ul>
                         <li>first
                             <ul>
-                                <li class="start">se ird</li>
+                                <li>se ird</li>
                             </ul>
                         </li>
                     </ul>
@@ -1228,7 +1375,7 @@ describe("Merge complete list selections", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start"> cond</li>
+                <li> cond</li>
             </ul>
         `);
     });

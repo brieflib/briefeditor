@@ -1,6 +1,17 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {commonAncestorContainer, getCursorPosition} from "@/core/shared/type/cursor-position";
 
+export function getChildFragment(child: Element) {
+    const fragment = new DocumentFragment();
+    for (const node of Array.from(child.childNodes)) {
+        if (!isSchemaContain(node, [Display.ListWrapper])) {
+            fragment.appendChild(node);
+        }
+    }
+
+    return fragment;
+}
+
 export function getRootElement(findTill: HTMLElement, child: HTMLElement | Node) {
     while (child.parentElement && child.parentElement !== findTill) {
         child = child.parentElement;
@@ -55,10 +66,10 @@ export function getFirstText(node: Node) {
         node = node.firstChild;
     }
 
-    return node;
+    return node as HTMLElement;
 }
 
-export function getLastText(node: Node): Node {
+export function getLastText(node: Node) {
     let currentNode: Node = node;
 
     while (currentNode.nodeType !== Node.TEXT_NODE) {
@@ -66,13 +77,13 @@ export function getLastText(node: Node): Node {
         const lastChild = childNodes[childNodes.length - 1];
 
         if (!lastChild) {
-            return currentNode;
+            return currentNode as HTMLElement;
         }
 
         currentNode = lastChild;
     }
 
-    return currentNode;
+    return currentNode as HTMLElement;
 }
 
 export function cleanElementWhitespace(element: HTMLElement) {

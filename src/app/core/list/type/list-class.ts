@@ -1,4 +1,5 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {getChildFragment} from "@/core/shared/element-util";
 
 export enum ListWrapper {
     UL = "UL",
@@ -15,6 +16,9 @@ export function parseList(rootWrapper: HTMLElement): ListClass[] {
     const result: ListClass[] = [];
 
     let firstWrapper: Element = rootWrapper;
+    while (firstWrapper.nextElementSibling && isSchemaContain(firstWrapper.nextElementSibling, [Display.ListWrapper])) {
+        firstWrapper = firstWrapper.nextElementSibling;
+    }
     while (firstWrapper.previousElementSibling && isSchemaContain(firstWrapper.previousElementSibling, [Display.ListWrapper])) {
         firstWrapper = firstWrapper.previousElementSibling;
     }
@@ -137,40 +141,43 @@ export function minusOrderNumbers(lists: ListClass[], orderNumbers: number[]): L
     return lists;
 }
 
-export function getListsPreparedToDelete(lists: ListClass[], orderNumbers: number[]): ListClass[] {
-    let currentNestedLevel = 0
+export function normalizeLists(lists: ListClass[]): ListClass[] {
+    const result: ListClass[] = [];
+    const levelMap = new Map<number, number>();
+
     for (let i = 0; i < lists.length; i++) {
-        if (orderNumbers.includes(i)) {
-            continue;
-        }
         const list = lists[i];
-        if (list) {
-            list.nestedLevel = currentNestedLevel;
-        }
-        const nextList = lists[i + 1];
-        if (!nextList) {
+        if (!list || !list.listContent.textContent) {
             continue;
         }
-        if (nextList.nestedLevel > currentNestedLevel) {
-            currentNestedLevel++;
+
+        const origLevel = list.nestedLevel;
+
+        if (result.length === 0) {
+            list.nestedLevel = 0;
+        } else if (levelMap.has(origLevel)) {
+            list.nestedLevel = levelMap.get(origLevel)!;
+        } else {
+            const prevLevel = result[result.length - 1]!.nestedLevel;
+            if (list.nestedLevel > prevLevel + 1) {
+                list.nestedLevel = prevLevel + 1;
+            }
         }
-        if (nextList.nestedLevel < currentNestedLevel) {
-            currentNestedLevel = nextList.nestedLevel;
+
+        if (list.nestedLevel !== origLevel && result.length > 0) {
+            levelMap.set(origLevel, list.nestedLevel);
         }
+
+        result.push(list);
     }
 
-    return lists;
+    return result;
 }
 
 function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[]) {
     for (const child of Array.from(wrapper.children)) {
         if (isList(child)) {
-            const fragment = new DocumentFragment();
-            for (const node of Array.from(child.childNodes)) {
-                if (!isSchemaContain(node, [Display.ListWrapper])) {
-                    fragment.appendChild(node);
-                }
-            }
+            const fragment = getChildFragment(child);
 
             const listClass = new ListClass();
             listClass.nestedLevel = level;

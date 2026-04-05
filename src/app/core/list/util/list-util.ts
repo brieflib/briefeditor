@@ -75,6 +75,9 @@ export function getDirectChildren(li: Element, display: Display[]) {
 
 export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: DocumentFragment) {
     let firstWrapper: Element = rootWrapper;
+    while (firstWrapper.nextElementSibling && isSchemaContain(firstWrapper.nextElementSibling, [Display.ListWrapper])) {
+        firstWrapper = firstWrapper.nextElementSibling;
+    }
     while (firstWrapper.previousElementSibling && isSchemaContain(firstWrapper.previousElementSibling, [Display.ListWrapper])) {
         firstWrapper = firstWrapper.previousElementSibling;
     }
