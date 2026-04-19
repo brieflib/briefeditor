@@ -2,7 +2,6 @@ import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/sha
 import {getRange} from "@/core/shared/range-util";
 import {insertBreak, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
-import {clearEmptyElements} from "@/core/normalize/normalize";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -1707,27 +1706,4 @@ describe("Insert break", () => {
         expect(cursorPosition.startOffset).toBe(0);
     });
 
-});
-
-describe("Should clear empty elements", () => {
-    test("Should append list tags", () => {
-        const wrapper = createWrapper(`
-            <p>
-                <strong class="start">zero</strong><strong></strong><strong class="end">first</strong>
-            </p>
-        `);
-
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
-        clearEmptyElements(wrapper, getCursorPosition());
-
-        expectHtml(wrapper.innerHTML, `
-            <p>
-                <strong class="end">zerofirst</strong>
-            </p>
-        `);
-    });
 });

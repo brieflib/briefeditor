@@ -1,6 +1,6 @@
-import normalize, {appendTags, clearEmptyElements, removeTags, replaceTags} from "@/core/normalize/normalize";
+import {mergeSiblingTextNodes, normalize, removeTag, replaceTags} from "@/core/normalize/normalize";
 import {createWrapper, expectHtml, getFirstChild, getLastChild, testNormalize} from "@/core/shared/test-util";
-import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
 
 jest.mock("../shared/range-util", () => ({
@@ -107,9 +107,7 @@ describe("Should normalize tags", () => {
                 </strong>
             </div>`,
             `
-            <div>zero
-                <strong>first second</strong>
-            </div>
+            zero <strong>first second</strong>
         `);
     });
 
@@ -119,8 +117,8 @@ describe("Should normalize tags", () => {
         toNormalize.innerHTML = "<strong>zero<a href=\"http://www.briefeditor.com\">first</a><a href=\"http://briefeditor.com\">second</a>third<em>fourth</em></strong>";
         wrapper.appendChild(toNormalize);
 
-        normalize(toNormalize, toNormalize);
-        expect(wrapper.innerHTML).toBe("<strong>zero</strong><a href=\"http://www.briefeditor.com\"><strong>first</strong></a><a href=\"http://briefeditor.com\"><strong>second</strong></a><strong>third<em>fourth</em></strong>");
+        normalize(wrapper, toNormalize, ["DELETED"], getCursorPosition());
+        expect((wrapper.firstChild as HTMLElement).innerHTML).toBe("<strong>zero</strong><a href=\"http://www.briefeditor.com\"><strong>first</strong></a><a href=\"http://briefeditor.com\"><strong>second</strong></a><strong>third<em>fourth</em></strong>");
     });
 
     test("Should preserve nested ordered list", () => {
@@ -195,7 +193,7 @@ describe("Should normalize tags", () => {
         `);
 
         const div = wrapper.querySelector(".start") as HTMLElement;
-        normalize(wrapper, div);
+        normalize(wrapper, div, ["DELETED"], getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <div class="start">zero</div>
@@ -229,7 +227,7 @@ describe("Should remove tags", () => {
         `);
 
         const toRemove = getLastChild(wrapper, ".start") as HTMLElement;
-        removeTags(wrapper, toRemove, ["STRONG"], getCursorPosition());
+        normalize(wrapper, toRemove, ["STRONG"], getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <strong>
@@ -257,7 +255,7 @@ describe("Should remove tags", () => {
         `);
 
         const toRemove = wrapper.querySelector(".start");
-        removeTags(wrapper, toRemove as HTMLElement, ["STRONG"], getCursorPosition());
+        normalize(wrapper, toRemove as HTMLElement, ["STRONG"], getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <strong>
@@ -316,44 +314,92 @@ describe("Should replace tags", () => {
     });
 });
 
-describe("Should append tags", () => {
-    test("Should append list tags", () => {
+describe("Merge sibling text nodes", () => {
+    test("Merge sibling text nodes and return updated cursor position", () => {
         const wrapper = createWrapper(`
             <p>
-                <strong class="start">zero</strong>
+                <strong class="start"></strong>
             </p>
         `);
 
-        const toAppend = wrapper.querySelector(".start") as HTMLElement;
-        appendTags(wrapper, toAppend, ["UL", "LI"]);
-
-        expectHtml(wrapper.innerHTML, `
-            <p>
-                <ul>
-                    <li>
-                        <strong class="start">zero</strong>
-                    </li>
-                </ul>
-            </p>
-        `);
-    });
-});
-
-describe("Clear empty elements", () => {
-    test("Cursor position should point to actual elements", () => {
-        const wrapper = createWrapper(`
-            <p>
-                <strong class="start">zero</strong>
-            </p>
-        `);
+        const firstElement = wrapper.querySelector(".start");
+        const zeroText = document.createTextNode("zero");
+        firstElement?.appendChild(zeroText);
+        const firstText = document.createTextNode("first");
+        firstElement?.appendChild(firstText);
 
         const range = new Range();
         range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = clearEmptyElements(wrapper, getCursorPosition());
+        const cursorPosition = mergeSiblingTextNodes(wrapper);
+        expect(firstElement?.childNodes.length).toBe(1);
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe(0);
         expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.endOffset).toBe(2);
+    });
+
+    test("Merge sibling text nodes and return updated cursor position when the last text node is selected", () => {
+        const wrapper = createWrapper(`
+            <p>
+                <strong class="start"></strong>
+            </p>
+        `);
+
+        const firstElement = wrapper.querySelector(".start");
+        const zeroText = document.createTextNode("zero");
+        firstElement?.appendChild(zeroText);
+        const firstText = document.createTextNode("first");
+        firstElement?.appendChild(firstText);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getLastChild(wrapper, ".start"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = mergeSiblingTextNodes(wrapper);
+        expect(firstElement?.childNodes.length).toBe(1);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.endOffset).toBe(6);
+    });
+
+    test("Merge text nodes in different paragraps and return updated cursor position", () => {
+        const wrapper = createWrapper(`
+            <p>
+                <strong class="start"></strong>
+            </p>
+            <p>
+                <strong class="end"></strong>
+            </p>
+        `);
+
+        const firstElement = wrapper.querySelector(".start");
+        const zeroText = document.createTextNode("zero");
+        firstElement?.appendChild(zeroText);
+        const firstText = document.createTextNode("first");
+        firstElement?.appendChild(firstText);
+
+        const secondElement = wrapper.querySelector(".end");
+        const secondText = document.createTextNode("second");
+        secondElement?.appendChild(secondText);
+        const thirdText = document.createTextNode("third");
+        secondElement?.appendChild(thirdText);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = mergeSiblingTextNodes(wrapper);
+        expect(firstElement?.childNodes.length).toBe(1);
+        expect(secondElement?.childNodes.length).toBe(1);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".end"));
+        expect(cursorPosition.endOffset).toBe(2);
     });
 });

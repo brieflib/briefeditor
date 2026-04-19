@@ -13,7 +13,6 @@ import {
     isCollapsed,
     setCursorPosition
 } from "@/core/shared/type/cursor-position";
-import {clearEmptyElements} from "@/core/normalize/normalize";
 
 export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent): CursorPosition {
     let cursorPosition = getCursorPosition();
@@ -27,7 +26,6 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
         deleteContents(cursorPosition);
 
         if (isCollapsed(cursorPosition)) {
-            cursorPosition = clearEmptyElements(contentEditable, cursorPosition);
             cursorPosition = insertBreak(contentEditable, cursorPosition);
             setCursorPosition(contentEditable, cursorPosition);
         }
@@ -49,7 +47,6 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
     if (event.key === "Delete" && isCursorAtEndOfBlock(contentEditable)) {
         event.preventDefault();
         cursorPosition = mergeNextBlock(contentEditable, cursorPosition);
-        cursorPosition = clearEmptyElements(contentEditable, cursorPosition);
         setCursorPosition(contentEditable, cursorPosition);
         return cursorPosition;
     }
@@ -57,7 +54,6 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
     if (event.key === "Backspace" && isCursorAtStartOfBlock(contentEditable)) {
         event.preventDefault();
         cursorPosition = mergePreviousBlock(contentEditable, cursorPosition);
-        cursorPosition = clearEmptyElements(contentEditable, cursorPosition);
         setCursorPosition(contentEditable, cursorPosition);
         return cursorPosition;
     }

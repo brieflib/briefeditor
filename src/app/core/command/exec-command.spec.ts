@@ -205,18 +205,27 @@ describe("Cursor position after Tag command", () => {
         const wrapper = createWrapper(`
             <ul>
                 <li class="start"><strong>zero</strong></li>
-                <li class="end"><strong>first</strong></li>
+                <li><strong>first</strong></li>
+                <li class="end"><strong>second</strong></li>
             </ul>
         `);
 
         const range = new Range();
         range.setStart(getFirstChild(wrapper, ".start strong"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end strong"), "fir".length);
+        range.setEnd(getFirstChild(wrapper, ".end strong"), "sec".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
-        // After: <ul><li class="start">zero</li><li class="end">first</li></ul>
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start">zero</li>
+                <li>first</li>
+                <li class="end">sec<strong>ond</strong></li>
+            </ul>
+        `)
+
+        // After: <ul><li class="start">zero</li><li class="end">fir<strong>st</strong></li></ul>
         const expectedStart = wrapper.querySelector(".start")?.firstChild;
         const expectedEnd = wrapper.querySelector(".end")?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedStart);

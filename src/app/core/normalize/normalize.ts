@@ -1,5 +1,4 @@
 import {
-    appendLeafParents,
     collapseLeaves,
     filterLeafParents,
     getLeafNodes,
@@ -11,35 +10,55 @@ import {
 } from "@/core/normalize/util/normalize-util";
 import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {CursorPosition, getCursorPosition, insertNode, selectNode} from "@/core/shared/type/cursor-position";
+import {
+    CursorPosition, extractContents,
+    getCursorPosition,
+    getCursorPositionFrom,
+    insertNode,
+    selectNode
+} from "@/core/shared/type/cursor-position";
 import {getSelectedRoot} from "@/core/selection/selection";
 import {mergeEmptyTextNodes} from "@/core/cursor/cursor";
+import {applyAttributes} from "@/core/command/util/command-util";
+import {Attributes} from "@/core/command/type/command";
 
-export default function normalize(contentEditable: HTMLElement, element: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
-    const leaves = getLeafNodes(element)
-        .map(node => setLeafParents(contentEditable, node))
-        .map(leaf => sortLeafParents(leaf))
-        .map(leaf => removeConsecutiveDuplicates(leaf));
+export function removeTag(contentEditable: HTMLElement, tag: string, cursorPosition: CursorPosition) {
+    const documentFragment: DocumentFragment = extractContents(cursorPosition);
 
-    const fragment = collapseLeaves(leaves, cursorPosition);
-    replaceElement(fragment, element, cursorPosition);
+    const removeTagFrom = document.createElement("DELETED");
+    removeTagFrom.appendChild(documentFragment);
+    insertNode(cursorPosition, removeTagFrom);
+
+    return normalize(contentEditable, removeTagFrom, [tag, "DELETED"], cursorPosition);
 }
 
-export function removeTags(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition, clearEmpty = false) {
+export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, attributes?: Attributes) {
+    const documentFragment: DocumentFragment = extractContents(cursorPosition);
+
+    const tagElement = document.createElement(tag);
+    applyAttributes(tagElement, attributes);
+    tagElement.appendChild(documentFragment);
+
+    const removeTagFrom = document.createElement("DELETED");
+    removeTagFrom.appendChild(tagElement);
+    insertNode(cursorPosition, removeTagFrom);
+
+    return normalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition);
+}
+
+export function normalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
+    cursorPosition = mergeEmptyTextNodes(contentEditable, cursorPosition);
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
-    let leaves = getLeafNodes(rootElement)
+    const leaves = getLeafNodes(rootElement)
         .map(node => setLeafParents(contentEditable, node))
         .filter(leaf => filterLeafParents(removeTagFrom, tags, leaf))
         .map(leaf => sortLeafParents(leaf))
-        .map(leaf => removeConsecutiveDuplicates(leaf));
-
-    if (clearEmpty) {
-        leaves = leaves.filter(leaf => isLeafEmpty(leaf));
-    }
+        .map(leaf => removeConsecutiveDuplicates(leaf))
+        .filter(leaf => isLeafEmpty(leaf));
 
     const fragment = collapseLeaves(leaves);
-    replaceElement(fragment, rootElement, cursorPosition);
+    return replaceElement(contentEditable, fragment, rootElement, cursorPosition);
 }
 
 export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[], isClosest = false) {
@@ -53,38 +72,7 @@ export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLEl
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
     const fragment = collapseLeaves(leaves);
-    replaceElement(fragment, rootElement);
-}
-
-export function appendTags(contentEditable: HTMLElement, appendTagTo: HTMLElement, appendTags: string[]) {
-    const rootElement = getRootElement(contentEditable, appendTagTo);
-    const elementsToAppend = buildElementsToReplace(appendTags);
-
-    const leaves = getLeafNodes(rootElement)
-        .map(node => setLeafParents(contentEditable, node))
-        .map(leaf => appendLeafParents(appendTagTo, elementsToAppend, leaf))
-        .map(leaf => sortLeafParents(leaf))
-        .map(leaf => removeConsecutiveDuplicates(leaf));
-
-    const fragment = collapseLeaves(leaves);
-    replaceElement(fragment, rootElement);
-}
-
-export function clearEmptyElements(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
-    const rootElements = getSelectedRoot(contentEditable, cursorPosition);
-    const firstRootElement = rootElements[0];
-    if (!firstRootElement) {
-        return cursorPosition;
-    }
-
-    cursorPosition = mergeEmptyTextNodes(contentEditable, cursorPosition);
-
-    const wrapper = document.createElement("DELETED");
-    firstRootElement.before(wrapper);
-    wrapper.append(...rootElements);
-    removeTags(contentEditable, wrapper, ["DELETED"], cursorPosition, true);
-
-    return cursorPosition;
+    return replaceElement(contentEditable, fragment, rootElement);
 }
 
 export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
@@ -117,7 +105,45 @@ export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorP
     const wrapper = document.createElement("DELETED");
     firstRoot.before(wrapper);
     wrapper.append(...rootElements);
-    removeTags(contentEditable, wrapper, ["DELETED"], cursorPosition);
+    normalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
+}
+
+export function mergeSiblingTextNodes(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+    let {startContainer, endContainer, startOffset, endOffset} = cursorPosition;
+
+    const rootElements = getSelectedRoot(contentEditable, cursorPosition);
+    const visit = (node: Node) => {
+        for (const child of Array.from(node.childNodes)) {
+            if (child.nodeType === Node.TEXT_NODE) {
+                const previous = child.previousSibling;
+                if (previous && previous.nodeType === Node.TEXT_NODE) {
+                    const previousText = previous as Text;
+                    const currentText = child as Text;
+                    const previousLength = previousText.data.length;
+
+                    if (startContainer === currentText) {
+                        startContainer = previousText;
+                        startOffset = previousLength + startOffset;
+                    }
+                    if (endContainer === currentText) {
+                        endContainer = previousText;
+                        endOffset = previousLength + endOffset;
+                    }
+
+                    previousText.appendData(currentText.data);
+                    currentText.remove();
+                }
+            } else {
+                visit(child);
+            }
+        }
+    };
+
+    for (const rootElement of rootElements) {
+        visit(rootElement);
+    }
+
+    return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset);
 }
 
 function buildElementsToReplace(replaceTo: string[]) {
@@ -130,7 +156,7 @@ function buildElementsToReplace(replaceTo: string[]) {
     return elementsToReplace;
 }
 
-function replaceElement(fragment: DocumentFragment, replaceableElement: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+function replaceElement(contentEditable: HTMLElement, fragment: DocumentFragment, replaceableElement: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     selectNode(cursorPosition, replaceableElement);
     replaceableElement.remove();
     const childNodes = fragment.firstChild?.childNodes;
@@ -140,4 +166,5 @@ function replaceElement(fragment: DocumentFragment, replaceableElement: HTMLElem
     }
 
     insertNode(cursorPosition, innerFragment);
+    return mergeSiblingTextNodes(contentEditable, cursorPosition);
 }

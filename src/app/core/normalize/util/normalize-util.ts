@@ -10,9 +10,6 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     }
 
     for (const child of element.childNodes) {
-        // if (child.textContent || isSchemaContain(child, [Display.SelfClose, Display.FirstLevel, Display.List])) {
-        //     getLeafNodes(child, leafNodes);
-        // }
         getLeafNodes(child, leafNodes);
     }
 
@@ -146,35 +143,6 @@ export function filterLeafParents(element: Node, excludeTags: string[], leaf: Le
     return leaf;
 }
 
-export function filterDistantLeafParents(elements: HTMLElement[], excludeTags: string[], leaf: Leaf) {
-    const leafParents = leaf.getParents();
-    const firstLi = getFirstLi([...leafParents]);
-    if (firstLi && elements.includes(firstLi)) {
-        const filteredParents = [];
-
-        for (const parent of leafParents) {
-            if (excludeTags.length) {
-                const firstExclude = excludeTags[0];
-                if (firstExclude === parent.nodeName) {
-                    excludeTags.shift();
-                } else {
-                    filteredParents.push(parent);
-                }
-
-                continue;
-            }
-
-            if (!excludeTags.includes(parent.nodeName)) {
-                filteredParents.push(parent);
-            }
-        }
-
-        leaf.setParents(filteredParents);
-    }
-
-    return leaf;
-}
-
 export function replaceLeafParents(element: Node, replaceToElement: HTMLElement[], replaceFrom: string[], leaf: Leaf, isClosest = false) {
     if (leaf.getParents() && leaf.getParents().includes(element)) {
         const parents = leaf.getParents()
@@ -302,14 +270,4 @@ function clearElementHTML(node: Node | undefined) {
     }
 
     return node.cloneNode(false) as HTMLElement;
-}
-
-function getFirstLi(parents: Node[]) {
-    for (const parent of parents.reverse()) {
-        if (isSchemaContain(parent, [Display.List])) {
-            return parent as HTMLElement;
-        }
-    }
-
-    return null;
 }

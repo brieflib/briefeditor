@@ -44,7 +44,6 @@ describe("Keyboard events", () => {
         `);
 
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        console.log(getFirstChild(wrapper, ".start").textContent);
         expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(cursorPosition.startOffset).toBe(2);
         expect(cursorPosition.endOffset).toBe(2);

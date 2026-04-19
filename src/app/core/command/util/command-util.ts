@@ -1,31 +1,24 @@
-import {clearEmptyElements, mergeLists, removeTags, replaceTags} from "@/core/normalize/normalize";
+import {appendTag, mergeLists, removeTag, replaceTags} from "@/core/normalize/normalize";
 import {getElement, getFirstText, getLastText} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {getSelectedBlock, getSelectedListWrapper} from "@/core/selection/selection";
 import {Action, Attributes} from "@/core/command/type/command";
-import {
-    CursorPosition,
-    extractContents,
-    getCursorPosition,
-    getCursorPositionFrom,
-    insertNode
-} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 
 export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Attributes): CursorPosition {
     const cursorPosition = getCursorPosition();
+    let resultCursorPosition = cursorPosition;
 
     const startFirstLevel = getElement(contentEditable, cursorPosition.startContainer as HTMLElement, [Display.FirstLevel, Display.List]);
     const endFirstLevel = getElement(contentEditable, cursorPosition.endContainer as HTMLElement, [Display.FirstLevel, Display.List]);
 
     if (startFirstLevel === endFirstLevel) {
-        tagAction(contentEditable, cursorPosition, tag, action, attributes);
-        return clearEmptyElements(contentEditable, cursorPosition);
+        return tagAction(contentEditable, cursorPosition, tag, action, attributes);
     }
 
-    const cpt = cursorPosition;
     const length = getSelectedBlock(contentEditable).length;
     for (let i = 0; i < length; i++) {
-        const elements = getSelectedBlock(contentEditable, cpt);
+        const elements = getSelectedBlock(contentEditable, resultCursorPosition);
 
         const element = elements[i];
         if (!element) {
@@ -38,7 +31,10 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
                 cursorPosition.startOffset,
                 endContainer,
                 endContainer.textContent?.length ?? 0);
-            tagAction(contentEditable, firstElementCursorPosition, tag, action, attributes);
+            const cursorEndContainer = resultCursorPosition.endContainer;
+            const cursorEndOffset = resultCursorPosition.endOffset;
+            resultCursorPosition = tagAction(contentEditable, firstElementCursorPosition, tag, action, attributes);
+            resultCursorPosition = getCursorPositionFrom(resultCursorPosition.startContainer, resultCursorPosition.startOffset, cursorEndContainer, cursorEndOffset);
             continue;
         }
 
@@ -48,7 +44,10 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
                 0,
                 cursorPosition.endContainer,
                 cursorPosition.endOffset);
-            tagAction(contentEditable, lastElementCursorPosition, tag, action, attributes);
+            const cursorStartContainer = resultCursorPosition.startContainer;
+            const cursorStartOffset = resultCursorPosition.startOffset;
+            resultCursorPosition = tagAction(contentEditable, lastElementCursorPosition, tag, action, attributes);
+            resultCursorPosition = getCursorPositionFrom(cursorStartContainer, cursorStartOffset, resultCursorPosition.endContainer, resultCursorPosition.endOffset);
             continue;
         }
 
@@ -60,15 +59,15 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
             endContainer.textContent?.length ?? 0);
         tagAction(contentEditable, middleElementCursorPosition, tag, action, attributes);
     }
-    return clearEmptyElements(contentEditable, cursorPosition);
+    return resultCursorPosition;
 }
 
 function tagAction(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, action: Action, attributes?: Attributes): CursorPosition {
     switch (action) {
         case Action.Wrap:
-            return wrapRangeInTag(contentEditable, cursorPosition, tag, attributes);
+            return appendTag(contentEditable, cursorPosition, tag, attributes);
         case Action.Unwrap:
-            return unwrapRangeFromTag(contentEditable, cursorPosition, tag);
+            return removeTag(contentEditable, tag, cursorPosition);
         default:
             return getCursorPosition();
     }
@@ -90,28 +89,6 @@ export function applyAttributes(element: HTMLElement, attributes?: Attributes) {
             }
         }
     }
-}
-
-function wrapRangeInTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, attributes?: Attributes): CursorPosition {
-    const documentFragment: DocumentFragment = extractContents(cursorPosition);
-
-    const tagElement = document.createElement(tag);
-    applyAttributes(tagElement, attributes);
-    tagElement.appendChild(documentFragment);
-    insertNode(cursorPosition, tagElement);
-
-    return cursorPosition;
-}
-
-function unwrapRangeFromTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string): CursorPosition {
-    const documentFragment: DocumentFragment = extractContents(cursorPosition);
-
-    const removeTagFrom = document.createElement("DELETED");
-    removeTagFrom.appendChild(documentFragment);
-    insertNode(cursorPosition, removeTagFrom);
-    removeTags(contentEditable, removeTagFrom, [tag, "DELETED"], cursorPosition);
-
-    return cursorPosition;
 }
 
 export function changeBlock(contentEditable: HTMLElement, replaceTo: string[]) {

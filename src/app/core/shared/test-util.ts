@@ -1,5 +1,6 @@
 import {cleanElementWhitespace} from "@/core/shared/element-util";
-import normalize from "@/core/normalize/normalize";
+import {normalize, removeTag} from "@/core/normalize/normalize";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 export function createWrapper(html: string) {
     const wrapper = document.createElement("div");
@@ -27,9 +28,10 @@ export function testNormalize(initial: string, result: string) {
     const toNormalize = document.createElement("div");
     toNormalize.innerHTML = replaceSpaces(initial);
     wrapper.appendChild(toNormalize);
+    document.body.appendChild(wrapper);
 
-    normalize(toNormalize, toNormalize);
-    expectHtml(wrapper.innerHTML, result);
+    normalize(wrapper, toNormalize, ["DELETED"], getCursorPosition());
+    expectHtml((wrapper.firstChild as HTMLElement).innerHTML, result);
 }
 
 function replaceSpaces(html: string) {
