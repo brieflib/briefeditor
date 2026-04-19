@@ -86,6 +86,22 @@ export function getLastText(node: Node) {
     return currentNode as HTMLElement;
 }
 
+export function getLastNonEmptyText(node: Node): HTMLElement {
+    if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+        return node as HTMLElement;
+    }
+
+    const children = Array.from(node.childNodes);
+    for (let i = children.length - 1; i >= 0; i--) {
+        const child = children[i];
+        if (child && child.textContent) {
+            return getLastNonEmptyText(child);
+        }
+    }
+
+    return getLastText(node);
+}
+
 export function cleanElementWhitespace(element: HTMLElement) {
     Array.from(element.childNodes).forEach(node => {
         if (node.nodeType === Node.TEXT_NODE) {

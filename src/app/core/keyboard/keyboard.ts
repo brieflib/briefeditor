@@ -1,16 +1,38 @@
+import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
 import {
-    isCursorAtEndOfBlock,
-    isCursorAtStartOfBlock,
-    isCursorIntersectBlocks
-} from "@/core/cursor/cursor";
-import {isSpecialKey, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
-import {getCursorPosition, setCursorPosition} from "@/core/shared/type/cursor-position";
+    insertBreak,
+    isSpecialKey,
+    mergeBlocks,
+    mergeNextBlock,
+    mergePreviousBlock
+} from "@/core/keyboard/util/keyboard-util";
+import {
+    CursorPosition,
+    deleteContents,
+    getCursorPosition,
+    isCollapsed,
+    setCursorPosition
+} from "@/core/shared/type/cursor-position";
+import {clearEmptyElements} from "@/core/normalize/normalize";
 
-export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent) {
+export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent): CursorPosition {
     let cursorPosition = getCursorPosition();
     if (isSpecialKey(event)) {
         event.preventDefault();
-        return;
+        return cursorPosition;
+    }
+
+    if (event.key === "Enter") {
+        event.preventDefault();
+        deleteContents(cursorPosition);
+
+        if (isCollapsed(cursorPosition)) {
+            cursorPosition = clearEmptyElements(contentEditable, cursorPosition);
+            cursorPosition = insertBreak(contentEditable, cursorPosition);
+            setCursorPosition(contentEditable, cursorPosition);
+        }
+
+        return cursorPosition;
     }
 
     if (isCursorIntersectBlocks(contentEditable)) {
@@ -21,20 +43,24 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent) 
         }
         cursorPosition = mergeBlocks(contentEditable, cursorPosition, key);
         setCursorPosition(contentEditable, cursorPosition);
-        return;
+        return cursorPosition;
     }
 
     if (event.key === "Delete" && isCursorAtEndOfBlock(contentEditable)) {
         event.preventDefault();
         cursorPosition = mergeNextBlock(contentEditable, cursorPosition);
+        cursorPosition = clearEmptyElements(contentEditable, cursorPosition);
         setCursorPosition(contentEditable, cursorPosition);
-        return;
+        return cursorPosition;
     }
 
     if (event.key === "Backspace" && isCursorAtStartOfBlock(contentEditable)) {
         event.preventDefault();
         cursorPosition = mergePreviousBlock(contentEditable, cursorPosition);
+        cursorPosition = clearEmptyElements(contentEditable, cursorPosition);
         setCursorPosition(contentEditable, cursorPosition);
-        return;
+        return cursorPosition;
     }
+
+    return cursorPosition;
 }

@@ -1,6 +1,17 @@
-import normalize, {appendTags, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {createWrapper, expectHtml, getLastChild, testNormalize} from "@/core/shared/test-util";
-import {getCursorPosition} from "@/core/shared/type/cursor-position";
+import normalize, {appendTags, clearEmptyElements, removeTags, replaceTags} from "@/core/normalize/normalize";
+import {createWrapper, expectHtml, getFirstChild, getLastChild, testNormalize} from "@/core/shared/test-util";
+import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {getRange} from "@/core/shared/range-util";
+
+jest.mock("../shared/range-util", () => ({
+        getRange: jest.fn()
+    })
+);
+
+beforeEach(() => {
+    const range = new Range();
+    (getRange as jest.Mock).mockReturnValue(range);
+});
 
 describe("Should normalize tags", () => {
     test("Should sort tags by priority", () => {
@@ -325,5 +336,24 @@ describe("Should append tags", () => {
                 </ul>
             </p>
         `);
+    });
+});
+
+describe("Clear empty elements", () => {
+    test("Cursor position should point to actual elements", () => {
+        const wrapper = createWrapper(`
+            <p>
+                <strong class="start">zero</strong>
+            </p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = clearEmptyElements(wrapper, getCursorPosition());
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
     });
 });

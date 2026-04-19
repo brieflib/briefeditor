@@ -1,7 +1,8 @@
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
-import {mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
+import {insertBreak, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
+import {clearEmptyElements} from "@/core/normalize/normalize";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -9,6 +10,25 @@ jest.mock("../../shared/range-util", () => ({
 );
 
 describe("Merge previous element", () => {
+    test("Merge with empty element", () => {
+        const wrapper = createWrapper(`
+            <p>zero<em></em></p>
+            <p><em class="start">first</em></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        mergePreviousBlock(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero<em class="start">first</em></p>
+        `);
+    });
+
     test("When cursor is at the start should merge two elements", () => {
         const wrapper = createWrapper(`
             <p>zero</p>
@@ -1547,5 +1567,167 @@ describe("Cursor position after key press", () => {
         expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".end"));
         expect(cursorPosition.startOffset).toBe(0);
         expect(cursorPosition.endOffset).toBe(0);
+    });
+});
+
+describe("Insert break", () => {
+    test("Should divide paragraph at middle of text", () => {
+        const wrapper = createWrapper(`
+            <p class="start">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fir".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = insertBreak(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">fir</p><p>st</p>
+        `);
+
+        expect(cursorPosition.startContainer.textContent).toBe("st");
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should insert p before start of p", () => {
+        const wrapper = createWrapper(`
+            <p class="start">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = insertBreak(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p><br></p><p class="start">first</p>
+        `);
+
+        expect(cursorPosition.startContainer.textContent).toBe("first");
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should insert p after end of p", () => {
+        const wrapper = createWrapper(`
+            <p class="start">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = insertBreak(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">first</p><p><br></p>
+        `);
+
+        expect(cursorPosition.startContainer.textContent).toBe("");
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should divide p between inline formatting", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fir<em>st</em></p>
+        `);
+
+        const emText = (wrapper.querySelector(".start em") as Element).firstChild as Node;
+        const range = new Range();
+        range.setStart(emText, "s".length);
+        range.setEnd(emText, "s".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = insertBreak(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">fir<em>s</em></p><p><em>t</em></p>
+        `);
+
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should divide list item", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">first</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fir".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = insertBreak(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start">fir</li>
+                <li>st</li>
+            </ul>
+        `);
+
+        expect(cursorPosition.startContainer.textContent).toBe("st");
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should insert empty list item", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">first</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = insertBreak(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start">first</li>
+                <li><br></li>
+            </ul>
+        `);
+
+        expect(cursorPosition.startContainer.textContent).toBe("");
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+});
+
+describe("Should clear empty elements", () => {
+    test("Should append list tags", () => {
+        const wrapper = createWrapper(`
+            <p>
+                <strong class="start">zero</strong><strong></strong><strong class="end">first</strong>
+            </p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        clearEmptyElements(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>
+                <strong class="end">zerofirst</strong>
+            </p>
+        `);
     });
 });

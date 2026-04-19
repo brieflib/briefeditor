@@ -1,7 +1,7 @@
 import {
     cloneRange,
     CursorPosition,
-    getCursorPosition,
+    getCursorPosition, getCursorPositionFrom,
     getLength,
     isCollapsed,
     selectNodeContents,
@@ -45,7 +45,7 @@ export function isCursorAtStartOfBlock(contentEditable: HTMLElement, cursorPosit
         return false;
     }
 
-    const block = getSelectedBlock(contentEditable)[0];
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
     if (!block) {
         return false;
     }
@@ -76,6 +76,6 @@ export function mergeEmptyTextNodes(contentEditable: HTMLElement, cursorPosition
     startOffset = startNodeOffset.offset;
     endOffset = endNodeOffset.offset;
 
-    return {...cursorPosition, startContainer, endContainer, startOffset, endOffset};
+    return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset);
 }
 

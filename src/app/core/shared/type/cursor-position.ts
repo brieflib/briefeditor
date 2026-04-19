@@ -54,11 +54,12 @@ export function insertNode(cursorPosition: CursorPosition, node: Node) {
 }
 
 export function isCollapsed(cursorPosition: CursorPosition) {
-    return cursorPosition.range.collapsed;
+    return cursorPosition.startContainer === cursorPosition.endContainer &&
+        cursorPosition.startOffset === cursorPosition.endOffset;
 }
 
 export function deleteContents(cursorPosition: CursorPosition) {
-    return getRangeFromCursorPosition(cursorPosition).deleteContents();
+    getRangeFromCursorPosition(cursorPosition).deleteContents();
 }
 
 export function getBoundingClientRect(cursorPosition: CursorPosition) {

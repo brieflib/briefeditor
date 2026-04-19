@@ -9,15 +9,18 @@ export function computeNodeOffset(contentEditable: HTMLElement, node: Node, orig
     let offset = 0;
     let sumOffset = 0;
     let resultNode: Node | null = node;
+    if (resultNode.textContent) {
+        return {node: resultNode, offset: Math.min(resultNode.textContent.length, originalOffset)};
+    }
     while (sumOffset < originalOffset || sumOffset === 0) {
         const currentNode = getNextTextNode(contentEditable, resultNode);
         if (!currentNode) {
             return {node: resultNode, offset: offset};
         }
-        resultNode = currentNode;
-        const nodeLength = resultNode.textContent?.length ?? 0;
+        const nodeLength = currentNode.textContent?.length ?? 0;
         offset = Math.min(originalOffset - sumOffset, nodeLength);
         sumOffset += nodeLength;
+        resultNode = currentNode;
     }
 
     return {node: resultNode, offset: offset};
