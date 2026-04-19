@@ -1,6 +1,7 @@
 import {cleanElementWhitespace} from "@/core/shared/element-util";
-import {normalize, removeTag} from "@/core/normalize/normalize";
+import {normalize} from "@/core/normalize/normalize";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
+import {getRange} from "@/core/shared/range-util";
 
 export function createWrapper(html: string) {
     const wrapper = document.createElement("div");
@@ -30,7 +31,12 @@ export function testNormalize(initial: string, result: string) {
     wrapper.appendChild(toNormalize);
     document.body.appendChild(wrapper);
 
-    normalize(wrapper, toNormalize, ["DELETED"], getCursorPosition());
+    const range = new Range();
+    range.setStart(wrapper.firstChild as HTMLElement, "".length);
+    range.setEnd(wrapper.lastChild as HTMLElement, "".length);
+    (getRange as jest.Mock).mockReturnValue(range);
+
+    normalize(wrapper, getCursorPosition());
     expectHtml((wrapper.firstChild as HTMLElement).innerHTML, result);
 }
 

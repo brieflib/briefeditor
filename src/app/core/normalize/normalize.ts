@@ -22,14 +22,18 @@ import {mergeEmptyTextNodes} from "@/core/cursor/cursor";
 import {applyAttributes} from "@/core/command/util/command-util";
 import {Attributes} from "@/core/command/type/command";
 
-export function removeTag(contentEditable: HTMLElement, tag: string, cursorPosition: CursorPosition) {
+export function normalize(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    return removeTags(contentEditable, [], cursorPosition);
+}
+
+export function removeTags(contentEditable: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
     const documentFragment: DocumentFragment = extractContents(cursorPosition);
 
     const removeTagFrom = document.createElement("DELETED");
     removeTagFrom.appendChild(documentFragment);
     insertNode(cursorPosition, removeTagFrom);
 
-    return normalize(contentEditable, removeTagFrom, [tag, "DELETED"], cursorPosition);
+    return removeAndNormalize(contentEditable, removeTagFrom, [...tags, "DELETED"], cursorPosition);
 }
 
 export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, attributes?: Attributes) {
@@ -43,10 +47,10 @@ export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPo
     removeTagFrom.appendChild(tagElement);
     insertNode(cursorPosition, removeTagFrom);
 
-    return normalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition);
+    return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition);
 }
 
-export function normalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
+function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
     cursorPosition = mergeEmptyTextNodes(contentEditable, cursorPosition);
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
@@ -105,7 +109,7 @@ export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorP
     const wrapper = document.createElement("DELETED");
     firstRoot.before(wrapper);
     wrapper.append(...rootElements);
-    normalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
+    removeAndNormalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
 }
 
 export function mergeSiblingTextNodes(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {

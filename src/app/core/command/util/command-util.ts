@@ -1,4 +1,4 @@
-import {appendTag, mergeLists, removeTag, replaceTags} from "@/core/normalize/normalize";
+import {appendTag, mergeLists, removeTags, replaceTags} from "@/core/normalize/normalize";
 import {getElement, getFirstText, getLastText} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {getSelectedBlock, getSelectedListWrapper} from "@/core/selection/selection";
@@ -67,7 +67,7 @@ function tagAction(contentEditable: HTMLElement, cursorPosition: CursorPosition,
         case Action.Wrap:
             return appendTag(contentEditable, cursorPosition, tag, attributes);
         case Action.Unwrap:
-            return removeTag(contentEditable, tag, cursorPosition);
+            return removeTags(contentEditable, [tag], cursorPosition);
         default:
             return getCursorPosition();
     }

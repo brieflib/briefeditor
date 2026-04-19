@@ -1,4 +1,4 @@
-import {mergeSiblingTextNodes, normalize, removeTag, replaceTags} from "@/core/normalize/normalize";
+import {mergeSiblingTextNodes, normalize, removeTags, replaceTags} from "@/core/normalize/normalize";
 import {createWrapper, expectHtml, getFirstChild, getLastChild, testNormalize} from "@/core/shared/test-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
@@ -117,7 +117,12 @@ describe("Should normalize tags", () => {
         toNormalize.innerHTML = "<strong>zero<a href=\"http://www.briefeditor.com\">first</a><a href=\"http://briefeditor.com\">second</a>third<em>fourth</em></strong>";
         wrapper.appendChild(toNormalize);
 
-        normalize(wrapper, toNormalize, ["DELETED"], getCursorPosition());
+        const range = new Range();
+        range.setStart(wrapper.firstChild as HTMLElement, "".length);
+        range.setEnd(wrapper.lastChild as HTMLElement, "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        normalize(wrapper, getCursorPosition());
         expect((wrapper.firstChild as HTMLElement).innerHTML).toBe("<strong>zero</strong><a href=\"http://www.briefeditor.com\"><strong>first</strong></a><a href=\"http://briefeditor.com\"><strong>second</strong></a><strong>third<em>fourth</em></strong>");
     });
 
@@ -192,8 +197,13 @@ describe("Should normalize tags", () => {
             <div class="start">zero<ul><li></li></ul></div>
         `);
 
-        const div = wrapper.querySelector(".start") as HTMLElement;
-        normalize(wrapper, div, ["DELETED"], getCursorPosition());
+
+        const range = new Range();
+        range.setStart(wrapper.firstChild as HTMLElement, "".length);
+        range.setEnd(wrapper.lastChild as HTMLElement, "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        normalize(wrapper, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <div class="start">zero</div>
@@ -226,16 +236,21 @@ describe("Should remove tags", () => {
             second
         `);
 
-        const toRemove = getLastChild(wrapper, ".start") as HTMLElement;
-        normalize(wrapper, toRemove, ["STRONG"], getCursorPosition());
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start i"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start i"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        removeTags(wrapper, ["STRONG"], getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
+            <u class="start">
+                <i>zero</i>
+            </u>
             <strong>
-                <u class="start">
-                    <i>zero</i>
-                </u>
+                <u class="start">first</u>
             </strong>
-            <u class="start">first</u>
             second
         `);
     });
@@ -254,8 +269,13 @@ describe("Should remove tags", () => {
             third
         `);
 
-        const toRemove = wrapper.querySelector(".start");
-        normalize(wrapper, toRemove as HTMLElement, ["STRONG"], getCursorPosition());
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start span"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start div"), "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        removeTags(wrapper, ["STRONG"], getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <strong>

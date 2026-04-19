@@ -8,7 +8,7 @@ jest.mock("../shared/range-util", () => ({
 );
 
 describe("Keyboard events", () => {
-    test("Press enter when cursor is at start of paragraph", () => {
+    test("Press enter when cursor is at start of paragraph after paragraph", () => {
         const wrapper = createWrapper(`
             <p>first</p><p class="start">zero</p>
         `);
@@ -26,7 +26,7 @@ describe("Keyboard events", () => {
         `);
     });
 
-    test("Press enter when cursor is at start of paragraph", () => {
+    test("Press delete when selection spans two paragraphs", () => {
         const wrapper = createWrapper(`
             <p class="start">first</p><p class="end">zero</p>
         `);
@@ -43,6 +43,7 @@ describe("Keyboard events", () => {
             <p class="start">firo</p>
         `);
 
+        expect((wrapper.querySelector(".start") as HTMLElement).childNodes.length).toBe(1);
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(cursorPosition.startOffset).toBe(2);
