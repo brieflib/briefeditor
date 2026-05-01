@@ -18,11 +18,12 @@ import {
     selectNode
 } from "@/core/shared/type/cursor-position";
 import {getSelectedRoot} from "@/core/selection/selection";
-import {mergeEmptyTextNodes} from "@/core/cursor/cursor";
 import {applyAttributes} from "@/core/command/util/command-util";
 import {Attributes} from "@/core/command/type/command";
+import {getNextNotEmptyNodes} from "@/core/cursor/cursor";
 
 export function normalize(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    cursorPosition = mergeSiblingTextNodes(contentEditable, cursorPosition);
     return removeTags(contentEditable, [], cursorPosition);
 }
 
@@ -51,7 +52,7 @@ export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPo
 }
 
 function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
-    cursorPosition = mergeEmptyTextNodes(contentEditable, cursorPosition);
+    cursorPosition = getNextNotEmptyNodes(contentEditable, cursorPosition);
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
     const leaves = getLeafNodes(rootElement)

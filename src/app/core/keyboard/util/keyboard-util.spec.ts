@@ -858,11 +858,11 @@ describe("Merge P and List selections", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        mergeBlocks(wrapper, cursorPosition, "k");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li> rst</li>
+                <li>krst</li>
             </ul>
         `);
     });

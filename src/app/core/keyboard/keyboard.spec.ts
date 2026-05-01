@@ -10,7 +10,7 @@ jest.mock("../shared/range-util", () => ({
 describe("Keyboard events", () => {
     test("Press enter when cursor is at start of paragraph after paragraph", () => {
         const wrapper = createWrapper(`
-            <p>first</p><p class="start">zero</p>
+            <p>zero</p><p class="start">first</p>
         `);
 
         const range = new Range();
@@ -22,7 +22,25 @@ describe("Keyboard events", () => {
         handleEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
-            <p>first</p><p><br></p><p class="start">zero</p>
+            <p>zero</p><p><br></p><p class="start">first</p>
+        `);
+    });
+
+    test("Press enter when cursor is at the end of paragraph before paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p><p>first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
+        handleEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zero</p><p><br></p><p>first</p>
         `);
     });
 

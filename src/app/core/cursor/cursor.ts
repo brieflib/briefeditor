@@ -65,7 +65,7 @@ export function isCursorIntersectBlocks(contentEditable: HTMLElement, cursorPosi
     return getSelectedBlock(contentEditable).length > 1;
 }
 
-export function mergeEmptyTextNodes(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+export function getNextNotEmptyNodes(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
     let {startContainer, endContainer, startOffset, endOffset} = cursorPosition;
 
     const startNodeOffset = computeNodeOffset(contentEditable, startContainer, startOffset);

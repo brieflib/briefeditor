@@ -3,13 +3,13 @@ import {
     CursorPosition,
     deleteContents,
     getCursorPosition,
-    getCursorPositionFrom, isCollapsed
+    getCursorPositionFrom
 } from "@/core/shared/type/cursor-position";
 import {getChildFragment, getFirstText, getLastNonEmptyText, getNextNode, getPreviousNode} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {appendBeforeAndDelete} from "@/core/list/util/list-util";
 import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
-import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, mergeEmptyTextNodes} from "@/core/cursor/cursor";
+import {getNextNotEmptyNodes, isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const emptyParentResult = removeEmptyParentListItem(contentEditable, cursorPosition);
@@ -76,9 +76,11 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
 }
 
 export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = ""): CursorPosition {
+    const firstBlock = getSelectedBlock(contentEditable, cursorPosition)[0];
     deleteContents(cursorPosition);
-    cursorPosition = mergeEmptyTextNodes(contentEditable, cursorPosition);
-    const lastBlock = appendToEndOfFirstBlock(contentEditable, cursorPosition, pressedKey);
+    cursorPosition = getNextNotEmptyNodes(contentEditable, cursorPosition);
+
+    const lastBlock = appendToStartOfFirstBlock(contentEditable, cursorPosition, pressedKey, firstBlock);
 
     const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
     const lists = parseList(firstListWrapper);
@@ -160,20 +162,20 @@ function removeFirstEmptyBlock(contentEditable: HTMLElement, cursorPosition: Cur
     }
 }
 
-function appendToEndOfFirstBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = "") {
+function appendToStartOfFirstBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = "", firstBlock?: HTMLElement) {
     const blocks = getSelectedBlock(contentEditable, cursorPosition);
-    const firstBlock = blocks[0];
+    const resolvedFirstBlock = firstBlock ?? blocks[0];
     const lastBlock = blocks[blocks.length - 1];
-    if (firstBlock && lastBlock && firstBlock !== lastBlock) {
+    if (resolvedFirstBlock && lastBlock) {
         if (isKeyPrintable(pressedKey)) {
             const textNode = document.createTextNode(pressedKey);
             getFirstText(lastBlock).before(textNode);
             const fragment = getChildFragment(lastBlock);
-            const nestedListWrapper = firstBlock.querySelector("ul, ol");
+            const nestedListWrapper = resolvedFirstBlock.querySelector("ul, ol");
             if (nestedListWrapper) {
                 nestedListWrapper.before(fragment);
             } else {
-                firstBlock.appendChild(fragment);
+                resolvedFirstBlock.appendChild(fragment);
             }
         }
     }

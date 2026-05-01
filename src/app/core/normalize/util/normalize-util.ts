@@ -231,6 +231,12 @@ function hasDuplicateList(node: Node | undefined) {
 
 export function isLeafEmpty(leaf: Leaf) {
     for (const node of leaf.getParents()) {
+        if (isSchemaContain(node, [Display.SelfClose])) {
+            return true;
+        }
+    }
+
+    for (const node of leaf.getParents()) {
         if (!isSchemaContain(node, [Display.SelfClose]) && !node.textContent) {
             return false;
         }

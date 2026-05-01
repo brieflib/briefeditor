@@ -13,7 +13,7 @@ import {
     isCollapsed,
     setCursorPosition
 } from "@/core/shared/type/cursor-position";
-import {normalize, removeTags} from "@/core/normalize/normalize";
+import {normalize} from "@/core/normalize/normalize";
 
 export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent): CursorPosition {
     let cursorPosition = getCursorPosition();
