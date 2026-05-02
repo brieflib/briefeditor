@@ -201,6 +201,27 @@ describe("Cursor position after Tag command", () => {
         expect(cursorPosition.endOffset).toBe("fir".length);
     });
 
+    test("Cursor should span middle of wrapped content", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "z".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zer".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        // After: <p class="start">z<strong>er</strong>o</p>
+        const expectedStart = wrapper.querySelector(".start strong")?.firstChild;
+        const expectedEnd = wrapper.querySelector(".start strong")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedStart);
+        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endContainer).toBe(expectedEnd);
+        expect(cursorPosition.endOffset).toBe("er".length);
+    });
+
     test("Should return cursor spanning unwrapped content across two list items", () => {
         const wrapper = createWrapper(`
             <ul>

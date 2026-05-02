@@ -8,7 +8,7 @@ import {
     setLeafParents,
     sortLeafParents
 } from "@/core/normalize/util/normalize-util";
-import {getRootElement} from "@/core/shared/element-util";
+import {getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     CursorPosition, extractContents,
@@ -47,6 +47,11 @@ export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPo
     const removeTagFrom = document.createElement("DELETED");
     removeTagFrom.appendChild(tagElement);
     insertNode(cursorPosition, removeTagFrom);
+    if (tagElement.textContent) {
+        const firstText = getFirstText(tagElement);
+        const lastText = getLastText(tagElement);
+        cursorPosition = getCursorPositionFrom(firstText, 0, lastText, lastText.textContent?.length ?? 0);
+    }
 
     return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition);
 }

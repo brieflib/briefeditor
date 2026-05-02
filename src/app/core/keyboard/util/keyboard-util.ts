@@ -164,18 +164,17 @@ function removeFirstEmptyBlock(contentEditable: HTMLElement, cursorPosition: Cur
 
 function appendToStartOfFirstBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = "", firstBlock?: HTMLElement) {
     const blocks = getSelectedBlock(contentEditable, cursorPosition);
-    const resolvedFirstBlock = firstBlock ?? blocks[0];
     const lastBlock = blocks[blocks.length - 1];
-    if (resolvedFirstBlock && lastBlock) {
+    if (firstBlock && lastBlock) {
         if (isKeyPrintable(pressedKey)) {
             const textNode = document.createTextNode(pressedKey);
             getFirstText(lastBlock).before(textNode);
             const fragment = getChildFragment(lastBlock);
-            const nestedListWrapper = resolvedFirstBlock.querySelector("ul, ol");
+            const nestedListWrapper = firstBlock.querySelector("ul, ol");
             if (nestedListWrapper) {
                 nestedListWrapper.before(fragment);
             } else {
-                resolvedFirstBlock.appendChild(fragment);
+                firstBlock.appendChild(fragment);
             }
         }
     }
