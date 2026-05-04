@@ -10,7 +10,8 @@ import {
     CursorPosition,
     deleteContents,
     getCursorPosition,
-    isCollapsed,
+    getCursorPositionFrom,
+    isCollapsed, isCursorPositionEqual,
     setCursorPosition
 } from "@/core/shared/type/cursor-position";
 import {normalize} from "@/core/normalize/normalize";
@@ -24,14 +25,22 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
 
     if (event.key === "Enter") {
         event.preventDefault();
-        deleteContents(cursorPosition);
-
-        if (isCollapsed(cursorPosition)) {
-            cursorPosition = insertBreak(contentEditable, cursorPosition);
+        if (!isCollapsed(cursorPosition)) {
+            deleteContents(cursorPosition);
+            cursorPosition = getCursorPositionFrom(
+                cursorPosition.startContainer, cursorPosition.startOffset,
+                cursorPosition.startContainer, cursorPosition.startOffset
+            );
+        }
+        const nextBlockCursorPosition = insertBreak(contentEditable, cursorPosition);
+        if (isCursorPositionEqual(cursorPosition, nextBlockCursorPosition)) {
             cursorPosition = normalize(contentEditable, cursorPosition);
-            setCursorPosition(contentEditable, cursorPosition);
+        } else {
+            normalize(contentEditable, cursorPosition);
+            cursorPosition = normalize(contentEditable, nextBlockCursorPosition);
         }
 
+        setCursorPosition(contentEditable, cursorPosition);
         return cursorPosition;
     }
 

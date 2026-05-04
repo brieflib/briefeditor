@@ -44,6 +44,60 @@ describe("Keyboard events", () => {
         `);
     });
 
+    test("Press enter when cursor spans selection", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zerofirstsecond</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zerofirst".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
+        handleEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zero</p><p>second</p>
+        `);
+    });
+
+    test("Press enter when cursor spans selection of strong", () => {
+        const wrapper = createWrapper(`
+            <p>zero<strong class="start">first</strong>second</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
+        handleEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p><p>second</p>
+        `);
+    });
+
+    test("Press enter when cursor spans selection of part of strong", () => {
+        const wrapper = createWrapper(`
+            <p>zero<strong class="start">first</strong>second</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
+        handleEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p><p><strong class="start">st</strong>second</p>
+        `);
+    });
+
     test("Press delete when selection spans two paragraphs", () => {
         const wrapper = createWrapper(`
             <p class="start">first</p><p class="end">zero</p>

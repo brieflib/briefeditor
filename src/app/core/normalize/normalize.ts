@@ -50,7 +50,7 @@ export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPo
     if (tagElement.textContent) {
         const firstText = getFirstText(tagElement);
         const lastText = getLastText(tagElement);
-        cursorPosition = getCursorPositionFrom(firstText, 0, lastText, lastText.textContent?.length ?? 0);
+        cursorPosition = getCursorPositionFrom(firstText, 0, lastText, lastText.textContent.length);
     }
 
     return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition);
