@@ -1,4 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
+import {getFirstText, getLastText} from "@/core/shared/element-util";
 
 export interface CursorPosition {
     readonly startContainer: Node,
@@ -30,7 +31,7 @@ export function getCursorPosition(): CursorPosition {
     };
 }
 
-export function getCursorPositionFrom(startContainer: Node, startOffset: number, endContainer: Node, endOffset: number): CursorPosition {
+export function getCursorPositionFrom(startContainer: Node, startOffset: number, endContainer: Node, endOffset: number, isRange = true): CursorPosition {
     const cursorPosition = {
         startContainer: startContainer,
         endContainer: endContainer,
@@ -39,10 +40,24 @@ export function getCursorPositionFrom(startContainer: Node, startOffset: number,
         range: new Range()
     }
 
+    if (!isRange) {
+        return cursorPosition;
+    }
+
     return {
         ...cursorPosition,
         range: getRangeFromCursorPosition(cursorPosition)
     };
+}
+
+export function setCursorPositionEndAsLastTextOfElement(cursorPosition: CursorPosition, endElement: Element) {
+    const endContainer = getLastText(endElement);
+    return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, endContainer, endContainer.textContent.length);
+}
+
+export function setCursorPositionStartAsFirstTextOfElement(cursorPosition: CursorPosition, startElement: Element) {
+    const startContainer = getFirstText(startElement);
+    return  getCursorPositionFrom(startContainer, 0, cursorPosition.endContainer, cursorPosition.endOffset);
 }
 
 export function extractContents(cursorPosition: CursorPosition): DocumentFragment {
@@ -60,6 +75,11 @@ export function isCollapsed(cursorPosition: CursorPosition) {
 
 export function deleteContents(cursorPosition: CursorPosition) {
     getRangeFromCursorPosition(cursorPosition).deleteContents();
+
+    return getCursorPositionFrom(
+        cursorPosition.startContainer, cursorPosition.startOffset,
+        cursorPosition.startContainer, cursorPosition.startOffset
+    );
 }
 
 export function getBoundingClientRect(cursorPosition: CursorPosition) {

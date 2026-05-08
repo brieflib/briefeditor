@@ -3,7 +3,12 @@ import {getElement, getFirstText, getLastText} from "@/core/shared/element-util"
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {getSelectedBlock, getSelectedListWrapper} from "@/core/selection/selection";
 import {Action, Attributes} from "@/core/command/type/command";
-import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
+import {
+    CursorPosition,
+    getCursorPosition,
+    getCursorPositionFrom,
+    setCursorPositionEndAsLastTextOfElement, setCursorPositionStartAsFirstTextOfElement
+} from "@/core/shared/type/cursor-position";
 
 export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Attributes): CursorPosition {
     const cursorPosition = getCursorPosition();
@@ -26,24 +31,14 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, a
         }
 
         if (i === 0) {
-            const endContainer = getLastText(element);
-            const firstElementCursorPosition = getCursorPositionFrom(cursorPosition.startContainer,
-                cursorPosition.startOffset,
-                endContainer,
-                endContainer.textContent?.length ?? 0);
-            const cursorEndContainer = resultCursorPosition.endContainer;
-            const cursorEndOffset = resultCursorPosition.endOffset;
+            const firstElementCursorPosition = setCursorPositionEndAsLastTextOfElement(cursorPosition, element);
             resultCursorPosition = tagAction(contentEditable, firstElementCursorPosition, tag, action, attributes);
-            resultCursorPosition = getCursorPositionFrom(resultCursorPosition.startContainer, resultCursorPosition.startOffset, cursorEndContainer, cursorEndOffset);
+            resultCursorPosition = getCursorPositionFrom(resultCursorPosition.startContainer, resultCursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
             continue;
         }
 
         if (i === length - 1) {
-            const startContainer = getFirstText(element);
-            const lastElementCursorPosition = getCursorPositionFrom(startContainer,
-                0,
-                cursorPosition.endContainer,
-                cursorPosition.endOffset);
+            const lastElementCursorPosition = setCursorPositionStartAsFirstTextOfElement(cursorPosition, element);
             const cursorStartContainer = resultCursorPosition.startContainer;
             const cursorStartOffset = resultCursorPosition.startOffset;
             resultCursorPosition = tagAction(contentEditable, lastElementCursorPosition, tag, action, attributes);

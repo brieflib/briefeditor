@@ -11,10 +11,11 @@ import {
     deleteContents,
     getCursorPosition,
     getCursorPositionFrom,
-    isCollapsed, isCursorPositionEqual,
+    isCollapsed,
     setCursorPosition
 } from "@/core/shared/type/cursor-position";
 import {normalize} from "@/core/normalize/normalize";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent): CursorPosition {
     let cursorPosition = getCursorPosition();
@@ -26,22 +27,19 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
     if (event.key === "Enter") {
         event.preventDefault();
         if (!isCollapsed(cursorPosition)) {
-            deleteContents(cursorPosition);
-            cursorPosition = getCursorPositionFrom(
-                cursorPosition.startContainer, cursorPosition.startOffset,
-                cursorPosition.startContainer, cursorPosition.startOffset
-            );
+            cursorPosition = deleteContents(cursorPosition);
         }
-        const nextBlockCursorPosition = insertBreak(contentEditable, cursorPosition);
-        if (isCursorPositionEqual(cursorPosition, nextBlockCursorPosition)) {
-            cursorPosition = normalize(contentEditable, cursorPosition);
-        } else {
-            normalize(contentEditable, cursorPosition);
-            cursorPosition = normalize(contentEditable, nextBlockCursorPosition);
+        let breakCursorPosition = insertBreak(contentEditable, cursorPosition);
+
+        if (isSchemaContain(breakCursorPosition.startContainer, [Display.SelfClose]) &&
+            isSchemaContain(breakCursorPosition.endContainer, [Display.SelfClose])) {
+            setCursorPosition(contentEditable, breakCursorPosition);
+            return breakCursorPosition;
         }
 
-        setCursorPosition(contentEditable, cursorPosition);
-        return cursorPosition;
+        breakCursorPosition = normalize(contentEditable, cursorPosition, breakCursorPosition);
+        setCursorPosition(contentEditable, breakCursorPosition);
+        return breakCursorPosition;
     }
 
     if (isCursorIntersectBlocks(contentEditable)) {
@@ -58,6 +56,7 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
 
     if (event.key === "Delete" && isCursorAtEndOfBlock(contentEditable)) {
         event.preventDefault();
+
         cursorPosition = mergeNextBlock(contentEditable, cursorPosition);
         cursorPosition = normalize(contentEditable, cursorPosition);
         setCursorPosition(contentEditable, cursorPosition);

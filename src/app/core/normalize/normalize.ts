@@ -1,5 +1,5 @@
 import {
-    collapseLeaves,
+    collapseLeaves, ContainerAndCursorPosition,
     filterLeafParents,
     getLeafNodes,
     isLeafEmpty,
@@ -8,23 +8,46 @@ import {
     setLeafParents,
     sortLeafParents
 } from "@/core/normalize/util/normalize-util";
-import {getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
+import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
-    CursorPosition, extractContents,
+    CursorPosition,
+    extractContents,
     getCursorPosition,
-    getCursorPositionFrom,
     insertNode,
+    isCursorPositionEqual,
     selectNode
 } from "@/core/shared/type/cursor-position";
 import {getSelectedRoot} from "@/core/selection/selection";
 import {applyAttributes} from "@/core/command/util/command-util";
 import {Attributes} from "@/core/command/type/command";
-import {getNextNotEmptyNodes} from "@/core/cursor/cursor";
 
-export function normalize(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    cursorPosition = mergeSiblingTextNodes(contentEditable, cursorPosition);
-    return removeTags(contentEditable, [], cursorPosition);
+export function normalize(contentEditable: HTMLElement, ...cursorPosition: CursorPosition[]) {
+    let resultCursorPosition = cursorPosition[0] as CursorPosition;
+
+    for (let i = 0; i < cursorPosition.length; i++) {
+        const currentCursorPosition = cursorPosition[i];
+        const nextCursorPosition = cursorPosition[i + 1];
+
+        if (!currentCursorPosition) {
+            return resultCursorPosition;
+        }
+
+        if (!nextCursorPosition) {
+            return removeTags(contentEditable, [], resultCursorPosition);
+        }
+
+        if (isCursorPositionEqual(currentCursorPosition, nextCursorPosition)) {
+            resultCursorPosition = removeTags(contentEditable, [], nextCursorPosition);
+        }
+
+        if (!isCursorPositionEqual(currentCursorPosition, nextCursorPosition)) {
+            removeTags(contentEditable, [], currentCursorPosition);
+            resultCursorPosition = removeTags(contentEditable, [], nextCursorPosition);
+        }
+    }
+
+    return resultCursorPosition;
 }
 
 export function removeTags(contentEditable: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
@@ -47,28 +70,22 @@ export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPo
     const removeTagFrom = document.createElement("DELETED");
     removeTagFrom.appendChild(tagElement);
     insertNode(cursorPosition, removeTagFrom);
-    if (tagElement.textContent) {
-        const firstText = getFirstText(tagElement);
-        const lastText = getLastText(tagElement);
-        cursorPosition = getCursorPositionFrom(firstText, 0, lastText, lastText.textContent.length);
-    }
 
     return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition);
 }
 
 function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
-    cursorPosition = getNextNotEmptyNodes(contentEditable, cursorPosition);
+    //cursorPosition = getNextNotEmptyNodes(contentEditable, cursorPosition);
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
     const leaves = getLeafNodes(rootElement)
         .map(node => setLeafParents(contentEditable, node))
         .filter(leaf => filterLeafParents(removeTagFrom, tags, leaf))
         .map(leaf => sortLeafParents(leaf))
-        .map(leaf => removeConsecutiveDuplicates(leaf))
-        .filter(leaf => isLeafEmpty(leaf));
+        .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    const fragment = collapseLeaves(leaves);
-    return replaceElement(contentEditable, fragment, rootElement, cursorPosition);
+    const containerAndCursorPosition = collapseLeaves(leaves, cursorPosition);
+    return replaceElement(containerAndCursorPosition, rootElement);
 }
 
 export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[], isClosest = false) {
@@ -81,8 +98,8 @@ export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLEl
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    const fragment = collapseLeaves(leaves);
-    return replaceElement(contentEditable, fragment, rootElement);
+    const containerAndCursorPosition = collapseLeaves(leaves);
+    return replaceElement(containerAndCursorPosition, rootElement);
 }
 
 export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
@@ -118,44 +135,6 @@ export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorP
     removeAndNormalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
 }
 
-export function mergeSiblingTextNodes(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
-    let {startContainer, endContainer, startOffset, endOffset} = cursorPosition;
-
-    const rootElements = getSelectedRoot(contentEditable, cursorPosition);
-    const visit = (node: Node) => {
-        for (const child of Array.from(node.childNodes)) {
-            if (child.nodeType === Node.TEXT_NODE) {
-                const previous = child.previousSibling;
-                if (previous && previous.nodeType === Node.TEXT_NODE) {
-                    const previousText = previous as Text;
-                    const currentText = child as Text;
-                    const previousLength = previousText.data.length;
-
-                    if (startContainer === currentText) {
-                        startContainer = previousText;
-                        startOffset = previousLength + startOffset;
-                    }
-                    if (endContainer === currentText) {
-                        endContainer = previousText;
-                        endOffset = previousLength + endOffset;
-                    }
-
-                    previousText.appendData(currentText.data);
-                    currentText.remove();
-                }
-            } else {
-                visit(child);
-            }
-        }
-    };
-
-    for (const rootElement of rootElements) {
-        visit(rootElement);
-    }
-
-    return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset);
-}
-
 function buildElementsToReplace(replaceTo: string[]) {
     const elementsToReplace: HTMLElement[] = [];
     for (const replaceTag of replaceTo) {
@@ -166,15 +145,17 @@ function buildElementsToReplace(replaceTo: string[]) {
     return elementsToReplace;
 }
 
-function replaceElement(contentEditable: HTMLElement, fragment: DocumentFragment, replaceableElement: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+function replaceElement(containerAndCursorPosition: ContainerAndCursorPosition, replaceableElement: HTMLElement) {
+    const cursorPosition = containerAndCursorPosition.cursorPosition;
     selectNode(cursorPosition, replaceableElement);
     replaceableElement.remove();
-    const childNodes = fragment.firstChild?.childNodes;
+    const container = containerAndCursorPosition.container;
+    const childNodes = container.firstChild?.childNodes;
     const innerFragment = new DocumentFragment();
     if (childNodes) {
         innerFragment.append(...childNodes);
     }
 
     insertNode(cursorPosition, innerFragment);
-    return mergeSiblingTextNodes(contentEditable, cursorPosition);
+    return cursorPosition;
 }

@@ -2,14 +2,21 @@ import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection
 import {
     CursorPosition,
     deleteContents,
+    extractContents,
     getCursorPosition,
     getCursorPositionFrom
 } from "@/core/shared/type/cursor-position";
-import {getChildFragment, getFirstText, getLastNonEmptyText, getNextNode, getPreviousNode} from "@/core/shared/element-util";
+import {
+    getChildFragment,
+    getFirstText,
+    getLastNonEmptyText,
+    getNextNode,
+    getPreviousNode
+} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {appendBeforeAndDelete} from "@/core/list/util/list-util";
 import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
-import {getNextNotEmptyNodes, isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
+import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const emptyParentResult = removeEmptyParentListItem(contentEditable, cursorPosition);
@@ -50,13 +57,7 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
     const isRemoved = removeEmptyBlock(contentEditable, nextNode);
     const nextNodeFirstChild = getFirstText(nextNode);
     if (isRemoved) {
-        return {
-            ...cursorPosition,
-            startContainer: nextNodeFirstChild,
-            startOffset: 0,
-            endContainer: nextNodeFirstChild,
-            endOffset: 0
-        };
+        return getCursorPositionFrom(nextNodeFirstChild, 0, nextNodeFirstChild, 0);
     }
 
     if (!nextNode.textContent) {
@@ -78,10 +79,8 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
 export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = ""): CursorPosition {
     const firstBlock = getSelectedBlock(contentEditable, cursorPosition)[0];
     deleteContents(cursorPosition);
-    cursorPosition = getNextNotEmptyNodes(contentEditable, cursorPosition);
 
     const lastBlock = appendToStartOfFirstBlock(contentEditable, cursorPosition, pressedKey, firstBlock);
-
     const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
     const lists = parseList(firstListWrapper);
     const normalizedLists = normalizeLists(lists);
@@ -266,13 +265,6 @@ export function insertBreak(contentEditable: HTMLElement, cursorPosition: Cursor
         return cursorPosition;
     }
 
-    if (isCursorAtStartOfBlock(contentEditable, cursorPosition)) {
-        const emptyBlock = document.createElement(block.nodeName);
-        emptyBlock.appendChild(document.createElement("br"));
-        block.before(emptyBlock);
-        return cursorPosition;
-    }
-
     if (isCursorAtEndOfBlock(contentEditable, cursorPosition)) {
         const emptyBlock = document.createElement(block.nodeName);
         emptyBlock.appendChild(document.createElement("br"));
@@ -281,12 +273,18 @@ export function insertBreak(contentEditable: HTMLElement, cursorPosition: Cursor
         return getCursorPositionFrom(emptyFirstText, 0, emptyFirstText, 0);
     }
 
-    const newBlock = document.createElement(block.nodeName);
-    const tailRange = new Range();
-    tailRange.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
-    tailRange.setEnd(block, block.childNodes.length);
-    newBlock.appendChild(tailRange.extractContents());
+    if (isCursorAtStartOfBlock(contentEditable, cursorPosition)) {
+        const emptyBlock = document.createElement(block.nodeName);
+        emptyBlock.appendChild(document.createElement("br"));
+        block.before(emptyBlock);
+        //const emptyFirstText = getFirstText(emptyBlock);
+        //return getCursorPositionFrom(emptyFirstText, 0, emptyFirstText, 0);
+        return cursorPosition;
+    }
 
+    const newBlock = document.createElement(block.nodeName);
+    cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, block, block.childNodes.length);
+    newBlock.appendChild(extractContents(cursorPosition));
     block.after(newBlock);
 
     const firstText = getFirstText(newBlock);

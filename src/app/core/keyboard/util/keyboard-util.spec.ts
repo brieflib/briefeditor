@@ -925,14 +925,17 @@ describe("Merge nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze st</li>
             </ul>
         `);
+
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from start LI into nested LI with multiple LI should merge and flatten", () => {
@@ -1492,8 +1495,8 @@ describe("Cursor position after key press", () => {
 
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe(2);
-        expect(cursorPosition.endOffset).toBe(2);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("When cursor is at the start of empty element should remove previous empty element", () => {

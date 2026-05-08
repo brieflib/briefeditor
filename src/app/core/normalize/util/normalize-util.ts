@@ -1,7 +1,13 @@
 import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
+import {getLastText} from "@/core/shared/element-util";
+
+export interface ContainerAndCursorPosition {
+    container: DocumentFragment,
+    cursorPosition: CursorPosition
+}
 
 export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     if (element.nodeType === Node.TEXT_NODE || isSchemaContain(element, [Display.SelfClose])) {
@@ -74,7 +80,8 @@ export function sortLeafParents(toSort: Leaf) {
 
 export function collapseLeaves(leaves: Leaf[],
                                cursorPosition: CursorPosition = getCursorPosition(),
-                               container: DocumentFragment = nodeToFragment(document.createElement("div"))) {
+                               currentContainer: DocumentFragment = nodeToFragment(document.createElement("div")),
+                               previousContainer?: DocumentFragment): ContainerAndCursorPosition {
     const parent = getSameFirstParent(leaves);
 
     for (const leafGroup of parent) {
@@ -82,13 +89,13 @@ export function collapseLeaves(leaves: Leaf[],
         firstParentElement = clearElementHTML(firstParentElement);
 
         if (!firstParentElement) {
-            return container;
+            return {container: currentContainer, cursorPosition: cursorPosition};
         }
-        const fragment = collapseLeaves(leafGroup.leaves, cursorPosition, nodeToFragment(firstParentElement));
-        insertAfterLastChild(container, fragment);
+        const fragment = collapseLeaves(leafGroup.leaves, cursorPosition, nodeToFragment(firstParentElement), currentContainer);
+        cursorPosition = insertAfterLastChild(currentContainer, fragment.container, fragment.cursorPosition, previousContainer);
     }
 
-    return container;
+    return {container: currentContainer, cursorPosition: cursorPosition};
 }
 
 export function getSameFirstParent(leaves: Leaf[]): LeafGroup[] {
@@ -251,10 +258,53 @@ function nodeToFragment(node: Node) {
     return fragment;
 }
 
-function insertAfterLastChild(container: DocumentFragment, element: DocumentFragment) {
-    if (container.lastChild) {
-        container.lastChild.appendChild(element);
+function insertAfterLastChild(container: DocumentFragment, insertElement: DocumentFragment, cursorPosition: CursorPosition, previousContainer?: DocumentFragment) {
+    const containerChild = container.lastChild;
+    if (!containerChild) {
+        return cursorPosition;
     }
+
+    let containerText = containerChild.lastChild;
+    const insertText = insertElement.firstChild;
+    if (containerText && containerText.nodeType === Node.TEXT_NODE &&
+        insertText && insertText.nodeType === Node.TEXT_NODE) {
+        (containerText as Text).appendData((insertText as Text).data);
+    } else if (insertElement.textContent) {
+        containerChild.appendChild(insertElement);
+    }
+
+    containerText = containerChild.lastChild;
+    cursorPosition = calculateCursorPosition(containerText, insertText, cursorPosition, previousContainer);
+
+    return cursorPosition;
+}
+
+function calculateCursorPosition(containerText: ChildNode | null, textToInsert: ChildNode | null, cursorPosition: CursorPosition, previousContainer?: DocumentFragment): CursorPosition {
+    let container = containerText;
+    if (!container && previousContainer) {
+        container = getLastText(previousContainer.firstChild as Node);
+    }
+    if (!container || !textToInsert) {
+        return cursorPosition;
+    }
+    if (container.nodeType !== Node.TEXT_NODE || textToInsert.nodeType !== Node.TEXT_NODE) {
+        return cursorPosition;
+    }
+
+    const insertLength = (textToInsert as Text).length;
+    const mergedOffsetBase = (container as Text).length - insertLength;
+    let result = cursorPosition;
+
+    if (textToInsert === cursorPosition.startContainer) {
+        const localOffset = cursorPosition.startOffset > insertLength ? 0 : cursorPosition.startOffset;
+        result = getCursorPositionFrom(container, mergedOffsetBase + localOffset, result.endContainer, result.endOffset, false);
+    }
+    if (textToInsert === cursorPosition.endContainer) {
+        const localOffset = cursorPosition.endOffset > insertLength ? 0 : cursorPosition.endOffset;
+        result = getCursorPositionFrom(result.startContainer, result.startOffset, container, mergedOffsetBase + localOffset, false);
+    }
+
+    return result;
 }
 
 function shiftFirstParent(leaves: Leaf[]) {

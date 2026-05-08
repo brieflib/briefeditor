@@ -1,7 +1,6 @@
 import {
     cloneRange,
-    CursorPosition,
-    getCursorPosition, getCursorPositionFrom,
+    getCursorPosition,
     getLength,
     isCollapsed,
     selectNodeContents,
@@ -9,7 +8,6 @@ import {
 } from "@/core/shared/type/cursor-position";
 import {getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {computeNodeOffset} from "@/core/cursor/util/cursor-util";
 
 export function isCursorAtEndOfBlock(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
     if (!isCollapsed(cursorPosition)) {
@@ -65,17 +63,17 @@ export function isCursorIntersectBlocks(contentEditable: HTMLElement, cursorPosi
     return getSelectedBlock(contentEditable).length > 1;
 }
 
-export function getNextNotEmptyNodes(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
-    let {startContainer, endContainer, startOffset, endOffset} = cursorPosition;
-
-    const startNodeOffset = computeNodeOffset(contentEditable, startContainer, startOffset);
-    const endNodeOffset = computeNodeOffset(contentEditable, endContainer, endOffset);
-
-    startContainer = startNodeOffset.node;
-    endContainer = endNodeOffset.node;
-    startOffset = startNodeOffset.offset;
-    endOffset = endNodeOffset.offset;
-
-    return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset);
-}
+// export function getNextNotEmptyNodes(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+//     let {startContainer, endContainer, startOffset, endOffset} = cursorPosition;
+//
+//     const startNodeOffset = computeNodeOffset(contentEditable, startContainer, startOffset);
+//     const endNodeOffset = computeNodeOffset(contentEditable, endContainer, endOffset);
+//
+//     startContainer = startNodeOffset.node;
+//     endContainer = endNodeOffset.node;
+//     startOffset = startNodeOffset.offset;
+//     endOffset = endNodeOffset.offset;
+//
+//     return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset);
+// }
 

@@ -192,6 +192,11 @@ describe("Cursor position after Tag command", () => {
 
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
+        expectHtml(wrapper.innerHTML, `
+            <p class="start"><strong>zero</strong></p>
+            <p class="end"><strong>fir</strong>st</p>
+        `)
+
         // After: <p class="start"><strong>zero</strong></p><p class="end"><strong>fir</strong>st</p>
         const expectedStart = wrapper.querySelector(".start strong")?.firstChild;
         const expectedEnd = wrapper.querySelector(".end strong")?.firstChild;
@@ -222,6 +227,30 @@ describe("Cursor position after Tag command", () => {
         expect(cursorPosition.endOffset).toBe("er".length);
     });
 
+    test("Wrap different type of content. Cursor position should span both", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<strong>first</strong>second</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "z".length);
+        range.setEnd(getFirstChild(wrapper, ".start strong"), "fir".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        expectHtml(wrapper.innerHTML, `
+             <p class="start">z<strong>erofirst</strong>second</p>
+        `);
+
+        const expectedStart = wrapper.querySelector(".start")?.firstChild;
+        const expectedEnd = wrapper.querySelector(".start strong")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedStart);
+        expect(cursorPosition.startOffset).toBe("z".length);
+        expect(cursorPosition.endContainer).toBe(expectedEnd);
+        expect(cursorPosition.endOffset).toBe("erofir".length);
+    });
+
     test("Should return cursor spanning unwrapped content across two list items", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -246,13 +275,12 @@ describe("Cursor position after Tag command", () => {
             </ul>
         `)
 
-        // After: <ul><li class="start">zero</li><li class="end">fir<strong>st</strong></li></ul>
         const expectedStart = wrapper.querySelector(".start")?.firstChild;
         const expectedEnd = wrapper.querySelector(".end")?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedStart);
         expect(cursorPosition.startOffset).toBe("".length);
         expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("fir".length);
+        expect(cursorPosition.endOffset).toBe("sec".length);
     });
 });
 
