@@ -80,8 +80,7 @@ export function sortLeafParents(toSort: Leaf) {
 
 export function collapseLeaves(leaves: Leaf[],
                                cursorPosition: CursorPosition = getCursorPosition(),
-                               currentContainer: DocumentFragment = nodeToFragment(document.createElement("div")),
-                               previousContainer?: DocumentFragment): ContainerAndCursorPosition {
+                               container: DocumentFragment = nodeToFragment(document.createElement("div"))): ContainerAndCursorPosition {
     const parent = getSameFirstParent(leaves);
 
     for (const leafGroup of parent) {
@@ -89,13 +88,13 @@ export function collapseLeaves(leaves: Leaf[],
         firstParentElement = clearElementHTML(firstParentElement);
 
         if (!firstParentElement) {
-            return {container: currentContainer, cursorPosition: cursorPosition};
+            return {container: container, cursorPosition: cursorPosition};
         }
-        const fragment = collapseLeaves(leafGroup.leaves, cursorPosition, nodeToFragment(firstParentElement), currentContainer);
-        cursorPosition = insertAfterLastChild(currentContainer, fragment.container, fragment.cursorPosition, previousContainer);
+        const fragment = collapseLeaves(leafGroup.leaves, cursorPosition, nodeToFragment(firstParentElement));
+        cursorPosition = insertAfterLastChild(container, fragment.container, fragment.cursorPosition);
     }
 
-    return {container: currentContainer, cursorPosition: cursorPosition};
+    return {container: container, cursorPosition: cursorPosition};
 }
 
 export function getSameFirstParent(leaves: Leaf[]): LeafGroup[] {
@@ -258,13 +257,13 @@ function nodeToFragment(node: Node) {
     return fragment;
 }
 
-function insertAfterLastChild(container: DocumentFragment, insertElement: DocumentFragment, cursorPosition: CursorPosition, previousContainer?: DocumentFragment) {
+function insertAfterLastChild(container: DocumentFragment, insertElement: DocumentFragment, cursorPosition: CursorPosition) {
     const containerChild = container.lastChild;
     if (!containerChild) {
         return cursorPosition;
     }
 
-    let containerText = containerChild.lastChild;
+    const containerText = containerChild.lastChild;
     const insertText = insertElement.firstChild;
     if (containerText && containerText.nodeType === Node.TEXT_NODE &&
         insertText && insertText.nodeType === Node.TEXT_NODE) {
@@ -273,38 +272,25 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
         containerChild.appendChild(insertElement);
     }
 
-    containerText = containerChild.lastChild;
-    cursorPosition = calculateCursorPosition(containerText, insertText, cursorPosition, previousContainer);
-
-    return cursorPosition;
+    return calculateCursorPosition(containerChild, insertText, cursorPosition);
 }
 
-function calculateCursorPosition(containerText: ChildNode | null, textToInsert: ChildNode | null, cursorPosition: CursorPosition, previousContainer?: DocumentFragment): CursorPosition {
-    let container = containerText;
-    if (!container && previousContainer) {
-        container = getLastText(previousContainer.firstChild as Node);
-    }
+function calculateCursorPosition(containerChild: Node, textToInsert: ChildNode | null, cursorPosition: CursorPosition): CursorPosition {
+    const container = containerChild.lastChild;
     if (!container || !textToInsert) {
-        return cursorPosition;
-    }
-    if (container.nodeType !== Node.TEXT_NODE || textToInsert.nodeType !== Node.TEXT_NODE) {
         return cursorPosition;
     }
 
     const insertLength = (textToInsert as Text).length;
     const mergedOffsetBase = (container as Text).length - insertLength;
-    let result = cursorPosition;
-
     if (textToInsert === cursorPosition.startContainer) {
-        const localOffset = cursorPosition.startOffset > insertLength ? 0 : cursorPosition.startOffset;
-        result = getCursorPositionFrom(container, mergedOffsetBase + localOffset, result.endContainer, result.endOffset, false);
+        return getCursorPositionFrom(container, mergedOffsetBase + cursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset, false);
     }
     if (textToInsert === cursorPosition.endContainer) {
-        const localOffset = cursorPosition.endOffset > insertLength ? 0 : cursorPosition.endOffset;
-        result = getCursorPositionFrom(result.startContainer, result.startOffset, container, mergedOffsetBase + localOffset, false);
+        return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, container, mergedOffsetBase + cursorPosition.endOffset, false);
     }
 
-    return result;
+    return cursorPosition;
 }
 
 function shiftFirstParent(leaves: Leaf[]) {

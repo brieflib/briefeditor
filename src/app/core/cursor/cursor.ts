@@ -63,17 +63,3 @@ export function isCursorIntersectBlocks(contentEditable: HTMLElement, cursorPosi
     return getSelectedBlock(contentEditable).length > 1;
 }
 
-// export function getNextNotEmptyNodes(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
-//     let {startContainer, endContainer, startOffset, endOffset} = cursorPosition;
-//
-//     const startNodeOffset = computeNodeOffset(contentEditable, startContainer, startOffset);
-//     const endNodeOffset = computeNodeOffset(contentEditable, endContainer, endOffset);
-//
-//     startContainer = startNodeOffset.node;
-//     endContainer = endNodeOffset.node;
-//     startOffset = startNodeOffset.offset;
-//     endOffset = endNodeOffset.offset;
-//
-//     return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset);
-// }
-

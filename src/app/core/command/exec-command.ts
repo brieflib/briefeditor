@@ -52,7 +52,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     }
 
     contentEditable.focus();
-    //setCursorPosition(contentEditable, cursorPosition);
+    setCursorPosition(contentEditable, cursorPosition);
     return cursorPosition;
 }
 

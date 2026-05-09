@@ -1,19 +1,20 @@
 import {
-    collapseLeaves, ContainerAndCursorPosition,
+    collapseLeaves,
+    ContainerAndCursorPosition,
     filterLeafParents,
     getLeafNodes,
-    isLeafEmpty,
     removeConsecutiveDuplicates,
     replaceLeafParents,
     setLeafParents,
     sortLeafParents
 } from "@/core/normalize/util/normalize-util";
-import {getRootElement} from "@/core/shared/element-util";
+import {getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     CursorPosition,
     extractContents,
     getCursorPosition,
+    getCursorPositionFrom,
     insertNode,
     isCursorPositionEqual,
     selectNode
@@ -52,16 +53,21 @@ export function normalize(contentEditable: HTMLElement, ...cursorPosition: Curso
 
 export function removeTags(contentEditable: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
     const documentFragment: DocumentFragment = extractContents(cursorPosition);
+    const firstText = getFirstText(documentFragment);
+    const lastText = getLastText(documentFragment);
 
     const removeTagFrom = document.createElement("DELETED");
     removeTagFrom.appendChild(documentFragment);
     insertNode(cursorPosition, removeTagFrom);
 
+    cursorPosition = remapCursor(firstText, lastText, cursorPosition);
     return removeAndNormalize(contentEditable, removeTagFrom, [...tags, "DELETED"], cursorPosition);
 }
 
 export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, attributes?: Attributes) {
     const documentFragment: DocumentFragment = extractContents(cursorPosition);
+    const firstText = getFirstText(documentFragment);
+    const lastText = getLastText(documentFragment);
 
     const tagElement = document.createElement(tag);
     applyAttributes(tagElement, attributes);
@@ -71,11 +77,24 @@ export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPo
     removeTagFrom.appendChild(tagElement);
     insertNode(cursorPosition, removeTagFrom);
 
+    cursorPosition = remapCursor(firstText, lastText, cursorPosition);
     return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition);
 }
 
+function remapCursor(firstText: Node, lastText: Node, cursor: CursorPosition): CursorPosition {
+    if (cursor.startContainer === cursor.endContainer) {
+        return getCursorPositionFrom(
+            firstText, 0,
+            firstText, cursor.endOffset - cursor.startOffset
+        );
+    }
+
+    const startContainer = cursor.startOffset > 0 ? cursor.startContainer : firstText;
+    const startOffset = cursor.startOffset > 0 ? cursor.startOffset : 0;
+    return getCursorPositionFrom(startContainer, startOffset, lastText, cursor.endOffset);
+}
+
 function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
-    //cursorPosition = getNextNotEmptyNodes(contentEditable, cursorPosition);
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
     const leaves = getLeafNodes(rootElement)

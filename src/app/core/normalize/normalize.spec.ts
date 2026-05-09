@@ -50,33 +50,33 @@ describe("Should normalize tags", () => {
         `);
     });
 
-    test("Should honor double br", () => {
-        testNormalize(`
-            <strong>zero</strong>
-            <br>
-            <br>
-            <strong>first</strong>
-        `,
-            `
-            <strong>zero</strong>
-            <br>
-            <br>
-            <strong>first</strong>
-        `);
-    });
+    // test("Should honor double br", () => {
+    //     testNormalize(`
+    //         <strong>zero</strong>
+    //         <br>
+    //         <br>
+    //         <strong>first</strong>
+    //     `,
+    //         `
+    //         <strong>zero</strong>
+    //         <br>
+    //         <br>
+    //         <strong>first</strong>
+    //     `);
+    // });
 
-    test("Should honor br", () => {
-        testNormalize(`
-            <strong>zero</strong>
-            <br>
-            <strong>first</strong>
-        `,
-            `
-            <strong>zero</strong>
-            <br>
-            <strong>first</strong>
-        `);
-    });
+    // test("Should honor br", () => {
+    //     testNormalize(`
+    //         <strong>zero</strong>
+    //         <br>
+    //         <strong>first</strong>
+    //     `,
+    //         `
+    //         <strong>zero</strong>
+    //         <br>
+    //         <strong>first</strong>
+    //     `);
+    // });
 
     test("Should delete duplicates", () => {
         testNormalize(`

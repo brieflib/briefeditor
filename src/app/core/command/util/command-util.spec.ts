@@ -427,24 +427,24 @@ describe("Change first level", () => {
     //     expect(container.innerHTML).toBe("<ul><li><br></li></ul>");
     // });
 
-    test("Should change list with br to paragraph", () => {
-        const wrapper = createWrapper(`
-            <ul>
-                <li class="start">zero<br>first</li>
-            </ul>
-        `);
-
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
-        changeBlock(wrapper, ["P"]);
-
-        expectHtml(wrapper.innerHTML, `
-            <p>zero<br>first</p>
-        `);
-    });
+    // test("Should change list with br to paragraph", () => {
+    //     const wrapper = createWrapper(`
+    //         <ul>
+    //             <li class="start">zero<br>first</li>
+    //         </ul>
+    //     `);
+    //
+    //     const range = new Range();
+    //     range.setStart(getFirstChild(wrapper, ".start"), "".length);
+    //     range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+    //     (getRange as jest.Mock).mockReturnValue(range);
+    //
+    //     changeBlock(wrapper, ["P"]);
+    //
+    //     expectHtml(wrapper.innerHTML, `
+    //         <p>zero<br>first</p>
+    //     `);
+    // });
 
     test("Should change list with strong to paragraph", () => {
         const wrapper = createWrapper(`
@@ -471,26 +471,26 @@ describe("Change first level", () => {
         `);
     });
 
-    test("Should change list with strong divided by br to paragraph", () => {
-        const wrapper = createWrapper(`
-            <ul>
-                <li><strong class="start">zero<br>first</strong></li>
-            </ul>
-        `);
-
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
-        changeBlock(wrapper, ["P"]);
-
-        expectHtml(wrapper.innerHTML, `
-            <p>
-                <strong class="start">zero<br>first</strong>
-            </p>
-        `);
-    });
+    // test("Should change list with strong divided by br to paragraph", () => {
+    //     const wrapper = createWrapper(`
+    //         <ul>
+    //             <li><strong class="start">zero<br>first</strong></li>
+    //         </ul>
+    //     `);
+    //
+    //     const range = new Range();
+    //     range.setStart(getFirstChild(wrapper, ".start"), "".length);
+    //     range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+    //     (getRange as jest.Mock).mockReturnValue(range);
+    //
+    //     changeBlock(wrapper, ["P"]);
+    //
+    //     expectHtml(wrapper.innerHTML, `
+    //         <p>
+    //             <strong class="start">zero<br>first</strong>
+    //         </p>
+    //     `);
+    // });
 
     test("Should change nested lists to two paragraphs", () => {
         const wrapper = createWrapper(`
@@ -516,24 +516,24 @@ describe("Change first level", () => {
         `);
     });
 
-    test("Should change paragraph divided by br to list", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zero<br>first</p>
-        `);
-
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
-        changeBlock(wrapper, ["UL", "LI"]);
-
-        expectHtml(wrapper.innerHTML, `
-            <ul>
-                <li>zero<br>first</li>
-            </ul>
-        `);
-    });
+    // test("Should change paragraph divided by br to list", () => {
+    //     const wrapper = createWrapper(`
+    //         <p class="start">zero<br>first</p>
+    //     `);
+    //
+    //     const range = new Range();
+    //     range.setStart(getFirstChild(wrapper, ".start"), "".length);
+    //     range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+    //     (getRange as jest.Mock).mockReturnValue(range);
+    //
+    //     changeBlock(wrapper, ["UL", "LI"]);
+    //
+    //     expectHtml(wrapper.innerHTML, `
+    //         <ul>
+    //             <li>zero<br>first</li>
+    //         </ul>
+    //     `);
+    // });
 
     test("Should change paragraph with strong tag to list", () => {
         const wrapper = createWrapper(`

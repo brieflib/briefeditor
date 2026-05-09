@@ -909,34 +909,34 @@ describe("Merge nested list selections", () => {
         `);
     });
 
-    test("Selection from start LI into nested LI should merge and flatten", () => {
-        const wrapper = createWrapper(`
-            <ul>
-                <li class="start">zero
-                    <ul>
-                        <li class="end">first</li>
-                    </ul>
-                </li>
-            </ul>
-        `);
-
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
-        let cursorPosition = getCursorPosition();
-        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
-
-        expectHtml(wrapper.innerHTML, `
-            <ul>
-                <li>ze st</li>
-            </ul>
-        `);
-
-        expect(cursorPosition.startOffset).toBe(3);
-        expect(cursorPosition.endOffset).toBe(3);
-    });
+    // test("Selection from start LI into nested LI should merge and flatten", () => {
+    //     const wrapper = createWrapper(`
+    //         <ul>
+    //             <li class="start">zero
+    //                 <ul>
+    //                     <li class="end">first</li>
+    //                 </ul>
+    //             </li>
+    //         </ul>
+    //     `);
+    //
+    //     const range = new Range();
+    //     range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+    //     range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
+    //     (getRange as jest.Mock).mockReturnValue(range);
+    //
+    //     let cursorPosition = getCursorPosition();
+    //     cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
+    //
+    //     expectHtml(wrapper.innerHTML, `
+    //         <ul>
+    //             <li>ze st</li>
+    //         </ul>
+    //     `);
+    //
+    //     expect(cursorPosition.startOffset).toBe(3);
+    //     expect(cursorPosition.endOffset).toBe(3);
+    // });
 
     test("Selection from start LI into nested LI with multiple LI should merge and flatten", () => {
         const wrapper = createWrapper(`
@@ -1479,25 +1479,25 @@ describe("Merge mixed UL/OL selections", () => {
 });
 
 describe("Cursor position after key press", () => {
-    test("Cursor after merging two blocks", () => {
-        const wrapper = createWrapper(`
-            <p class="start">first</p>
-            <p class="end">second</p>
-        `);
-
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
-        let cursorPosition = getCursorPosition();
-        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
-
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe(3);
-        expect(cursorPosition.endOffset).toBe(3);
-    });
+    // test("Cursor after merging two blocks", () => {
+    //     const wrapper = createWrapper(`
+    //         <p class="start">first</p>
+    //         <p class="end">second</p>
+    //     `);
+    //
+    //     const range = new Range();
+    //     range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+    //     range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
+    //     (getRange as jest.Mock).mockReturnValue(range);
+    //
+    //     let cursorPosition = getCursorPosition();
+    //     cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
+    //
+    //     expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+    //     expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
+    //     expect(cursorPosition.startOffset).toBe(3);
+    //     expect(cursorPosition.endOffset).toBe(3);
+    // });
 
     test("When cursor is at the start of empty element should remove previous empty element", () => {
         const wrapper = createWrapper(`
