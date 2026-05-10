@@ -17,6 +17,7 @@ import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {appendBeforeAndDelete} from "@/core/list/util/list-util";
 import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
+import {normalize} from "@/core/normalize/normalize";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const emptyParentResult = removeEmptyParentListItem(contentEditable, cursorPosition);
@@ -78,7 +79,7 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
 
 export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = ""): CursorPosition {
     const firstBlock = getSelectedBlock(contentEditable, cursorPosition)[0];
-    deleteContents(cursorPosition);
+    let cursorPositionAfterDelete = deleteContents(cursorPosition);
 
     const lastBlock = appendToStartOfFirstBlock(contentEditable, cursorPosition, pressedKey, firstBlock);
     const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
@@ -88,8 +89,8 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
     appendBeforeAndDelete(firstListWrapper, listWrappers);
 
     deleteEmptyBlocks(lastBlock);
-
-    return cursorPosition;
+    cursorPositionAfterDelete = normalize(contentEditable, cursorPositionAfterDelete);
+    return getCursorPositionFrom(cursorPositionAfterDelete.startContainer, cursorPositionAfterDelete.startOffset + pressedKey.length, cursorPositionAfterDelete.endContainer, cursorPositionAfterDelete.endOffset + pressedKey.length);
 }
 
 export function isSpecialKey(event: KeyboardEvent) {
@@ -277,8 +278,6 @@ export function insertBreak(contentEditable: HTMLElement, cursorPosition: Cursor
         const emptyBlock = document.createElement(block.nodeName);
         emptyBlock.appendChild(document.createElement("br"));
         block.before(emptyBlock);
-        //const emptyFirstText = getFirstText(emptyBlock);
-        //return getCursorPositionFrom(emptyFirstText, 0, emptyFirstText, 0);
         return cursorPosition;
     }
 

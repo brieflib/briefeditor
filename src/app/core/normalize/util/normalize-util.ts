@@ -2,7 +2,6 @@ import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
-import {getLastText} from "@/core/shared/element-util";
 
 export interface ContainerAndCursorPosition {
     container: DocumentFragment,
@@ -265,10 +264,11 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
 
     const containerText = containerChild.lastChild;
     const insertText = insertElement.firstChild;
+
     if (containerText && containerText.nodeType === Node.TEXT_NODE &&
         insertText && insertText.nodeType === Node.TEXT_NODE) {
         (containerText as Text).appendData((insertText as Text).data);
-    } else if (insertElement.textContent) {
+    } else if (insertElement.textContent || isSchemaContain(insertElement.firstChild, [Display.SelfClose])) {
         containerChild.appendChild(insertElement);
     }
 
@@ -276,21 +276,46 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
 }
 
 function calculateCursorPosition(containerChild: Node, textToInsert: ChildNode | null, cursorPosition: CursorPosition): CursorPosition {
-    const container = containerChild.lastChild;
-    if (!container || !textToInsert) {
+    if (!textToInsert) {
         return cursorPosition;
     }
 
-    const insertLength = (textToInsert as Text).length;
-    const mergedOffsetBase = (container as Text).length - insertLength;
-    if (textToInsert === cursorPosition.startContainer) {
-        return getCursorPositionFrom(container, mergedOffsetBase + cursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset, false);
-    }
-    if (textToInsert === cursorPosition.endContainer) {
-        return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, container, mergedOffsetBase + cursorPosition.endOffset, false);
+    const lastChild = containerChild.lastChild;
+    const isMerged = !!lastChild && lastChild !== textToInsert &&
+        lastChild.nodeType === Node.TEXT_NODE && textToInsert.nodeType === Node.TEXT_NODE;
+    const isAppended = lastChild === textToInsert;
+    const offsetBase = isMerged ? (lastChild as Text).length - (textToInsert as Text).length : 0;
+
+    const remap = (container: Node, offset: number): [Node, number] => {
+        if (container === textToInsert) {
+            if (isMerged) {
+                return [lastChild, offsetBase + offset];
+            }
+            if (isAppended) {
+                return [container, offset];
+            }
+            return [containerChild, containerChild.childNodes.length];
+        }
+        if (container === containerChild) {
+            if (isMerged) {
+                return [lastChild, offsetBase];
+            }
+            if (isAppended && lastChild) {
+                return [lastChild, 0];
+            }
+        }
+        return [container, offset];
+    };
+
+    const [startContainer, startOffset] = remap(cursorPosition.startContainer, cursorPosition.startOffset);
+    const [endContainer, endOffset] = remap(cursorPosition.endContainer, cursorPosition.endOffset);
+
+    if (startContainer === cursorPosition.startContainer && startOffset === cursorPosition.startOffset &&
+        endContainer === cursorPosition.endContainer && endOffset === cursorPosition.endOffset) {
+        return cursorPosition;
     }
 
-    return cursorPosition;
+    return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset, false);
 }
 
 function shiftFirstParent(leaves: Leaf[]) {

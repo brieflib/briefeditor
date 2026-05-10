@@ -19,7 +19,7 @@ import {
     isCursorPositionEqual,
     selectNode
 } from "@/core/shared/type/cursor-position";
-import {getSelectedRoot} from "@/core/selection/selection";
+import {getFirstSelectedRoot, getSelectedRoot} from "@/core/selection/selection";
 import {applyAttributes} from "@/core/command/util/command-util";
 import {Attributes} from "@/core/command/type/command";
 
@@ -35,16 +35,20 @@ export function normalize(contentEditable: HTMLElement, ...cursorPosition: Curso
         }
 
         if (!nextCursorPosition) {
-            return removeTags(contentEditable, [], resultCursorPosition);
+            const rootElement = getFirstSelectedRoot(contentEditable, resultCursorPosition);
+            return removeAndNormalize(contentEditable, rootElement, [], resultCursorPosition);
         }
 
         if (isCursorPositionEqual(currentCursorPosition, nextCursorPosition)) {
-            resultCursorPosition = removeTags(contentEditable, [], nextCursorPosition);
+            const rootElement = getFirstSelectedRoot(contentEditable, nextCursorPosition);
+            resultCursorPosition = removeAndNormalize(contentEditable, rootElement, [], nextCursorPosition);
         }
 
         if (!isCursorPositionEqual(currentCursorPosition, nextCursorPosition)) {
-            removeTags(contentEditable, [], currentCursorPosition);
-            resultCursorPosition = removeTags(contentEditable, [], nextCursorPosition);
+            let rootElement = getFirstSelectedRoot(contentEditable, currentCursorPosition);
+            removeAndNormalize(contentEditable, rootElement, [], currentCursorPosition);
+            rootElement = getFirstSelectedRoot(contentEditable, nextCursorPosition);
+            resultCursorPosition = removeAndNormalize(contentEditable, rootElement, [], nextCursorPosition);
         }
     }
 

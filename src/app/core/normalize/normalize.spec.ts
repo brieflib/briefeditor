@@ -50,33 +50,33 @@ describe("Should normalize tags", () => {
         `);
     });
 
-    // test("Should honor double br", () => {
-    //     testNormalize(`
-    //         <strong>zero</strong>
-    //         <br>
-    //         <br>
-    //         <strong>first</strong>
-    //     `,
-    //         `
-    //         <strong>zero</strong>
-    //         <br>
-    //         <br>
-    //         <strong>first</strong>
-    //     `);
-    // });
+    test("Should honor double br", () => {
+        testNormalize(`
+            <strong>zero</strong>
+            <br>
+            <br>
+            <strong>first</strong>
+        `,
+            `
+            <strong>zero</strong>
+            <br>
+            <br>
+            <strong>first</strong>
+        `);
+    });
 
-    // test("Should honor br", () => {
-    //     testNormalize(`
-    //         <strong>zero</strong>
-    //         <br>
-    //         <strong>first</strong>
-    //     `,
-    //         `
-    //         <strong>zero</strong>
-    //         <br>
-    //         <strong>first</strong>
-    //     `);
-    // });
+    test("Should honor br", () => {
+        testNormalize(`
+            <strong>zero</strong>
+            <br>
+            <strong>first</strong>
+        `,
+            `
+            <strong>zero</strong>
+            <br>
+            <strong>first</strong>
+        `);
+    });
 
     test("Should delete duplicates", () => {
         testNormalize(`
@@ -333,93 +333,3 @@ describe("Should replace tags", () => {
         `);
     });
 });
-
-// describe("Merge sibling text nodes", () => {
-//     test("Merge sibling text nodes and return updated cursor position", () => {
-//         const wrapper = createWrapper(`
-//             <p>
-//                 <strong class="start"></strong>
-//             </p>
-//         `);
-//
-//         const firstElement = wrapper.querySelector(".start");
-//         const zeroText = document.createTextNode("zero");
-//         firstElement?.appendChild(zeroText);
-//         const firstText = document.createTextNode("first");
-//         firstElement?.appendChild(firstText);
-//
-//         const range = new Range();
-//         range.setStart(getFirstChild(wrapper, ".start"), "".length);
-//         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-//         (getRange as jest.Mock).mockReturnValue(range);
-//
-//         const cursorPosition = mergeSiblingTextNodes(wrapper, getCursorPosition());
-//         expect(firstElement?.childNodes.length).toBe(1);
-//         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-//         expect(cursorPosition.startOffset).toBe(0);
-//         expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
-//         expect(cursorPosition.endOffset).toBe(2);
-//     });
-//
-//     test("Merge sibling text nodes and return updated cursor position when the last text node is selected", () => {
-//         const wrapper = createWrapper(`
-//             <p>
-//                 <strong class="start"></strong>
-//             </p>
-//         `);
-//
-//         const firstElement = wrapper.querySelector(".start");
-//         const zeroText = document.createTextNode("zero");
-//         firstElement?.appendChild(zeroText);
-//         const firstText = document.createTextNode("first");
-//         firstElement?.appendChild(firstText);
-//
-//         const range = new Range();
-//         range.setStart(getFirstChild(wrapper, ".start"), "".length);
-//         range.setEnd(getLastChild(wrapper, ".start"), "fi".length);
-//         (getRange as jest.Mock).mockReturnValue(range);
-//
-//         const cursorPosition = mergeSiblingTextNodes(wrapper, getCursorPosition());
-//         expect(firstElement?.childNodes.length).toBe(1);
-//         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-//         expect(cursorPosition.startOffset).toBe(0);
-//         expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
-//         expect(cursorPosition.endOffset).toBe(6);
-//     });
-//
-//     test("Merge text nodes in different paragraps and return updated cursor position", () => {
-//         const wrapper = createWrapper(`
-//             <p>
-//                 <strong class="start"></strong>
-//             </p>
-//             <p>
-//                 <strong class="end"></strong>
-//             </p>
-//         `);
-//
-//         const firstElement = wrapper.querySelector(".start");
-//         const zeroText = document.createTextNode("zero");
-//         firstElement?.appendChild(zeroText);
-//         const firstText = document.createTextNode("first");
-//         firstElement?.appendChild(firstText);
-//
-//         const secondElement = wrapper.querySelector(".end");
-//         const secondText = document.createTextNode("second");
-//         secondElement?.appendChild(secondText);
-//         const thirdText = document.createTextNode("third");
-//         secondElement?.appendChild(thirdText);
-//
-//         const range = new Range();
-//         range.setStart(getFirstChild(wrapper, ".start"), "".length);
-//         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-//         (getRange as jest.Mock).mockReturnValue(range);
-//
-//         const cursorPosition = mergeSiblingTextNodes(wrapper, getCursorPosition());
-//         expect(firstElement?.childNodes.length).toBe(1);
-//         expect(secondElement?.childNodes.length).toBe(1);
-//         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-//         expect(cursorPosition.startOffset).toBe(0);
-//         expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".end"));
-//         expect(cursorPosition.endOffset).toBe(2);
-//     });
-// });

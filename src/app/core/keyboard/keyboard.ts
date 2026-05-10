@@ -10,7 +10,6 @@ import {
     CursorPosition,
     deleteContents,
     getCursorPosition,
-    getCursorPositionFrom,
     isCollapsed,
     setCursorPosition
 } from "@/core/shared/type/cursor-position";
@@ -49,7 +48,6 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
             key = "";
         }
         cursorPosition = mergeBlocks(contentEditable, cursorPosition, key);
-        cursorPosition = normalize(contentEditable, cursorPosition);
         setCursorPosition(contentEditable, cursorPosition);
         return cursorPosition;
     }
@@ -58,7 +56,6 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
         event.preventDefault();
 
         cursorPosition = mergeNextBlock(contentEditable, cursorPosition);
-        cursorPosition = normalize(contentEditable, cursorPosition);
         setCursorPosition(contentEditable, cursorPosition);
         return cursorPosition;
     }
@@ -66,7 +63,6 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
     if (event.key === "Backspace" && isCursorAtStartOfBlock(contentEditable)) {
         event.preventDefault();
         cursorPosition = mergePreviousBlock(contentEditable, cursorPosition);
-        cursorPosition = normalize(contentEditable, cursorPosition);
         setCursorPosition(contentEditable, cursorPosition);
         return cursorPosition;
     }

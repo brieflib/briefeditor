@@ -2,6 +2,7 @@ import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/sha
 import {getRange} from "@/core/shared/range-util";
 import {insertBreak, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
+import {normalize} from "@/core/normalize/normalize";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -729,54 +730,54 @@ describe("Merge P and List selections", () => {
         `);
     });
 
-    // test("Merging lists when end list is at deeper nesting level that start", () => {
-    //     const wrapper = createWrapper(`
-    //         <ul>
-    //             <li>first
-    //                 <ol>
-    //                     <li class="start">second</li>
-    //                 </ol>
-    //             </li>
-    //         </ul>
-    //         <p>third</p>
-    //         <ul>
-    //             <li>fourth
-    //                 <ol>
-    //                     <li class="end">fifth
-    //                         <ul>
-    //                             <li>six</li>
-    //                         </ul>
-    //                     </li>
-    //                     <li>seventh</li>
-    //                 </ol>
-    //             </li>
-    //         </ul>
-    //     `);
-    //
-    //     const range = new Range();
-    //     range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-    //     range.setEnd(getFirstChild(wrapper, ".end"), "fo".length);
-    //     (getRange as jest.Mock).mockReturnValue(range);
-    //
-    //     const cursorPosition = getCursorPosition();
-    //     mergeBlocks(wrapper, cursorPosition, " ");
-    //
-    //     expectHtml(wrapper.innerHTML, `
-    //         <ul>
-    //             <li>first
-    //                 <ol>
-    //                     <li>se fth</li>
-    //                 </ol>
-    //                 <ul>
-    //                     <li>six</li>
-    //                 </ul>
-    //                 <ol>
-    //                     <li>seventh</li>
-    //                 </ol>
-    //             </li>
-    //         </ul>
-    //     `);
-    // });
+    test("Merging lists when end list is at deeper nesting level that start", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>first
+                    <ol>
+                        <li class="start">second</li>
+                    </ol>
+                </li>
+            </ul>
+            <p>third</p>
+            <ul>
+                <li>fourth
+                    <ol>
+                        <li class="end">fifth
+                            <ul>
+                                <li>six</li>
+                            </ul>
+                        </li>
+                        <li>seventh</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fo".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        mergeBlocks(wrapper, cursorPosition, " ");
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>first
+                    <ol>
+                        <li>se fth</li>
+                    </ol>
+                    <ul>
+                        <li>six</li>
+                    </ul>
+                    <ol>
+                        <li>seventh</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+    });
 
     test("Selection from P into first LI should merge into P", () => {
         const wrapper = createWrapper(`
@@ -857,14 +858,20 @@ describe("Merge P and List selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, "k");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, "k");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>krst</li>
             </ul>
         `);
+
+        const expectedContainer = wrapper.querySelector("li")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(1);
+        expect(cursorPosition.endOffset).toBe(1);
     });
 });
 
@@ -909,34 +916,34 @@ describe("Merge nested list selections", () => {
         `);
     });
 
-    // test("Selection from start LI into nested LI should merge and flatten", () => {
-    //     const wrapper = createWrapper(`
-    //         <ul>
-    //             <li class="start">zero
-    //                 <ul>
-    //                     <li class="end">first</li>
-    //                 </ul>
-    //             </li>
-    //         </ul>
-    //     `);
-    //
-    //     const range = new Range();
-    //     range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-    //     range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
-    //     (getRange as jest.Mock).mockReturnValue(range);
-    //
-    //     let cursorPosition = getCursorPosition();
-    //     cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
-    //
-    //     expectHtml(wrapper.innerHTML, `
-    //         <ul>
-    //             <li>ze st</li>
-    //         </ul>
-    //     `);
-    //
-    //     expect(cursorPosition.startOffset).toBe(3);
-    //     expect(cursorPosition.endOffset).toBe(3);
-    // });
+    test("Selection from start LI into nested LI should merge and flatten", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero
+                    <ul>
+                        <li class="end">first</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>ze st</li>
+            </ul>
+        `);
+
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
+    });
 
     test("Selection from start LI into nested LI with multiple LI should merge and flatten", () => {
         const wrapper = createWrapper(`
@@ -1392,14 +1399,20 @@ describe("Merge complete list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li> cond</li>
             </ul>
         `);
+
+        const expectedContainer = wrapper.querySelector("li")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(1);
+        expect(cursorPosition.endOffset).toBe(1);
     });
 
     test("Selection from P through entire UL to following P should merge into first P", () => {
@@ -1479,25 +1492,29 @@ describe("Merge mixed UL/OL selections", () => {
 });
 
 describe("Cursor position after key press", () => {
-    // test("Cursor after merging two blocks", () => {
-    //     const wrapper = createWrapper(`
-    //         <p class="start">first</p>
-    //         <p class="end">second</p>
-    //     `);
-    //
-    //     const range = new Range();
-    //     range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-    //     range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-    //     (getRange as jest.Mock).mockReturnValue(range);
-    //
-    //     let cursorPosition = getCursorPosition();
-    //     cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
-    //
-    //     expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-    //     expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
-    //     expect(cursorPosition.startOffset).toBe(3);
-    //     expect(cursorPosition.endOffset).toBe(3);
-    // });
+    test("Cursor after merging two blocks", () => {
+        const wrapper = createWrapper(`
+            <p class="start">first</p>
+            <p class="end">second</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">fi cond</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
+    });
 
     test("When cursor is at the start of empty element should remove previous empty element", () => {
         const wrapper = createWrapper(`
