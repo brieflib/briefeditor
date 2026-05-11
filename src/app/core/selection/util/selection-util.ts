@@ -1,4 +1,4 @@
-import {Display, isSchemaContainNodeName} from "@/core/normalize/type/schema";
+import {Display, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {getElement, getNextNode, getRootElement} from "@/core/shared/element-util";
 import {CursorPosition, getCursorPosition,} from "@/core/shared/type/cursor-position";
 
@@ -19,7 +19,7 @@ export function getSelectedLeaves(findTill: HTMLElement, cursorPosition: CursorP
     let current: Node | null = cursorPosition.startContainer;
 
     while (current) {
-        if (current.nodeType === Node.TEXT_NODE) {
+        if (current.nodeType === Node.TEXT_NODE || isSchemaContain(current, [Display.SelfClose])) {
             textNodes.push(current);
         }
         if (current === cursorPosition.endContainer) {

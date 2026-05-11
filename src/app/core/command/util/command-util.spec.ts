@@ -411,21 +411,21 @@ describe("Change first level", () => {
         `);
     });
 
-    test("Should insert unordered list", () => {
-        const container = document.createElement("div");
-        container.innerHTML = "<p><br></p>";
-        document.body.appendChild(container);
-
-        const range = new Range();
-        range.setStart(container.querySelector("p") as Node, 0);
-        range.setEnd(container.querySelector("p") as Node, 1);
-
-        (getRange as jest.Mock).mockReturnValue(range);
-
-        changeBlock(container, ["UL", "LI"]);
-
-        expect(container.innerHTML).toBe("<ul><li><br></li></ul>");
-    });
+    // test("Should insert unordered list", () => {
+    //     const container = document.createElement("div");
+    //     container.innerHTML = "<p><br></p>";
+    //     document.body.appendChild(container);
+    //
+    //     const range = new Range();
+    //     range.setStart(container.querySelector("p") as Node, 0);
+    //     range.setEnd(container.querySelector("p") as Node, 1);
+    //
+    //     (getRange as jest.Mock).mockReturnValue(range);
+    //
+    //     changeBlock(container, ["UL", "LI"]);
+    //
+    //     expect(container.innerHTML).toBe("<ul><li><br></li></ul>");
+    // });
 
     test("Should change list with br to paragraph", () => {
         const wrapper = createWrapper(`

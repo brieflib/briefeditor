@@ -1,7 +1,12 @@
 import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
+import {
+    CursorPosition,
+    getCursorPosition,
+    getCursorPositionFrom
+} from "@/core/shared/type/cursor-position";
+import {hasSelfCloseDescendant} from "@/core/shared/element-util";
 
 export interface ContainerAndCursorPosition {
     container: DocumentFragment,
@@ -35,30 +40,6 @@ export function setLeafParents(findTill: HTMLElement, leafNode: Node, leaf: Leaf
     }
     leaf.addParent(leafNode);
 
-    return leaf;
-}
-
-export function appendLeafParents(element: HTMLElement, elementsToAppend: HTMLElement[], leaf: Leaf) {
-    const parents = leaf.getParents();
-    if (!parents.includes(element)) {
-        return leaf;
-    }
-
-    const lastParent = parents[parents.length - 1];
-    if (!lastParent) {
-        return leaf;
-    }
-    const childListWrappers = element.querySelectorAll("ul, ol");
-    for (const childListWrapper of childListWrappers) {
-        if (childListWrapper.contains(lastParent)) {
-            const liIndex = leaf.getParents().indexOf(childListWrapper) - 1;
-            leaf.getParents().splice(liIndex, 1);
-            return leaf;
-        }
-    }
-
-    const insertBeforeIndex = leaf.getParents().indexOf(element);
-    leaf.getParents().splice(insertBeforeIndex, 0, ...elementsToAppend);
     return leaf;
 }
 
@@ -234,22 +215,6 @@ function hasDuplicateList(node: Node | undefined) {
     return false;
 }
 
-export function isLeafEmpty(leaf: Leaf) {
-    for (const node of leaf.getParents()) {
-        if (isSchemaContain(node, [Display.SelfClose])) {
-            return true;
-        }
-    }
-
-    for (const node of leaf.getParents()) {
-        if (!isSchemaContain(node, [Display.SelfClose]) && !node.textContent) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 function nodeToFragment(node: Node) {
     const fragment = new DocumentFragment();
     fragment.appendChild(node);
@@ -268,7 +233,7 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
     if (containerText && containerText.nodeType === Node.TEXT_NODE &&
         insertText && insertText.nodeType === Node.TEXT_NODE) {
         (containerText as Text).appendData((insertText as Text).data);
-    } else if (insertElement.textContent || isSchemaContain(insertElement.firstChild, [Display.SelfClose])) {
+    } else if (insertElement.textContent || hasSelfCloseDescendant(insertElement)) {
         containerChild.appendChild(insertElement);
     }
 
@@ -310,11 +275,6 @@ function calculateCursorPosition(containerChild: Node, textToInsert: ChildNode |
     const [startContainer, startOffset] = remap(cursorPosition.startContainer, cursorPosition.startOffset);
     const [endContainer, endOffset] = remap(cursorPosition.endContainer, cursorPosition.endOffset);
 
-    if (startContainer === cursorPosition.startContainer && startOffset === cursorPosition.startOffset &&
-        endContainer === cursorPosition.endContainer && endOffset === cursorPosition.endOffset) {
-        return cursorPosition;
-    }
-
     return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset, false);
 }
 
@@ -332,7 +292,7 @@ function clearElementHTML(node: Node | undefined) {
         return;
     }
 
-    if (node.nodeType === Node.TEXT_NODE) {
+    if (node.nodeType === Node.TEXT_NODE || isSchemaContain(node, [Display.SelfClose])) {
         return node;
     }
 

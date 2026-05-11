@@ -1,5 +1,6 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {commonAncestorContainer, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {commonAncestorContainer, CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {getSelectedBlock} from "@/core/selection/selection";
 
 export function getChildFragment(child: Element) {
     const fragment = new DocumentFragment();
@@ -100,6 +101,18 @@ export function getLastNonEmptyText(node: Node): HTMLElement {
     }
 
     return getLastText(node);
+}
+
+export function hasSelfCloseDescendant(node: Node): boolean {
+    if (isSchemaContain(node, [Display.SelfClose])) {
+        return true;
+    }
+    for (const child of Array.from(node.childNodes)) {
+        if (hasSelfCloseDescendant(child)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 export function cleanElementWhitespace(element: HTMLElement) {

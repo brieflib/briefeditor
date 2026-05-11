@@ -2,7 +2,6 @@ import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/sha
 import {getRange} from "@/core/shared/range-util";
 import {insertBreak, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
-import {normalize} from "@/core/normalize/normalize";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -337,7 +336,7 @@ describe("Merge next element", () => {
     test("Should merge previous first empty list", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li>
+                <li><br>
                     <ul>
                         <li class="start">first</li>
                     </ul>
@@ -355,7 +354,7 @@ describe("Merge next element", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">first</li>
+                <li>first</li>
             </ul>
             <p>second</p>
         `);
@@ -364,7 +363,7 @@ describe("Merge next element", () => {
     test("Should merge previous first empty list with different type", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li>
+                <li><br>
                     <ol>
                         <li class="start">first</li>
                     </ol>
@@ -382,7 +381,7 @@ describe("Merge next element", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li class="start">first</li>
+                <li>first</li>
             </ol>
             <p>second</p>
         `);
@@ -391,7 +390,7 @@ describe("Merge next element", () => {
     test("Should merge previous first empty list with different type and keep other nested list", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li>
+                <li><br>
                     <ol>
                         <li class="start">first</li>
                     </ol>
@@ -412,7 +411,7 @@ describe("Merge next element", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li class="start">first
+                <li>first
                     <ul>
                         <li>second</li>
                     </ul>
@@ -425,7 +424,7 @@ describe("Merge next element", () => {
     test("Should merge previous first empty list with different type and keep other nested lists", () => {
         const wrapper = createWrapper(`
             <ol>
-                <li>
+                <li><br>
                     <ul>
                         <li class="start">first</li>
                         <li>second</li>
@@ -443,13 +442,13 @@ describe("Merge next element", () => {
         mergePreviousBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
-            <ol>
-                <li class="start">first
+            <ul>
+                <li>first
                     <ul>
                         <li>second</li>
                     </ul>
                 </li>
-            </ol>
+            </ul>
             <p>third</p>
         `);
     });
@@ -482,7 +481,7 @@ describe("Merge next element", () => {
         expectHtml(wrapper.innerHTML, `
             <h1>first</h1>
             <ol>
-                <li class="start">second
+                <li>second
                     <ol>
                         <li>third</li>
                     </ol>
@@ -492,12 +491,11 @@ describe("Merge next element", () => {
         `);
     });
 
-
     test("Should merge previous first empty list (with br) with different type and keep other nested lists and heading", () => {
         const wrapper = createWrapper(`
             <h1>first</h1>
             <ol>
-                <li class="start"><br/>
+                <li class="start"><br>
                     <ol>
                         <li class="end">second</li>
                         <li>third</li>
@@ -516,12 +514,12 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        const cursorPosition = mergePreviousBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <h1>first</h1>
             <ol>
-                <li class="start">second
+                <li>second
                     <ol>
                         <li>third</li>
                     </ol>
@@ -529,6 +527,12 @@ describe("Merge next element", () => {
             </ol>
             <p>fourth</p>
         `);
+
+        const expectedContainer = wrapper.querySelector("li")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("When cursor is at the end should merge two elements", () => {
@@ -755,8 +759,8 @@ describe("Merge P and List selections", () => {
         `);
 
         const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fo".length);
+        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
@@ -766,12 +770,11 @@ describe("Merge P and List selections", () => {
             <ul>
                 <li>first
                     <ol>
-                        <li>se fth</li>
-                    </ol>
-                    <ul>
-                        <li>six</li>
-                    </ul>
-                    <ol>
+                        <li>se fth
+                            <ul>
+                                <li>six</li>
+                            </ul>
+                        </li>
                         <li>seventh</li>
                     </ol>
                 </li>
@@ -1534,13 +1537,13 @@ describe("Cursor position after key press", () => {
             <p class="start"><br/></p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, "p"));
         expect(cursorPosition.startOffset).toBe(0);
         expect(cursorPosition.endOffset).toBe(0);
     });
 
-    test("When cursor is at the start of empty element should remove previous empty element", () => {
+    test("When cursor is at the start of empty element should remove next empty element", () => {
         const wrapper = createWrapper(`
             <p class="start"><br/></p>
             <p><br/></p>

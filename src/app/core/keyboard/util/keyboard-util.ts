@@ -11,7 +11,7 @@ import {
     getFirstText,
     getLastNonEmptyText,
     getNextNode,
-    getPreviousNode
+    getPreviousNode, hasSelfCloseDescendant
 } from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {appendBeforeAndDelete} from "@/core/list/util/list-util";
@@ -20,31 +20,18 @@ import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor
 import {normalize} from "@/core/normalize/normalize";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
-    const emptyParentResult = removeEmptyParentListItem(contentEditable, cursorPosition);
-    if (emptyParentResult) {
-        return emptyParentResult;
-    }
-
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
     if (!previousNode) {
         return cursorPosition;
     }
 
-    const isRemoved = removeEmptyBlock(contentEditable, previousNode);
-    if (isRemoved) {
-        return cursorPosition;
+    const lastText = getLastNonEmptyText(previousNode);
+    if (lastText.textContent) {
+        cursorPosition = getCursorPositionFrom(lastText, lastText.textContent.length, cursorPosition.endContainer, cursorPosition.endOffset);
     }
-
+    cursorPosition = mergeBlocks(contentEditable, cursorPosition, "");
     if (!previousNode.textContent) {
         (previousNode as Element)?.remove();
-        return cursorPosition;
-    }
-
-    const lastChild = getLastNonEmptyText(previousNode);
-    if (lastChild.textContent) {
-        cursorPosition = {...cursorPosition, startContainer: lastChild, startOffset: lastChild.textContent.length};
-        mergeBlocks(contentEditable, cursorPosition, "");
-        cursorPosition = getCursorPositionFrom(lastChild, lastChild.textContent.length, lastChild, lastChild.textContent.length);
     }
 
     return cursorPosition;
@@ -55,9 +42,15 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
     if (!nextNode) {
         return cursorPosition;
     }
+    const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
     const isRemoved = removeEmptyBlock(contentEditable, nextNode);
     const nextNodeFirstChild = getFirstText(nextNode);
     if (isRemoved) {
+        if (previousNode) {
+            const lastText = getLastNonEmptyText(previousNode);
+            const offset = lastText.textContent?.length ?? 0;
+            return getCursorPositionFrom(lastText, offset, lastText, offset);
+        }
         return getCursorPositionFrom(nextNodeFirstChild, 0, nextNodeFirstChild, 0);
     }
 
@@ -182,7 +175,10 @@ function appendToStartOfFirstBlock(contentEditable: HTMLElement, cursorPosition:
     return lastBlock;
 }
 
-function deleteEmptyBlocks(lastBlock: HTMLElement | undefined) {
+function deleteEmptyBlocks(lastBlock: Element | undefined) {
+    if (lastBlock && hasSelfCloseDescendant(lastBlock)) {
+        return;
+    }
     let forDelete = lastBlock;
     while (forDelete?.parentElement && !forDelete.textContent) {
         const parentElement = forDelete.parentElement;
@@ -193,71 +189,6 @@ function deleteEmptyBlocks(lastBlock: HTMLElement | undefined) {
 
 function isKeyPrintable(key: string) {
     return key.length === 1 || key.length === 0;
-}
-
-function removeEmptyParentListItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition | null {
-    const firstBlock = getSelectedBlock(contentEditable, cursorPosition)[0];
-    if (!firstBlock || !firstBlock.parentElement || !isSchemaContain(firstBlock.parentElement, [Display.ListWrapper])) {
-        return null;
-    }
-
-    const listWrapper = firstBlock.parentElement;
-    const parentLi = listWrapper.parentElement;
-    if (!parentLi || !isSchemaContain(parentLi, [Display.List])) {
-        return null;
-    }
-
-    const hasNonListContent = Array.from(parentLi.childNodes).some(
-        child => !isSchemaContain(child, [Display.ListWrapper]) &&
-            !(child.nodeType === Node.TEXT_NODE && !child.textContent) &&
-            !isSchemaContain(child, [Display.SelfClose])
-    );
-    if (hasNonListContent) {
-        return null;
-    }
-
-    const parentListWrapper = parentLi.parentElement;
-    if (!parentListWrapper || !isSchemaContain(parentListWrapper, [Display.ListWrapper])) {
-        return null;
-    }
-
-    while (listWrapper.nextSibling) {
-        const sibling = listWrapper.nextSibling;
-        if (isSchemaContain(sibling, [Display.ListWrapper])) {
-            firstBlock.appendChild(sibling);
-        } else {
-            sibling.remove();
-        }
-    }
-
-    Array.from(parentLi.childNodes).forEach(child => {
-        if ((child.nodeType === Node.TEXT_NODE && !child.textContent) || isSchemaContain(child, [Display.SelfClose])) {
-            child.remove();
-        }
-    });
-
-    const hasRemainingLis = listWrapper.children.length > 1;
-    if (hasRemainingLis) {
-        while (firstBlock.firstChild) {
-            listWrapper.before(firstBlock.firstChild);
-        }
-        for (const attr of Array.from(firstBlock.attributes)) {
-            if (!parentLi.hasAttribute(attr.name)) {
-                parentLi.setAttribute(attr.name, attr.value);
-            }
-        }
-        firstBlock.remove();
-    } else {
-        while (parentLi.firstChild) {
-            parentListWrapper.before(parentLi.firstChild);
-        }
-        parentLi.remove();
-        if (!parentListWrapper.firstElementChild) {
-            parentListWrapper.remove();
-        }
-    }
-
-    return cursorPosition;
 }
 
 export function insertBreak(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
