@@ -11,13 +11,14 @@ import {
     getFirstText,
     getLastNonEmptyText,
     getNextNode,
-    getPreviousNode, hasSelfCloseDescendant
+    getPreviousNode,
+    hasSelfCloseDescendant
 } from "@/core/shared/element-util";
-import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {appendBeforeAndDelete} from "@/core/list/util/list-util";
 import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {normalize} from "@/core/normalize/normalize";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
@@ -54,20 +55,13 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
         return getCursorPositionFrom(nextNodeFirstChild, 0, nextNodeFirstChild, 0);
     }
 
-    if (!nextNode.textContent) {
+    if (!nextNode.textContent && !isSchemaContain(nextNode, [Display.SelfClose])) {
         (nextNode as Element)?.remove();
         return cursorPosition;
     }
 
-    const cursorPositionAfterRemove = removeFirstEmptyBlock(contentEditable, cursorPosition);
-    if (cursorPositionAfterRemove) {
-        return cursorPositionAfterRemove;
-    }
-
     cursorPosition = {...cursorPosition, endContainer: nextNodeFirstChild, endOffset: 0};
-    mergeBlocks(contentEditable, cursorPosition, "");
-
-    return cursorPosition;
+    return mergeBlocks(contentEditable, cursorPosition, "");
 }
 
 export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = ""): CursorPosition {
@@ -77,8 +71,9 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
     const lastBlock = appendToStartOfFirstBlock(contentEditable, cursorPosition, pressedKey, firstBlock);
     const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
     const lists = parseList(firstListWrapper);
-    const normalizedLists = normalizeLists(lists);
-    const listWrappers = convertList(normalizedLists);
+    const normalized = normalizeLists(lists, cursorPositionAfterDelete);
+    cursorPositionAfterDelete = normalized.cursorPosition;
+    const listWrappers = convertList(normalized.lists);
     appendBeforeAndDelete(firstListWrapper, listWrappers);
 
     deleteEmptyBlocks(lastBlock);
@@ -96,63 +91,6 @@ export function isSpecialKey(event: KeyboardEvent) {
         "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
         "CapsLock", "NumLock", "ScrollLock", "Pause"
     ].includes(event.key);
-}
-
-function removeFirstEmptyBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    const firstBlock = getSelectedBlock(contentEditable)[0];
-    if (firstBlock) {
-        const firstChild = getFirstText(firstBlock);
-        if (!firstChild.textContent) {
-            const parentListWrapper = firstBlock.parentElement;
-            if (!parentListWrapper) {
-                return null;
-            }
-
-            const firstNestedList = Array.from(firstBlock.children)
-                .find(child => isSchemaContain(child, [Display.ListWrapper])) as HTMLElement | undefined;
-            if (!firstNestedList?.firstElementChild) {
-                return null;
-            }
-
-            const firstNestedListTag = firstNestedList.nodeName;
-            const isSameType = firstNestedListTag === parentListWrapper.nodeName;
-
-            const promotedLi = firstNestedList.firstElementChild;
-            promotedLi.remove();
-
-            if (firstNestedList.firstElementChild) {
-                promotedLi.appendChild(firstNestedList);
-            } else {
-                firstNestedList.remove();
-            }
-
-            while (firstBlock.firstChild) {
-                const child = firstBlock.firstChild;
-                if (isSchemaContain(child, [Display.ListWrapper])) {
-                    promotedLi.appendChild(child);
-                } else {
-                    child.remove();
-                }
-            }
-
-            if (isSameType) {
-                firstBlock.before(promotedLi);
-            } else {
-                const wrapper = document.createElement(firstNestedListTag);
-                wrapper.appendChild(promotedLi);
-                parentListWrapper.before(wrapper);
-            }
-
-            firstBlock.remove();
-            if (!parentListWrapper.firstElementChild) {
-                parentListWrapper.remove();
-            }
-
-            return {...cursorPosition, endContainer: getFirstText(promotedLi), endOffset: 0};
-        }
-    } else {
-        return null;
-    }
 }
 
 function appendToStartOfFirstBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = "", firstBlock?: HTMLElement) {

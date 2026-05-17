@@ -9,7 +9,7 @@ import {
 } from "@/core/list/type/list-class";
 import {getRange} from "@/core/shared/range-util";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
-import {getCursorPosition} from "@/core/shared/type/cursor-position";
+import {getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {getListsOrderNumbers} from "@/core/list/util/list-util";
 
 jest.mock("../../shared/range-util", () => ({
@@ -104,7 +104,7 @@ describe("Convert ListClass to DOM", () => {
 
         const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
         let lists = parseList(rootWrapper);
-        lists = normalizeLists(lists);
+        lists = normalizeLists(lists, getCursorPositionFrom(wrapper, 0, wrapper, 0, false)).lists;
         const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
             <ul>
@@ -134,13 +134,13 @@ describe("Convert ListClass to DOM", () => {
 
         const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
         let lists = parseList(rootWrapper);
-        lists = normalizeLists(lists);
+        lists = normalizeLists(lists, getCursorPositionFrom(wrapper, 0, wrapper, 0, false)).lists;
         const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
             <ul>
                 <li>second
                     <ul>
-                        <li>third</li>                    
+                        <li>third</li>
                     </ul>
                 </li>
             </ul>

@@ -20,12 +20,18 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergePreviousBlock(wrapper, cursorPosition);
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>zero<em class="start">first</em></p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "p")
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(4);
+        expect(cursorPosition.endOffset).toBe(4);
     });
 
     test("When cursor is at the start should merge two elements", () => {
@@ -39,12 +45,18 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergePreviousBlock(wrapper, cursorPosition);
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>zerofirst <em>second</em></p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "p")
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(4);
+        expect(cursorPosition.endOffset).toBe(4);
     });
 
     test("When cursor is at the start should remove previous empty element", () => {
@@ -58,12 +70,18 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergePreviousBlock(wrapper, cursorPosition);
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <h1 class="start">first <em>second</em></h1>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "h1")
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("When cursor is at the start should merge li with li", () => {
@@ -79,14 +97,20 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergePreviousBlock(wrapper, cursorPosition);
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zerofirst <em>second</em></li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li")
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(4);
+        expect(cursorPosition.endOffset).toBe(4);
     });
 
     test("When cursor is at the start should merge p and li", () => {
@@ -102,18 +126,24 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergePreviousBlock(wrapper, cursorPosition);
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>zerofirst <em>second</em></p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "p")
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(4);
+        expect(cursorPosition.endOffset).toBe(4);
     });
 
     test("When cursor is at the start of nested list should merge li with li", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li>first <em>second</em>
+                <li>first<em>second</em>
                     <ul>
                         <li class="start">third</li>
                     </ul>
@@ -126,14 +156,20 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergePreviousBlock(wrapper, cursorPosition);
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>first <em>second</em>third</li>
+                <li>first<em>second</em>third</li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "em")
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(6);
+        expect(cursorPosition.endOffset).toBe(6);
     });
 
     test("When cursor is at the start of the list containing nested list, merge li with li", () => {
@@ -153,8 +189,8 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergePreviousBlock(wrapper, cursorPosition);
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -165,9 +201,15 @@ describe("Merge previous element", () => {
                 </li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li em")
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(6);
+        expect(cursorPosition.endOffset).toBe(6);
     });
 
-    test("When cursor is at the start and next element is list should merge two elements", () => {
+    test("Cursor is at the start and next element is a list. Should merge two elements", () => {
         const wrapper = createWrapper(`
             <p>zero</p>
             <h1 class="start">first</h1>
@@ -181,7 +223,7 @@ describe("Merge previous element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        const cursorPosition = mergePreviousBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <p>zerofirst</p>
@@ -189,6 +231,12 @@ describe("Merge previous element", () => {
                 <li>second</li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "p")
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(4);
+        expect(cursorPosition.endOffset).toBe(4);
     });
 });
 
@@ -196,7 +244,7 @@ describe("Merge next element", () => {
     test("Should merge next first empty list", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li class="start">
+                <li class="start"><br>
                     <ul>
                         <li>first</li>
                     </ul>
@@ -214,7 +262,7 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergeNextBlock(wrapper);
+        const cursorPosition = mergeNextBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -222,12 +270,18 @@ describe("Merge next element", () => {
             </ul>
             <p>second</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li")
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Should merge next first empty list with two other nested lists", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li class="start">
+                <li class="start"><br>
                     <ul>
                         <li>first</li>
                         <li>second</li>
@@ -246,7 +300,7 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergeNextBlock(wrapper);
+        const cursorPosition = mergeNextBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -258,12 +312,18 @@ describe("Merge next element", () => {
             </ul>
             <p>third</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Should merge next first empty list with two other nested lists with different types", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li class="start">
+                <li class="start"><br>
                     <ul>
                         <li>first</li>
                     </ul>
@@ -284,24 +344,30 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergeNextBlock(wrapper);
+        const cursorPosition = mergeNextBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first
                     <ol>
                         <li>second</li>
-                    </ol>                 
+                    </ol>
                 </li>
             </ul>
             <p>second</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Should merge next first empty list with different type", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li class="start">
+                <li class="start"><br>
                     <ol>
                         <li>first</li>
                     </ol>
@@ -320,7 +386,7 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergeNextBlock(wrapper);
+        const cursorPosition = mergeNextBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -331,6 +397,12 @@ describe("Merge next element", () => {
             </ul>
             <p>third</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ol li")
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Should merge previous first empty list", () => {
@@ -350,7 +422,7 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        const cursorPosition = mergePreviousBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -358,6 +430,12 @@ describe("Merge next element", () => {
             </ul>
             <p>second</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Should merge previous first empty list with different type", () => {
@@ -377,7 +455,7 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        const cursorPosition = mergePreviousBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -385,6 +463,12 @@ describe("Merge next element", () => {
             </ol>
             <p>second</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ol li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Should merge previous first empty list with different type and keep other nested list", () => {
@@ -407,7 +491,7 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        const cursorPosition = mergePreviousBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -419,6 +503,12 @@ describe("Merge next element", () => {
             </ol>
             <p>third</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ol li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Should merge previous first empty list with different type and keep other nested lists", () => {
@@ -439,7 +529,7 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        const cursorPosition = mergePreviousBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -451,13 +541,19 @@ describe("Merge next element", () => {
             </ul>
             <p>third</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Should merge previous first empty list with different type and keep other nested lists and heading", () => {
         const wrapper = createWrapper(`
             <h1>first</h1>
             <ol>
-                <li class="start">
+                <li class="start"><br>
                     <ol>
                         <li class="end">second</li>
                         <li>third</li>
@@ -476,7 +572,7 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergePreviousBlock(wrapper);
+        const cursorPosition = mergePreviousBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <h1>first</h1>
@@ -489,6 +585,12 @@ describe("Merge next element", () => {
             </ol>
             <p>fourth</p>
         `);
+
+        const expectedContainer = wrapper.querySelector("li")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Should merge previous first empty list (with br) with different type and keep other nested lists and heading", () => {
@@ -546,17 +648,23 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergeNextBlock(wrapper);
+        const cursorPosition = mergeNextBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">zerofirst <em>second</em></p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(4);
+        expect(cursorPosition.endOffset).toBe(4);
     });
 
     test("When cursor is at the end should merge empty H1", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>
-            <h1></h1>
+            <h1><br></h1>
         `);
 
         const range = new Range();
@@ -564,12 +672,18 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeNextBlock(wrapper, cursorPosition);
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeNextBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">zero</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(4);
+        expect(cursorPosition.endOffset).toBe(4);
     });
 
     test("When cursor is at the empty element should remove it", () => {
@@ -583,12 +697,18 @@ describe("Merge next element", () => {
         range.setEnd(wrapper.querySelector(".start") as Node, "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeNextBlock(wrapper, cursorPosition);
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeNextBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "p");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("When cursor is at the end and next element is list should merge two elements", () => {
@@ -605,12 +725,18 @@ describe("Merge next element", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        mergeNextBlock(wrapper);
+        const cursorPosition = mergeNextBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
             <h1 class="start">firstsecond</h1>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(5);
+        expect(cursorPosition.endOffset).toBe(5);
     });
 });
 
@@ -626,12 +752,18 @@ describe("Merge first levels", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze rst <em>second</em></p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 });
 
@@ -667,8 +799,8 @@ describe("Merge P and List selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
              <ul>
@@ -685,6 +817,12 @@ describe("Merge P and List selections", () => {
                  </li>
              </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li ol li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Merging two lists", () => {
@@ -714,8 +852,8 @@ describe("Merge P and List selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
              <ul>
@@ -732,6 +870,12 @@ describe("Merge P and List selections", () => {
                  </li>
              </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li ol li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Merging lists when end list is at deeper nesting level that start", () => {
@@ -763,8 +907,8 @@ describe("Merge P and List selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -780,6 +924,12 @@ describe("Merge P and List selections", () => {
                 </li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li ol li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from P into first LI should merge into P", () => {
@@ -795,12 +945,18 @@ describe("Merge P and List selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze rst</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from P into multiple LIs should merge into P", () => {
@@ -817,12 +973,18 @@ describe("Merge P and List selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze cond</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from LI into following P should merge into LI", () => {
@@ -838,14 +1000,20 @@ describe("Merge P and List selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze rst</li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection of entire list and following P should result in UL", () => {
@@ -902,8 +1070,8 @@ describe("Merge nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -917,6 +1085,12 @@ describe("Merge nested list selections", () => {
                 </li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from start LI into nested LI should merge and flatten", () => {
@@ -965,8 +1139,8 @@ describe("Merge nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -977,6 +1151,12 @@ describe("Merge nested list selections", () => {
                 </li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from start LI into nested LI with deeper LI should not merge", () => {
@@ -999,8 +1179,8 @@ describe("Merge nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1011,6 +1191,12 @@ describe("Merge nested list selections", () => {
                 </li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from nested LI to outer LI should merge preserving structure", () => {
@@ -1030,8 +1216,8 @@ describe("Merge nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1042,6 +1228,12 @@ describe("Merge nested list selections", () => {
                 </li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection spanning 3 nesting levels should merge preserving structure", () => {
@@ -1065,8 +1257,8 @@ describe("Merge nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1081,6 +1273,12 @@ describe("Merge nested list selections", () => {
                 </li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li ul li ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 });
 
@@ -1102,12 +1300,18 @@ describe("Merge P and nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze cond</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from P into nested LI containing nested LI should not merge into P", () => {
@@ -1127,8 +1331,8 @@ describe("Merge P and nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze rst</p>
@@ -1136,6 +1340,12 @@ describe("Merge P and nested list selections", () => {
                 <li>second</li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from P into nested LI containing nested LI of other type should not merge into P", () => {
@@ -1162,8 +1372,8 @@ describe("Merge P and nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze ird</p>
@@ -1171,6 +1381,12 @@ describe("Merge P and nested list selections", () => {
                 <li>fourth</li>
             </ol>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from nested LI into following P should merge into LI", () => {
@@ -1190,8 +1406,8 @@ describe("Merge P and nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1202,6 +1418,12 @@ describe("Merge P and nested list selections", () => {
                 </li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from P spanning outer and nested LI should merge into P", () => {
@@ -1222,12 +1444,18 @@ describe("Merge P and nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze ird</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from P spanning outer and first nested LI should merge", () => {
@@ -1248,8 +1476,8 @@ describe("Merge P and nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze cond</p>
@@ -1257,6 +1485,12 @@ describe("Merge P and nested list selections", () => {
                 <li>third</li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from H1 spanning outer and first nested LI should merge", () => {
@@ -1277,19 +1511,25 @@ describe("Merge P and nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <h1 class="start">ze rst</h1>
             <ul>
                 <li>second
                     <ul>
-                        <li>third</li>                    
+                        <li>third</li>
                     </ul>
                 </li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from H1 spanning outer and second nested LI should merge", () => {
@@ -1310,8 +1550,8 @@ describe("Merge P and nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <h1 class="start">ze cond</h1>
@@ -1319,6 +1559,12 @@ describe("Merge P and nested list selections", () => {
                 <li>third</li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from deeply nested LI into P should merge into LI", () => {
@@ -1342,8 +1588,8 @@ describe("Merge P and nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1358,6 +1604,12 @@ describe("Merge P and nested list selections", () => {
                 </li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li ul li ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection from P through entire nested list structure should merge into P", () => {
@@ -1378,12 +1630,18 @@ describe("Merge P and nested list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze ird</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 });
 
@@ -1432,12 +1690,18 @@ describe("Merge complete list selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze cond</p>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 });
 
@@ -1457,14 +1721,20 @@ describe("Merge mixed UL/OL selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze rst</li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 
     test("Selection spanning UL, P, and OL should merge into UL", () => {
@@ -1483,14 +1753,20 @@ describe("Merge mixed UL/OL selections", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        mergeBlocks(wrapper, cursorPosition, " ");
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze cond</li>
             </ul>
         `);
+
+        const expectedContainer = getFirstChild(wrapper, "ul li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
     });
 });
 

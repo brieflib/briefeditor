@@ -1,5 +1,6 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {getChildFragment} from "@/core/shared/element-util";
+import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 
 export enum ListWrapper {
     UL = "UL",
@@ -141,12 +142,29 @@ export function minusOrderNumbers(lists: ListClass[], orderNumbers: number[]): L
     return lists;
 }
 
-export function normalizeLists(lists: ListClass[]): ListClass[] {
+export interface NormalizeListsResult {
+    lists: ListClass[];
+    cursorPosition: CursorPosition;
+}
+
+export function normalizeLists(lists: ListClass[], cursorPosition: CursorPosition): NormalizeListsResult {
     const result: ListClass[] = [];
     const levelMap = new Map<number, number>();
+    const cursorOrphaned = isCursorOrphaned(cursorPosition, lists);
+    let updatedCursorPosition: CursorPosition = cursorPosition;
+    let redirected = false;
 
-    for (const list of lists) {
+    for (let i = 0; i < lists.length; i++) {
+        const list = lists[i];
         if (!list || !list.listContent.textContent) {
+            if (!redirected && list &&
+                (cursorOrphaned || list.listContent.contains(cursorPosition.startContainer))) {
+                const found = findCursorInNextNonEmpty(lists, i + 1);
+                if (found) {
+                    updatedCursorPosition = found;
+                    redirected = true;
+                }
+            }
             continue;
         }
 
@@ -170,7 +188,22 @@ export function normalizeLists(lists: ListClass[]): ListClass[] {
         result.push(list);
     }
 
-    return result;
+    return { lists: result, cursorPosition: updatedCursorPosition };
+}
+
+function isCursorOrphaned(cursorPosition: CursorPosition, lists: ListClass[]): boolean {
+    return !cursorPosition.startContainer.isConnected &&
+        !lists.some(l => l?.listContent.contains(cursorPosition.startContainer));
+}
+
+function findCursorInNextNonEmpty(lists: ListClass[], startIndex: number): CursorPosition | undefined {
+    for (let i = startIndex; i < lists.length; i++) {
+        const firstNode = lists[i]?.listContent.textContent ? lists[i]?.listContent.firstChild : null;
+        if (firstNode) {
+            return getCursorPositionFrom(firstNode, 0, firstNode, 0, false);
+        }
+    }
+    return undefined;
 }
 
 function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[]) {
