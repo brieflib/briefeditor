@@ -4,15 +4,15 @@ import {
     deleteContents,
     extractContents,
     getCursorPosition,
-    getCursorPositionFrom
+    getCursorPositionFrom,
+    getCursorPositionFromElement
 } from "@/core/shared/type/cursor-position";
 import {
     getChildFragment,
     getFirstText,
     getLastNonEmptyText,
     getNextNode,
-    getPreviousNode,
-    hasSelfCloseDescendant
+    getPreviousNode
 } from "@/core/shared/element-util";
 import {appendBeforeAndDelete} from "@/core/list/util/list-util";
 import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
@@ -76,8 +76,12 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
     const listWrappers = convertList(normalized.lists);
     appendBeforeAndDelete(firstListWrapper, listWrappers);
 
-    deleteEmptyBlocks(lastBlock);
-    cursorPositionAfterDelete = normalize(contentEditable, cursorPositionAfterDelete);
+    if (lastBlock && lastBlock.isConnected) {
+        const lastBlockCursorPosition = getCursorPositionFromElement(lastBlock);
+        cursorPositionAfterDelete = normalize(contentEditable, lastBlockCursorPosition, cursorPositionAfterDelete);
+    } else {
+        cursorPositionAfterDelete = normalize(contentEditable, cursorPositionAfterDelete);
+    }
     return getCursorPositionFrom(cursorPositionAfterDelete.startContainer, cursorPositionAfterDelete.startOffset + pressedKey.length, cursorPositionAfterDelete.endContainer, cursorPositionAfterDelete.endOffset + pressedKey.length);
 }
 
@@ -99,7 +103,7 @@ function appendToStartOfFirstBlock(contentEditable: HTMLElement, cursorPosition:
     if (firstBlock && lastBlock) {
         if (isKeyPrintable(pressedKey)) {
             const textNode = document.createTextNode(pressedKey);
-            getFirstText(lastBlock).before(textNode);
+            getFirstText(firstBlock).after(textNode);
             const fragment = getChildFragment(lastBlock);
             const nestedListWrapper = firstBlock.querySelector("ul, ol");
             if (nestedListWrapper) {
@@ -111,18 +115,6 @@ function appendToStartOfFirstBlock(contentEditable: HTMLElement, cursorPosition:
     }
 
     return lastBlock;
-}
-
-function deleteEmptyBlocks(lastBlock: Element | undefined) {
-    if (lastBlock && hasSelfCloseDescendant(lastBlock)) {
-        return;
-    }
-    let forDelete = lastBlock;
-    while (forDelete?.parentElement && !forDelete.textContent) {
-        const parentElement = forDelete.parentElement;
-        forDelete.remove();
-        forDelete = parentElement;
-    }
 }
 
 function isKeyPrintable(key: string) {

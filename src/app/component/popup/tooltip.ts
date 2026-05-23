@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error inline is not supported by lint
 import tooltipCss from "@/component/popup/asset/tooltip.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 import {getBoundingClientRect, getCursorPosition} from "@/core/shared/type/cursor-position";

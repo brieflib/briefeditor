@@ -1,6 +1,5 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {commonAncestorContainer, CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
-import {getSelectedBlock} from "@/core/selection/selection";
+import {commonAncestorContainer, getCursorPosition} from "@/core/shared/type/cursor-position";
 
 export function getChildFragment(child: Element) {
     const fragment = new DocumentFragment();

@@ -19,6 +19,9 @@ export function getSelectedLeaves(findTill: HTMLElement, cursorPosition: CursorP
     let current: Node | null = cursorPosition.startContainer;
 
     while (current) {
+        if (!current.firstChild) {
+            //textNodes.push(current);
+        }
         if (current.nodeType === Node.TEXT_NODE || isSchemaContain(current, [Display.SelfClose])) {
             textNodes.push(current);
         }

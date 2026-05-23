@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error inline is not supported by lint
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 

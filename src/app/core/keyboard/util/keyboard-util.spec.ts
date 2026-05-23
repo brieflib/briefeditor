@@ -1795,6 +1795,30 @@ describe("Cursor position after key press", () => {
         expect(cursorPosition.endOffset).toBe(3);
     });
 
+    test("Cursor after merging block with nested element", () => {
+        const wrapper = createWrapper(`
+            <p class="start">first</p>
+            <p><strong class="end">second</strong></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">fi <strong class="end">cond</strong></p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe(3);
+        expect(cursorPosition.endOffset).toBe(3);
+    });
+
     test("When cursor is at the start of empty element should remove previous empty element", () => {
         const wrapper = createWrapper(`
             <p><br/></p>

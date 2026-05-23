@@ -50,6 +50,28 @@ export function getCursorPositionFrom(startContainer: Node, startOffset: number,
     };
 }
 
+export function getCursorPositionFromElement(element: HTMLElement, isRange = true): CursorPosition {
+    const firstText = getFirstText(element);
+    const lastText = getLastText(element);
+
+    const cursorPosition = {
+        startContainer: firstText,
+        endContainer: lastText,
+        startOffset: firstText.textContent.length,
+        endOffset: lastText.textContent.length,
+        range: new Range()
+    }
+
+    if (!isRange) {
+        return cursorPosition;
+    }
+
+    return {
+        ...cursorPosition,
+        range: getRangeFromCursorPosition(cursorPosition)
+    };
+}
+
 export function setCursorPositionEndAsLastTextOfElement(cursorPosition: CursorPosition, endElement: Element) {
     const endContainer = getLastText(endElement);
     return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, endContainer, endContainer.textContent.length);

@@ -5,9 +5,7 @@ import {
     getSelectedLeaves,
     SelectionType
 } from "@/core/selection/util/selection-util";
-import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
-import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getFirstText, getLastText} from "@/core/shared/element-util";
+import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
 
 export function getSelectedSharedTags(findTill: HTMLElement, cursorPosition = getCursorPosition()) {
     const leafNodes = getSelectedLeaves(findTill);

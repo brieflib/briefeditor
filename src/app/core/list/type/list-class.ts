@@ -68,7 +68,7 @@ export function convertList(lists: ListClass[]): DocumentFragment {
             continue;
         }
 
-        if (list.nestedLevel + 1  === nextList.nestedLevel) {
+        if (list.nestedLevel + 1 === nextList.nestedLevel) {
             const nextWrapper = document.createElement(nextList.listWrapper);
             currentLi?.appendChild(nextWrapper);
             currentLi = nextWrapper;
@@ -188,7 +188,7 @@ export function normalizeLists(lists: ListClass[], cursorPosition: CursorPositio
         result.push(list);
     }
 
-    return { lists: result, cursorPosition: updatedCursorPosition };
+    return {lists: result, cursorPosition: updatedCursorPosition};
 }
 
 function isCursorOrphaned(cursorPosition: CursorPosition, lists: ListClass[]): boolean {
@@ -221,7 +221,7 @@ function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level:
                 if (isSchemaContain(liChild, [Display.ListWrapper])) {
                     parseListWrapper(liChild as HTMLElement, toListWrapper(liChild), level + 1, result);
                 }
-             }
+            }
         } else if (isSchemaContain(child, [Display.ListWrapper])) {
             parseListWrapper(child as HTMLElement, toListWrapper(child), level + 1, result);
         }

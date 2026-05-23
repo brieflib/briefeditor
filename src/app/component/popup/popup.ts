@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error inline is not supported by lint
 import popupCss from "@/component/popup/asset/popup.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 
