@@ -3,13 +3,19 @@ import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     appendBeforeAndDelete,
     countListWrapperParents,
-    getDirectChildren,
+    getDirectChildren, getFirstListWrapper,
     getListsOrderNumbers,
     isChildrenContain
 } from "@/core/list/util/list-util";
 import {getNextNode} from "@/core/shared/element-util";
-import {getCursorPosition} from "@/core/shared/type/cursor-position";
-import {convertList, minusOrderNumbers, parseList, plusOrderNumbers} from "@/core/list/type/list-class";
+import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {
+    convertList,
+    minusOrderNumbers,
+    normalizeLists,
+    parseList,
+    plusOrderNumbers
+} from "@/core/list/type/list-class";
 
 export function isNextListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
     const lastList = lists[lists.length - 1];
@@ -121,4 +127,19 @@ export function minusIndent(contentEditable: HTMLElement) {
     const minusLists = minusOrderNumbers(lists, listsOrderNumbers);
     const listWrappers = convertList(minusLists);
     appendBeforeAndDelete(firstListWrapper, listWrappers);
+}
+
+export function maybeInsertLists(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const firstRoot = getFirstSelectedRoot(contentEditable, cursorPosition);
+    const firstListWrapper = getFirstListWrapper(firstRoot);
+    if (!isSchemaContain(firstListWrapper, [Display.ListWrapper])) {
+        return cursorPosition;
+    }
+
+    const lists = parseList(firstRoot);
+    const normalized = normalizeLists(lists, cursorPosition);
+    const listWrappers = convertList(normalized.lists);
+    appendBeforeAndDelete(firstRoot, listWrappers);
+
+    return normalized.cursorPosition;
 }

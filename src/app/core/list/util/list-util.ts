@@ -73,7 +73,7 @@ export function getDirectChildren(li: Element, display: Display[]) {
     return listWrappers;
 }
 
-export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: DocumentFragment) {
+export function getFirstListWrapper(rootWrapper: HTMLElement) {
     let firstWrapper: Element = rootWrapper;
     while (firstWrapper.nextElementSibling && isSchemaContain(firstWrapper.nextElementSibling, [Display.ListWrapper])) {
         firstWrapper = firstWrapper.nextElementSibling;
@@ -81,6 +81,12 @@ export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: Doc
     while (firstWrapper.previousElementSibling && isSchemaContain(firstWrapper.previousElementSibling, [Display.ListWrapper])) {
         firstWrapper = firstWrapper.previousElementSibling;
     }
+
+    return firstWrapper;
+}
+
+export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: DocumentFragment) {
+    const firstWrapper = getFirstListWrapper(rootWrapper);
     firstWrapper.before(listWrapper);
 
     let current: Element | null = firstWrapper;

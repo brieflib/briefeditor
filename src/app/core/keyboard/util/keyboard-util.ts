@@ -1,4 +1,4 @@
-import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
+import {getSelectedBlock} from "@/core/selection/selection";
 import {
     CursorPosition,
     deleteContents,
@@ -14,11 +14,10 @@ import {
     getNextNode,
     getPreviousNode
 } from "@/core/shared/element-util";
-import {appendBeforeAndDelete} from "@/core/list/util/list-util";
-import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {normalize} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {maybeInsertLists} from "@/core/list/list";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
@@ -46,12 +45,12 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
     const isRemoved = removeEmptyBlock(contentEditable, nextNode);
     const nextNodeFirstChild = getFirstText(nextNode);
+    if (isRemoved && previousNode) {
+        const lastText = getLastNonEmptyText(previousNode);
+        const offset = lastText.textContent?.length ?? 0;
+        return getCursorPositionFrom(lastText, offset, lastText, offset);
+    }
     if (isRemoved) {
-        if (previousNode) {
-            const lastText = getLastNonEmptyText(previousNode);
-            const offset = lastText.textContent?.length ?? 0;
-            return getCursorPositionFrom(lastText, offset, lastText, offset);
-        }
         return getCursorPositionFrom(nextNodeFirstChild, 0, nextNodeFirstChild, 0);
     }
 
@@ -60,7 +59,7 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
         return cursorPosition;
     }
 
-    cursorPosition = {...cursorPosition, endContainer: nextNodeFirstChild, endOffset: 0};
+    cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, nextNodeFirstChild, 0);
     return mergeBlocks(contentEditable, cursorPosition, "");
 }
 
@@ -69,12 +68,7 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
     let cursorPositionAfterDelete = deleteContents(cursorPosition);
 
     const lastBlock = appendToStartOfFirstBlock(contentEditable, cursorPosition, pressedKey, firstBlock);
-    const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
-    const lists = parseList(firstListWrapper);
-    const normalized = normalizeLists(lists, cursorPositionAfterDelete);
-    cursorPositionAfterDelete = normalized.cursorPosition;
-    const listWrappers = convertList(normalized.lists);
-    appendBeforeAndDelete(firstListWrapper, listWrappers);
+    cursorPositionAfterDelete = maybeInsertLists(contentEditable, cursorPositionAfterDelete);
 
     if (lastBlock && lastBlock.isConnected) {
         const lastBlockCursorPosition = getCursorPositionFromElement(lastBlock);

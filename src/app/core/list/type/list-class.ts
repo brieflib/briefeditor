@@ -1,6 +1,7 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {getChildFragment} from "@/core/shared/element-util";
 import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
+import {getFirstListWrapper} from "@/core/list/util/list-util";
 
 export enum ListWrapper {
     UL = "UL",
@@ -16,15 +17,7 @@ export class ListClass {
 export function parseList(rootWrapper: HTMLElement): ListClass[] {
     const result: ListClass[] = [];
 
-    let firstWrapper: Element = rootWrapper;
-    while (firstWrapper.nextElementSibling && isSchemaContain(firstWrapper.nextElementSibling, [Display.ListWrapper])) {
-        firstWrapper = firstWrapper.nextElementSibling;
-    }
-    while (firstWrapper.previousElementSibling && isSchemaContain(firstWrapper.previousElementSibling, [Display.ListWrapper])) {
-        firstWrapper = firstWrapper.previousElementSibling;
-    }
-
-    let current: Element | null = firstWrapper;
+    let current: Element | null = getFirstListWrapper(rootWrapper);
     while (current && isSchemaContain(current, [Display.ListWrapper])) {
         parseListWrapper(current as HTMLElement, toListWrapper(current), 0, result);
         current = current.nextElementSibling;
