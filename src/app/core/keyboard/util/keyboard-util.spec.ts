@@ -1,6 +1,6 @@
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
-import {insertBreak, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
+import {newLine, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 jest.mock("../../shared/range-util", () => ({
@@ -1904,7 +1904,7 @@ describe("Insert break", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         let cursorPosition = getCursorPosition();
-        cursorPosition = insertBreak(wrapper, cursorPosition);
+        cursorPosition = newLine(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">fir</p><p>st</p>
@@ -1925,7 +1925,7 @@ describe("Insert break", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         let cursorPosition = getCursorPosition();
-        cursorPosition = insertBreak(wrapper, cursorPosition);
+        cursorPosition = newLine(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p><br></p><p class="start">first</p>
@@ -1946,7 +1946,7 @@ describe("Insert break", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         let cursorPosition = getCursorPosition();
-        cursorPosition = insertBreak(wrapper, cursorPosition);
+        cursorPosition = newLine(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">first</p><p><br></p>
@@ -1968,7 +1968,7 @@ describe("Insert break", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         let cursorPosition = getCursorPosition();
-        cursorPosition = insertBreak(wrapper, cursorPosition);
+        cursorPosition = newLine(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">fir<em>s</em></p><p><em>t</em></p>
@@ -1990,7 +1990,7 @@ describe("Insert break", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         let cursorPosition = getCursorPosition();
-        cursorPosition = insertBreak(wrapper, cursorPosition);
+        cursorPosition = newLine(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2016,7 +2016,7 @@ describe("Insert break", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         let cursorPosition = getCursorPosition();
-        cursorPosition = insertBreak(wrapper, cursorPosition);
+        cursorPosition = newLine(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <ul>

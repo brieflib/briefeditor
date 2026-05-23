@@ -1,10 +1,10 @@
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
 import {
-    insertBreak,
+    newLine,
     isSpecialKey,
     mergeBlocks,
     mergeNextBlock,
-    mergePreviousBlock
+    mergePreviousBlock, insertBreak
 } from "@/core/keyboard/util/keyboard-util";
 import {
     CursorPosition,
@@ -28,7 +28,7 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
         if (!isCollapsed(cursorPosition)) {
             cursorPosition = deleteContents(cursorPosition);
         }
-        let breakCursorPosition = insertBreak(contentEditable, cursorPosition);
+        let breakCursorPosition = event.shiftKey ? insertBreak(contentEditable, cursorPosition) : newLine(contentEditable, cursorPosition);
 
         if (isSchemaContain(breakCursorPosition.startContainer, [Display.SelfClose]) &&
             isSchemaContain(breakCursorPosition.endContainer, [Display.SelfClose])) {

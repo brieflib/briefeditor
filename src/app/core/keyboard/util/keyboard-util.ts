@@ -5,13 +5,13 @@ import {
     extractContents,
     getCursorPosition,
     getCursorPositionFrom,
-    getCursorPositionFromElement
+    getCursorPositionFromElement, insertNode
 } from "@/core/shared/type/cursor-position";
 import {
     getChildFragment,
     getFirstText,
     getLastNonEmptyText,
-    getNextNode,
+    getNextNode, getNextNotEmptyNode,
     getPreviousNode
 } from "@/core/shared/element-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
@@ -116,6 +116,18 @@ function isKeyPrintable(key: string) {
 }
 
 export function insertBreak(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const br = document.createElement("br");
+    insertNode(cursorPosition, br);
+    const nextLine = getNextNotEmptyNode(contentEditable, br);
+    if (!nextLine) {
+        return cursorPosition;
+    }
+
+    const firstText = getFirstText(nextLine);
+    return getCursorPositionFrom(firstText, 0, firstText, 0);
+}
+
+export function newLine(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
     const block = getSelectedBlock(contentEditable, cursorPosition)[0];
     if (!block) {
         return cursorPosition;
@@ -138,7 +150,14 @@ export function insertBreak(contentEditable: HTMLElement, cursorPosition: Cursor
 
     const newBlock = document.createElement(block.nodeName);
     cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, block, block.childNodes.length);
-    newBlock.appendChild(extractContents(cursorPosition));
+
+    const fragment = extractContents(cursorPosition);
+    Array.from(fragment.childNodes).forEach(child => {
+        if (child.nodeType === Node.TEXT_NODE && !child.textContent) {
+            child.remove();
+        }
+    });
+    newBlock.appendChild(fragment);
     block.after(newBlock);
 
     const firstText = getFirstText(newBlock);

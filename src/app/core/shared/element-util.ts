@@ -53,6 +53,14 @@ export function getNextNode(findTill: HTMLElement, node: Node) {
     return node.nextSibling;
 }
 
+export function getNextNotEmptyNode(findTill: HTMLElement, node: Node | null) {
+    while (node && !node.textContent) {
+        node = getNextNode(findTill, node);
+    }
+
+    return node;
+}
+
 export function getPreviousNode(findTill: HTMLElement, node: Node) {
     while (node.parentElement && node !== findTill && !node.previousSibling) {
         node = node.parentElement;

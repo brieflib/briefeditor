@@ -176,6 +176,54 @@ describe("Keyboard events", () => {
         `);
     });
 
+    test("Press enter when cursor is at the beginning of tag", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<strong>first</strong>second</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
+        const cursorPosition = handleEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zero</p><p><strong>first</strong>second</p>
+        `);
+
+        const expectedContainer = getFirstChild(wrapper, "strong");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+
+    test("Press shift+enter when cursor is at the beginning of tag", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<strong>first</strong>second</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter", shiftKey: true});
+        const cursorPosition = handleEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zero<br><strong>first</strong>second</p>
+        `);
+
+        const expectedContainer = getFirstChild(wrapper, "strong");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+
     test("Press delete when selection spans two paragraphs", () => {
         const wrapper = createWrapper(`
             <p class="start">first</p><p class="end">zero</p>
