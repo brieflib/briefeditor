@@ -98,7 +98,7 @@ function remapCursor(firstText: Node, lastText: Node, cursor: CursorPosition): C
     return getCursorPositionFrom(startContainer, startOffset, lastText, cursor.endOffset);
 }
 
-function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
+export function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
     const leaves = getLeafNodes(rootElement)

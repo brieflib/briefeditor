@@ -176,3 +176,17 @@ export function pasteParagraph(contentEditable: HTMLElement) {
         contentEditable.appendChild(p);
     }
 }
+
+export function clone(node: Node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+        return node;
+    }
+
+    const cloned = document.createElement(node.nodeName);
+
+    node.childNodes.forEach(child => {
+        cloned.appendChild(child);
+    });
+
+    return cloned;
+}

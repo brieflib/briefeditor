@@ -146,8 +146,11 @@ export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: 
 }
 
 export function isRangeIn(element?: HTMLElement, cursorPosition = getCursorPosition()) {
-    return element?.contains(cursorPosition.startContainer) &&
-        element?.contains(cursorPosition.endContainer);
+    return element?.contains(cursorPosition.startContainer) && element?.contains(cursorPosition.endContainer);
+}
+
+export function createContextualFragment(htmlString: string, cursorPosition: CursorPosition) {
+    return getRangeFromCursorPosition(cursorPosition).createContextualFragment(htmlString);
 }
 
 export function intersectsNode(cursorPosition: CursorPosition, node: Node) {

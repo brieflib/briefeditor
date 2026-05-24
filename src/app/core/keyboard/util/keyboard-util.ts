@@ -85,7 +85,7 @@ export function isSpecialKey(event: KeyboardEvent) {
     }
 
     return [
-        "Control", "Alt", "Meta", "Escape", "Insert",
+        "Control", "Alt", "Meta", "Escape", "Insert", "Shift",
         "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
         "CapsLock", "NumLock", "ScrollLock", "Pause"
     ].includes(event.key);

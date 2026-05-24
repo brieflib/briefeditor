@@ -16,10 +16,9 @@ import {
 import {normalize} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
-export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent): CursorPosition {
+export function handleKeyboardEvent(contentEditable: HTMLElement, event: KeyboardEvent): CursorPosition {
     let cursorPosition = getCursorPosition();
     if (isSpecialKey(event)) {
-        event.preventDefault();
         return cursorPosition;
     }
 
@@ -54,7 +53,6 @@ export function handleEvent(contentEditable: HTMLElement, event: KeyboardEvent):
 
     if (event.key === "Delete" && isCursorAtEndOfBlock(contentEditable)) {
         event.preventDefault();
-
         cursorPosition = mergeNextBlock(contentEditable, cursorPosition);
         setCursorPosition(contentEditable, cursorPosition);
         return cursorPosition;

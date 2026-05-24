@@ -6,7 +6,7 @@ import {
     getCursorPosition,
     getCursorPositionFrom
 } from "@/core/shared/type/cursor-position";
-import {hasSelfCloseDescendant} from "@/core/shared/element-util";
+import {clone, hasSelfCloseDescendant} from "@/core/shared/element-util";
 
 export interface ContainerAndCursorPosition {
     container: DocumentFragment,

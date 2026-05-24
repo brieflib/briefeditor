@@ -1,6 +1,6 @@
 import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
-import {handleEvent} from "@/core/keyboard/keyboard";
+import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -19,7 +19,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
-        handleEvent(wrapper, keyboardEvent);
+        handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p><p><br></p><p class="start">first</p>
@@ -37,7 +37,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
-        handleEvent(wrapper, keyboardEvent);
+        handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">zero</p><p><br></p><p>first</p>
@@ -55,7 +55,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
-        const cursorPosition = handleEvent(wrapper, keyboardEvent);
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
         const paragraphBetween = wrapper.querySelectorAll("p")[1];
 
         expect(cursorPosition.startContainer.parentElement).toBe(paragraphBetween);
@@ -76,7 +76,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
-        const cursorPosition = handleEvent(wrapper, keyboardEvent);
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
         const lastParagraph = wrapper.querySelectorAll("p")[2];
 
         expectHtml(wrapper.innerHTML, `
@@ -102,7 +102,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
-        const cursorPosition = handleEvent(wrapper, keyboardEvent);
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
         const brTag = wrapper.querySelectorAll("p")[2];
 
         expectHtml(wrapper.innerHTML, `
@@ -126,7 +126,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
-        handleEvent(wrapper, keyboardEvent);
+        handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">zero</p><p>second</p>
@@ -144,7 +144,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
-        const cursorPosition = handleEvent(wrapper, keyboardEvent);
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p><p>second</p>
@@ -169,7 +169,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
-        handleEvent(wrapper, keyboardEvent);
+        handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p><p><strong class="start">st</strong>second</p>
@@ -187,7 +187,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
-        const cursorPosition = handleEvent(wrapper, keyboardEvent);
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">zero</p><p><strong>first</strong>second</p>
@@ -211,7 +211,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter", shiftKey: true});
-        const cursorPosition = handleEvent(wrapper, keyboardEvent);
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">zero<br><strong>first</strong>second</p>
@@ -235,7 +235,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
-        const cursorPosition = handleEvent(wrapper, keyboardEvent);
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">fio</p>
@@ -259,7 +259,7 @@ describe("Keyboard events", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
-        const cursorPosition = handleEvent(wrapper, keyboardEvent);
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
         const brTag = wrapper.querySelectorAll("p")[2];
 
         expect(cursorPosition.startContainer.parentElement).toBe(brTag);
