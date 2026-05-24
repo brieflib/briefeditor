@@ -149,11 +149,7 @@ export function replaceLeafParents(element: Node, replaceToElement: HTMLElement[
     return leaf;
 }
 
-export function removeConsecutiveDuplicates(leaf: Leaf, isDisabled = false): Leaf {
-    if (isDisabled) {
-        return leaf;
-    }
-
+export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
     const parents = leaf.getParents();
 
     if (parents.length === 0) {
@@ -296,5 +292,17 @@ function clearElementHTML(node: Node | undefined) {
         return node;
     }
 
-    return node.cloneNode(false) as HTMLElement;
+    const cloned = node.cloneNode(false) as HTMLElement;
+    removeAttributes(cloned);
+
+    return cloned;
+}
+
+function removeAttributes(element: HTMLElement) {
+    for (const name of element.getAttributeNames()) {
+        if (name === "href") {
+            continue;
+        }
+        element.removeAttribute(name);
+    }
 }

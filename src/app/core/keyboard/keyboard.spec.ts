@@ -22,7 +22,7 @@ describe("Keyboard events", () => {
         handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
-            <p>zero</p><p><br></p><p class="start">first</p>
+            <p>zero</p><p><br></p><p>first</p>
         `);
     });
 
@@ -82,7 +82,7 @@ describe("Keyboard events", () => {
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
             <p><br></p>
-            <p class="start">first</p>
+            <p>first</p>
         `)
 
         expect(cursorPosition.startContainer.parentElement).toBe(lastParagraph);
@@ -129,7 +129,7 @@ describe("Keyboard events", () => {
         handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">zero</p><p>second</p>
+            <p>zero</p><p>second</p>
         `);
     });
 
@@ -172,7 +172,7 @@ describe("Keyboard events", () => {
         handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
-            <p>zero</p><p><strong class="start">st</strong>second</p>
+            <p>zero</p><p><strong>st</strong>second</p>
         `);
     });
 
@@ -190,7 +190,7 @@ describe("Keyboard events", () => {
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">zero</p><p><strong>first</strong>second</p>
+            <p>zero</p><p><strong>first</strong>second</p>
         `);
 
         const expectedContainer = getFirstChild(wrapper, "strong");
@@ -214,7 +214,7 @@ describe("Keyboard events", () => {
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">zero<br><strong>first</strong>second</p>
+            <p>zero<br><strong>first</strong>second</p>
         `);
 
         const expectedContainer = getFirstChild(wrapper, "strong");
@@ -238,12 +238,12 @@ describe("Keyboard events", () => {
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">fio</p>
+            <p>fio</p>
         `);
 
-        expect((wrapper.querySelector(".start") as HTMLElement).childNodes.length).toBe(1);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect((wrapper.querySelector("p") as HTMLElement).childNodes.length).toBe(1);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, "p"));
         expect(cursorPosition.startOffset).toBe(2);
         expect(cursorPosition.endOffset).toBe(2);
     });

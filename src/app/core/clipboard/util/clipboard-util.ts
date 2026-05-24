@@ -1,10 +1,10 @@
-import {createContextualFragment, CursorPosition} from "@/core/shared/type/cursor-position";
-import {normalize, removeAndNormalize} from "@/core/normalize/normalize";
+import {createContextualFragment, CursorPosition, insertNode} from "@/core/shared/type/cursor-position";
+import {removeAndNormalize} from "@/core/normalize/normalize";
 
-export function sanitize(htmlString: string, cursorPosition: CursorPosition) {
-    const fragment = createContextualFragment(htmlString, cursorPosition);
-    const div = document.createElement("div");
-    div.appendChild(fragment);
+export function sanitizeHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
+    const div = document.createElement("DELETED");
+    div.appendChild(createContextualFragment(htmlString, cursorPosition));
+    insertNode(cursorPosition, div);
 
-    return removeAndNormalize(div, div, [], cursorPosition);
+    return removeAndNormalize(contentEditable, div, ["DELETED"], cursorPosition);
 }

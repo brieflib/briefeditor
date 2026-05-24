@@ -31,8 +31,8 @@ describe("BriefEditor API", () => {
         briefEditor.toggleTag("EM", {class: "zero"});
 
         expectHtml((wrapper.querySelector("#be-editor") as HTMLElement).innerHTML, `
-            <em class="zero">
-                <span class="start">zero</span>
+            <em>
+                <span>zero</span>
             </em>
         `);
     });
@@ -52,8 +52,8 @@ describe("BriefEditor API", () => {
 
         (getRange as jest.Mock).mockImplementation(() => {
             const range = new Range();
-            range.setStart(wrapper.querySelector(".start")?.firstChild ?? wrapper.querySelector(".start") as Node, "".length);
-            range.setEnd(wrapper.querySelector(".start")?.firstChild ?? wrapper.querySelector(".start") as Node, "".length);
+            range.setStart(wrapper.querySelector("em")?.firstChild ?? wrapper.querySelector("em") as Node, "".length);
+            range.setEnd(wrapper.querySelector("em")?.firstChild ?? wrapper.querySelector("em") as Node, "".length);
             return range;
         });
 
@@ -61,7 +61,7 @@ describe("BriefEditor API", () => {
 
         expectHtml((wrapper.querySelector("#be-editor") as HTMLElement).innerHTML, `
             <p class="zero">
-                <em class="start">zero</em>
+                <em>zero</em>
             </p>            
         `);
     });
@@ -88,8 +88,8 @@ describe("BriefEditor API", () => {
 
         expectHtml((wrapper.querySelector("#be-editor") as HTMLElement).innerHTML, `
             <p>
-                <a class="zero" href="zero">
-                    <em class="start">zero</em>
+                <a href="zero">
+                    <em>zero</em>
                 </a>
             </p>                   
         `);
@@ -110,8 +110,8 @@ describe("BriefEditor API", () => {
 
         (getRange as jest.Mock).mockImplementation(() => {
             const range = new Range();
-            range.setStart(wrapper.querySelector(".start")?.firstChild ?? wrapper.querySelector(".start") as Node, "".length);
-            range.setEnd(wrapper.querySelector(".start")?.firstChild ?? wrapper.querySelector(".start") as Node, "".length);
+            range.setStart(wrapper.querySelector("em")?.firstChild ?? wrapper.querySelector("em") as Node, "".length);
+            range.setEnd(wrapper.querySelector("em")?.firstChild ?? wrapper.querySelector("em") as Node, "".length);
             return range;
         });
 
@@ -120,7 +120,7 @@ describe("BriefEditor API", () => {
         expectHtml((wrapper.querySelector("#be-editor") as HTMLElement).innerHTML, `
             <ol class="zero">
                 <li>
-                    <em class="start">zero</em>
+                    <em>zero</em>
                 </li>
             </ol>
         `);

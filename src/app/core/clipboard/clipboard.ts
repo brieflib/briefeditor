@@ -1,11 +1,14 @@
 import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {sanitizeHtml} from "@/core/clipboard/util/clipboard-util";
 
 export function handleClipboardEvent(contentEditable: HTMLElement, event: ClipboardEvent): CursorPosition {
-    let cursorPosition = getCursorPosition();
+    const cursorPosition = getCursorPosition();
     event.preventDefault();
 
-    const html = event.clipboardData?.getData('text/html');
-    console.log(html);
+    const htmlString = event.clipboardData?.getData('text/html');
+    if (htmlString) {
+        sanitizeHtml(contentEditable, htmlString, cursorPosition);
+    }
 
     return cursorPosition;
 }

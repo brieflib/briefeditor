@@ -114,7 +114,7 @@ describe("Should normalize tags", () => {
     test("Should preserve href property", () => {
         const wrapper = document.createElement("div");
         const toNormalize = document.createElement("div");
-        toNormalize.innerHTML = "<strong>zero<a href=\"http://www.briefeditor.com\">first</a><a href=\"http://briefeditor.com\">second</a>third<em>fourth</em></strong>";
+        toNormalize.innerHTML = "<strong>zero<a href=\"https://www.briefeditor.io\">first</a><a href=\"https://briefeditor.io\">second</a>third<em>fourth</em></strong>";
         wrapper.appendChild(toNormalize);
 
         const range = new Range();
@@ -123,7 +123,7 @@ describe("Should normalize tags", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         normalize(wrapper, getCursorPosition());
-        expect((wrapper.firstChild as HTMLElement).innerHTML).toBe("<strong>zero</strong><a href=\"http://www.briefeditor.com\"><strong>first</strong></a><a href=\"http://briefeditor.com\"><strong>second</strong></a><strong>third<em>fourth</em></strong>");
+        expect((wrapper.firstChild as HTMLElement).innerHTML).toBe("<strong>zero</strong><a href=\"https://www.briefeditor.io\"><strong>first</strong></a><a href=\"https://briefeditor.io\"><strong>second</strong></a><strong>third<em>fourth</em></strong>");
     });
 
     test("Should preserve nested ordered list", () => {
@@ -206,7 +206,7 @@ describe("Should normalize tags", () => {
         normalize(wrapper, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
-            <div class="start">zero</div>
+            <div>zero</div>
         `);
     });
 
@@ -245,11 +245,11 @@ describe("Should remove tags", () => {
         removeTags(wrapper, ["STRONG"], getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
-            <u class="start">
+            <u>
                 <i>zero</i>
             </u>
             <strong>
-                <u class="start">first</u>
+                <u>first</u>
             </strong>
             second
         `);
@@ -283,7 +283,7 @@ describe("Should remove tags", () => {
                     <i>zero</i>
                 </u>
             </strong>
-            <div class="start">
+            <div>
                 <u><span>first</span>second</u>
             </div>
             third

@@ -29,13 +29,13 @@ describe("Unwrap tag", () => {
         expectHtml(wrapper.innerHTML, `
              <p>
                 <strong>
-                    <u class="end">
-                        <i class="start">ze</i>
+                    <u>
+                        <i>ze</i>
                     </u>
                 </strong>
-                <u class="end"><i class="start">ro</i>fi</u>
+                <u><i>ro</i>fi</u>
                 <strong>
-                    <u class="end">rst</u>
+                    <u>rst</u>
                 </strong>
                 second
             </p>
@@ -99,8 +99,8 @@ describe("Unwrap tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li><strong class="start">ze</strong>ro</li>
-                <li>fi<strong class="end">rst</strong></li>
+                <li><strong>ze</strong>ro</li>
+                <li>fi<strong>rst</strong></li>
             </ul>
         `);
     });
@@ -120,7 +120,7 @@ describe("Wrap in tag", () => {
         tag(wrapper, "em", Action.Wrap);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="end"><strong class="start">zero</strong><em>fi</em>rst</p>
+            <p><strong>zero</strong><em>fi</em>rst</p>
         `);
     });
 
@@ -141,13 +141,13 @@ describe("Wrap in tag", () => {
         tag(wrapper, "em", Action.Wrap);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">zer<em>o</em></p>
+            <p>zer<em>o</em></p>
             <p>
                 <strong>
                     <em>first</em>
                 </strong>
             </p>
-            <p class="end"><em>se</em>cond</p>
+            <p><em>se</em>cond</p>
         `);
     });
 
@@ -166,7 +166,7 @@ describe("Wrap in tag", () => {
         tag(wrapper, "strong", Action.Wrap);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">zer<strong class="end">o first</strong></p>
+            <p>zer<strong>o first</strong></p>
         `);
     });
 
@@ -185,7 +185,7 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>ze<strong>ro</strong></p>
-            <p class="end"><strong>fi</strong>rst</p>
+            <p><strong>fi</strong>rst</p>
         `);
     });
 
@@ -212,16 +212,16 @@ describe("Wrap in tag", () => {
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
-                    <u class="start">fi</u>
+                    <u>fi</u>
                     <strong>
-                        <u class="start">rst</u>
+                        <u>rst</u>
                         <em>second</em>
                     </strong>
                 </li>
                 <li>
                     <strong>third</strong>
                 </li>
-                <li class="end"><strong>fo</strong>urth</li>
+                <li><strong>fo</strong>urth</li>
             </ul>
         `);
     });
@@ -243,9 +243,9 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">ze<strong>ro</strong></li>
+                <li>ze<strong>ro</strong></li>
             </ul>
-            <p class="end"><strong>fi</strong>rst</p>
+            <p><strong>fi</strong>rst</p>
         `);
     });
 });
@@ -284,7 +284,7 @@ describe("Change first level", () => {
 
         expectHtml(wrapper.innerHTML, `
             <h1>
-                <strong class="start">zero</strong>
+                <strong>zero</strong>
             </h1>
         `);
     });
@@ -306,7 +306,7 @@ describe("Change first level", () => {
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>
-                    <strong class="start">zero</strong>
+                    <strong>zero</strong>
                 </li>
             </ul>
         `);
@@ -337,7 +337,7 @@ describe("Change first level", () => {
                 <li>zero</li>
             </ul>
             <p>
-                <strong class="start">first</strong>
+                <strong>first</strong>
             </p>
         `);
     });
@@ -487,7 +487,7 @@ describe("Change first level", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>
-                <strong class="start">zero<br>first</strong>
+                <strong>zero<br>first</strong>
             </p>
         `);
     });
@@ -604,7 +604,7 @@ describe("Change first level", () => {
             <ul>
                 <li>zero</li>
                 <ol>
-                    <li class="start">first</li>
+                    <li>first</li>
                 </ol>
             </ul>
         `);
@@ -631,7 +631,7 @@ describe("Change first level", () => {
                 <li>zero</li>
             </ul>
             <ol>
-                <li class="start">first</li>
+                <li>first</li>
             </ol>
         `);
     });
@@ -662,7 +662,7 @@ describe("Change first level", () => {
                         <li>first</li>
                     </ol>
                     <ul>
-                        <li class="start">second</li>
+                        <li>second</li>
                     </ul>
                 </li>
             </ul>
@@ -689,7 +689,7 @@ describe("Change first level", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">zero
+                <li>zero
                     <ol>
                         <li>first</li>
                     </ol>
@@ -733,13 +733,13 @@ describe("Wrap in tag with attributes", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         tag(wrapper, "A", Action.Wrap, {
-            href: "http://www.briefeditor.com"
+            href: "https://www.briefeditor.io"
         });
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze<a href="http://www.briefeditor.com">ro</a></p>
-            <p class="end">
-                <a href="http://www.briefeditor.com">first</a>
+            <p>ze<a href="https://www.briefeditor.io">ro</a></p>
+            <p>
+                <a href="https://www.briefeditor.io">first</a>
             </p>
         `);
     });

@@ -24,7 +24,7 @@ describe("Merge previous element", () => {
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <p>zero<em class="start">first</em></p>
+            <p>zero<em>first</em></p>
         `);
 
         const expectedContainer = getFirstChild(wrapper, "p")
@@ -74,7 +74,7 @@ describe("Merge previous element", () => {
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <h1 class="start">first <em>second</em></h1>
+            <h1>first <em>second</em></h1>
         `);
 
         const expectedContainer = getFirstChild(wrapper, "h1")
@@ -651,10 +651,10 @@ describe("Merge next element", () => {
         const cursorPosition = mergeNextBlock(wrapper);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">zerofirst <em>second</em></p>
+            <p>zerofirst <em>second</em></p>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(4);
@@ -729,10 +729,10 @@ describe("Merge next element", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
-            <h1 class="start">firstsecond</h1>
+            <h1>firstsecond</h1>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "h1");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(5);
@@ -756,10 +756,10 @@ describe("Merge first levels", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze rst <em>second</em></p>
+            <p>ze rst <em>second</em></p>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -949,10 +949,10 @@ describe("Merge P and List selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze rst</p>
+            <p>ze rst</p>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -977,10 +977,10 @@ describe("Merge P and List selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze cond</p>
+            <p>ze cond</p>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -1304,10 +1304,10 @@ describe("Merge P and nested list selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze cond</p>
+            <p>ze cond</p>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -1335,13 +1335,13 @@ describe("Merge P and nested list selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze rst</p>
+            <p>ze rst</p>
             <ul>
                 <li>second</li>
             </ul>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -1376,13 +1376,13 @@ describe("Merge P and nested list selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze ird</p>
+            <p>ze ird</p>
             <ol>
                 <li>fourth</li>
             </ol>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -1448,10 +1448,10 @@ describe("Merge P and nested list selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze ird</p>
+            <p>ze ird</p>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -1480,13 +1480,13 @@ describe("Merge P and nested list selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze cond</p>
+            <p>ze cond</p>
             <ul>
                 <li>third</li>
             </ul>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -1515,7 +1515,7 @@ describe("Merge P and nested list selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <h1 class="start">ze rst</h1>
+            <h1>ze rst</h1>
             <ul>
                 <li>second
                     <ul>
@@ -1525,7 +1525,7 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "h1");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -1554,13 +1554,13 @@ describe("Merge P and nested list selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <h1 class="start">ze cond</h1>
+            <h1>ze cond</h1>
             <ul>
                 <li>third</li>
             </ul>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "h1");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -1634,10 +1634,10 @@ describe("Merge P and nested list selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze ird</p>
+            <p>ze ird</p>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -1694,10 +1694,10 @@ describe("Merge complete list selections", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">ze cond</p>
+            <p>ze cond</p>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(3);
@@ -1786,11 +1786,11 @@ describe("Cursor position after key press", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">fi cond</p>
+            <p>fi cond</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, "p"));
         expect(cursorPosition.startOffset).toBe(3);
         expect(cursorPosition.endOffset).toBe(3);
     });
@@ -1810,11 +1810,11 @@ describe("Cursor position after key press", () => {
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">fi <strong class="end">cond</strong></p>
+            <p>fi <strong>cond</strong></p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, "p"));
         expect(cursorPosition.startOffset).toBe(3);
         expect(cursorPosition.endOffset).toBe(3);
     });
@@ -1834,7 +1834,7 @@ describe("Cursor position after key press", () => {
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start"><br/></p>
+            <p><br/></p>
         `);
 
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));

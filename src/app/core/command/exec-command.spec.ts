@@ -24,10 +24,10 @@ describe("Exec command with different cursor position", () => {
         execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">
+            <p>
                 <strong>zero</strong>
             </p>
-            <p class="end">first</p>
+            <p>first</p>
         `);
     });
 
@@ -69,9 +69,9 @@ describe("Exec command with different cursor position", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li><strong class="start">zero</strong>first</li>
+                <li><strong>zero</strong>first</li>
                 <li>
-                    <strong class="end">second</strong>
+                    <strong>second</strong>
                 </li>
             </ul>
         `);
@@ -103,7 +103,7 @@ describe("Exec command with different cursor position", () => {
                         <li>first</li>
                     </ol>
                     <ul>
-                        <li class="start">second</li>
+                        <li>second</li>
                     </ul>
                 </li>
             </ul>
@@ -172,7 +172,7 @@ describe("Cursor position after Tag command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         // After: <p class="start">ze<strong>ro</strong></p>
-        const expectedNode = wrapper.querySelector(".start")?.firstChild;
+        const expectedNode = wrapper.querySelector("p")?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedNode);
         expect(cursorPosition.startOffset).toBe("".length);
         expect(cursorPosition.endContainer).toBe(expectedNode);
@@ -193,13 +193,13 @@ describe("Cursor position after Tag command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start"><strong>zero</strong></p>
-            <p class="end"><strong>fir</strong>st</p>
+            <p><strong>zero</strong></p>
+            <p><strong>fir</strong>st</p>
         `)
 
         // After: <p class="start"><strong>zero</strong></p><p class="end"><strong>fir</strong>st</p>
-        const expectedStart = wrapper.querySelector(".start strong")?.firstChild;
-        const expectedEnd = wrapper.querySelector(".end strong")?.firstChild;
+        const expectedStart = wrapper.querySelectorAll("strong")[0]?.firstChild;
+        const expectedEnd = wrapper.querySelectorAll("strong")[1]?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedStart);
         expect(cursorPosition.startOffset).toBe("".length);
         expect(cursorPosition.endContainer).toBe(expectedEnd);
@@ -219,8 +219,8 @@ describe("Cursor position after Tag command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         // After: <p class="start">z<strong>er</strong>o</p>
-        const expectedStart = wrapper.querySelector(".start strong")?.firstChild;
-        const expectedEnd = wrapper.querySelector(".start strong")?.firstChild;
+        const expectedStart = wrapper.querySelector("strong")?.firstChild;
+        const expectedEnd = wrapper.querySelector("strong")?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedStart);
         expect(cursorPosition.startOffset).toBe("".length);
         expect(cursorPosition.endContainer).toBe(expectedEnd);
@@ -240,11 +240,11 @@ describe("Cursor position after Tag command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
-             <p class="start">z<strong>erofirst</strong>second</p>
+             <p>z<strong>erofirst</strong>second</p>
         `);
 
-        const expectedStart = wrapper.querySelector(".start")?.firstChild;
-        const expectedEnd = wrapper.querySelector(".start strong")?.firstChild;
+        const expectedStart = wrapper.querySelector("p")?.firstChild;
+        const expectedEnd = wrapper.querySelector("p strong")?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedStart);
         expect(cursorPosition.startOffset).toBe("z".length);
         expect(cursorPosition.endContainer).toBe(expectedEnd);
@@ -269,14 +269,14 @@ describe("Cursor position after Tag command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">zero</li>
+                <li>zero</li>
                 <li>first</li>
-                <li class="end">sec<strong>ond</strong></li>
+                <li>sec<strong>ond</strong></li>
             </ul>
         `)
 
-        const expectedStart = wrapper.querySelector(".start")?.firstChild;
-        const expectedEnd = wrapper.querySelector(".end")?.firstChild;
+        const expectedStart = wrapper.querySelectorAll("li")[0]?.firstChild;
+        const expectedEnd = wrapper.querySelectorAll("li")[2]?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedStart);
         expect(cursorPosition.startOffset).toBe("".length);
         expect(cursorPosition.endContainer).toBe(expectedEnd);
