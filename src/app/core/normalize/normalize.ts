@@ -3,6 +3,7 @@ import {
     ContainerAndCursorPosition,
     filterLeafParents,
     getLeafNodes,
+    remapCursor,
     removeConsecutiveDuplicates,
     replaceLeafParents,
     setLeafParents,
@@ -14,7 +15,6 @@ import {
     CursorPosition,
     extractContents,
     getCursorPosition,
-    getCursorPositionFrom,
     insertNode,
     isCursorPositionEqual,
     selectNode
@@ -83,19 +83,6 @@ export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPo
 
     cursorPosition = remapCursor(firstText, lastText, cursorPosition);
     return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition);
-}
-
-function remapCursor(firstText: Node, lastText: Node, cursor: CursorPosition): CursorPosition {
-    if (cursor.startContainer === cursor.endContainer) {
-        return getCursorPositionFrom(
-            firstText, 0,
-            firstText, cursor.endOffset - cursor.startOffset
-        );
-    }
-
-    const startContainer = cursor.startOffset > 0 ? cursor.startContainer : firstText;
-    const startOffset = cursor.startOffset > 0 ? cursor.startOffset : 0;
-    return getCursorPositionFrom(startContainer, startOffset, lastText, cursor.endOffset);
 }
 
 export function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {

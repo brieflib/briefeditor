@@ -26,4 +26,22 @@ describe("Sanitize input", () => {
             <p>f<strong>second<span>third</span></strong>irst</p>
         `);
     });
+
+    test("Should insert html outside from formating elements", () => {
+        const wrapper = createWrapper(`
+            <p><em class="start">first</em></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "f".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "f".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        sanitizeHtml(wrapper, `<strong style="margin: 0">second</strong>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p><em>f</em><strong>second</strong><em>irst</em></p>
+        `);
+    });
 });

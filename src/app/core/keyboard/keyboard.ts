@@ -16,8 +16,7 @@ import {
 import {normalize} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
-export function handleKeyboardEvent(contentEditable: HTMLElement, event: KeyboardEvent): CursorPosition {
-    let cursorPosition = getCursorPosition();
+export function handleKeyboardEvent(contentEditable: HTMLElement, event: KeyboardEvent, cursorPosition = getCursorPosition()): CursorPosition {
     if (isSpecialKey(event)) {
         return cursorPosition;
     }

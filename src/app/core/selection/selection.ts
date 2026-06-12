@@ -36,7 +36,7 @@ export function getFirstSelectedRoot(contentEditable: HTMLElement, cursorPositio
     const selectedRoots = getSelected(contentEditable, cursorPosition, SelectionType.Root);
     const firstSelectedRoot = selectedRoots[0];
     if (!firstSelectedRoot) {
-        throw new Error("Selected root not found");
+        throw new Error("Selected root is not found");
     }
 
     return firstSelectedRoot;

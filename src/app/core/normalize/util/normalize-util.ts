@@ -1,12 +1,8 @@
 import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {
-    CursorPosition,
-    getCursorPosition,
-    getCursorPositionFrom
-} from "@/core/shared/type/cursor-position";
-import {clone, hasSelfCloseDescendant} from "@/core/shared/element-util";
+import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
+import {hasSelfCloseDescendant} from "@/core/shared/element-util";
 
 export interface ContainerAndCursorPosition {
     container: DocumentFragment,
@@ -190,6 +186,19 @@ export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
     return leaf;
 }
 
+export function remapCursor(firstText: Node, lastText: Node, cursor: CursorPosition): CursorPosition {
+    if (cursor.startContainer === cursor.endContainer) {
+        return getCursorPositionFrom(
+            firstText, 0,
+            firstText, cursor.endOffset - cursor.startOffset
+        );
+    }
+
+    const startContainer = cursor.startOffset > 0 ? cursor.startContainer : firstText;
+    const startOffset = cursor.startOffset > 0 ? cursor.startOffset : 0;
+    return getCursorPositionFrom(startContainer, startOffset, lastText, cursor.endOffset);
+}
+
 function hasDuplicateList(node: Node | undefined) {
     if (!node) {
         return false;
@@ -271,7 +280,7 @@ function calculateCursorPosition(containerChild: Node, textToInsert: ChildNode |
     const [startContainer, startOffset] = remap(cursorPosition.startContainer, cursorPosition.startOffset);
     const [endContainer, endOffset] = remap(cursorPosition.endContainer, cursorPosition.endOffset);
 
-    return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset, false);
+    return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset);
 }
 
 function shiftFirstParent(leaves: Leaf[]) {
