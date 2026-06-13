@@ -50,7 +50,7 @@ export function getCursorPositionFrom(startContainer: Node, startOffset: number,
     };
 }
 
-export function getCursorPositionFromElement(element: HTMLElement, isRange = true): CursorPosition {
+export function getCursorPositionFromElement(element: Node, isRange = true): CursorPosition {
     const firstText = getFirstText(element);
     const lastText = getLastText(element);
 

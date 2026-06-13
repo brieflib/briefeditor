@@ -15,6 +15,7 @@ import {
     CursorPosition,
     extractContents,
     getCursorPosition,
+    getCursorPositionFrom,
     insertNode,
     isCursorPositionEqual,
     selectNode
@@ -143,6 +144,67 @@ export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorP
     firstRoot.before(wrapper);
     wrapper.append(...rootElements);
     removeAndNormalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
+}
+
+export function closeTags(rootElement: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    if (cursorPosition.startContainer.nodeType === Node.TEXT_NODE) {
+        const text = cursorPosition.startContainer as Text;
+        const offset = cursorPosition.startOffset;
+        if (offset > 0 && offset < text.length) {
+            text.splitText(offset);
+        }
+    }
+
+    const beforeLeafNodes: Node[] = [];
+    const afterLeafNodes: Node[] = [];
+    for (const leafNode of getLeafNodes(rootElement)) {
+        if (isLeafBeforeCursor(leafNode, cursorPosition)) {
+            beforeLeafNodes.push(leafNode);
+        } else {
+            afterLeafNodes.push(leafNode);
+        }
+    }
+
+    const build = (nodes: Node[]) => nodes
+        .map(node => setLeafParents(rootElement, node))
+        .map(leaf => sortLeafParents(leaf))
+        .map(leaf => removeConsecutiveDuplicates(leaf));
+
+    const beforeResult = collapseLeaves(build(beforeLeafNodes), cursorPosition);
+    const afterResult = collapseLeaves(build(afterLeafNodes), cursorPosition);
+
+    const beforeWrapper = beforeResult.container.firstChild;
+    if (beforeWrapper) {
+        rootElement.append(...beforeWrapper.childNodes);
+    }
+    const cursorOffset = rootElement.childNodes.length;
+    const afterWrapper = afterResult.container.firstChild;
+    if (afterWrapper) {
+        rootElement.append(...afterWrapper.childNodes);
+    }
+
+    return getCursorPositionFrom(rootElement, cursorOffset, rootElement, cursorOffset);
+}
+
+function isLeafBeforeCursor(leaf: Node, cursorPosition: CursorPosition): boolean {
+    const container = cursorPosition.startContainer;
+    const offset = cursorPosition.startOffset;
+
+    if (leaf === container && container.nodeType === Node.TEXT_NODE) {
+        return offset === (container as Text).length;
+    }
+
+    let node: Node = leaf;
+    while (node.parentNode && node.parentNode !== container) {
+        node = node.parentNode;
+    }
+    if (node.parentNode === container) {
+        const idx = Array.prototype.indexOf.call(container.childNodes, node);
+        return idx < offset;
+    }
+
+    const pos = leaf.compareDocumentPosition(container);
+    return !!(pos & Node.DOCUMENT_POSITION_FOLLOWING);
 }
 
 function buildElementsToReplace(replaceTo: string[]) {
