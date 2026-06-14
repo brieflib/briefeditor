@@ -1,6 +1,7 @@
 import {
     collapseLeaves,
     ContainerAndCursorPosition,
+    extractFirstLevel,
     filterLeafParents,
     getLeafNodes,
     remapCursor,
@@ -93,7 +94,8 @@ export function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: 
         .map(node => setLeafParents(contentEditable, node))
         .filter(leaf => filterLeafParents(removeTagFrom, tags, leaf))
         .map(leaf => sortLeafParents(leaf))
-        .map(leaf => removeConsecutiveDuplicates(leaf));
+        .map(leaf => removeConsecutiveDuplicates(leaf))
+        .map(leaf => extractFirstLevel(leaf));
 
     const containerAndCursorPosition = collapseLeaves(leaves, cursorPosition);
     return replaceElement(containerAndCursorPosition, rootElement);

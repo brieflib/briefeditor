@@ -26,7 +26,7 @@ export function getLastChild(wrapper: HTMLElement, querySelector: string) {
 
 export function testNormalize(initial: string, result: string) {
     const wrapper = document.createElement("div");
-    const toNormalize = document.createElement("div");
+    const toNormalize = document.createElement("deleted");
     toNormalize.innerHTML = replaceSpaces(initial);
     wrapper.appendChild(toNormalize);
     document.body.appendChild(wrapper);

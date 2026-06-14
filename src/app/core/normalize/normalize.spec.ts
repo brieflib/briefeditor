@@ -1,7 +1,8 @@
-import {normalize, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {createWrapper, expectHtml, getFirstChild, testNormalize} from "@/core/shared/test-util";
+import {normalize, removeAndNormalize, removeTags, replaceTags} from "@/core/normalize/normalize";
+import {createWrapper, expectHtml, getFirstChild, getLastChild, testNormalize} from "@/core/shared/test-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
+import {getFirstSelectedRoot} from "@/core/selection/selection";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -95,7 +96,7 @@ describe("Should normalize tags", () => {
         `);
     });
 
-    test("Should delete paragraph and strong duplicates", () => {
+    test("Should delete div and strong duplicates", () => {
         testNormalize(`
             <div>zero
                 <strong>
@@ -107,7 +108,7 @@ describe("Should normalize tags", () => {
                 </strong>
             </div>`,
             `
-            zero <strong>first second</strong>
+            <div>zero <strong>first second</strong></div>
         `);
     });
 
@@ -330,6 +331,94 @@ describe("Should replace tags", () => {
                 </li>
             </ul>
             third
+        `);
+    });
+});
+
+// describe("Should move first level elements out", () => {
+//     test("Should move h1 out of p", () => {
+//         testNormalize(`
+//             <p>zero<h1>first</h1><strong>second</strong></p>
+//         `,
+//         `
+//             <p>zero</p>
+//             <h1>first</h1>
+//             <p><strong>second</strong></p>
+//         `);
+//     });
+// });
+
+describe("Should move first level elements out", () => {
+    test("Should move h1 out of p 1", () => {
+        const wrapper = createWrapper(`
+            <p>zero<strong>second</strong></p>
+        `);
+
+        const h1 = document.createElement("H1");
+        h1.innerHTML = "first";
+        document.querySelector("p")?.firstChild?.after(h1);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, "h1"), "".length);
+        range.setEnd(getFirstChild(wrapper, "h1"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const f = document.querySelector("P") as HTMLElement;
+        removeAndNormalize(wrapper, f, [], getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+             <p>zero</p>
+             <h1>first</h1>
+             <p><strong>second</strong></p>
+        `);
+    });
+
+    test("Should move h1 out of p", () => {
+        const wrapper = createWrapper(`
+            <deleted><p>zero<strong>second</strong></p></deleted>
+        `);
+
+        const h1 = document.createElement("H1");
+        h1.innerHTML = "first";
+        document.querySelector("p")?.firstChild?.after(h1);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, "h1"), "".length);
+        range.setEnd(getFirstChild(wrapper, "h1"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const f = document.querySelector("DELETED") as HTMLElement;
+        removeAndNormalize(wrapper, f, ["DELETED"], getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+             <p>zero</p>
+             <h1>first</h1>
+             <p><strong>second</strong></p>
+        `);
+    });
+
+    test("Should move h1 and h2 out of p", () => {
+        const wrapper = createWrapper(`
+            <deleted><p>zero<strong>third</strong></p></deleted>
+        `);
+
+        const h1 = document.createElement("H1");
+        h1.innerHTML = "first<h2><strong><em>se</em>co</strong>nd</h2>";
+        document.querySelector("p")?.firstChild?.after(h1);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, "h1"), "".length);
+        range.setEnd(getFirstChild(wrapper, "h1"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const f = document.querySelector("DELETED") as HTMLElement;
+        removeAndNormalize(wrapper, f, ["DELETED"], getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+             <p>zero</p>
+             <h1>first</h1>
+             <h2><strong><em>se</em>co</strong>nd</h2>
+             <p><strong>third</strong></p>
         `);
     });
 });

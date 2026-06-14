@@ -145,6 +145,47 @@ export function replaceLeafParents(element: Node, replaceToElement: HTMLElement[
     return leaf;
 }
 
+// export function extractFirstLevel(leaf: Leaf): Leaf {
+//     const parents = leaf.getParents();
+//     const blockIndices = parents
+//         .map((parent, index) => isBlockFirstLevel(parent) ? index : -1)
+//         .filter(index => index >= 0);
+//
+//     if (blockIndices.length <= 1) {
+//         return leaf;
+//     }
+//
+//     const innermost = blockIndices[blockIndices.length - 1];
+//     const result = parents.filter((parent, index) =>
+//         index === innermost || !isBlockFirstLevel(parent));
+//     leaf.setParents(result);
+//
+//     return leaf;
+// }
+
+export function extractFirstLevel(leaf: Leaf): Leaf {
+    const parents = leaf.getParents();
+    const blockIndices = parents
+        .map((parent, index) => isBlockFirstLevel(parent) ? index : -1)
+        .filter(index => index >= 0);
+
+    if (blockIndices.length <= 1) {
+        return leaf;
+    }
+
+    const innermost = blockIndices[blockIndices.length - 1];
+    const result = parents.filter((parent, index) =>
+        index === innermost || !isBlockFirstLevel(parent));
+    leaf.setParents(result);
+
+    return leaf;
+}
+
+function isBlockFirstLevel(node: Node) {
+    return isSchemaContain(node, [Display.FirstLevel]) &&
+        !isSchemaContain(node, [Display.ListWrapper]);
+}
+
 export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
     const parents = leaf.getParents();
 
