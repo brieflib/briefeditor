@@ -145,24 +145,6 @@ export function replaceLeafParents(element: Node, replaceToElement: HTMLElement[
     return leaf;
 }
 
-// export function extractFirstLevel(leaf: Leaf): Leaf {
-//     const parents = leaf.getParents();
-//     const blockIndices = parents
-//         .map((parent, index) => isBlockFirstLevel(parent) ? index : -1)
-//         .filter(index => index >= 0);
-//
-//     if (blockIndices.length <= 1) {
-//         return leaf;
-//     }
-//
-//     const innermost = blockIndices[blockIndices.length - 1];
-//     const result = parents.filter((parent, index) =>
-//         index === innermost || !isBlockFirstLevel(parent));
-//     leaf.setParents(result);
-//
-//     return leaf;
-// }
-
 export function extractFirstLevel(leaf: Leaf): Leaf {
     const parents = leaf.getParents();
     const blockIndices = parents
@@ -286,42 +268,51 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
     return calculateCursorPosition(containerChild, insertText, cursorPosition);
 }
 
+interface CursorPoint {
+    container: Node;
+    offset: number;
+}
+
 function calculateCursorPosition(containerChild: Node, textToInsert: ChildNode | null, cursorPosition: CursorPosition): CursorPosition {
     if (!textToInsert) {
         return cursorPosition;
     }
 
+    const relocate = buildRelocate(containerChild, textToInsert);
+    const start = relocate(cursorPosition.startContainer, cursorPosition.startOffset);
+    const end = relocate(cursorPosition.endContainer, cursorPosition.endOffset);
+
+    return getCursorPositionFrom(start.container, start.offset, end.container, end.offset);
+}
+
+function buildRelocate(containerChild: Node, textToInsert: ChildNode): (container: Node, offset: number) => CursorPoint {
     const lastChild = containerChild.lastChild;
-    const isMerged = !!lastChild && lastChild !== textToInsert &&
-        lastChild.nodeType === Node.TEXT_NODE && textToInsert.nodeType === Node.TEXT_NODE;
-    const isAppended = lastChild === textToInsert;
-    const offsetBase = isMerged ? (lastChild as Text).length - (textToInsert as Text).length : 0;
 
-    const remap = (container: Node, offset: number): [Node, number] => {
-        if (container === textToInsert) {
-            if (isMerged) {
-                return [lastChild, offsetBase + offset];
-            }
-            if (isAppended) {
-                return [container, offset];
-            }
-            return [containerChild, containerChild.childNodes.length];
-        }
-        if (container === containerChild) {
-            if (isMerged) {
-                return [lastChild, offsetBase];
-            }
-            if (isAppended && lastChild) {
-                return [lastChild, 0];
-            }
-        }
-        return [container, offset];
-    };
+    // textToInsert was appended as-is and is now the last child.
+    if (lastChild === textToInsert) {
+        return (container, offset) =>
+            container === containerChild ? {container: textToInsert, offset: 0} : {container, offset};
+    }
 
-    const [startContainer, startOffset] = remap(cursorPosition.startContainer, cursorPosition.startOffset);
-    const [endContainer, endOffset] = remap(cursorPosition.endContainer, cursorPosition.endOffset);
+    // textToInsert's text was merged into the existing last text node.
+    if (lastChild && lastChild.nodeType === Node.TEXT_NODE && textToInsert.nodeType === Node.TEXT_NODE) {
+        const mergeOffset = (lastChild as Text).length - (textToInsert as Text).length;
+        return (container, offset) => {
+            if (container === textToInsert) {
+                return {container: lastChild, offset: mergeOffset + offset};
+            }
+            if (container === containerChild) {
+                return {container: lastChild, offset: mergeOffset};
+            }
+            return {container, offset};
+        };
+    }
 
-    return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset);
+    // textToInsert was not placed inside containerChild.
+    return (container, offset) =>
+        container === textToInsert
+            ? {container: containerChild, offset: containerChild.childNodes.length}
+            : {container, offset};
 }
 
 function shiftFirstParent(leaves: Leaf[]) {
