@@ -63,7 +63,7 @@ describe("Sanitize input", () => {
         `);
     });
 
-    test("Should insert html outside of formating elements ()", () => {
+    test("Should insert html outside of formating elements (a) after content", () => {
         const wrapper = createWrapper(`
             <p><strong>zero</strong>,<em>first</em>,<u>second</u>,<a class="start">third</a>.</p>
         `);
@@ -78,6 +78,115 @@ describe("Sanitize input", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p><strong>zero</strong>,<em>first</em>,<u>second</u>,<a>t</a><strong>second</strong><a>hird</a>.</p>
+        `);
+    });
+
+    test("Should insert heading outside of list dividing it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+                <li>second</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<h1>third</h1><strong>fourth</strong>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>ze</li>
+            </ul>
+            <h1>third</h1>
+            <ul>
+                <li><strong>fourth</strong>ro
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+                <li>second</li>
+            </ul>
+        `);
+    });
+
+    test("Should insert heading outside of list normalizing it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+                <li>second</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<h1>third</h1>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <h1>third</h1>
+            <ol>
+                <li>first</li>
+            </ol>
+            <ul>
+                <li>second</li>
+            </ul>
+        `);
+    });
+
+    test("Should insert heading and p outside of list normalizing it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li class="start">first</li>
+                    </ol>
+                </li>
+                <li>second</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fir".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<h1>third</h1><p>fourth</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>fir</li>
+                    </ol>
+                </li>
+            </ul>
+            <h1>third</h1>
+            <p>fourth</p>
+            <ol>
+                <li>st</li>
+            </ol>
+            <ul>
+                <li>second</li>
+            </ul>            
         `);
     });
 });
