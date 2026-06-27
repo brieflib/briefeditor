@@ -147,17 +147,16 @@ export function replaceLeafParents(element: Node, replaceToElement: HTMLElement[
 
 export function extractFirstLevel(leaf: Leaf): Leaf {
     const parents = leaf.getParents();
-    const blockIndices = parents
+    const innermost = parents
         .map((parent, index) => isBlockFirstLevel(parent) ? index : -1)
-        .filter(index => index >= 0);
+        .reduce((last, index) => index > last ? index : last, -1);
 
-    if (blockIndices.length <= 1) {
+    if (innermost < 0) {
         return leaf;
     }
 
-    const innermost = blockIndices[blockIndices.length - 1];
     const result = parents.filter((parent, index) =>
-        index === innermost || !isBlockFirstLevel(parent));
+        index >= innermost || !isContainer(parent));
     leaf.setParents(result);
 
     return leaf;
@@ -166,6 +165,10 @@ export function extractFirstLevel(leaf: Leaf): Leaf {
 function isBlockFirstLevel(node: Node) {
     return isSchemaContain(node, [Display.FirstLevel]) &&
         !isSchemaContain(node, [Display.ListWrapper]);
+}
+
+function isContainer(node: Node) {
+    return isSchemaContain(node, [Display.FirstLevel, Display.List]);
 }
 
 export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {

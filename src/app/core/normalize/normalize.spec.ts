@@ -384,4 +384,31 @@ describe("Should move first level elements out", () => {
              <p><strong>third</strong></p>
         `);
     });
+
+    test("Should move h1 and h2 out of list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">ze<h1>first<h2><strong><em>se</em>co</strong>nd</h2></h1>ro</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const ul = document.querySelector("UL") as HTMLElement;
+        removeAndNormalize(wrapper, ul, [], getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+             <ul>
+                <li>ze</li>
+             </ul>
+             <h1>first</h1>
+             <h2><strong><em>se</em>co</strong>nd</h2>
+             <ul>
+                <li>ro</li>
+             </ul>
+        `);
+    });
 });
