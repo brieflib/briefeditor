@@ -12,6 +12,8 @@ import {getRootElement} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
 
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
+    htmlString = cleanPastedContent(htmlString);
+
     if (!isCollapsed(cursorPosition)) {
         cursorPosition = deleteContents(cursorPosition);
     }
@@ -28,6 +30,18 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     cursorPosition = getCursorPositionFromElement(fragmentToInsert);
 
     return removeAndNormalize(contentEditable, firstRoot, [], cursorPosition);
+}
+
+function cleanPastedContent(htmlString: string) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, 'text/html');
+
+    const nodes = doc.querySelectorAll('.Apple-interchange-newline');
+    nodes.forEach(node => {
+        node.remove();
+    });
+
+    return doc.body.innerHTML;
 }
 
 function pasteIntoList(contentEditable: HTMLElement, firstRoot: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
