@@ -4,6 +4,7 @@ import {Settings} from "@/brief-editor";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {cleanElementWhitespace, pasteParagraph} from "@/core/shared/element-util";
 import {handleClipboardEvent} from "@/core/clipboard/clipboard";
+import {History} from "@/core/history/history";
 
 class Editor extends HTMLElement {
     constructor(contentEditable: HTMLElement, settings: Settings) {
@@ -39,6 +40,11 @@ class Editor extends HTMLElement {
 
         this.addKeyboardEvent(contentEditable);
         this.addClipboardEvent(contentEditable);
+        this.addHistory(contentEditable);
+    }
+
+    private addHistory(contentEditable: HTMLElement) {
+        new History(contentEditable);
     }
 
     private addKeyboardEvent(contentEditable: HTMLElement) {

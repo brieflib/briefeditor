@@ -16,8 +16,10 @@ import {
     isRangeIn,
     setCursorPosition
 } from "@/core/shared/type/cursor-position";
+import {CommandEvent} from "@/core/history/type/history-event";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
+    contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
     let cursorPosition = getCursorPosition();
 
     switch (command.action)  {
@@ -53,6 +55,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
 
     contentEditable.focus();
     setCursorPosition(contentEditable, cursorPosition);
+    contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
     return cursorPosition;
 }
 
