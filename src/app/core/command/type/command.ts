@@ -9,6 +9,8 @@ export enum Action {
     Attribute = "Attribute",
     Wrap = "Wrap",
     Unwrap = "Unwrap",
+    Keyboard = "Keyboard",
+    Clipboard = "Clipboard",
 }
 
 export interface Attributes {
@@ -20,5 +22,6 @@ export interface Attributes {
 export interface Command {
     action: Action,
     tag?: string,
-    attributes?: Attributes | undefined
+    attributes?: Attributes | undefined,
+    event?: KeyboardEvent | ClipboardEvent
 }

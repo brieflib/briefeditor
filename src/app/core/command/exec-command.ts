@@ -17,6 +17,8 @@ import {
     setCursorPosition
 } from "@/core/shared/type/cursor-position";
 import {CommandEvent} from "@/core/history/type/history-event";
+import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
+import {handleClipboardEvent} from "@/core/clipboard/clipboard";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
@@ -46,6 +48,12 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             break;
         case Action.MinusIndent:
             minusIndent(contentEditable);
+            break;
+        case Action.Keyboard:
+            cursorPosition = handleKeyboardEvent(contentEditable, command.event as KeyboardEvent, cursorPosition);
+            break;
+        case Action.Clipboard:
+            cursorPosition = handleClipboardEvent(contentEditable, command.event as ClipboardEvent);
             break;
     }
 

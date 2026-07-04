@@ -1,10 +1,10 @@
 import "@/component/editor/asset/editor.css"
 import Toolbar from "@/component/toolbar/toolbar";
 import {Settings} from "@/brief-editor";
-import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {cleanElementWhitespace, pasteParagraph} from "@/core/shared/element-util";
-import {handleClipboardEvent} from "@/core/clipboard/clipboard";
 import {History} from "@/core/history/history";
+import execCommand from "@/core/command/exec-command";
+import {Action} from "@/core/command/type/command";
 
 class Editor extends HTMLElement {
     constructor(contentEditable: HTMLElement, settings: Settings) {
@@ -48,11 +48,11 @@ class Editor extends HTMLElement {
     }
 
     private addKeyboardEvent(contentEditable: HTMLElement) {
-        contentEditable.addEventListener("keydown", (event) => handleKeyboardEvent(contentEditable, event));
+        contentEditable.addEventListener("keydown", (event) => execCommand(contentEditable, {action: Action.Keyboard, event}));
     }
 
     private addClipboardEvent(contentEditable: HTMLElement) {
-        contentEditable.addEventListener("paste", (event) => handleClipboardEvent(contentEditable, event));
+        contentEditable.addEventListener("paste", (event) => execCommand(contentEditable, {action: Action.Clipboard, event}));
     }
 
     addToolbarItem(toolbar: HTMLElement) {
