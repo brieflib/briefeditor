@@ -258,17 +258,30 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
         return cursorPosition;
     }
 
-    const containerText = containerChild.lastChild;
+    const previousText = containerChild.lastChild;
     const insertText = insertElement.firstChild;
 
-    if (containerText && containerText.nodeType === Node.TEXT_NODE &&
+    if (previousText && previousText.nodeType === Node.TEXT_NODE &&
         insertText && insertText.nodeType === Node.TEXT_NODE) {
-        (containerText as Text).appendData((insertText as Text).data);
+        mergeText(previousText as Text, insertText as Text);
     } else if (insertElement.textContent || hasSelfCloseDescendant(insertElement)) {
         containerChild.appendChild(insertElement);
     }
 
-    return calculateCursorPosition(containerChild, insertText, cursorPosition);
+    return calculateCursorPosition(containerChild, insertText, previousText, cursorPosition);
+}
+
+function mergeText(previousText: Text, insertText: Text) {
+    // Two text leaves must combine into one node. When both carry text, appending in place would rewrite
+    // the reused original leaf while it is detached - a change the history MutationObserver cannot see, so
+    // the leaf's pre-merge text would be lost on undo. Swap in a fresh node instead, leaving the original
+    // pristine so its content survives in the childList records. When either side is empty the append only
+    // touches an empty node, so keep it in place to preserve the node identity the cursor mapping relies on.
+    if (previousText.data.length > 0 && insertText.data.length > 0) {
+        previousText.replaceWith(document.createTextNode(previousText.data + insertText.data));
+    } else {
+        previousText.appendData(insertText.data);
+    }
 }
 
 interface CursorPoint {
@@ -276,19 +289,19 @@ interface CursorPoint {
     offset: number;
 }
 
-function calculateCursorPosition(containerChild: Node, textToInsert: ChildNode | null, cursorPosition: CursorPosition): CursorPosition {
+function calculateCursorPosition(containerChild: Node, textToInsert: ChildNode | null, previousText: ChildNode | null, cursorPosition: CursorPosition): CursorPosition {
     if (!textToInsert) {
         return cursorPosition;
     }
 
-    const relocate = buildRelocate(containerChild, textToInsert);
+    const relocate = buildRelocate(containerChild, textToInsert, previousText);
     const start = relocate(cursorPosition.startContainer, cursorPosition.startOffset);
     const end = relocate(cursorPosition.endContainer, cursorPosition.endOffset);
 
     return getCursorPositionFrom(start.container, start.offset, end.container, end.offset);
 }
 
-function buildRelocate(containerChild: Node, textToInsert: ChildNode): (container: Node, offset: number) => CursorPoint {
+function buildRelocate(containerChild: Node, textToInsert: ChildNode, previousText: ChildNode | null): (container: Node, offset: number) => CursorPoint {
     const lastChild = containerChild.lastChild;
 
     // textToInsert was appended as-is and is now the last child.
@@ -297,7 +310,8 @@ function buildRelocate(containerChild: Node, textToInsert: ChildNode): (containe
             container === containerChild ? {container: textToInsert, offset: 0} : {container, offset};
     }
 
-    // textToInsert's text was merged into the existing last text node.
+    // textToInsert's text was merged into the last text node (either previousText in place, or a fresh
+    // node swapped in for it - see mergeText). Either way, offsets remap onto that last child.
     if (lastChild && lastChild.nodeType === Node.TEXT_NODE && textToInsert.nodeType === Node.TEXT_NODE) {
         const mergeOffset = (lastChild as Text).length - (textToInsert as Text).length;
         return (container, offset) => {
@@ -306,6 +320,10 @@ function buildRelocate(containerChild: Node, textToInsert: ChildNode): (containe
             }
             if (container === containerChild) {
                 return {container: lastChild, offset: mergeOffset};
+            }
+            // previousText's data is the prefix of the merged node, so its offsets carry over unchanged.
+            if (previousText && container === previousText) {
+                return {container: lastChild, offset};
             }
             return {container, offset};
         };

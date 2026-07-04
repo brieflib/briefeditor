@@ -16,6 +16,15 @@ function select(wrapper: HTMLElement, selector: string, start: number, end: numb
     (getRange as jest.Mock).mockReturnValue(range);
 }
 
+function keydownEvent(key: string, options: KeyboardEventInit = {}): KeyboardEvent {
+    return new KeyboardEvent("keydown", {key, ...options});
+}
+
+function pasteEvent(html: string): ClipboardEvent {
+    // jsdom has no DataTransfer, so stub the minimal ClipboardEvent surface used by handleClipboardEvent.
+    return {preventDefault: jest.fn(), clipboardData: {getData: () => html}} as unknown as ClipboardEvent;
+}
+
 describe("History undo/redo", () => {
     test("Should undo a tag command and restore the original markup", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
@@ -140,5 +149,63 @@ describe("History undo/redo", () => {
         history.undo();
 
         expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+    });
+
+    test("Should undo a keyboard newline command", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "zero".length, "zero".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("Enter")});
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+    });
+
+    test("Should undo a keyboard backspace that merges two blocks", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="start">first</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        expectHtml(wrapper.innerHTML, `<p>zerofirst</p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p class="start">first</p>`);
+    });
+
+    test("Should undo and redo a paste that merges into existing text", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "zero".length, "zero".length);
+        execCommand(wrapper, {action: Action.Clipboard, event: pasteEvent("pasted")});
+        expectHtml(wrapper.innerHTML, `<p>zeropasted</p>`);
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+
+        history.redo();
+        expectHtml(wrapper.innerHTML, `<p>zeropasted</p>`);
+    });
+
+    test("Should undo a tag command that merges adjacent text nodes when unwrapping", () => {
+        const wrapper = createWrapper(`<p>ze<strong class="s">ro</strong></p>`);
+        const history = new History(wrapper);
+
+        const strongText = getFirstChild(wrapper, ".s");
+        const range = new Range();
+        range.setStart(strongText, "".length);
+        range.setEnd(strongText, "ro".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectHtml(wrapper.innerHTML, `<p>zero</p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p>ze<strong class="s">ro</strong></p>`);
     });
 });
