@@ -168,8 +168,8 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<h1>third</h1><p>fourth</p>`, cursorPosition);
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<h1>third</h1><p>fourth</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -188,5 +188,33 @@ describe("Sanitize input", () => {
                 <li>second</li>
             </ul>            
         `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("p")?.firstChild);
+        expect(cursorPosition.startOffset).toBe("fourth".length);
+        expect(cursorPosition.endOffset).toBe("fourth".length);
+    });
+
+    test("Should insert text inside p", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `first`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>first</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("p")?.firstChild);
+        expect(cursorPosition.startOffset).toBe("first".length);
+        expect(cursorPosition.endOffset).toBe("first".length);
     });
 });

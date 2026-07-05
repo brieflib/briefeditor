@@ -8,7 +8,7 @@ import {
 import {closeTags, removeAndNormalize} from "@/core/normalize/normalize";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getRootElement} from "@/core/shared/element-util";
+import {getLastText, getRootElement} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
 
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
@@ -26,10 +26,12 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
 
     cursorPosition = closeTags(firstRoot, cursorPosition);
     const fragmentToInsert = createContextualFragment(htmlString, cursorPosition);
+    // Capture the paste-end position before insertNode empties the fragment; the
+    // text node itself is moved into the DOM, so the reference stays valid.
+    const pastedCursorPosition = getCursorPositionFromElement(getLastText(fragmentToInsert));
     insertNode(cursorPosition, fragmentToInsert);
-    cursorPosition = getCursorPositionFromElement(fragmentToInsert);
 
-    return removeAndNormalize(contentEditable, firstRoot, [], cursorPosition);
+    return removeAndNormalize(contentEditable, firstRoot, [], pastedCursorPosition);
 }
 
 function cleanPastedContent(htmlString: string) {
@@ -48,6 +50,7 @@ function pasteIntoList(contentEditable: HTMLElement, firstRoot: HTMLElement, htm
     // Insert the fragment nested at the cursor so block elements stay inside the
     // list item; removeAndNormalize then lifts them out keeping the list wrappers.
     const fragmentToInsert = createContextualFragment(htmlString, cursorPosition);
+    const pastedCursorPosition = getCursorPositionFromElement(getLastText(fragmentToInsert));
     insertNode(cursorPosition, fragmentToInsert);
 
     // Wrap the list in a DELETED tag so removeAndNormalize rebuilds it and remaps
@@ -55,13 +58,14 @@ function pasteIntoList(contentEditable: HTMLElement, firstRoot: HTMLElement, htm
     const deleted = document.createElement("DELETED");
     firstRoot.before(deleted);
     deleted.append(firstRoot);
-    cursorPosition = removeAndNormalize(contentEditable, firstRoot, ["DELETED"], cursorPosition);
+    cursorPosition = removeAndNormalize(contentEditable, firstRoot, ["DELETED"], pastedCursorPosition);
 
     // The inserted blocks are now lifted out as top-level siblings; the list that
     // follows them may need re-normalizing (drop emptied items, promote orphaned
     // nested lists).
     const cursorRoot = getRootElement(contentEditable, cursorPosition.endContainer);
-    let trailingList = cursorRoot.nextElementSibling;
+    let trailingList = isSchemaContain(cursorRoot, [Display.ListWrapper])
+        ? cursorRoot : cursorRoot.nextElementSibling;
     while (trailingList && !isSchemaContain(trailingList, [Display.ListWrapper])) {
         trailingList = trailingList.nextElementSibling;
     }
