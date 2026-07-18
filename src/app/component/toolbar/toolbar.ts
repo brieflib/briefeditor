@@ -15,6 +15,7 @@ import {isNextListNested} from "@/core/list/list";
 import LinkIcon from "@/component/toolbar-icon/link-icon";
 import ImageIcon from "@/component/toolbar-icon/image-icon";
 import {isRangeIn} from "@/core/shared/type/cursor-position";
+import TableIcon from "@/component/toolbar-icon/table-icon";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;
@@ -56,6 +57,8 @@ export default class Toolbar {
         this.addEmptyItem();
         this.addIcon(new LinkIcon());
         this.addIcon(new ImageIcon());
+        this.addEmptyItem();
+        this.addIcon(new TableIcon());
     }
 
     private addIcon(icon: Icon) {

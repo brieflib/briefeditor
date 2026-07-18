@@ -5,7 +5,6 @@ import {getBoundingClientRect, getCursorPosition} from "@/core/shared/type/curso
 
 class Tooltip extends HTMLElement {
     private readonly wrapper: HTMLElement;
-    private readonly tooltip: HTMLElement;
     private readonly scrollContainer: HTMLElement;
     private readonly onScroll: EventListener;
 
@@ -21,7 +20,6 @@ class Tooltip extends HTMLElement {
         `;
 
         this.wrapper = shadowRoot.querySelector(".be-tooltip-wrapper") as HTMLElement;
-        this.tooltip = shadowRoot.querySelector(".be-tooltip") as HTMLElement;
         this.scrollContainer = document.querySelector("#be-content") as HTMLElement;
 
         this.onScroll = () => {

@@ -20,7 +20,6 @@ class LinkIcon extends HTMLElement implements Icon {
     private readonly tooltip: Tooltip;
     private readonly input: HTMLInputElement;
 
-    private isOpen?: boolean;
     private isSaved?: boolean;
     private isInputFocused?: boolean;
     private cursorPosition?: CursorPosition | null;
@@ -135,14 +134,12 @@ class LinkIcon extends HTMLElement implements Icon {
     private openTooltip(href: string) {
         this.input.value = href;
         this.tooltip.open();
-        this.isOpen = true;
     }
 
     private closeTooltip() {
         this.input.blur();
         this.tooltip.close();
         this.shadowRoot?.appendChild(this.tooltip);
-        this.isOpen = false;
     }
 
     private link(href: string | null) {
