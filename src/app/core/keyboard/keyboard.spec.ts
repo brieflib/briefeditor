@@ -1,4 +1,4 @@
-import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 
@@ -266,5 +266,255 @@ describe("Keyboard events", () => {
         expect(cursorPosition.endContainer.parentElement).toBe(brTag);
         expect(cursorPosition.startOffset).toBe(0);
         expect(cursorPosition.endOffset).toBe(0);
+    });
+});
+
+describe("Typing and deleting characters", () => {
+    function selectText(node: Node, start: number, end: number) {
+        const range = new Range();
+        range.setStart(node, start);
+        range.setEnd(node, end);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    test("Type a character in the middle of text", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "ze".length, "ze".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "x"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zexro</p>
+        `);
+        expect((wrapper.querySelector("p") as HTMLElement).childNodes.length).toBe(1);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("zex".length);
+        expect(cursorPosition.endOffset).toBe("zex".length);
+    });
+
+    test("Type a character in an empty paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start"><br></p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "a"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">a</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("a".length);
+    });
+
+    test("Press backspace in the middle of text", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "ze".length, "ze".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zro</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("z".length);
+    });
+
+    test("Press delete in the middle of text", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "ze".length, "ze".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zeo</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("ze".length);
+    });
+
+    test("Press backspace at the start of text after an inline tag", () => {
+        const wrapper = createWrapper(`
+            <p class="start">ze<strong>ro</strong>tail</p>
+        `);
+        selectText(getLastChild(wrapper, ".start"), 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">ze<strong>r</strong>tail</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "strong"));
+        expect(cursorPosition.startOffset).toBe("r".length);
+    });
+
+    test("Press delete at the end of text before an inline tag", () => {
+        const wrapper = createWrapper(`
+            <p class="start">ze<strong>ro</strong></p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "ze".length, "ze".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">ze<strong>o</strong></p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "strong"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Press backspace on the last character of an inline tag", () => {
+        const wrapper = createWrapper(`
+            <p>ze<strong class="start">r</strong>tail</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "r".length, "r".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zetail</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.startOffset).toBe("ze".length);
+    });
+
+    test("Press backspace on the last character of the only paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">a</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "a".length, "a".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start"><br></p>
+        `);
+        expect(cursorPosition.startContainer.parentElement).toBe(wrapper.querySelector("p"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Press backspace after a line break", () => {
+        const wrapper = createWrapper(`
+            <p class="start">a<br>b</p>
+        `);
+        selectText(getLastChild(wrapper, ".start"), 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ab</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.startOffset).toBe("a".length);
+    });
+
+    test("Press delete before a line break", () => {
+        const wrapper = createWrapper(`
+            <p class="start">a<br>b</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "a".length, "a".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ab</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.startOffset).toBe("a".length);
+    });
+
+    test("Press backspace when selection is inside one paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zerofirst</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "ze".length, "zerofi".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zerst</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("ze".length);
+    });
+
+    test("Type a character over a selection inside one paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zerofirst</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "ze".length, "zerofi".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "x"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zexrst</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("zex".length);
+    });
+
+    test("Type a character over a fully selected inline tag", () => {
+        const wrapper = createWrapper(`
+            <p>ze<strong class="start">ro</strong></p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), 0, "ro".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "x"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze<strong class="start">x</strong></p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("x".length);
+    });
+
+    test("Press backspace after an emoji", () => {
+        const wrapper = createWrapper(`
+            <p class="start">a👍</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "a👍".length, "a👍".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">a</p>
+        `);
+        expect(cursorPosition.startOffset).toBe("a".length);
+    });
+
+    test("Arrow keys do not change the dom and are not prevented", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "ze".length, "ze".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "ArrowLeft"});
+        const preventDefault = jest.spyOn(keyboardEvent, "preventDefault");
+        handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zero</p>
+        `);
+        expect(preventDefault).not.toHaveBeenCalled();
     });
 });

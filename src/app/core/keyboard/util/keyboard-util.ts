@@ -5,14 +5,16 @@ import {
     extractContents,
     getCursorPosition,
     getCursorPositionFrom,
-    getCursorPositionFromElement, insertNode
+    getCursorPositionFromElement, insertNode,
+    isCollapsed
 } from "@/core/shared/type/cursor-position";
 import {
     getChildFragment,
     getFirstText,
     getLastNonEmptyText,
     getNextNode, getNextNotEmptyNode,
-    getPreviousNode
+    getPreviousNode,
+    hasSelfCloseDescendant
 } from "@/core/shared/element-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {normalize} from "@/core/normalize/normalize";
@@ -162,6 +164,192 @@ export function newLine(contentEditable: HTMLElement, cursorPosition: CursorPosi
 
     const firstText = getFirstText(newBlock);
     return getCursorPositionFrom(firstText, 0, firstText, 0);
+}
+
+export function isPrintableKey(event: KeyboardEvent) {
+    return event.key.length === 1;
+}
+
+export function insertCharacter(contentEditable: HTMLElement, cursorPosition: CursorPosition, key: string): CursorPosition {
+    if (!isCollapsed(cursorPosition)) {
+        cursorPosition = deleteContents(cursorPosition);
+    }
+
+    const container = cursorPosition.startContainer;
+    if (container.nodeType === Node.TEXT_NODE) {
+        const text = container as Text;
+        text.insertData(cursorPosition.startOffset, key);
+        const offset = cursorPosition.startOffset + key.length;
+        return getCursorPositionFrom(text, offset, text, offset);
+    }
+
+    const textNode = document.createTextNode(key);
+    if (isSchemaContain(container, [Display.SelfClose])) {
+        (container as Element).before(textNode);
+        (container as Element).remove();
+        return getCursorPositionFrom(textNode, key.length, textNode, key.length);
+    }
+
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+    const wasEmpty = block ? !block.textContent : false;
+    insertNode(cursorPosition, textNode);
+    if (block && wasEmpty) {
+        block.querySelectorAll("br").forEach(br => br.remove());
+    }
+
+    return getCursorPositionFrom(textNode, key.length, textNode, key.length);
+}
+
+export function deletePreviousCharacter(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const container = cursorPosition.startContainer;
+    if (container.nodeType === Node.TEXT_NODE && cursorPosition.startOffset > 0) {
+        const text = container as Text;
+        const length = charLengthBefore(text.data, cursorPosition.startOffset);
+        const offset = cursorPosition.startOffset - length;
+        text.deleteData(offset, length);
+        if (text.data) {
+            return getCursorPositionFrom(text, offset, text, offset);
+        }
+        return cleanupAfterDeletion(contentEditable, getCursorPositionFrom(text, 0, text, 0));
+    }
+
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+    if (!block) {
+        return cursorPosition;
+    }
+
+    const leaf = findLeaf(block, container, cursorPosition.startOffset, Direction.Previous);
+    if (!leaf) {
+        return cursorPosition;
+    }
+
+    if (isSchemaContain(leaf, [Display.SelfClose])) {
+        (leaf as Element).remove();
+        return cleanupAfterDeletion(contentEditable, cursorPosition);
+    }
+
+    const text = leaf as Text;
+    const length = charLengthBefore(text.data, text.data.length);
+    text.deleteData(text.data.length - length, length);
+    if (text.data) {
+        return getCursorPositionFrom(text, text.data.length, text, text.data.length);
+    }
+    return cleanupAfterDeletion(contentEditable, getCursorPositionFrom(text, 0, text, 0));
+}
+
+export function deleteNextCharacter(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const container = cursorPosition.startContainer;
+    if (container.nodeType === Node.TEXT_NODE && cursorPosition.startOffset < (container as Text).length) {
+        const text = container as Text;
+        const length = charLengthAfter(text.data, cursorPosition.startOffset);
+        text.deleteData(cursorPosition.startOffset, length);
+        if (text.data) {
+            return getCursorPositionFrom(text, cursorPosition.startOffset, text, cursorPosition.startOffset);
+        }
+        return cleanupAfterDeletion(contentEditable, getCursorPositionFrom(text, 0, text, 0));
+    }
+
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+    if (!block) {
+        return cursorPosition;
+    }
+
+    const leaf = findLeaf(block, container, cursorPosition.startOffset, Direction.Next);
+    if (!leaf) {
+        return cursorPosition;
+    }
+
+    if (isSchemaContain(leaf, [Display.SelfClose])) {
+        (leaf as Element).remove();
+        return cleanupAfterDeletion(contentEditable, cursorPosition);
+    }
+
+    const text = leaf as Text;
+    const length = charLengthAfter(text.data, 0);
+    text.deleteData(0, length);
+    if (text.data) {
+        return getCursorPositionFrom(text, 0, text, 0);
+    }
+    return cleanupAfterDeletion(contentEditable, getCursorPositionFrom(text, 0, text, 0));
+}
+
+export function cleanupAfterDeletion(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+    if (!block) {
+        return cursorPosition;
+    }
+
+    if (!block.textContent) {
+        Array.from(block.childNodes).forEach(child => {
+            if (!hasSelfCloseDescendant(child)) {
+                child.remove();
+            }
+        });
+        if (!hasSelfCloseDescendant(block)) {
+            block.appendChild(document.createElement("br"));
+        }
+        const firstText = getFirstText(block);
+        return getCursorPositionFrom(firstText, 0, firstText, 0);
+    }
+
+    return normalize(contentEditable, cursorPosition);
+}
+
+enum Direction {
+    Previous,
+    Next
+}
+
+function findLeaf(block: HTMLElement, container: Node, offset: number, direction: Direction): Node | null {
+    let candidate = firstCandidate(block, container, offset, direction);
+
+    while (candidate) {
+        if (!block.contains(candidate)) {
+            return null;
+        }
+        const leaf = direction === Direction.Previous ? getLastNonEmptyText(candidate) : getFirstText(candidate);
+        if ((leaf.nodeType === Node.TEXT_NODE && leaf.textContent) || isSchemaContain(leaf, [Display.SelfClose])) {
+            return leaf;
+        }
+        candidate = direction === Direction.Previous ? getPreviousNode(block, candidate) : getNextNode(block, candidate);
+    }
+
+    return null;
+}
+
+function firstCandidate(block: HTMLElement, container: Node, offset: number, direction: Direction): Node | null {
+    if (container.nodeType !== Node.TEXT_NODE) {
+        if (direction === Direction.Previous && offset > 0) {
+            return container.childNodes[offset - 1] ?? null;
+        }
+        if (direction === Direction.Next && offset < container.childNodes.length) {
+            return container.childNodes[offset] ?? null;
+        }
+    }
+
+    return direction === Direction.Previous ? getPreviousNode(block, container) : getNextNode(block, container);
+}
+
+function charLengthBefore(data: string, offset: number) {
+    if (offset >= 2 && isLowSurrogate(data.charCodeAt(offset - 1)) && isHighSurrogate(data.charCodeAt(offset - 2))) {
+        return 2;
+    }
+    return 1;
+}
+
+function charLengthAfter(data: string, offset: number) {
+    if (offset + 1 < data.length && isHighSurrogate(data.charCodeAt(offset)) && isLowSurrogate(data.charCodeAt(offset + 1))) {
+        return 2;
+    }
+    return 1;
+}
+
+function isHighSurrogate(code: number) {
+    return code >= 0xD800 && code <= 0xDBFF;
+}
+
+function isLowSurrogate(code: number) {
+    return code >= 0xDC00 && code <= 0xDFFF;
 }
 
 function removeEmptyBlock(contentEditable: HTMLElement, node: Node) {

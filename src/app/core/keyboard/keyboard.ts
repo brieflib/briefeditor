@@ -4,7 +4,12 @@ import {
     isSpecialKey,
     mergeBlocks,
     mergeNextBlock,
-    mergePreviousBlock, insertBreak
+    mergePreviousBlock, insertBreak,
+    cleanupAfterDeletion,
+    deleteNextCharacter,
+    deletePreviousCharacter,
+    insertCharacter,
+    isPrintableKey
 } from "@/core/keyboard/util/keyboard-util";
 import {
     CursorPosition,
@@ -60,6 +65,31 @@ export function handleKeyboardEvent(contentEditable: HTMLElement, event: Keyboar
     if (event.key === "Backspace" && isCursorAtStartOfBlock(contentEditable)) {
         event.preventDefault();
         cursorPosition = mergePreviousBlock(contentEditable, cursorPosition);
+        setCursorPosition(contentEditable, cursorPosition);
+        return cursorPosition;
+    }
+
+    if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        if (!isCollapsed(cursorPosition)) {
+            const isTextOnly = cursorPosition.startContainer === cursorPosition.endContainer &&
+                cursorPosition.startContainer.nodeType === Node.TEXT_NODE;
+            cursorPosition = deleteContents(cursorPosition);
+            if (!isTextOnly || !cursorPosition.startContainer.textContent) {
+                cursorPosition = cleanupAfterDeletion(contentEditable, cursorPosition);
+            }
+        } else {
+            cursorPosition = event.key === "Backspace"
+                ? deletePreviousCharacter(contentEditable, cursorPosition)
+                : deleteNextCharacter(contentEditable, cursorPosition);
+        }
+        setCursorPosition(contentEditable, cursorPosition);
+        return cursorPosition;
+    }
+
+    if (isPrintableKey(event)) {
+        event.preventDefault();
+        cursorPosition = insertCharacter(contentEditable, cursorPosition, event.key);
         setCursorPosition(contentEditable, cursorPosition);
         return cursorPosition;
     }

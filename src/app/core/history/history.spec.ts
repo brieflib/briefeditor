@@ -231,6 +231,155 @@ describe("History undo/redo", () => {
         expect(wrapper.lastChild).toBe(lastParagraph);
     });
 
+    test("Should undo and redo a backspace in the middle of text", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "ze".length, "ze".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        expectHtml(wrapper.innerHTML, `<p class="start">zro</p>`);
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+
+        const selection = window.getSelection() as Selection;
+        expect(selection.getRangeAt(0).startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(selection.getRangeAt(0).startOffset).toBe("ze".length);
+
+        history.redo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zro</p>`);
+    });
+
+    test("Should undo and redo a delete in the middle of text", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "ze".length, "ze".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("Delete")});
+        expectHtml(wrapper.innerHTML, `<p class="start">zeo</p>`);
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+
+        history.redo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zeo</p>`);
+    });
+
+    test("Should undo and redo a typed character in the middle of text", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "ze".length, "ze".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        expectHtml(wrapper.innerHTML, `<p class="start">zexro</p>`);
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+
+        const selection = window.getSelection() as Selection;
+        expect(selection.getRangeAt(0).startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(selection.getRangeAt(0).startOffset).toBe("ze".length);
+
+        history.redo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zexro</p>`);
+    });
+
+    test("Should undo and redo typing over a selection inside one paragraph", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "z".length, "zer".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        expectHtml(wrapper.innerHTML, `<p class="start">zxo</p>`);
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+
+        history.redo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zxo</p>`);
+    });
+
+    test("Should undo a backspace that deletes the last character of an inline tag", () => {
+        const wrapper = createWrapper(`<p>ze<strong class="s">r</strong>tail</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".s", "r".length, "r".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        expectHtml(wrapper.innerHTML, `<p>zetail</p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p>ze<strong class="s">r</strong>tail</p>`);
+    });
+
+    test("Should undo a backspace that deletes the last character of a paragraph", () => {
+        const wrapper = createWrapper(`<p class="start">a</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "a".length, "a".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        expectHtml(wrapper.innerHTML, `<p class="start"><br></p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p class="start">a</p>`);
+    });
+
+    test("Should undo a backspace that removes a line break", () => {
+        const wrapper = createWrapper(`<p class="start">a<br>b</p>`);
+        const history = new History(wrapper);
+
+        const range = new Range();
+        const lastText = (wrapper.querySelector(".start") as HTMLElement).lastChild as Node;
+        range.setStart(lastText, 0);
+        range.setEnd(lastText, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        expectHtml(wrapper.innerHTML, `<p>ab</p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p class="start">a<br>b</p>`);
+    });
+
+    test("Should undo each typed character as a separate entry", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "zero".length, "zero".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectHtml(wrapper.innerHTML, `<p class="start">zeroa</p>`);
+
+        select(wrapper, ".start", "zeroa".length, "zeroa".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        expectHtml(wrapper.innerHTML, `<p class="start">zeroab</p>`);
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zeroa</p>`);
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+    });
+
+    test("Should type a character and handle Ctrl+z, Ctrl+y, Ctrl+z", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        new History(wrapper);
+
+        select(wrapper, ".start", "ze".length, "ze".length);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        expectHtml(wrapper.innerHTML, `<p class="start">zexro</p>`);
+
+        wrapper.dispatchEvent(keydownEvent("z", {ctrlKey: true}));
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+
+        wrapper.dispatchEvent(keydownEvent("y", {ctrlKey: true}));
+        expectHtml(wrapper.innerHTML, `<p class="start">zexro</p>`);
+
+        wrapper.dispatchEvent(keydownEvent("z", {ctrlKey: true}));
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+    });
+
     test("Should undo a tag command that merges adjacent text nodes when unwrapping", () => {
         const wrapper = createWrapper(`<p>ze<strong class="s">ro</strong></p>`);
         const history = new History(wrapper);
