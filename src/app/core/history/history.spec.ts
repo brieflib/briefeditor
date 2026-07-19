@@ -191,6 +191,46 @@ describe("History undo/redo", () => {
         expectHtml(wrapper.innerHTML, `<p>zeropasted</p>`);
     });
 
+    test("Should bold a word in a sentence and handle Ctrl+z, Ctrl+y, Ctrl+z", () => {
+        const wrapper = createWrapper(`<p class="start">mark word as bold</p>`);
+        new History(wrapper);
+
+        select(wrapper, ".start", "mark ".length, "mark word".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectHtml(wrapper.innerHTML, `<p>mark <strong>word</strong> as bold</p>`);
+
+        wrapper.dispatchEvent(keydownEvent("z", {ctrlKey: true}));
+        expectHtml(wrapper.innerHTML, `<p class="start">mark word as bold</p>`);
+
+        wrapper.dispatchEvent(keydownEvent("y", {ctrlKey: true}));
+        expectHtml(wrapper.innerHTML, `<p>mark <strong>word</strong> as bold</p>`);
+
+        wrapper.dispatchEvent(keydownEvent("z", {ctrlKey: true}));
+        expectHtml(wrapper.innerHTML, `<p class="start">mark word as bold</p>`);
+    });
+
+    test("Should replace only the changed paragraph on undo and redo", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="start">first</p><p>second</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "first".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p><strong>first</strong></p><p>second</p>`);
+
+        const firstParagraph = wrapper.firstChild;
+        const lastParagraph = wrapper.lastChild;
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p class="start">first</p><p>second</p>`);
+        expect(wrapper.firstChild).toBe(firstParagraph);
+        expect(wrapper.lastChild).toBe(lastParagraph);
+
+        history.redo();
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p><strong>first</strong></p><p>second</p>`);
+        expect(wrapper.firstChild).toBe(firstParagraph);
+        expect(wrapper.lastChild).toBe(lastParagraph);
+    });
+
     test("Should undo a tag command that merges adjacent text nodes when unwrapping", () => {
         const wrapper = createWrapper(`<p>ze<strong class="s">ro</strong></p>`);
         const history = new History(wrapper);

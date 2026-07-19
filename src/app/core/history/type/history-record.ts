@@ -12,11 +12,20 @@ export interface Mutation {
     readonly attributeName: string | null;
     readonly oldValue: string | null;
     newValue: string | null;
-    // childList: cloned subtrees to insert on redo, original nodes to restore on undo,
-    // and the nodes currently occupying the slot so they can be removed on the next replay.
-    readonly addedTemplate: Node[];
+    // childList: original node references, so undo/redo preserve node identity for
+    // cursors and selections that still point at them.
+    readonly addedNodes: Node[];
     readonly removedNodes: Node[];
-    live: Node[];
+    // Commands assemble added subtrees while detached (see replaceElement in normalize.ts),
+    // where the MutationObserver records nothing. addedLayouts snapshots each added
+    // subtree's node arrangement at command end so redo can re-place descendants that an
+    // undo pulled back out through the recorded removals.
+    readonly addedLayouts: NodeLayout[];
+}
+
+export interface NodeLayout {
+    readonly node: Node;
+    readonly children: NodeLayout[];
 }
 
 export interface HistoryEntry {
