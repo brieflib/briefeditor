@@ -1,0 +1,60 @@
+.be-table-control-wrapper {
+    --color-active: oklch(72.3% .219 149.579);
+    --color-secondary: oklch(72.3% .219 149.579 / 0.5);
+}
+
+.be-table-control-button,
+.be-table-control-highlight {
+    position: fixed;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.be-table-control-wrapper[open] .be-table-control-button,
+.be-table-control-wrapper[open] .be-table-control-highlight {
+    opacity: 1;
+    visibility: visible;
+}
+
+.be-table-control-highlight {
+    z-index: 999;
+    background: var(--color-secondary);
+    pointer-events: none;
+}
+
+.be-table-control-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transform: translate(-50%, -50%);
+
+    width: 1.25em;
+    height: 1.25em;
+    padding: 0;
+    cursor: pointer;
+
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    box-shadow: 0 0.125em 0.375em rgba(0, 0, 0, 0.15);
+    user-select: none;
+}
+
+.be-table-control-button:hover {
+    border-color: var(--color-active);
+}
+
+.be-table-control-button svg {
+    width: 0.875em;
+    height: 0.875em;
+    display: block;
+}
+
+.be-table-control-button .icon-svg {
+    fill: #444;
+}
+
+.be-table-control-button:hover .icon-svg {
+    fill: var(--color-active);
+}

@@ -3,6 +3,7 @@ import Toolbar from "@/component/toolbar/toolbar";
 import {Settings} from "@/brief-editor";
 import {cleanElementWhitespace, pasteParagraph} from "@/core/shared/element-util";
 import {History} from "@/core/history/history";
+import Table from "@/component/table/table";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 
@@ -41,10 +42,15 @@ class Editor extends HTMLElement {
         this.addKeyboardEvent(contentEditable);
         this.addClipboardEvent(contentEditable);
         this.addHistory(contentEditable);
+        this.addTable(contentEditable);
     }
 
     private addHistory(contentEditable: HTMLElement) {
         new History(contentEditable);
+    }
+
+    private addTable(contentEditable: HTMLElement) {
+        new Table(contentEditable);
     }
 
     private addKeyboardEvent(contentEditable: HTMLElement) {
