@@ -1,9 +1,12 @@
 import TableControl from "@/component/table/table-control";
+import execCommand from "@/core/command/exec-command";
+import {Action} from "@/core/command/type/command";
 
 const THRESHOLD = 8;
 const KEEP_ALIVE = 24;
 
 interface Pending {
+    mode: "insert" | "delete";
     cell: HTMLTableCellElement;
     after: boolean;
 }
@@ -23,19 +26,25 @@ export default class Table {
     constructor(contentEditable: HTMLElement) {
         this.contentEditable = contentEditable;
 
-        this.row = this.createControl(() => this.insert(this.row, (cell, after) => this.insertRow(cell, after)));
-        this.column = this.createControl(() => this.insert(this.column, (cell, after) => this.insertColumn(cell, after)));
+        this.row = this.createControl((pending) => this.applyRow(pending));
+        this.column = this.createControl((pending) => this.applyColumn(pending));
 
         this.contentEditable.addEventListener("mousemove", (event) => this.onMouseMove(event));
         this.contentEditable.addEventListener("mouseleave", (event) => this.onMouseLeave(event));
         document.querySelector("#be-content")?.addEventListener("scroll", () => this.resetAll());
     }
 
-    private createControl(onSelect: () => void): ControlState {
+    private createControl(apply: (pending: Pending) => void): ControlState {
         const control = new TableControl();
-        control.onSelect = onSelect;
+        const state: ControlState = {control, pending: null, x: 0, y: 0};
+        control.onSelect = () => {
+            if (state.pending) {
+                apply(state.pending);
+            }
+            this.resetAll();
+        };
         document.body.appendChild(control);
-        return {control, pending: null, x: 0, y: 0};
+        return state;
     }
 
     private onMouseMove(event: MouseEvent) {
@@ -51,28 +60,69 @@ export default class Table {
         const tableRect = table.getBoundingClientRect();
         const rect = cell.getBoundingClientRect();
 
-        // Horizontal and vertical proximity are evaluated independently, so near a
-        // border cross both the row and column controls appear at once.
-        // The header row (thead) is skipped: rows are only inserted around the body.
+        this.updateRow(event, cell, table, tableRect, rect);
+        this.updateColumn(event, cell, table, tableRect, rect);
+    }
+
+    // Near a horizontal border -> insert control; in the middle of the cell -> delete control.
+    private updateRow(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
         const top = Math.abs(event.clientY - rect.top);
         const bottom = Math.abs(event.clientY - rect.bottom);
-        if (!cell.closest("thead") && Math.min(top, bottom) <= THRESHOLD) {
-            const after = bottom < top;
-            this.show(this.row, cell, after, tableRect.left, after ? rect.bottom : rect.top);
-            this.row.control.showRow(tableRect, after ? rect.bottom : rect.top);
+        if (Math.min(top, bottom) <= THRESHOLD) {
+            this.showRowInsert(event, cell, tableRect, rect, bottom < top);
         } else {
+            this.showRowDelete(event, cell, table, tableRect, rect);
+        }
+    }
+
+    private showRowInsert(event: MouseEvent, cell: HTMLTableCellElement, tableRect: DOMRect, rect: DOMRect, after: boolean) {
+        if (cell.closest("thead")) {
             this.keepOrReset(this.row, event);
+            return;
         }
 
+        const y = after ? rect.bottom : rect.top;
+        this.assign(this.row, {mode: "insert", cell, after}, tableRect.left, y);
+        this.row.control.showRowInsert(tableRect, y);
+    }
+
+    private showRowDelete(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
+        if (table.rows.length <= 1 || cell.closest("thead")) {
+            this.keepOrReset(this.row, event);
+            return;
+        }
+
+        const y = (rect.top + rect.bottom) / 2;
+        this.assign(this.row, {mode: "delete", cell, after: false}, tableRect.left, y);
+        this.row.control.showDelete(tableRect.left, y);
+    }
+
+    // Near a vertical border -> insert control; in the middle of the cell -> delete control.
+    private updateColumn(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
         const left = Math.abs(event.clientX - rect.left);
         const right = Math.abs(event.clientX - rect.right);
         if (Math.min(left, right) <= THRESHOLD) {
-            const after = right < left;
-            this.show(this.column, cell, after, after ? rect.right : rect.left, tableRect.top);
-            this.column.control.showColumn(tableRect, after ? rect.right : rect.left);
+            this.showColumnInsert(cell, tableRect, rect, right < left);
         } else {
-            this.keepOrReset(this.column, event);
+            this.showColumnDelete(event, cell, table, tableRect, rect);
         }
+    }
+
+    private showColumnInsert(cell: HTMLTableCellElement, tableRect: DOMRect, rect: DOMRect, after: boolean) {
+        const x = after ? rect.right : rect.left;
+        this.assign(this.column, {mode: "insert", cell, after}, x, tableRect.top);
+        this.column.control.showColumnInsert(tableRect, x);
+    }
+
+    private showColumnDelete(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
+        if (this.columnCount(table) <= 1) {
+            this.keepOrReset(this.column, event);
+            return;
+        }
+
+        const x = (rect.left + rect.right) / 2;
+        this.assign(this.column, {mode: "delete", cell, after: false}, x, tableRect.top);
+        this.column.control.showDelete(x, tableRect.top);
     }
 
     private onMouseLeave(event: MouseEvent) {
@@ -83,8 +133,8 @@ export default class Table {
         this.resetAll();
     }
 
-    // Moving off a border keeps a control alive while the cursor is close to its "+",
-    // so the user can travel from the border to the margin control and click it.
+    // Moving off a control's spot keeps it alive while the cursor is close to its button,
+    // so the user can travel from the cell to the margin control and click it.
     private keepOrReset(state: ControlState, event: MouseEvent) {
         if (state.pending && Math.hypot(event.clientX - state.x, event.clientY - state.y) <= KEEP_ALIVE) {
             return;
@@ -92,8 +142,8 @@ export default class Table {
         this.reset(state);
     }
 
-    private show(state: ControlState, cell: HTMLTableCellElement, after: boolean, x: number, y: number) {
-        state.pending = {cell, after};
+    private assign(state: ControlState, pending: Pending, x: number, y: number) {
+        state.pending = pending;
         state.x = x;
         state.y = y;
     }
@@ -108,44 +158,17 @@ export default class Table {
         this.reset(this.column);
     }
 
-    private insert(state: ControlState, apply: (cell: HTMLTableCellElement, after: boolean) => void) {
-        if (state.pending) {
-            apply(state.pending.cell, state.pending.after);
-        }
-        this.resetAll();
+    private applyRow(pending: Pending) {
+        const action = pending.mode === "insert" ? Action.InsertRow : Action.DeleteRow;
+        execCommand(this.contentEditable, {action, table: {cell: pending.cell, after: pending.after}});
     }
 
-    private insertRow(cell: HTMLTableCellElement, after: boolean) {
-        const referenceRow = cell.parentElement as HTMLTableRowElement;
-        const section = referenceRow.parentElement;
-        if (!section) {
-            return;
-        }
-
-        const newRow = document.createElement("tr");
-        for (const referenceCell of referenceRow.cells) {
-            const newCell = document.createElement(referenceCell.tagName === "TH" ? "th" : "td");
-            newCell.appendChild(document.createElement("br"));
-            newRow.appendChild(newCell);
-        }
-
-        section.insertBefore(newRow, after ? referenceRow.nextSibling : referenceRow);
+    private applyColumn(pending: Pending) {
+        const action = pending.mode === "insert" ? Action.InsertColumn : Action.DeleteColumn;
+        execCommand(this.contentEditable, {action, table: {cell: pending.cell, after: pending.after}});
     }
 
-    private insertColumn(cell: HTMLTableCellElement, after: boolean) {
-        const table = cell.closest("table") as HTMLTableElement | null;
-        if (!table) {
-            return;
-        }
-
-        const columnIndex = cell.cellIndex + (after ? 1 : 0);
-        for (const row of table.rows) {
-            const insertIndex = Math.min(columnIndex, row.cells.length);
-            const reference = row.cells[insertIndex] ?? null;
-            const isHeaderRow = row.cells[0]?.tagName === "TH";
-            const newCell = document.createElement(isHeaderRow ? "th" : "td");
-            newCell.appendChild(document.createElement("br"));
-            row.insertBefore(newCell, reference);
-        }
+    private columnCount(table: HTMLTableElement): number {
+        return table.rows[0]?.cells.length ?? 0;
     }
 }

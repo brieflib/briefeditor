@@ -48,6 +48,11 @@
 .be-table-control-button svg {
     width: 0.875em;
     height: 0.875em;
+    display: none;
+}
+
+.be-table-control-button[data-icon="plus"] .plus,
+.be-table-control-button[data-icon="minus"] .minus {
     display: block;
 }
 

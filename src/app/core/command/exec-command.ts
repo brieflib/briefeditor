@@ -55,6 +55,18 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         case Action.Clipboard:
             cursorPosition = handleClipboardEvent(contentEditable, command.event as ClipboardEvent);
             break;
+        case Action.InsertRow:
+            applyInsertRowCommand(command);
+            break;
+        case Action.InsertColumn:
+            applyInsertColumnCommand(command);
+            break;
+        case Action.DeleteRow:
+            applyDeleteRowCommand(command);
+            break;
+        case Action.DeleteColumn:
+            applyDeleteColumnCommand(command);
+            break;
     }
 
     if (command.action !== Action.Attribute && command.tag) {
@@ -169,5 +181,85 @@ function applyListCommand(contentEditable: HTMLElement, command: Command) {
             tags = ["P"];
         }
         changeBlock(contentEditable, tags);
+    }
+}
+
+function applyInsertRowCommand(command: Command) {
+    const target = command.table;
+    if (!target) {
+        return;
+    }
+
+    const referenceRow = target.cell.parentElement as HTMLTableRowElement;
+    const section = referenceRow.parentElement;
+    if (!section) {
+        return;
+    }
+
+    const newRow = document.createElement("tr");
+    for (const referenceCell of referenceRow.cells) {
+        const newCell = document.createElement(referenceCell.tagName === "TH" ? "th" : "td");
+        newCell.appendChild(document.createElement("br"));
+        newRow.appendChild(newCell);
+    }
+
+    section.insertBefore(newRow, target.after ? referenceRow.nextSibling : referenceRow);
+}
+
+function applyInsertColumnCommand(command: Command) {
+    const target = command.table;
+    if (!target) {
+        return;
+    }
+
+    const table = target.cell.closest("table") as HTMLTableElement | null;
+    if (!table) {
+        return;
+    }
+
+    const columnIndex = target.cell.cellIndex + (target.after ? 1 : 0);
+    for (const row of table.rows) {
+        const insertIndex = Math.min(columnIndex, row.cells.length);
+        const reference = row.cells[insertIndex] ?? null;
+        const isHeaderRow = row.cells[0]?.tagName === "TH";
+        const newCell = document.createElement(isHeaderRow ? "th" : "td");
+        newCell.appendChild(document.createElement("br"));
+        row.insertBefore(newCell, reference);
+    }
+}
+
+function applyDeleteRowCommand(command: Command) {
+    const target = command.table;
+    if (!target) {
+        return;
+    }
+
+    const table = target.cell.closest("table") as HTMLTableElement | null;
+    const row = target.cell.parentElement as HTMLTableRowElement | null;
+    if (!table || !row || table.rows.length <= 1) {
+        return;
+    }
+
+    const section = row.parentElement;
+    row.remove();
+    if (section && section.tagName !== "TABLE" && section.children.length === 0) {
+        section.remove();
+    }
+}
+
+function applyDeleteColumnCommand(command: Command) {
+    const target = command.table;
+    if (!target) {
+        return;
+    }
+
+    const table = target.cell.closest("table") as HTMLTableElement | null;
+    if (!table || (table.rows[0]?.cells.length ?? 0) <= 1) {
+        return;
+    }
+
+    const columnIndex = target.cell.cellIndex;
+    for (const row of table.rows) {
+        row.cells[columnIndex]?.remove();
     }
 }

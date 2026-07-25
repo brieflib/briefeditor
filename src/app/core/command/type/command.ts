@@ -11,6 +11,10 @@ export enum Action {
     Unwrap = "Unwrap",
     Keyboard = "Keyboard",
     Clipboard = "Clipboard",
+    InsertRow = "InsertRow",
+    InsertColumn = "InsertColumn",
+    DeleteRow = "DeleteRow",
+    DeleteColumn = "DeleteColumn",
 }
 
 export interface Attributes {
@@ -19,9 +23,15 @@ export interface Attributes {
     class?: string | null
 }
 
+export interface TableTarget {
+    cell: HTMLTableCellElement;
+    after?: boolean;
+}
+
 export interface Command {
     action: Action,
     tag?: string,
     attributes?: Attributes | undefined,
-    event?: KeyboardEvent | ClipboardEvent
+    event?: KeyboardEvent | ClipboardEvent,
+    table?: TableTarget
 }
