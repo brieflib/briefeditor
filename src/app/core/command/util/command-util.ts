@@ -86,11 +86,11 @@ export function applyAttributes(element: HTMLElement, attributes?: Attributes) {
     }
 }
 
-export function changeBlock(contentEditable: HTMLElement, replaceTo: string[]) {
+export function changeBlock(contentEditable: HTMLElement, replaceTo: string[],
+                            cursorPosition: CursorPosition = getCursorPosition()) {
     const isList = replaceTo.length === 1 && isSchemaContainNodeName(replaceTo[0], [Display.ListWrapper]);
 
-    const cursorPosition = getCursorPosition();
-    const blocks = getSelectedBlock(contentEditable);
+    const blocks = getSelectedBlock(contentEditable, cursorPosition);
     for (let i = blocks.length - 1; i >= 0; i--) {
         const b = getSelectedBlock(contentEditable, cursorPosition);
         const block = b[i];
