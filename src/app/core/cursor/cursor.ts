@@ -1,11 +1,5 @@
-import {
-    cloneRange,
-    getCursorPosition,
-    getLength,
-    isCollapsed,
-    selectNodeContents,
-    setRangeEnd
-} from "@/core/shared/type/cursor-position";
+import {getCursorPosition, isCollapsed} from "@/core/shared/type/cursor-position";
+import {getCursorOffsetInElement} from "@/core/cursor/util/cursor-util";
 import {getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
@@ -19,11 +13,7 @@ export function isCursorAtEndOfBlock(contentEditable: HTMLElement, cursorPositio
         return false;
     }
 
-    const endPosition = cloneRange(cursorPosition);
-    selectNodeContents(endPosition, block);
-    setRangeEnd(endPosition);
-
-    const endOffset = getLength(endPosition);
+    const endOffset = getCursorOffsetInElement(block, cursorPosition);
     if (!isSchemaContain(block, [Display.List])) {
         return endOffset === block.textContent.length;
     }
@@ -48,11 +38,7 @@ export function isCursorAtStartOfBlock(contentEditable: HTMLElement, cursorPosit
         return false;
     }
 
-    const endRange = cloneRange(cursorPosition);
-    selectNodeContents(endRange, block);
-    setRangeEnd(endRange);
-
-    return getLength(endRange) === 0;
+    return getCursorOffsetInElement(block, cursorPosition) === 0;
 }
 
 export function isCursorIntersectBlocks(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {

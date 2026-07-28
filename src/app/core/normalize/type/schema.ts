@@ -6,6 +6,8 @@ export enum Display {
     Link = "Link",
     ListWrapper = "ListWrapper",
     Image = "Image",
+    Table = "Table",
+    TableSection = "TableSection",
 }
 
 const schema: Map<string, Display[]> = new Map<string, Display[]>();
@@ -26,6 +28,14 @@ schema.set("H4", [Display.FirstLevel]);
 schema.set("H5", [Display.FirstLevel]);
 schema.set("H6", [Display.FirstLevel]);
 schema.set("BLOCKQUOTE", [Display.FirstLevel]);
+
+// Cells are deliberately left out: they must not read as blocks, so that a cursor inside one is not
+// mistaken for a cursor in a first level element.
+schema.set("TABLE", [Display.Table]);
+schema.set("THEAD", [Display.TableSection]);
+schema.set("TBODY", [Display.TableSection]);
+schema.set("TFOOT", [Display.TableSection]);
+schema.set("TR", [Display.TableSection]);
 
 schema.set("STRONG", [Display.Collapse]);
 schema.set("EM", [Display.Collapse]);

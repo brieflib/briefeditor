@@ -608,3 +608,44 @@ describe("Cursor position after MinusIndent command", () => {
         expect(cursorPosition.endOffset).toBe("rst".length);
     });
 });
+
+describe("Delete row command", () => {
+    function selectCell(wrapper: HTMLElement, selector: string) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), "".length);
+        range.setEnd(getFirstChild(wrapper, selector), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        return wrapper.querySelector(selector) as HTMLTableCellElement;
+    }
+
+    test("Should keep a section that still holds rows", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th class="head">zero</th></tr></thead>
+            <tbody><tr><td class="first">first</td></tr><tr><td>second</td></tr></tbody></table>
+        `);
+        const cell = selectCell(wrapper, ".first");
+
+        execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
+
+        expectHtml(wrapper.innerHTML, `
+            <table><thead><tr><th class="head">zero</th></tr></thead>
+            <tbody><tr><td>second</td></tr></tbody></table>
+        `);
+    });
+
+    test("Should remove a section left empty by the deleted row", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th class="head">zero</th></tr></thead>
+            <tbody><tr><td class="first">first</td></tr><tr><td>second</td></tr></tbody></table>
+        `);
+        const cell = selectCell(wrapper, ".head");
+
+        execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
+
+        expectHtml(wrapper.innerHTML, `
+            <table>
+            <tbody><tr><td class="first">first</td></tr><tr><td>second</td></tr></tbody></table>
+        `);
+    });
+});

@@ -4,6 +4,7 @@ import {Settings} from "@/brief-editor";
 import {cleanElementWhitespace, pasteParagraph} from "@/core/shared/element-util";
 import {History} from "@/core/history/history";
 import Table from "@/component/table/table";
+import {TableCursor} from "@/core/cursor/table-cursor";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {handleCopyEvent} from "@/core/clipboard/clipboard";
@@ -44,6 +45,7 @@ class Editor extends HTMLElement {
         this.addClipboardEvent(contentEditable);
         this.addHistory(contentEditable);
         this.addTable(contentEditable);
+        this.addTableCursor(contentEditable);
     }
 
     private addHistory(contentEditable: HTMLElement) {
@@ -52,6 +54,10 @@ class Editor extends HTMLElement {
 
     private addTable(contentEditable: HTMLElement) {
         new Table(contentEditable);
+    }
+
+    private addTableCursor(contentEditable: HTMLElement) {
+        new TableCursor(contentEditable);
     }
 
     private addKeyboardEvent(contentEditable: HTMLElement) {

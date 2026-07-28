@@ -16,6 +16,7 @@ import {
     isRangeIn,
     setCursorPosition
 } from "@/core/shared/type/cursor-position";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {CommandEvent} from "@/core/history/type/history-event";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
@@ -245,7 +246,7 @@ function applyDeleteRowCommand(command: Command) {
 
     const section = row.parentElement;
     row.remove();
-    if (section && section.tagName !== "TABLE" && section.children.length === 0) {
+    if (isSchemaContain(section, [Display.TableSection]) && section?.children.length === 0) {
         section.remove();
     }
 }
