@@ -269,12 +269,12 @@ describe("Sanitize input", () => {
 
         expectHtml(wrapper.innerHTML, `
             <h1>zero</h1>
-            <h1>first</h1>
-            <h1>second</h1>
+            <p>first</p>
+            <p>second</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[2]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("h1")[2]?.firstChild);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
         expect(cursorPosition.startOffset).toBe("second".length);
         expect(cursorPosition.endOffset).toBe("second".length);
     });
@@ -294,8 +294,10 @@ describe("Sanitize input", () => {
 
         expectHtml(wrapper.innerHTML, `
             <h1>zero</h1>
-            <h1>first</h1>
-            <h1>second</h1>
+            <ul>
+                <li>first</li>
+                <li>second</li>
+            </ul>
         `);
 
         expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[2]?.firstChild);
@@ -319,12 +321,65 @@ describe("Sanitize input", () => {
 
         expectHtml(wrapper.innerHTML, `
             <h1>zero</h1>
-            <h1>first</h1>
-            <h1>second</h1>
+            <ul>
+                <li>first</li>
+                <li>second</li>
+            </ul>
         `);
 
         expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[2]?.firstChild);
         expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("h1")[2]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+        expect(cursorPosition.endOffset).toBe("second".length);
+    });
+
+    test("Should paste multiple paragraphs to the middle of heading", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>ze</h1>
+            <p>first</p>
+            <p>second</p>
+            <h1>ro</h1>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+        expect(cursorPosition.endOffset).toBe("second".length);
+    });
+
+    test("Should paste multiple paragraphs before the heading", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>first</p>
+            <p>second</p>
+            <h1>zero</h1>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
         expect(cursorPosition.startOffset).toBe("second".length);
         expect(cursorPosition.endOffset).toBe("second".length);
     });

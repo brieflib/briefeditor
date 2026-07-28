@@ -2,16 +2,15 @@ import {
     cloneContents,
     createContextualFragment,
     CursorPosition,
-    deleteContents, getCursorPositionFrom, getCursorPositionFromElement,
+    deleteContents, getCursorPositionFromElement,
     insertNode,
     isCollapsed
 } from "@/core/shared/type/cursor-position";
 import {closeTags, removeAndNormalize} from "@/core/normalize/normalize";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
+import {getLastText, getRootElement} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
-import {changeBlock} from "@/core/command/util/command-util";
 
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
     htmlString = cleanPastedContent(htmlString);
@@ -27,39 +26,13 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     }
 
     cursorPosition = closeTags(firstRoot, cursorPosition);
-    // Capture the root's tag before removeAndNormalize replaces firstRoot; the pasted blocks
-    // adopt it below.
-    const rootTag = firstRoot.nodeName;
     const fragmentToInsert = createContextualFragment(htmlString, cursorPosition);
-    // Paste end text node. It is moved into the DOM by insertNode and survives changeBlock, so its
-    // reference stays valid for the span end and the returned caret.
-    const lastText = getLastText(fragmentToInsert);
-    const lastOffset = lastText.textContent?.length ?? 0;
-
-    // A pasted top-level first-level or list element whose tag differs from the root (a heading/paragraph of
-    // another tag, or a list) becomes its own top-level block: paste it after firstRoot by pointing
-    // the cursor after firstRoot and reusing insertNode, then let changeBlock convert every pasted
-    // block to the root tag. A same-tag block (e.g. <p> into <p>) keeps the inline merge below.
-    const isBlockPaste = Array.from(fragmentToInsert.children)
-        .some(child => isSchemaContain(child, [Display.FirstLevel, Display.List]) && child.nodeName !== rootTag);
-
-    if (isBlockPaste) {
-        const parent = firstRoot.parentNode as Node;
-        const index = Array.prototype.indexOf.call(parent.childNodes, firstRoot) + 1;
-        insertNode(getCursorPositionFrom(parent, index, parent, index), fragmentToInsert);
-        // Convert firstRoot together with the pasted blocks: they all adopt rootTag and firstRoot's
-        // attributes are dropped (changeBlock rebuilds each block through clearElementHTML).
-        changeBlock(contentEditable, [rootTag],
-            getCursorPositionFrom(getFirstText(firstRoot), 0, lastText, lastOffset));
-        return getCursorPositionFrom(lastText, lastOffset, lastText, lastOffset);
-    }
-
-    // Inline paste: merge at the cursor. The span is passed through removeAndNormalize so both ends
-    // remap onto surviving nodes even when the paste merges into existing text.
-    const pastedSpan = getCursorPositionFrom(getFirstText(fragmentToInsert), 0, lastText, lastOffset);
+    // Capture the paste-end position before insertNode empties the fragment; the
+    // text node itself is moved into the DOM, so the reference stays valid.
+    const pastedCursorPosition = getCursorPositionFromElement(getLastText(fragmentToInsert));
     insertNode(cursorPosition, fragmentToInsert);
-    const pasted = removeAndNormalize(contentEditable, firstRoot, [], pastedSpan);
-    return getCursorPositionFrom(pasted.endContainer, pasted.endOffset, pasted.endContainer, pasted.endOffset);
+
+    return removeAndNormalize(contentEditable, firstRoot, [], pastedCursorPosition);
 }
 
 export function getSelectedHtml(cursorPosition: CursorPosition): string {
