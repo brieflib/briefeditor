@@ -11,6 +11,7 @@ export enum Action {
     Unwrap = "Unwrap",
     Keyboard = "Keyboard",
     Clipboard = "Clipboard",
+    Cut = "Cut",
     InsertRow = "InsertRow",
     InsertColumn = "InsertColumn",
     DeleteRow = "DeleteRow",

@@ -1,6 +1,6 @@
 import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
-import {pasteHtml} from "@/core/clipboard/util/clipboard-util";
+import {getSelectedHtml, pasteHtml} from "@/core/clipboard/util/clipboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 jest.mock("../../shared/range-util", () => ({
@@ -193,6 +193,42 @@ describe("Sanitize input", () => {
         expect(cursorPosition.endContainer).toBe(wrapper.querySelector("p")?.firstChild);
         expect(cursorPosition.startOffset).toBe("fourth".length);
         expect(cursorPosition.endOffset).toBe("fourth".length);
+    });
+
+    test("Should serialize selection keeping literal hrefs", () => {
+        const wrapper = createWrapper(`
+            <p class="start"><a href="#">first</a> <a href="/foo">second</a> <a href="https://example.com/x">third</a></p>
+        `);
+
+        const range = new Range();
+        range.selectNodeContents(wrapper.querySelector(".start") as Node);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const html = getSelectedHtml(getCursorPosition());
+
+        expect(html).toContain(`href="#"`);
+        expect(html).toContain(`href="/foo"`);
+        expect(html).toContain(`href="https://example.com/x"`);
+        expect(html).not.toContain("localhost");
+    });
+
+    test("Should keep enclosing inline ancestors when selection is inside them", () => {
+        const wrapper = createWrapper(`
+            <p><strong><a href="/bar" class="start">hello</a></strong></p>
+        `);
+
+        const link = getFirstChild(wrapper, ".start"); // "hello" text node inside the <a>
+        const range = new Range();
+        range.setStart(link, "h".length);
+        range.setEnd(link, "hell".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const html = getSelectedHtml(getCursorPosition());
+
+        expect(html).toContain(`href="/bar"`);
+        expect(html).toContain("<strong>");
+        expect(html).toContain("ell");
+        expect(html).not.toContain("localhost");
     });
 
     test("Should insert text inside p", () => {

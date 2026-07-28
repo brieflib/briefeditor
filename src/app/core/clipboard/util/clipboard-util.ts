@@ -1,4 +1,5 @@
 import {
+    cloneContents,
     createContextualFragment,
     CursorPosition,
     deleteContents, getCursorPositionFromElement,
@@ -32,6 +33,36 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     insertNode(cursorPosition, fragmentToInsert);
 
     return removeAndNormalize(contentEditable, firstRoot, [], pastedCursorPosition);
+}
+
+export function getSelectedHtml(cursorPosition: CursorPosition): string {
+    // Serialize the selection from a cloned DOM fragment so anchors keep their
+    // literal href attributes. Letting the browser build the clipboard HTML would
+    // resolve relative hrefs to absolute (prepending the page origin).
+    const container = document.createElement("div");
+    container.appendChild(cloneContents(cursorPosition));
+
+    // range.cloneContents() drops an inline ancestor that fully contains the
+    // selection (e.g. selecting text inside an <a> or <strong>, as a double-click
+    // does). Re-wrap the fragment in shallow clones of those ancestors so copied
+    // markup keeps its link/formatting, href attributes preserved literally.
+    let ancestor: Node | null = cursorPosition.range.commonAncestorContainer;
+    if (ancestor.nodeType !== Node.ELEMENT_NODE) {
+        ancestor = ancestor.parentElement;
+    }
+    while (ancestor instanceof HTMLElement && isInlineFormatting(ancestor)) {
+        const wrapper = ancestor.cloneNode(false) as HTMLElement;
+        wrapper.append(...container.childNodes);
+        container.appendChild(wrapper);
+        ancestor = ancestor.parentElement;
+    }
+
+    return container.innerHTML;
+}
+
+function isInlineFormatting(element: HTMLElement): boolean {
+    return isSchemaContain(element, [Display.Link, Display.Collapse]) &&
+        !isSchemaContain(element, [Display.FirstLevel]);
 }
 
 function cleanPastedContent(htmlString: string) {

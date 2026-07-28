@@ -86,6 +86,10 @@ export function extractContents(cursorPosition: CursorPosition): DocumentFragmen
     return cursorPosition.range.extractContents();
 }
 
+export function cloneContents(cursorPosition: CursorPosition): DocumentFragment {
+    return cursorPosition.range.cloneContents();
+}
+
 export function insertNode(cursorPosition: CursorPosition, node: Node) {
     cursorPosition.range.insertNode(node);
 }

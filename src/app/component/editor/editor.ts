@@ -6,6 +6,7 @@ import {History} from "@/core/history/history";
 import Table from "@/component/table/table";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
+import {handleCopyEvent} from "@/core/clipboard/clipboard";
 
 class Editor extends HTMLElement {
     constructor(contentEditable: HTMLElement, settings: Settings) {
@@ -59,6 +60,8 @@ class Editor extends HTMLElement {
 
     private addClipboardEvent(contentEditable: HTMLElement) {
         contentEditable.addEventListener("paste", (event) => execCommand(contentEditable, {action: Action.Clipboard, event}));
+        contentEditable.addEventListener("copy", (event) => handleCopyEvent(event));
+        contentEditable.addEventListener("cut", (event) => execCommand(contentEditable, {action: Action.Cut, event}));
     }
 
     addToolbarItem(toolbar: HTMLElement) {
