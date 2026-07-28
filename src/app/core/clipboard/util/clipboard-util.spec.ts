@@ -279,7 +279,34 @@ describe("Sanitize input", () => {
         expect(cursorPosition.endOffset).toBe("second".length);
     });
 
-    test("Should flatten pasted list to heading", () => {
+    test("Should pasted list before heading", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>first</li>
+                <li>second</li>
+            </ul>
+            <h1>zero</h1>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+        expect(cursorPosition.endOffset).toBe("second".length);
+    });
+
+    test("Should pasted list after heading", () => {
         const wrapper = createWrapper(`
             <h1 class="start">zero</h1>
         `);
@@ -300,13 +327,13 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[2]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("h1")[2]?.firstChild);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
         expect(cursorPosition.startOffset).toBe("second".length);
         expect(cursorPosition.endOffset).toBe("second".length);
     });
 
-    test("Should flatten pasted lis to heading", () => {
+    test("Should paste lis after heading", () => {
         const wrapper = createWrapper(`
             <h1 class="start">zero</h1>
         `);
@@ -327,10 +354,88 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[2]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("h1")[2]?.firstChild);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
         expect(cursorPosition.startOffset).toBe("second".length);
         expect(cursorPosition.endOffset).toBe("second".length);
+    });
+
+    test("Should paste lis with nested list after heading", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<li>first</li><ul><li>second</li></ul><li>third</li>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>zero</h1>
+            <ul>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+                <li>third</li>
+            </ul>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("third".length);
+        expect(cursorPosition.endOffset).toBe("third".length);
+    });
+
+    test("Should paste list to the middle of heading", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>ze</h1>
+            <ul>
+                <li>first</li>
+                <li>second</li>
+            </ul>
+            <h1>ro</h1>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+        expect(cursorPosition.endOffset).toBe("second".length);
+    });
+
+    test("Should keep list wrapper of copied list items", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+
+        const items = wrapper.querySelectorAll("li");
+        const range = new Range();
+        range.setStart(items[0]?.firstChild as Node, "".length);
+        range.setEnd(items[1]?.firstChild as Node, "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const html = getSelectedHtml(getCursorPosition());
+
+        expect(html).toBe(`<ol><li>first</li><li>second</li></ol>`);
     });
 
     test("Should paste multiple paragraphs to the middle of heading", () => {
