@@ -41,11 +41,12 @@ class Editor extends HTMLElement {
         pasteParagraph(contentEditable);
         contentEditable.focus();
 
+        // Registered first so that its keydown listener corrects the cursor before the editor acts on it.
+        this.addTableCursor(contentEditable);
         this.addKeyboardEvent(contentEditable);
         this.addClipboardEvent(contentEditable);
         this.addHistory(contentEditable);
         this.addTable(contentEditable);
-        this.addTableCursor(contentEditable);
     }
 
     private addHistory(contentEditable: HTMLElement) {

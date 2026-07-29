@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
+import {createWrapper, getFirstChild} from "@/core/shared/test-util";
 import {TableCursor} from "@/core/cursor/table-cursor";
 import {getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 
@@ -33,8 +33,12 @@ function keydownEvent(key: string, options: KeyboardEventInit = {}) {
     return new KeyboardEvent("keydown", {key, cancelable: true, ...options});
 }
 
-function mousedownEvent(options: MouseEventInit = {}) {
-    return new MouseEvent("mousedown", {button: 0, cancelable: true, ...options});
+// jsdom only assigns a target while dispatching, and dispatching would reach the real document listener.
+function mousedownEvent(target: Node, options: MouseEventInit = {}) {
+    const event = new MouseEvent("mousedown", {button: 0, cancelable: true, ...options});
+    Object.defineProperty(event, "target", {value: target});
+
+    return event;
 }
 
 function cursorPositionAt(container: Node, offset: number) {
@@ -50,47 +54,19 @@ function indexOfTable(wrapper: HTMLElement) {
 }
 
 describe("Table cursor", () => {
-    test("Should move to the previous block when leaving the table backwards", () => {
-        const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
+    // The cursor never rests next to a table any more, so what used to be tested through a correcting
+    // selection change is now tested through the two events that are taken over instead.
+    test("Should move into the previous table when two tables are adjacent", () => {
+        const wrapper = createWrapper(`${TABLE}<table class="second"><tbody><tr><td class="cell">fourth</td></tr></tbody></table>`);
         const tableCursor = new TableCursor(wrapper);
 
-        select(getFirstChild(wrapper, ".first"), "".length);
-        tableCursor.onSelectionChange();
+        select(getFirstChild(wrapper, ".cell"), "".length);
+        const keyboardEvent = keydownEvent("ArrowLeft");
+        const cursorPosition = tableCursor.onKeyDown(keyboardEvent);
 
-        select(wrapper, indexOfTable(wrapper));
-        const cursorPosition = tableCursor.onSelectionChange();
-
-        expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".before"));
-        expect(cursorPosition?.startOffset).toBe("before".length);
-        expectHtml(wrapper.innerHTML, `<p class="before">before</p>${TABLE}`);
-    });
-
-    test("Should keep the cursor in the first cell when there is no previous block", () => {
-        const wrapper = createWrapper(TABLE);
-        const tableCursor = new TableCursor(wrapper);
-
-        select(getFirstChild(wrapper, ".first"), "".length);
-        tableCursor.onSelectionChange();
-
-        select(wrapper, indexOfTable(wrapper));
-        const cursorPosition = tableCursor.onSelectionChange();
-
-        expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".first"));
-        expect(cursorPosition?.startOffset).toBe("".length);
-    });
-
-    test("Should move to the next block when leaving the table forwards", () => {
-        const wrapper = createWrapper(`${TABLE}<p class="after">after</p>`);
-        const tableCursor = new TableCursor(wrapper);
-
-        select(getFirstChild(wrapper, ".last"), "third".length);
-        tableCursor.onSelectionChange();
-
-        select(wrapper, indexOfTable(wrapper) + 1);
-        const cursorPosition = tableCursor.onSelectionChange();
-
-        expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".after"));
-        expect(cursorPosition?.startOffset).toBe("".length);
+        expect(keyboardEvent.defaultPrevented).toBe(true);
+        expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".last"));
+        expect(cursorPosition?.startOffset).toBe("third".length);
     });
 
     test("Should keep the cursor in the last cell when there is no next block", () => {
@@ -98,91 +74,44 @@ describe("Table cursor", () => {
         const tableCursor = new TableCursor(wrapper);
 
         select(getFirstChild(wrapper, ".last"), "third".length);
-        tableCursor.onSelectionChange();
+        const keyboardEvent = keydownEvent("ArrowRight");
 
-        select(wrapper, indexOfTable(wrapper) + 1);
-        const cursorPosition = tableCursor.onSelectionChange();
-
-        expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".last"));
-        expect(cursorPosition?.startOffset).toBe("third".length);
+        expect(tableCursor.onKeyDown(keyboardEvent)).toBeNull();
+        expect(keyboardEvent.defaultPrevented).toBe(true);
     });
 
-    test("Should move into the first cell when arriving from the previous block", () => {
+    test("Should not take over an arrow key over a selection that spans the table", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
         const tableCursor = new TableCursor(wrapper);
 
-        select(getFirstChild(wrapper, ".before"), "before".length);
-        tableCursor.onSelectionChange();
+        selectRange(getFirstChild(wrapper, ".before"), "".length, wrapper, indexOfTable(wrapper));
+        const keyboardEvent = keydownEvent("ArrowLeft");
 
-        select(wrapper, indexOfTable(wrapper));
-        const cursorPosition = tableCursor.onSelectionChange();
+        expect(tableCursor.onKeyDown(keyboardEvent)).toBeNull();
+        expect(keyboardEvent.defaultPrevented).toBe(false);
+    });
+
+    test("Should move a click into the first cell when the point resolves to the table element", () => {
+        const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
+        const tableCursor = new TableCursor(wrapper);
+
+        const cursorPosition = tableCursor.onMouseDown(mousedownEvent(wrapper), cursorPositionAt(table(wrapper), "".length));
 
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".first"));
         expect(cursorPosition?.startOffset).toBe("".length);
     });
 
-    test("Should move into the last cell when arriving from the next block", () => {
-        const wrapper = createWrapper(`${TABLE}<p class="after">after</p>`);
-        const tableCursor = new TableCursor(wrapper);
-
-        select(getFirstChild(wrapper, ".after"), "".length);
-        tableCursor.onSelectionChange();
-
-        select(wrapper, indexOfTable(wrapper) + 1);
-        const cursorPosition = tableCursor.onSelectionChange();
-
-        expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".last"));
-        expect(cursorPosition?.startOffset).toBe("third".length);
-    });
-
-    test("Should move into the first cell when there is no previous cursor position", () => {
-        const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
-        const tableCursor = new TableCursor(wrapper);
-
-        select(wrapper, indexOfTable(wrapper));
-        const cursorPosition = tableCursor.onSelectionChange();
-
-        expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".first"));
-        expect(cursorPosition?.startOffset).toBe("".length);
-    });
-
-    test("Should move into the first cell when the cursor is inside the table element", () => {
-        const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
-        const tableCursor = new TableCursor(wrapper);
-
-        select(table(wrapper), "".length);
-        const cursorPosition = tableCursor.onSelectionChange();
-
-        expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".first"));
-        expect(cursorPosition?.startOffset).toBe("".length);
-    });
-
-    test("Should move into the last cell when the cursor is at the end of the table body", () => {
+    test("Should move a click into the last cell when the point resolves to the end of the table body", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
         const tableCursor = new TableCursor(wrapper);
         const tbody = wrapper.querySelector("tbody") as HTMLElement;
 
-        select(tbody, tbody.childNodes.length);
-        const cursorPosition = tableCursor.onSelectionChange();
+        const cursorPosition = tableCursor.onMouseDown(mousedownEvent(wrapper), cursorPositionAt(tbody, tbody.childNodes.length));
 
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".last"));
         expect(cursorPosition?.startOffset).toBe("third".length);
     });
 
-    test("Should move into the previous table when two tables are adjacent", () => {
-        const wrapper = createWrapper(`${TABLE}<table class="second"><tbody><tr><td class="cell">fourth</td></tr></tbody></table>`);
-        const tableCursor = new TableCursor(wrapper);
-        const second = wrapper.querySelector(".second") as HTMLElement;
-
-        select(getFirstChild(wrapper, ".cell"), "".length);
-        tableCursor.onSelectionChange();
-
-        select(wrapper, Array.from(wrapper.childNodes).indexOf(second));
-        const cursorPosition = tableCursor.onSelectionChange();
-
-        expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".last"));
-        expect(cursorPosition?.startOffset).toBe("third".length);
-    });
 
     test("Should take over the arrow left that would leave the first cell", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
@@ -330,26 +259,22 @@ describe("Table cursor", () => {
         expect(keyboardEvent.defaultPrevented).toBe(false);
     });
 
-    test("Should relocate a cursor parked by an earlier event before handling a key", () => {
+    test("Should not read the selection for a key it cannot take over", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
         const tableCursor = new TableCursor(wrapper);
 
         select(getFirstChild(wrapper, ".first"), "".length);
-        tableCursor.onSelectionChange();
+        (getRange as jest.Mock).mockClear();
 
-        select(wrapper, indexOfTable(wrapper));
-        tableCursor.onKeyDown(keydownEvent("x"));
-
-        const range = window.getSelection()?.getRangeAt(0);
-        expect(range?.startContainer).toBe(getFirstChild(wrapper, ".before"));
-        expect(range?.startOffset).toBe("before".length);
+        expect(tableCursor.onKeyDown(keydownEvent("x"))).toBeNull();
+        expect(getRange).not.toHaveBeenCalled();
     });
 
     test("Should take over a click that would land before the table", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
         const tableCursor = new TableCursor(wrapper);
 
-        const mouseEvent = mousedownEvent();
+        const mouseEvent = mousedownEvent(wrapper);
         const cursorPosition = tableCursor.onMouseDown(mouseEvent, cursorPositionAt(wrapper, indexOfTable(wrapper)));
 
         expect(mouseEvent.defaultPrevented).toBe(true);
@@ -361,7 +286,7 @@ describe("Table cursor", () => {
         const wrapper = createWrapper(`${TABLE}<p class="after">after</p>`);
         const tableCursor = new TableCursor(wrapper);
 
-        const mouseEvent = mousedownEvent();
+        const mouseEvent = mousedownEvent(wrapper);
         const cursorPosition = tableCursor.onMouseDown(mouseEvent, cursorPositionAt(wrapper, indexOfTable(wrapper) + 1));
 
         expect(mouseEvent.defaultPrevented).toBe(true);
@@ -374,9 +299,8 @@ describe("Table cursor", () => {
         const tableCursor = new TableCursor(wrapper);
 
         select(getFirstChild(wrapper, ".last"), "third".length);
-        tableCursor.onSelectionChange();
 
-        const cursorPosition = tableCursor.onMouseDown(mousedownEvent(), cursorPositionAt(wrapper, indexOfTable(wrapper)));
+        const cursorPosition = tableCursor.onMouseDown(mousedownEvent(wrapper), cursorPositionAt(wrapper, indexOfTable(wrapper)));
 
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".first"));
         expect(cursorPosition?.startOffset).toBe("".length);
@@ -386,7 +310,7 @@ describe("Table cursor", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
         const tableCursor = new TableCursor(wrapper);
 
-        const mouseEvent = mousedownEvent();
+        const mouseEvent = mousedownEvent(wrapper);
 
         expect(tableCursor.onMouseDown(mouseEvent, cursorPositionAt(getFirstChild(wrapper, ".first"), "ze".length))).toBeNull();
         expect(mouseEvent.defaultPrevented).toBe(false);
@@ -396,30 +320,68 @@ describe("Table cursor", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
         const tableCursor = new TableCursor(wrapper);
 
-        const mouseEvent = mousedownEvent();
+        const mouseEvent = mousedownEvent(wrapper);
 
         expect(tableCursor.onMouseDown(mouseEvent, cursorPositionAt(getFirstChild(wrapper, ".before"), "be".length))).toBeNull();
         expect(mouseEvent.defaultPrevented).toBe(false);
     });
 
-    test("Should not take over a click outside of the editor", () => {
+    // Nothing tests whether an event belongs to the editor, so the listeners must not receive any other.
+    test("Should not listen to events outside of the editor", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
         const outside = document.createElement("div");
         outside.innerHTML = `<table class="outside"><tbody><tr><td>fourth</td></tr></tbody></table>`;
         document.body.appendChild(outside);
         const tableCursor = new TableCursor(wrapper);
+        const onKeyDown = jest.spyOn(tableCursor, "onKeyDown");
+        const onMouseDown = jest.spyOn(tableCursor, "onMouseDown");
 
-        const mouseEvent = mousedownEvent();
+        outside.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowLeft", bubbles: true}));
+        outside.dispatchEvent(new MouseEvent("mousedown", {button: 0, bubbles: true}));
 
-        expect(tableCursor.onMouseDown(mouseEvent, cursorPositionAt(outside, "".length))).toBeNull();
-        expect(mouseEvent.defaultPrevented).toBe(false);
+        expect(onKeyDown).not.toHaveBeenCalled();
+        expect(onMouseDown).not.toHaveBeenCalled();
+    });
+
+    test("Should listen to events inside of the editor", () => {
+        const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
+        const tableCursor = new TableCursor(wrapper);
+        const onKeyDown = jest.spyOn(tableCursor, "onKeyDown");
+        const onMouseDown = jest.spyOn(tableCursor, "onMouseDown");
+        document.caretPositionFromPoint = jest.fn();
+
+        select(getFirstChild(wrapper, ".before"), "be".length);
+        getFirstChild(wrapper, ".before").parentElement?.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowLeft", bubbles: true}));
+        getFirstChild(wrapper, ".before").parentElement?.dispatchEvent(new MouseEvent("mousedown", {button: 0, bubbles: true}));
+        delete (document as Partial<Document>).caretPositionFromPoint;
+
+        expect(onKeyDown).toHaveBeenCalled();
+        expect(onMouseDown).toHaveBeenCalled();
+    });
+
+    test("Should resolve the point only for a click it can take over", () => {
+        const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
+        const tableCursor = new TableCursor(wrapper);
+        const caretPositionFromPoint = jest.fn();
+        document.caretPositionFromPoint = caretPositionFromPoint;
+
+        tableCursor.onMouseDown(mousedownEvent(wrapper, {button: 2}));
+        tableCursor.onMouseDown(mousedownEvent(wrapper, {shiftKey: true}));
+        const skipped = caretPositionFromPoint.mock.calls.length;
+
+        tableCursor.onMouseDown(mousedownEvent(wrapper));
+        const resolved = caretPositionFromPoint.mock.calls.length;
+        delete (document as Partial<Document>).caretPositionFromPoint;
+
+        expect(skipped).toBe(0);
+        expect(resolved).toBe(1);
     });
 
     test("Should not take over a click of a secondary button", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
         const tableCursor = new TableCursor(wrapper);
 
-        const mouseEvent = mousedownEvent({button: 2});
+        const mouseEvent = mousedownEvent(wrapper, {button: 2});
 
         expect(tableCursor.onMouseDown(mouseEvent, cursorPositionAt(wrapper, indexOfTable(wrapper)))).toBeNull();
         expect(mouseEvent.defaultPrevented).toBe(false);
@@ -429,7 +391,7 @@ describe("Table cursor", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
         const tableCursor = new TableCursor(wrapper);
 
-        const mouseEvent = mousedownEvent({shiftKey: true});
+        const mouseEvent = mousedownEvent(wrapper, {shiftKey: true});
 
         expect(tableCursor.onMouseDown(mouseEvent, cursorPositionAt(wrapper, indexOfTable(wrapper)))).toBeNull();
         expect(mouseEvent.defaultPrevented).toBe(false);
@@ -439,48 +401,10 @@ describe("Table cursor", () => {
         const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
         const tableCursor = new TableCursor(wrapper);
 
-        const mouseEvent = mousedownEvent();
+        const mouseEvent = mousedownEvent(wrapper);
 
         expect(tableCursor.onMouseDown(mouseEvent, null)).toBeNull();
         expect(mouseEvent.defaultPrevented).toBe(false);
     });
 
-    test("Should leave the cursor alone inside a cell", () => {
-        const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
-        const tableCursor = new TableCursor(wrapper);
-
-        select(getFirstChild(wrapper, ".first"), "ze".length);
-
-        expect(tableCursor.onSelectionChange()).toBeNull();
-    });
-
-    test("Should leave the cursor alone outside of a table", () => {
-        const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
-        const tableCursor = new TableCursor(wrapper);
-
-        select(getFirstChild(wrapper, ".before"), "be".length);
-
-        expect(tableCursor.onSelectionChange()).toBeNull();
-    });
-
-    test("Should leave a selection that spans the table alone", () => {
-        const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
-        const tableCursor = new TableCursor(wrapper);
-
-        selectRange(getFirstChild(wrapper, ".before"), "".length, wrapper, indexOfTable(wrapper));
-
-        expect(tableCursor.onSelectionChange()).toBeNull();
-    });
-
-    test("Should leave a cursor outside of the editor alone", () => {
-        const wrapper = createWrapper(`<p class="before">before</p>${TABLE}`);
-        const outside = document.createElement("div");
-        outside.innerHTML = `<table class="outside"><tbody><tr><td>fourth</td></tr></tbody></table>`;
-        document.body.appendChild(outside);
-        const tableCursor = new TableCursor(wrapper);
-
-        select(outside, "".length);
-
-        expect(tableCursor.onSelectionChange()).toBeNull();
-    });
 });
