@@ -61,7 +61,7 @@ export default class Table {
         const rect = cell.getBoundingClientRect();
 
         this.updateRow(event, cell, table, tableRect, rect);
-        this.updateColumn(event, cell, table, tableRect, rect);
+        this.updateColumn(event, cell, tableRect, rect);
     }
 
     // Near a horizontal border -> insert control; in the middle of the cell -> delete control.
@@ -69,14 +69,15 @@ export default class Table {
         const top = Math.abs(event.clientY - rect.top);
         const bottom = Math.abs(event.clientY - rect.bottom);
         if (Math.min(top, bottom) <= THRESHOLD) {
-            this.showRowInsert(event, cell, tableRect, rect, bottom < top);
+            this.showRowInsert(event, cell, table, tableRect, rect, bottom < top);
         } else {
             this.showRowDelete(event, cell, table, tableRect, rect);
         }
     }
 
-    private showRowInsert(event: MouseEvent, cell: HTMLTableCellElement, tableRect: DOMRect, rect: DOMRect, after: boolean) {
-        if (cell.closest("thead")) {
+    private showRowInsert(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement,
+                          tableRect: DOMRect, rect: DOMRect, after: boolean) {
+        if (cell.closest("thead") && !(after && table.rows.length <= 1)) {
             this.keepOrReset(this.row, event);
             return;
         }
@@ -98,13 +99,13 @@ export default class Table {
     }
 
     // Near a vertical border -> insert control; in the middle of the cell -> delete control.
-    private updateColumn(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
+    private updateColumn(event: MouseEvent, cell: HTMLTableCellElement, tableRect: DOMRect, rect: DOMRect) {
         const left = Math.abs(event.clientX - rect.left);
         const right = Math.abs(event.clientX - rect.right);
         if (Math.min(left, right) <= THRESHOLD) {
             this.showColumnInsert(cell, tableRect, rect, right < left);
         } else {
-            this.showColumnDelete(event, cell, table, tableRect, rect);
+            this.showColumnDelete(cell, tableRect, rect);
         }
     }
 
@@ -114,12 +115,7 @@ export default class Table {
         this.column.control.showColumnInsert(tableRect, x);
     }
 
-    private showColumnDelete(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
-        if (this.columnCount(table) <= 1) {
-            this.keepOrReset(this.column, event);
-            return;
-        }
-
+    private showColumnDelete(cell: HTMLTableCellElement, tableRect: DOMRect, rect: DOMRect) {
         const x = (rect.left + rect.right) / 2;
         this.assign(this.column, {mode: "delete", cell, after: false}, x, tableRect.top);
         this.column.control.showDelete(x, tableRect.top);

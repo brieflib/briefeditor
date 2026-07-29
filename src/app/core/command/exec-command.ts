@@ -200,11 +200,20 @@ function applyInsertRowCommand(command: Command) {
         return;
     }
 
+    const isHeader = section.tagName === "THEAD";
     const newRow = document.createElement("tr");
     for (const referenceCell of referenceRow.cells) {
-        const newCell = document.createElement(referenceCell.tagName === "TH" ? "th" : "td");
+        const newCell = document.createElement(!isHeader && referenceCell.tagName === "TH" ? "th" : "td");
         newCell.appendChild(document.createElement("br"));
         newRow.appendChild(newCell);
+    }
+
+    if (isHeader) {
+        const table = section.parentElement as HTMLTableElement;
+        const body = table.tBodies[0] ??
+            table.insertBefore(document.createElement("tbody"), section.nextSibling);
+        body.insertBefore(newRow, body.firstChild);
+        return;
     }
 
     section.insertBefore(newRow, target.after ? referenceRow.nextSibling : referenceRow);
@@ -258,12 +267,16 @@ function applyDeleteColumnCommand(command: Command) {
     }
 
     const table = target.cell.closest("table") as HTMLTableElement | null;
-    if (!table || (table.rows[0]?.cells.length ?? 0) <= 1) {
+    if (!table) {
         return;
     }
 
     const columnIndex = target.cell.cellIndex;
     for (const row of table.rows) {
         row.cells[columnIndex]?.remove();
+    }
+
+    if (!table.querySelector("th, td")) {
+        table.remove();
     }
 }
