@@ -163,8 +163,4 @@ export default class Table {
         const action = pending.mode === "insert" ? Action.InsertColumn : Action.DeleteColumn;
         execCommand(this.contentEditable, {action, table: {cell: pending.cell, after: pending.after}});
     }
-
-    private columnCount(table: HTMLTableElement): number {
-        return table.rows[0]?.cells.length ?? 0;
-    }
 }
