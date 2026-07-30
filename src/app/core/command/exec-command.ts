@@ -11,7 +11,7 @@ import {minusIndent, plusIndent} from "@/core/list/list";
 import {getElementByTagName} from "@/core/shared/element-util";
 import {
     CursorPosition,
-    getCursorPosition, insertNode,
+    getCursorPosition, getCursorPositionFrom, insertNode,
     isCollapsed,
     isRangeIn,
     setCursorPosition
@@ -21,6 +21,7 @@ import {CommandEvent} from "@/core/history/type/history-event";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
 import {Carrier} from "@/core/carrier/carrier";
+import {normalize} from "@/core/normalize/normalize";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
@@ -53,9 +54,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             break;
         case Action.Keyboard:
             cursorPosition = handleKeyboardEvent(contentEditable, command.event as KeyboardEvent, cursorPosition);
-            break;
-        case Action.Selection:
-            removeCarrier();
+            removeCarrier(contentEditable);
             break;
         case Action.Clipboard:
             cursorPosition = handleClipboardEvent(contentEditable, command.event as ClipboardEvent);
@@ -75,6 +74,9 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         case Action.DeleteColumn:
             applyDeleteColumnCommand(command);
             break;
+        // case Action.Click:
+        //     removeCarrier(contentEditable);
+        //     break;
     }
 
     if (command.action !== Action.Attribute && command.tag) {
@@ -192,8 +194,13 @@ function applyListCommand(contentEditable: HTMLElement, command: Command) {
     }
 }
 
-function removeCarrier() {
-    Carrier.removeCarrier();
+function removeCarrier(contentEditable: HTMLElement) {
+    const carrier = Carrier.getCarrier();
+    if (carrier) {
+        Carrier.removeCarrier();
+        const cursorPosition = getCursorPositionFrom(carrier, 0, carrier, 0);
+        normalize(contentEditable, cursorPosition);
+    }
 }
 
 function applyInsertRowCommand(command: Command) {

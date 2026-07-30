@@ -5,6 +5,7 @@ import {
     filterLeafParents,
     getLeafNodes, maybeAppendCarrier,
     remapCursor,
+    remapDroppedLeafCursor,
     removeConsecutiveDuplicates,
     replaceLeafParents,
     setLeafParents,
@@ -24,7 +25,6 @@ import {
 import {getFirstSelectedRoot, getSelectedRoot} from "@/core/selection/selection";
 import {applyAttributes} from "@/core/command/util/command-util";
 import {Attributes} from "@/core/command/type/command";
-import {Carrier} from "@/core/carrier/carrier";
 
 export function normalize(contentEditable: HTMLElement, ...cursorPosition: CursorPosition[]) {
     let resultCursorPosition = cursorPosition[0] as CursorPosition;
@@ -93,7 +93,10 @@ export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPo
 export function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
-    const leaves = getLeafNodes(rootElement)
+    const leafNodes = getLeafNodes(rootElement);
+    cursorPosition = remapDroppedLeafCursor(rootElement, leafNodes, cursorPosition);
+
+    const leaves = leafNodes
         .map(node => setLeafParents(contentEditable, node))
         .filter(leaf => filterLeafParents(removeTagFrom, tags, leaf))
         .map(leaf => sortLeafParents(leaf))
@@ -224,6 +227,9 @@ function buildElementsToReplace(replaceTo: string[]) {
 
 function replaceElement(containerAndCursorPosition: ContainerAndCursorPosition, replaceableElement: HTMLElement) {
     const cursorPosition = containerAndCursorPosition.cursorPosition;
+    if (!replaceableElement.parentNode) {
+        return cursorPosition;
+    }
     selectNode(cursorPosition, replaceableElement);
     replaceableElement.remove();
     const container = containerAndCursorPosition.container;

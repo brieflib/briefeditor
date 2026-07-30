@@ -298,6 +298,25 @@ describe("Should remove tags", () => {
     });
 });
 
+describe("Should append tags", () => {
+    test("Should merge sibling strong", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<strong>first</strong></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        appendTag(wrapper, getCursorPosition(), "STRONG");
+
+        expectHtml(wrapper.innerHTML, `
+            <p><strong>zerofirst</strong></p>
+        `);
+    });
+});
+
 describe("Should leave an empty element for a collapsed cursor", () => {
     test("Should split the tag and leave the cursor between the halves", () => {
         const wrapper = createWrapper(`<p class="start"><strong>bold</strong></p>`);

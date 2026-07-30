@@ -11,7 +11,9 @@ export interface ContainerAndCursorPosition {
 }
 
 export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
-    if (element.nodeType === Node.TEXT_NODE || isSchemaContain(element, [Display.SelfClose])) {
+    if ((element.nodeType === Node.TEXT_NODE && element.textContent) ||
+        element === Carrier.getCarrier() ||
+        isSchemaContain(element, [Display.SelfClose])) {
         leafNodes.push(element);
         return leafNodes;
     }
@@ -224,6 +226,49 @@ export function remapCursor(firstText: Node, lastText: Node, cursor: CursorPosit
     const startContainer = cursor.startOffset > 0 ? cursor.startContainer : firstText;
     const startOffset = cursor.startOffset > 0 ? cursor.startOffset : 0;
     return getCursorPositionFrom(startContainer, startOffset, lastText, cursor.endOffset);
+}
+
+// getLeafNodes drops empty text nodes, and collapseLeaves relocates the cursor only through the leaves it
+// receives. An endpoint left on a dropped node - deleteContents empties the start text node in place instead
+// of removing it - would keep pointing inside the subtree replaceElement throws away. Move such endpoints onto
+// the nearest surviving leaf, which is where the dropped node's neighbours end up after the collapse.
+export function remapDroppedLeafCursor(rootElement: Node, leafNodes: Node[], cursor: CursorPosition): CursorPosition {
+    const start = remapDroppedContainer(rootElement, leafNodes, cursor.startContainer, cursor.startOffset);
+    const end = remapDroppedContainer(rootElement, leafNodes, cursor.endContainer, cursor.endOffset);
+
+    if (start.container === cursor.startContainer && end.container === cursor.endContainer) {
+        return cursor;
+    }
+
+    return getCursorPositionFrom(start.container, start.offset, end.container, end.offset);
+}
+
+function remapDroppedContainer(rootElement: Node, leafNodes: Node[], container: Node, offset: number): CursorPoint {
+    if (!isDroppedLeaf(rootElement, leafNodes, container)) {
+        return {container: container, offset: offset};
+    }
+
+    const following = leafNodes.find(leaf =>
+        !!(container.compareDocumentPosition(leaf) & Node.DOCUMENT_POSITION_FOLLOWING));
+    if (following) {
+        return {container: following, offset: 0};
+    }
+
+    // No leaf follows, so every leaf precedes the dropped node and the cursor belongs after the last one.
+    const preceding = leafNodes[leafNodes.length - 1];
+    if (preceding) {
+        return {container: preceding, offset: preceding.textContent?.length ?? 0};
+    }
+
+    return {container: container, offset: offset};
+}
+
+function isDroppedLeaf(rootElement: Node, leafNodes: Node[], container: Node) {
+    return container.nodeType === Node.TEXT_NODE &&
+        !container.textContent &&
+        container !== Carrier.getCarrier() &&
+        rootElement.contains(container) &&
+        !leafNodes.includes(container);
 }
 
 export function maybeAppendCarrier(documentFragment: DocumentFragment) {
