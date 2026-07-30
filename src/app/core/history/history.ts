@@ -20,6 +20,8 @@ export class History {
     private cursorBefore: CursorPath | null = null;
     private carrierBefore: Text | null = null;
     private carrierOnly = false;
+    private carrierMutations: Mutation[] = [];
+    private carrierCursorBefore: CursorPath | null = null;
 
     constructor(contentEditable: HTMLElement) {
         this.contentEditable = contentEditable;
@@ -94,29 +96,37 @@ export class History {
         this.redoStack.length = 0;
 
         if (this.isCarrierOnly()) {
-            this.foldIntoPrevious(mutations, cursorAfter);
+            this.holdCarrier(mutations, cursorAfter);
             return;
         }
 
         this.undoStack.push({
-            mutations: mutations,
-            cursorBefore: this.cursorBefore,
+            mutations: [...this.carrierMutations, ...mutations],
+            cursorBefore: this.carrierMutations.length > 0 ? this.carrierCursorBefore : this.cursorBefore,
             cursorAfter: cursorAfter,
         });
+        this.carrierMutations = [];
+        this.carrierCursorBefore = null;
     }
 
     // Carrier mutations cost no undo step, but they cannot be thrown away: collapsing the block rebuilds it
-    // from clones, so an entry recorded before would revert onto nodes that have left the document. Appending
-    // them to that entry keeps the chain contiguous - reverting it walks the carrier back first, then the edit.
-    // With nothing recorded yet there is no such entry to strand, and dropping them is safe.
-    private foldIntoPrevious(mutations: Mutation[], cursorAfter: CursorPath | null) {
+    // from clones, so an entry recorded either side of them would revert onto nodes that have left the
+    // document. They join the entry before them where there is one, and otherwise wait for the edit the caret
+    // is waiting to make - which is what the carrier is there for - so the two are undone as the single step
+    // they look like. Held mutations therefore only exist while the undo stack is empty, where there is no
+    // earlier entry for them to strand.
+    private holdCarrier(mutations: Mutation[], cursorAfter: CursorPath | null) {
         const previous = this.undoStack[this.undoStack.length - 1];
-        if (!previous) {
+        if (previous) {
+            previous.mutations.push(...mutations);
+            previous.cursorAfter = cursorAfter;
             return;
         }
 
-        previous.mutations.push(...mutations);
-        previous.cursorAfter = cursorAfter;
+        if (this.carrierMutations.length === 0) {
+            this.carrierCursorBefore = this.cursorBefore;
+        }
+        this.carrierMutations.push(...mutations);
     }
 
     private handleKeyboardEvent(event: KeyboardEvent) {

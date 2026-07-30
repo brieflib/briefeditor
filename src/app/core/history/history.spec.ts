@@ -442,6 +442,31 @@ describe("History undo/redo", () => {
         expect(wrapper.querySelectorAll("p").length).toBe(1);
     });
 
+    test("Should revert changes", () => {
+        const wrapper = createWrapper(`<p><strong class="start">zero</strong></p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "ze".length, "ze".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectHtml(wrapper.innerHTML, `<p><strong>ze</strong><strong>ro</strong></p>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("p")?.childNodes[1] as Node, 0);
+        range.setEnd(wrapper.querySelector("p")?.childNodes[1] as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectHtml(wrapper.innerHTML, `<p><strong>ze</strong>a<strong>ro</strong></p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p><strong class="start">zero</strong></p>`);
+        expect(wrapper.querySelectorAll("p").length).toBe(1);
+
+        history.redo();
+
+        expectHtml(wrapper.innerHTML, `<p><strong>ze</strong>a<strong>ro</strong></p>`);
+    });
+
     test("Should not add an entry for a click that drops the carrier", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         const history = new History(wrapper);
