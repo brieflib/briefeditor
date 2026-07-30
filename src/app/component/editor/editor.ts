@@ -67,7 +67,7 @@ class Editor extends HTMLElement {
     }
 
     private addClickEvent(contentEditable: HTMLElement) {
-        contentEditable.addEventListener("click", () => execCommand(contentEditable, {action: Action.Click}));
+        contentEditable.addEventListener("click", (event) => execCommand(contentEditable, {action: Action.Click, event}));
     }
 
     private addClipboardEvent(contentEditable: HTMLElement) {

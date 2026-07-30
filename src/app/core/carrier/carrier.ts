@@ -1,7 +1,4 @@
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-import {getCursorPositionFrom} from "@/core/shared/type/cursor-position";
-import {normalize} from "@/core/normalize/normalize";
-
 export class Carrier {
     private static carrier: Text | null;
     private static cursorCollapsed: boolean | null;
@@ -29,14 +26,5 @@ export class Carrier {
 
     static isCursorCollapsed() {
         return Carrier.cursorCollapsed;
-    }
-}
-
-export function removeCarrier(contentEditable: HTMLElement) {
-    const carrier = Carrier.getCarrier();
-    if (carrier) {
-        Carrier.removeCarrier();
-        const cursorPosition = getCursorPositionFrom(carrier, 0, carrier, 0);
-        normalize(contentEditable, cursorPosition);
     }
 }

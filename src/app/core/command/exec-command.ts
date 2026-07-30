@@ -6,10 +6,17 @@ import {
     isListWrapper,
     tag
 } from "@/core/command/util/command-util";
-import {getSelectedBlock, getSelectedLink, getSelectedSharedTags, selectElement} from "@/core/selection/selection";
+import {
+    getFirstSelectedRoot,
+    getSelectedBlock,
+    getSelectedLink,
+    getSelectedSharedTags,
+    selectElement
+} from "@/core/selection/selection";
 import {minusIndent, plusIndent} from "@/core/list/list";
 import {getElementByTagName} from "@/core/shared/element-util";
 import {
+    cloneRange,
     CursorPosition,
     getCursorPosition, getCursorPositionFrom, insertNode,
     isCollapsed,
@@ -21,7 +28,7 @@ import {CommandEvent} from "@/core/history/type/history-event";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
 import {Carrier} from "@/core/carrier/carrier";
-import {normalize} from "@/core/normalize/normalize";
+import {removeAndNormalize} from "@/core/normalize/normalize";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
@@ -54,7 +61,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             break;
         case Action.Keyboard:
             cursorPosition = handleKeyboardEvent(contentEditable, command.event as KeyboardEvent, cursorPosition);
-            removeCarrier(contentEditable);
+            cursorPosition = removeCarrier(contentEditable, cursorPosition);
             break;
         case Action.Clipboard:
             cursorPosition = handleClipboardEvent(contentEditable, command.event as ClipboardEvent);
@@ -74,9 +81,9 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         case Action.DeleteColumn:
             applyDeleteColumnCommand(command);
             break;
-        // case Action.Click:
-        //     removeCarrier(contentEditable);
-        //     break;
+        case Action.Click:
+            cursorPosition = removeCarrier(contentEditable, cursorPosition, command.event as MouseEvent);
+            break;
     }
 
     if (command.action !== Action.Attribute && command.tag) {
@@ -194,13 +201,22 @@ function applyListCommand(contentEditable: HTMLElement, command: Command) {
     }
 }
 
-function removeCarrier(contentEditable: HTMLElement) {
+// Dropping the carrier collapses its root element again, which rebuilds every element under it from a clone.
+// The caller's cursor position is remapped onto the rebuilt nodes, otherwise it keeps pointing at a text node
+// the collapse threw away and restoring it would leave the editor without a selection. For the same reason the
+// click target is detached by the time the browser applies the click's default action: it no longer sees an
+// editable element and follows the clicked link instead, so that default action is suppressed as well.
+function removeCarrier(contentEditable: HTMLElement, cursorPosition: CursorPosition, event?: MouseEvent): CursorPosition {
     const carrier = Carrier.getCarrier();
-    if (carrier) {
-        Carrier.removeCarrier();
-        const cursorPosition = getCursorPositionFrom(carrier, 0, carrier, 0);
-        normalize(contentEditable, cursorPosition);
+    if (!carrier) {
+        return cursorPosition;
     }
+
+    event?.preventDefault();
+    Carrier.removeCarrier();
+    const rootElement = getFirstSelectedRoot(contentEditable, getCursorPositionFrom(carrier, 0, carrier, 0));
+
+    return removeAndNormalize(contentEditable, rootElement, [], cloneRange(cursorPosition));
 }
 
 function applyInsertRowCommand(command: Command) {

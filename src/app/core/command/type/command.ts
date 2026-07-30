@@ -34,6 +34,6 @@ export interface Command {
     action: Action,
     tag?: string,
     attributes?: Attributes | undefined,
-    event?: KeyboardEvent | ClipboardEvent,
+    event?: KeyboardEvent | ClipboardEvent | MouseEvent,
     table?: TableTarget
 }
