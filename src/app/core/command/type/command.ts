@@ -10,6 +10,7 @@ export enum Action {
     Wrap = "Wrap",
     Unwrap = "Unwrap",
     Keyboard = "Keyboard",
+    Selection = "Selection",
     Clipboard = "Clipboard",
     Cut = "Cut",
     InsertRow = "InsertRow",

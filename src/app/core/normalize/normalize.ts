@@ -3,7 +3,7 @@ import {
     ContainerAndCursorPosition,
     extractFirstLevel,
     filterLeafParents,
-    getLeafNodes,
+    getLeafNodes, maybeAppendCarrier,
     remapCursor,
     removeConsecutiveDuplicates,
     replaceLeafParents,
@@ -24,6 +24,7 @@ import {
 import {getFirstSelectedRoot, getSelectedRoot} from "@/core/selection/selection";
 import {applyAttributes} from "@/core/command/util/command-util";
 import {Attributes} from "@/core/command/type/command";
+import {Carrier} from "@/core/carrier/carrier";
 
 export function normalize(contentEditable: HTMLElement, ...cursorPosition: CursorPosition[]) {
     let resultCursorPosition = cursorPosition[0] as CursorPosition;
@@ -59,11 +60,12 @@ export function normalize(contentEditable: HTMLElement, ...cursorPosition: Curso
 
 export function removeTags(contentEditable: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
     const documentFragment: DocumentFragment = extractContents(cursorPosition);
+    const removeTagFrom = document.createElement("DELETED");
+    maybeAppendCarrier(documentFragment);
     const firstText = getFirstText(documentFragment);
     const lastText = getLastText(documentFragment);
-
-    const removeTagFrom = document.createElement("DELETED");
     removeTagFrom.appendChild(documentFragment);
+
     insertNode(cursorPosition, removeTagFrom);
 
     cursorPosition = remapCursor(firstText, lastText, cursorPosition);
@@ -72,6 +74,7 @@ export function removeTags(contentEditable: HTMLElement, tags: string[], cursorP
 
 export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, attributes?: Attributes) {
     const documentFragment: DocumentFragment = extractContents(cursorPosition);
+    maybeAppendCarrier(documentFragment);
     const firstText = getFirstText(documentFragment);
     const lastText = getLastText(documentFragment);
 

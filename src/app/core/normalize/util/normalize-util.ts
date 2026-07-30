@@ -3,6 +3,7 @@ import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {hasSelfCloseDescendant} from "@/core/shared/element-util";
+import {Carrier} from "@/core/carrier/carrier";
 
 export interface ContainerAndCursorPosition {
     container: DocumentFragment,
@@ -225,6 +226,14 @@ export function remapCursor(firstText: Node, lastText: Node, cursor: CursorPosit
     return getCursorPositionFrom(startContainer, startOffset, lastText, cursor.endOffset);
 }
 
+export function maybeAppendCarrier(documentFragment: DocumentFragment) {
+    if (!documentFragment.textContent && Carrier.isCursorCollapsed()) {
+        const carrier = document.createTextNode("");
+        Carrier.setCarrier(carrier);
+        documentFragment.appendChild(carrier);
+    }
+}
+
 function hasDuplicateList(node: Node | undefined) {
     if (!node) {
         return false;
@@ -264,11 +273,15 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
     if (previousText && previousText.nodeType === Node.TEXT_NODE &&
         insertText && insertText.nodeType === Node.TEXT_NODE) {
         mergeText(previousText as Text, insertText as Text);
-    } else if (insertElement.textContent || hasSelfCloseDescendant(insertElement)) {
+    } else if (insertElement.textContent || hasSelfCloseDescendant(insertElement) || holdsCarrier(insertElement)) {
         containerChild.appendChild(insertElement);
     }
 
     return calculateCursorPosition(containerChild, insertText, previousText, cursorPosition);
+}
+
+function holdsCarrier(insertElement: DocumentFragment) {
+    return Carrier.isCarrierExist() && insertElement.contains(Carrier.getCarrier());
 }
 
 function mergeText(previousText: Text, insertText: Text) {

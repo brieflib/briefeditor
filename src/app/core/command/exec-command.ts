@@ -20,6 +20,7 @@ import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {CommandEvent} from "@/core/history/type/history-event";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
+import {Carrier} from "@/core/carrier/carrier";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
@@ -52,6 +53,9 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             break;
         case Action.Keyboard:
             cursorPosition = handleKeyboardEvent(contentEditable, command.event as KeyboardEvent, cursorPosition);
+            break;
+        case Action.Selection:
+            removeCarrier();
             break;
         case Action.Clipboard:
             cursorPosition = handleClipboardEvent(contentEditable, command.event as ClipboardEvent);
@@ -186,6 +190,10 @@ function applyListCommand(contentEditable: HTMLElement, command: Command) {
         }
         changeBlock(contentEditable, tags);
     }
+}
+
+function removeCarrier() {
+    Carrier.removeCarrier();
 }
 
 function applyInsertRowCommand(command: Command) {

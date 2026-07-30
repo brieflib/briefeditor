@@ -1,8 +1,14 @@
-import {normalize, removeAndNormalize, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {createWrapper, expectHtml, getFirstChild, getLastChild, testNormalize} from "@/core/shared/test-util";
-import {getCursorPosition} from "@/core/shared/type/cursor-position";
+import {
+    appendTag,
+    normalize,
+    removeAndNormalize,
+    removeTags,
+    replaceTags
+} from "@/core/normalize/normalize";
+import {createWrapper, expectHtml, getFirstChild, testNormalize} from "@/core/shared/test-util";
+import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
-import {getFirstSelectedRoot} from "@/core/selection/selection";
+import {Carrier} from "@/core/carrier/carrier";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -291,6 +297,100 @@ describe("Should remove tags", () => {
         `);
     });
 });
+
+describe("Should leave an empty element for a collapsed cursor", () => {
+    test("Should split the tag and leave the cursor between the halves", () => {
+        const wrapper = createWrapper(`<p class="start"><strong>bold</strong></p>`);
+        collapseRangeAt(getFirstChild(wrapper, ".start strong"), "bo".length);
+
+        const cursorPosition = removeTags(wrapper, ["STRONG"], getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `<p><strong>bo</strong><strong>ld</strong></p>`);
+        expectCarrierIn(cursorPosition, "P");
+    });
+
+    test("Should leave the empty element after the tag", () => {
+        const wrapper = createWrapper(`<p class="start"><strong>bold</strong></p>`);
+        collapseRangeAt(getFirstChild(wrapper, ".start strong"), "bold".length);
+
+        const cursorPosition = removeTags(wrapper, ["STRONG"], getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `<p><strong>bold</strong></p>`);
+        expectCarrierIn(cursorPosition, "P");
+        expect(cursorPosition.startContainer.previousSibling?.nodeName).toBe("STRONG");
+    });
+
+    test("Should leave the empty element before the tag", () => {
+        const wrapper = createWrapper(`<p class="start"><strong>bold</strong></p>`);
+        collapseRangeAt(getFirstChild(wrapper, ".start strong"), "".length);
+
+        const cursorPosition = removeTags(wrapper, ["STRONG"], getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `<p><strong>bold</strong></p>`);
+        expectCarrierIn(cursorPosition, "P");
+        expect(cursorPosition.startContainer.nextSibling?.nodeName).toBe("STRONG");
+    });
+
+    test("Should keep the tags that were not removed", () => {
+        const wrapper = createWrapper(`<p class="start"><em><strong>zero</strong></em></p>`);
+        collapseRangeAt(getFirstChild(wrapper, ".start strong"), "zero".length);
+
+        const cursorPosition = removeTags(wrapper, ["STRONG"], getCursorPosition());
+
+        // Sorted to <strong><em> by tag hierarchy, and the empty element keeps the em it was left in.
+        expectHtml(wrapper.innerHTML, `<p><strong><em>zero</em></strong><em></em></p>`);
+        expectCarrierIn(cursorPosition, "EM");
+    });
+
+    test("Should leave the empty element inside the appended tag", () => {
+        const wrapper = createWrapper(`<p class="start">plain</p>`);
+        collapseRangeAt(getFirstChild(wrapper, ".start"), "pl".length);
+
+        const cursorPosition = appendTag(wrapper, getCursorPosition(), "STRONG");
+
+        expectHtml(wrapper.innerHTML, `<p>pl<strong></strong>ain</p>`);
+        expectCarrierIn(cursorPosition, "STRONG");
+    });
+
+    test("Should collapse back to plain text when the same tag is toggled twice", () => {
+        const wrapper = createWrapper(`<p class="start">plain</p>`);
+        collapseRangeAt(getFirstChild(wrapper, ".start"), "pl".length);
+
+        const appended = appendTag(wrapper, getCursorPosition(), "STRONG");
+        const cursorPosition = removeTags(wrapper, ["STRONG"], atCursor(appended));
+
+        expectHtml(wrapper.innerHTML, `<p>plain</p>`);
+        expect(cursorPosition.startContainer.textContent).toBe("plain");
+        expect(cursorPosition.startOffset).toBe("pl".length);
+    });
+});
+
+function collapseRangeAt(node: Node, offset: number) {
+    Carrier.setCursorCollapsed(true);
+
+    const range = new Range();
+    range.setStart(node, offset);
+    range.setEnd(node, offset);
+    (getRange as jest.Mock).mockReturnValue(range);
+
+    return getCursorPosition();
+}
+
+// The cursor position a command returns carries the right container and offset, but its range was
+// reused as scratch space by replaceElement. Rebuild it the way setCursorPosition does before
+// handing it to the next command.
+function atCursor(cursorPosition: CursorPosition) {
+    return getCursorPositionFrom(
+        cursorPosition.startContainer, cursorPosition.startOffset,
+        cursorPosition.endContainer, cursorPosition.endOffset);
+}
+
+function expectCarrierIn(cursorPosition: CursorPosition, parentName: string) {
+    expect(cursorPosition.startContainer.nodeType).toBe(Node.TEXT_NODE);
+    expect(cursorPosition.startContainer.textContent).toBe("");
+    expect(cursorPosition.startOffset).toBe(0);
+    expect(cursorPosition.startContainer.parentElement?.nodeName).toBe(parentName);
+}
 
 describe("Should replace tags", () => {
     test("Should replace div tag with list", () => {

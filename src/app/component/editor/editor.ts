@@ -44,6 +44,7 @@ class Editor extends HTMLElement {
         // Registered first so that its keydown listener corrects the cursor before the editor acts on it.
         this.addTableCursor(contentEditable);
         this.addKeyboardEvent(contentEditable);
+        this.addSelectionEvent(contentEditable);
         this.addClipboardEvent(contentEditable);
         this.addHistory(contentEditable);
         this.addTable(contentEditable);
@@ -63,6 +64,10 @@ class Editor extends HTMLElement {
 
     private addKeyboardEvent(contentEditable: HTMLElement) {
         contentEditable.addEventListener("keydown", (event) => execCommand(contentEditable, {action: Action.Keyboard, event}));
+    }
+
+    private addSelectionEvent(contentEditable: HTMLElement) {
+        document.addEventListener("selectionchange", () => execCommand(contentEditable, {action: Action.Selection}));
     }
 
     private addClipboardEvent(contentEditable: HTMLElement) {

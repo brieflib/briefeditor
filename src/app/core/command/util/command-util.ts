@@ -6,12 +6,14 @@ import {Action, Attributes} from "@/core/command/type/command";
 import {
     CursorPosition,
     getCursorPosition,
-    getCursorPositionFrom,
+    getCursorPositionFrom, isCollapsed,
     setCursorPositionEndAsLastTextOfElement, setCursorPositionStartAsFirstTextOfElement
 } from "@/core/shared/type/cursor-position";
+import {Carrier} from "@/core/carrier/carrier";
 
 export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Attributes): CursorPosition {
     const cursorPosition = getCursorPosition();
+    Carrier.setCursorCollapsed(isCollapsed(cursorPosition));
     let resultCursorPosition = cursorPosition;
 
     const startFirstLevel = getElement(contentEditable, cursorPosition.startContainer as HTMLElement, [Display.FirstLevel, Display.List]);
