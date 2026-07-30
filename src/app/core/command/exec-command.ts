@@ -213,6 +213,7 @@ function removeCarrier(contentEditable: HTMLElement, cursorPosition: CursorPosit
     }
 
     event?.preventDefault();
+    contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Carrier));
     Carrier.removeCarrier();
     const rootElement = getFirstSelectedRoot(contentEditable, getCursorPositionFrom(carrier, 0, carrier, 0));
 

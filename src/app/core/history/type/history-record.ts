@@ -29,7 +29,9 @@ export interface NodeLayout {
 }
 
 export interface HistoryEntry {
+    // A carrier-only command appends its mutations here instead of opening an entry of its own, so both
+    // the list and the cursor it redoes to move on with it.
     readonly mutations: Mutation[];
     readonly cursorBefore: CursorPath | null;
-    readonly cursorAfter: CursorPath | null;
+    cursorAfter: CursorPath | null;
 }

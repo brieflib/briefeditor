@@ -3,6 +3,8 @@ import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
 import {History} from "@/core/history/history";
+import {Carrier} from "@/core/carrier/carrier";
+import {CursorPosition} from "@/core/shared/type/cursor-position";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -20,12 +22,23 @@ function keydownEvent(key: string, options: KeyboardEventInit = {}): KeyboardEve
     return new KeyboardEvent("keydown", {key, ...options});
 }
 
+// Where a command left the cursor is where the editor puts it, so the next command starts from there.
+function selectCursor(cursorPosition: CursorPosition) {
+    const range = new Range();
+    range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
+    range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
+    (getRange as jest.Mock).mockReturnValue(range);
+}
+
 function pasteEvent(html: string): ClipboardEvent {
     // jsdom has no DataTransfer, so stub the minimal ClipboardEvent surface used by handleClipboardEvent.
     return {preventDefault: jest.fn(), clipboardData: {getData: () => html}} as unknown as ClipboardEvent;
 }
 
 describe("History undo/redo", () => {
+    // The carrier is static, so a test that leaves one behind would follow the next one into its first command.
+    beforeEach(() => Carrier.removeCarrier());
+
     test("Should undo a tag command and restore the original markup", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         const history = new History(wrapper);
@@ -396,5 +409,114 @@ describe("History undo/redo", () => {
         history.undo();
 
         expectHtml(wrapper.innerHTML, `<p>ze<strong class="s">ro</strong></p>`);
+    });
+
+    test("Should not add an entry for a tag command that only leaves a carrier", () => {
+        const wrapper = createWrapper(`<p><strong class="s">bold</strong></p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".s", "bo".length, "bo".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectHtml(wrapper.innerHTML, `<p><strong>bo</strong><strong>ld</strong></p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p><strong>bo</strong><strong>ld</strong></p>`);
+    });
+
+    test("Should fold a carrier into the previous entry instead of stranding it", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
+
+        select(wrapper, "strong", "ze".length, "ze".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectHtml(wrapper.innerHTML, `<p><strong>ze</strong><strong>ro</strong></p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+        expect(wrapper.querySelectorAll("p").length).toBe(1);
+    });
+
+    test("Should not add an entry for a click that drops the carrier", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        select(wrapper, "strong", "ze".length, "ze".length);
+        selectCursor(execCommand(wrapper, {action: Action.Tag, tag: "STRONG"}));
+
+        execCommand(wrapper, {action: Action.Click, event: new MouseEvent("click")});
+        expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+    });
+
+    test("Should not add an entry for an arrow key that drops the carrier", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        select(wrapper, "strong", "ze".length, "ze".length);
+        selectCursor(execCommand(wrapper, {action: Action.Tag, tag: "STRONG"}));
+
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("ArrowRight")});
+        expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+    });
+
+    test("Should not add an entry for an arrow key whose default TableCursor already prevented", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        select(wrapper, "strong", "ze".length, "ze".length);
+        selectCursor(execCommand(wrapper, {action: Action.Tag, tag: "STRONG"}));
+
+        // TableCursor takes over the arrows that step across a table edge and prevents the browser's own
+        // move. That is still only a cursor move, so it must not read as an edit.
+        const event = keydownEvent("ArrowLeft", {cancelable: true});
+        event.preventDefault();
+        execCommand(wrapper, {action: Action.Keyboard, event});
+        expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+    });
+
+    test("Should keep the entry for a character typed into the carrier", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        select(wrapper, "strong", "ze".length, "ze".length);
+        selectCursor(execCommand(wrapper, {action: Action.Tag, tag: "STRONG"}));
+
+        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        expectHtml(wrapper.innerHTML, `<p><strong>ze</strong>x<strong>ro</strong></p>`);
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<p><strong>ze</strong><strong>ro</strong></p>`);
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
     });
 });
