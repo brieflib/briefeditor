@@ -228,6 +228,11 @@ export function remapCursor(firstText: Node, lastText: Node, cursor: CursorPosit
     return getCursorPositionFrom(startContainer, startOffset, lastText, cursor.endOffset);
 }
 
+interface DroppedCursorPoint {
+    readonly container: Node;
+    readonly offset: number;
+}
+
 // getLeafNodes drops empty text nodes, and collapseLeaves relocates the cursor only through the leaves it
 // receives. An endpoint left on a dropped node - deleteContents empties the start text node in place instead
 // of removing it - would keep pointing inside the subtree replaceElement throws away. Move such endpoints onto
@@ -243,13 +248,13 @@ export function remapDroppedLeafCursor(rootElement: Node, leafNodes: Node[], cur
     return getCursorPositionFrom(start.container, start.offset, end.container, end.offset);
 }
 
-function remapDroppedContainer(rootElement: Node, leafNodes: Node[], container: Node, offset: number): CursorPoint {
-    if (!isDroppedLeaf(rootElement, leafNodes, container)) {
-        return {container: container, offset: offset};
+function remapDroppedContainer(rootElement: Node, leafNodes: Node[], cursorContainer: Node, offset: number): DroppedCursorPoint {
+    if (!isDroppedLeaf(rootElement, leafNodes, cursorContainer)) {
+        return {container: cursorContainer, offset: offset};
     }
 
     const following = leafNodes.find(leaf =>
-        !!(container.compareDocumentPosition(leaf) & Node.DOCUMENT_POSITION_FOLLOWING));
+        !!(cursorContainer.compareDocumentPosition(leaf) & Node.DOCUMENT_POSITION_FOLLOWING));
     if (following) {
         return {container: following, offset: 0};
     }
@@ -260,7 +265,7 @@ function remapDroppedContainer(rootElement: Node, leafNodes: Node[], container: 
         return {container: preceding, offset: preceding.textContent?.length ?? 0};
     }
 
-    return {container: container, offset: offset};
+    return {container: cursorContainer, offset: offset};
 }
 
 function isDroppedLeaf(rootElement: Node, leafNodes: Node[], container: Node) {
@@ -306,92 +311,113 @@ function nodeToFragment(node: Node) {
     return fragment;
 }
 
-function insertAfterLastChild(container: DocumentFragment, insertElement: DocumentFragment, cursorPosition: CursorPosition) {
+function insertAfterLastChild(container: DocumentFragment, insertElement: DocumentFragment, cursorPosition: CursorPosition): CursorPosition {
     const containerChild = container.lastChild;
-    if (!containerChild) {
+    const insertNode = insertElement.firstChild;
+
+    if (!containerChild || !insertNode) {
         return cursorPosition;
     }
 
-    const previousText = containerChild.lastChild;
-    const insertText = insertElement.firstChild;
+    const previousText = asText(containerChild.lastChild);
+    const insertText = asText(insertNode);
 
-    if (previousText && previousText.nodeType === Node.TEXT_NODE &&
-        insertText && insertText.nodeType === Node.TEXT_NODE) {
-        mergeText(previousText as Text, insertText as Text);
-    } else if (insertElement.textContent || hasSelfCloseDescendant(insertElement) || holdsCarrier(insertElement)) {
-        containerChild.appendChild(insertElement);
+    if (previousText && insertText) {
+        const cursorMove = mergeText(containerChild, previousText, insertText);
+        return cursorMove.getCursorPosition(cursorPosition);
     }
 
-    return calculateCursorPosition(containerChild, insertText, previousText, cursorPosition);
+    if (insertElement.textContent || hasSelfCloseDescendant(insertElement) || holdsCarrier(insertElement)) {
+        containerChild.appendChild(insertElement);
+
+        // insertNode keeps its identity, so only a cursor anchored on the container moves onto it.
+        const cursorMove = new CursorMove({node: containerChild, target: insertNode, offset: 0, keepOffset: false});
+        return cursorMove.getCursorPosition(cursorPosition);
+    }
+
+    // insertElement was thrown away, so cursors inside it belong after the content that was kept.
+    const cursorMove = new CursorMove({
+        node: insertNode,
+        target: containerChild,
+        offset: containerChild.childNodes.length,
+        keepOffset: false
+    });
+    return cursorMove.getCursorPosition(cursorPosition);
+}
+
+function asText(node: Node | null): Text | null {
+    return node && node.nodeType === Node.TEXT_NODE ? node as Text : null;
 }
 
 function holdsCarrier(insertElement: DocumentFragment) {
     return Carrier.isCarrierExist() && insertElement.contains(Carrier.getCarrier());
 }
 
-function mergeText(previousText: Text, insertText: Text) {
+function mergeText(containerChild: Node, previousText: Text, insertText: Text): CursorMove {
+    const mergeOffset = previousText.length;
+    let mergedText = previousText;
+
     // Two text leaves must combine into one node. When both carry text, appending in place would rewrite
     // the reused original leaf while it is detached - a change the history MutationObserver cannot see, so
     // the leaf's pre-merge text would be lost on undo. Swap in a fresh node instead, leaving the original
     // pristine so its content survives in the childList records. When either side is empty the append only
     // touches an empty node, so keep it in place to preserve the node identity the cursor mapping relies on.
-    if (previousText.data.length > 0 && insertText.data.length > 0) {
-        previousText.replaceWith(document.createTextNode(previousText.data + insertText.data));
+    if (previousText.length > 0 && insertText.length > 0) {
+        mergedText = document.createTextNode(previousText.data + insertText.data);
+        previousText.replaceWith(mergedText);
     } else {
         previousText.appendData(insertText.data);
     }
+
+    return new CursorMove({node: insertText, target: mergedText, offset: mergeOffset, keepOffset: true},
+        {node: containerChild, target: mergedText, offset: mergeOffset, keepOffset: false},
+        {node: previousText, target: mergedText, offset: 0, keepOffset: true});
 }
 
+// Where a cursor sitting on some node belongs once the insert is done: inside target, at offset, plus the
+// offset it already had when the node it sat on was folded into target rather than replaced by it.
 interface CursorPoint {
-    container: Node;
-    offset: number;
+    readonly node: Node;
+    readonly target: Node;
+    readonly offset: number;
+    readonly keepOffset: boolean;
 }
 
-function calculateCursorPosition(containerChild: Node, textToInsert: ChildNode | null, previousText: ChildNode | null, cursorPosition: CursorPosition): CursorPosition {
-    if (!textToInsert) {
-        return cursorPosition;
+class CursorMove {
+    private readonly cursorPointNodes: Map<Node, CursorPoint> = new Map<Node, CursorPoint>;
+
+    constructor(...cursorPoints: CursorPoint[]) {
+        for (const cursorPoint of cursorPoints) {
+            this.cursorPointNodes.set(cursorPoint.node, cursorPoint)
+        }
     }
 
-    const relocate = buildRelocate(containerChild, textToInsert, previousText);
-    const start = relocate(cursorPosition.startContainer, cursorPosition.startOffset);
-    const end = relocate(cursorPosition.endContainer, cursorPosition.endOffset);
+    getCursorPosition(cursorPosition: CursorPosition): CursorPosition {
+        let startMove = this.cursorPointNodes.get(cursorPosition.startContainer);
+        if (!startMove) {
+            startMove = {
+                node: cursorPosition.startContainer,
+                target: cursorPosition.startContainer,
+                offset: cursorPosition.startOffset,
+                keepOffset: false
+            };
+        }
+        let endMove = this.cursorPointNodes.get(cursorPosition.endContainer);
+        if (!endMove) {
+            endMove = {
+                node: cursorPosition.endContainer,
+                target: cursorPosition.endContainer,
+                offset: cursorPosition.endOffset,
+                keepOffset: false
+            };
+        }
 
-    return getCursorPositionFrom(start.container, start.offset, end.container, end.offset);
-}
-
-function buildRelocate(containerChild: Node, textToInsert: ChildNode, previousText: ChildNode | null): (container: Node, offset: number) => CursorPoint {
-    const lastChild = containerChild.lastChild;
-
-    // textToInsert was appended as-is and is now the last child.
-    if (lastChild === textToInsert) {
-        return (container, offset) =>
-            container === containerChild ? {container: textToInsert, offset: 0} : {container, offset};
+        return getCursorPositionFrom(startMove.target, this.getOffset(startMove, cursorPosition.startOffset), endMove.target, this.getOffset(endMove, cursorPosition.endOffset));
     }
 
-    // textToInsert's text was merged into the last text node (either previousText in place, or a fresh
-    // node swapped in for it - see mergeText). Either way, offsets remap onto that last child.
-    if (lastChild && lastChild.nodeType === Node.TEXT_NODE && textToInsert.nodeType === Node.TEXT_NODE) {
-        const mergeOffset = (lastChild as Text).length - (textToInsert as Text).length;
-        return (container, offset) => {
-            if (container === textToInsert) {
-                return {container: lastChild, offset: mergeOffset + offset};
-            }
-            if (container === containerChild) {
-                return {container: lastChild, offset: mergeOffset};
-            }
-            // previousText's data is the prefix of the merged node, so its offsets carry over unchanged.
-            if (previousText && container === previousText) {
-                return {container: lastChild, offset};
-            }
-            return {container, offset};
-        };
+    private getOffset(cursorPoint: CursorPoint, offset: number) {
+        return cursorPoint.keepOffset ? cursorPoint.offset + offset : cursorPoint.offset;
     }
-
-    // textToInsert was not placed inside containerChild.
-    return (container, offset) =>
-        container === textToInsert
-            ? {container: containerChild, offset: containerChild.childNodes.length}
-            : {container, offset};
 }
 
 function shiftFirstParent(leaves: Leaf[]) {
