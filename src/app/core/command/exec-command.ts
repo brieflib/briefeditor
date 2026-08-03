@@ -29,6 +29,7 @@ import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
 import {Carrier} from "@/core/carrier/carrier";
 import {removeAndNormalize} from "@/core/normalize/normalize";
+import {getCell, getCellCursorPosition, isTableEmpty, removeTable} from "@/core/command/util/table-util";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
@@ -70,16 +71,16 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             cursorPosition = handleCutEvent(contentEditable, command.event as ClipboardEvent);
             break;
         case Action.InsertRow:
-            applyInsertRowCommand(command);
+            cursorPosition = applyInsertRowCommand(command, cursorPosition);
             break;
         case Action.InsertColumn:
-            applyInsertColumnCommand(command);
+            cursorPosition = applyInsertColumnCommand(command, cursorPosition);
             break;
         case Action.DeleteRow:
-            applyDeleteRowCommand(command);
+            cursorPosition = applyDeleteRowCommand(command, cursorPosition);
             break;
         case Action.DeleteColumn:
-            applyDeleteColumnCommand(command);
+            cursorPosition = applyDeleteColumnCommand(command, cursorPosition);
             break;
         case Action.Click:
             cursorPosition = removeCarrier(contentEditable, cursorPosition, command.event as MouseEvent);
@@ -90,8 +91,8 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         applyAttributesCommand(contentEditable, command);
     }
 
-    contentEditable.focus();
     setCursorPosition(contentEditable, cursorPosition);
+    contentEditable.focus();
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
     return cursorPosition;
 }
@@ -220,18 +221,22 @@ function removeCarrier(contentEditable: HTMLElement, cursorPosition: CursorPosit
     return removeAndNormalize(contentEditable, rootElement, [], cloneRange(cursorPosition));
 }
 
-function applyInsertRowCommand(command: Command) {
+// A table is edited from the margin controls, which take the focus out of the editor and leave a cursor
+// that points into a row or a column the edit is about to replace or throw away. Each of these commands
+// therefore names the cell the cursor belongs in once it is done, and the caller restores it there.
+function applyInsertRowCommand(command: Command, cursorPosition: CursorPosition): CursorPosition {
     const target = command.table;
     if (!target) {
-        return;
+        return cursorPosition;
     }
 
     const referenceRow = target.cell.parentElement as HTMLTableRowElement;
     const section = referenceRow.parentElement;
     if (!section) {
-        return;
+        return cursorPosition;
     }
 
+    const columnIndex = target.cell.cellIndex;
     const isHeader = section.tagName === "THEAD";
     const newRow = document.createElement("tr");
     for (const referenceCell of referenceRow.cells) {
@@ -245,24 +250,27 @@ function applyInsertRowCommand(command: Command) {
         const body = table.tBodies[0] ??
             table.insertBefore(document.createElement("tbody"), section.nextSibling);
         body.insertBefore(newRow, body.firstChild);
-        return;
+    } else {
+        section.insertBefore(newRow, target.after ? referenceRow.nextSibling : referenceRow);
     }
 
-    section.insertBefore(newRow, target.after ? referenceRow.nextSibling : referenceRow);
+    return getCellCursorPosition(newRow.cells[columnIndex], cursorPosition);
 }
 
-function applyInsertColumnCommand(command: Command) {
+function applyInsertColumnCommand(command: Command, cursorPosition: CursorPosition): CursorPosition {
     const target = command.table;
     if (!target) {
-        return;
+        return cursorPosition;
     }
 
     const table = target.cell.closest("table") as HTMLTableElement | null;
     if (!table) {
-        return;
+        return cursorPosition;
     }
 
+    const referenceRow = target.cell.parentElement;
     const columnIndex = target.cell.cellIndex + (target.after ? 1 : 0);
+    let insertedCell: HTMLTableCellElement | null = null;
     for (const row of table.rows) {
         const insertIndex = Math.min(columnIndex, row.cells.length);
         const reference = row.cells[insertIndex] ?? null;
@@ -270,52 +278,62 @@ function applyInsertColumnCommand(command: Command) {
         const newCell = document.createElement(isHeaderRow ? "th" : "td");
         newCell.appendChild(document.createElement("br"));
         row.insertBefore(newCell, reference);
+        if (row === referenceRow) {
+            insertedCell = newCell;
+        }
     }
+
+    return getCellCursorPosition(insertedCell, cursorPosition);
 }
 
-function applyDeleteRowCommand(command: Command) {
+function applyDeleteRowCommand(command: Command, cursorPosition: CursorPosition): CursorPosition {
     const target = command.table;
     if (!target) {
-        return;
+        return cursorPosition;
     }
 
     const table = target.cell.closest("table") as HTMLTableElement | null;
     const row = target.cell.parentElement as HTMLTableRowElement | null;
     if (!table || !row) {
-        return;
+        return cursorPosition;
     }
 
+    const rowIndex = row.rowIndex;
+    const columnIndex = target.cell.cellIndex;
     const section = row.parentElement;
     row.remove();
     if (isSchemaContain(section, [Display.TableSection]) && section?.children.length === 0) {
         section.remove();
     }
 
-    removeEmptyTable(table);
+    if (isTableEmpty(table)) {
+        return removeTable(table, cursorPosition);
+    }
+
+    return getCellCursorPosition(getCell(table, rowIndex, columnIndex), cursorPosition);
 }
 
-function applyDeleteColumnCommand(command: Command) {
+function applyDeleteColumnCommand(command: Command, cursorPosition: CursorPosition): CursorPosition {
     const target = command.table;
     if (!target) {
-        return;
+        return cursorPosition;
     }
 
     const table = target.cell.closest("table") as HTMLTableElement | null;
-    if (!table) {
-        return;
+    const row = target.cell.parentElement as HTMLTableRowElement | null;
+    if (!table || !row) {
+        return cursorPosition;
     }
 
+    const rowIndex = row.rowIndex;
     const columnIndex = target.cell.cellIndex;
-    for (const row of table.rows) {
-        row.cells[columnIndex]?.remove();
+    for (const tableRow of table.rows) {
+        tableRow.cells[columnIndex]?.remove();
     }
 
-    removeEmptyTable(table);
-}
-
-// A table with no cells left has nothing to edit, so the last delete takes the table with it.
-function removeEmptyTable(table: HTMLTableElement) {
-    if (!table.querySelector("th, td")) {
-        table.remove();
+    if (isTableEmpty(table)) {
+        return removeTable(table, cursorPosition);
     }
+
+    return getCellCursorPosition(getCell(table, rowIndex, columnIndex), cursorPosition);
 }

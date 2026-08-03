@@ -8,6 +8,7 @@ import {
     setRangeEnd
 } from "@/core/shared/type/cursor-position";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {getFirstText, getLastText} from "@/core/shared/element-util";
 
 export interface StrandedTable {
     table: HTMLTableElement;
@@ -38,6 +39,21 @@ export function isCursorAtStartOfCell(cell: HTMLTableCellElement, cursorPosition
 
 export function isCursorAtEndOfCell(cell: HTMLTableCellElement, cursorPosition: CursorPosition) {
     return getCursorOffsetInElement(cell, cursorPosition) === cell.textContent.length;
+}
+
+// An empty element holds a br and no text of its own, so the collapsed position lands on the br itself,
+// the spot a cursor takes in any other empty block.
+export function atStart(element: Node) {
+    const firstText = getFirstText(element);
+
+    return getCursorPositionFrom(firstText, 0, firstText, 0);
+}
+
+export function atEnd(element: Node) {
+    const lastText = getLastText(element);
+    const offset = lastText.textContent.length;
+
+    return getCursorPositionFrom(lastText, offset, lastText, offset);
 }
 
 export function getFirstCell(table: HTMLTableElement) {

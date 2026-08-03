@@ -1,4 +1,6 @@
 import {
+    atEnd,
+    atStart,
     getStrandedTable,
     getFirstCell,
     getLastCell,
@@ -7,12 +9,11 @@ import {
     getCursorOffsetInElement,
     getCursorPositionFromPoint
 } from "@/core/cursor/util/cursor-util";
-import {getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
+import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     CursorPosition,
     getCursorPosition,
-    getCursorPositionFrom,
     isCollapsed,
     setCursorPosition
 } from "@/core/shared/type/cursor-position";
@@ -168,15 +169,4 @@ function isEscapeKey(event: KeyboardEvent) {
     }
 
     return event.key === "ArrowLeft" || event.key === "ArrowRight";
-}
-
-function atStart(element: Element) {
-    const firstText = getFirstText(element);
-    return getCursorPositionFrom(firstText, 0, firstText, 0);
-}
-
-function atEnd(element: Element) {
-    const lastText = getLastText(element);
-    const offset = lastText.textContent.length;
-    return getCursorPositionFrom(lastText, offset, lastText, offset);
 }

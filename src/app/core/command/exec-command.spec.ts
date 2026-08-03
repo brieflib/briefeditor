@@ -653,7 +653,6 @@ describe("Delete row command", () => {
         `);
     });
 
-    // The cursor is kept outside the table, otherwise restoring it would land on a detached cell.
     test("Should remove the table left without rows", () => {
         const wrapper = createWrapper(`
             <p class="text">text</p>
@@ -679,5 +678,140 @@ describe("Delete row command", () => {
         execCommand(wrapper, {action: Action.DeleteColumn, table: {cell}});
 
         expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+    });
+});
+
+// The controls that drive these commands sit outside the editor, so the cursor they leave behind belongs
+// to no cell of the edited table. Each command names the cell to carry it to instead.
+describe("Cursor position after a table command", () => {
+    // A cell the command has just built holds a br and no text of its own, and the br is where an empty
+    // block takes its cursor.
+    function getEmptyCell(wrapper: HTMLElement, index: number) {
+        return wrapper.querySelectorAll("th, td")[index]?.firstChild;
+    }
+
+    function selectCell(wrapper: HTMLElement, selector: string) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), "".length);
+        range.setEnd(getFirstChild(wrapper, selector), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        return wrapper.querySelector(selector) as HTMLTableCellElement;
+    }
+
+    function expectCursorAt(cursorPosition: CursorPosition, node: Node | null | undefined, offset: number) {
+        expect(cursorPosition.startContainer).toBe(node);
+        expect(cursorPosition.startOffset).toBe(offset);
+        expect(cursorPosition.endContainer).toBe(node);
+        expect(cursorPosition.endOffset).toBe(offset);
+    }
+
+    test("Should move the cursor into the inserted row", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="first">zero</td><td class="second">first</td></tr></tbody></table>
+        `);
+        const cell = selectCell(wrapper, ".second");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertRow, table: {cell, after: true}});
+
+        // After: <tr><td>zero</td><td>first</td></tr><tr><td><br></td><td><br></td></tr>
+        expectCursorAt(cursorPosition, getEmptyCell(wrapper, 3), 0);
+    });
+
+    test("Should move the cursor into the row inserted below the header", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th class="head">zero</th><th class="second">first</th></tr></thead>
+            <tbody><tr><td>second</td><td>third</td></tr></tbody></table>
+        `);
+        const cell = selectCell(wrapper, ".second");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertRow, table: {cell, after: true}});
+
+        // The new row opens the body, so its cells come right after the header ones.
+        expectCursorAt(cursorPosition, getEmptyCell(wrapper, 3), 0);
+    });
+
+    test("Should move the cursor into the inserted column of the hovered row", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th class="head">zero</th></tr></thead>
+            <tbody><tr><td class="first">first</td></tr><tr><td>second</td></tr></tbody></table>
+        `);
+        const cell = selectCell(wrapper, ".first");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertColumn, table: {cell, after: true}});
+
+        // Every row gains a cell, and the cursor takes the one of the row the column was inserted from.
+        expectCursorAt(cursorPosition, getEmptyCell(wrapper, 3), 0);
+    });
+
+    test("Should move the cursor to the row that took the deleted one's place", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="first">zero</td><td>one</td></tr>
+            <tr><td class="second">two</td><td>three</td></tr></tbody></table>
+        `);
+        const cell = selectCell(wrapper, ".first");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
+
+        expectCursorAt(cursorPosition, getFirstChild(wrapper, ".second"), 0);
+    });
+
+    test("Should move the cursor to the new last row when the last one is deleted", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="first">zero</td><td>one</td></tr>
+            <tr><td class="second">two</td><td>three</td></tr></tbody></table>
+        `);
+        const cell = selectCell(wrapper, ".second");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
+
+        expectCursorAt(cursorPosition, getFirstChild(wrapper, ".first"), 0);
+    });
+
+    test("Should move the cursor to the column that took the deleted one's place", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="first">zero</td><td class="second">one</td></tr></tbody></table>
+        `);
+        const cell = selectCell(wrapper, ".first");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteColumn, table: {cell}});
+
+        expectCursorAt(cursorPosition, getFirstChild(wrapper, ".second"), 0);
+    });
+
+    test("Should move the cursor to the new last column when the last one is deleted", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="first">zero</td><td class="second">one</td></tr></tbody></table>
+        `);
+        const cell = selectCell(wrapper, ".second");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteColumn, table: {cell}});
+
+        expectCursorAt(cursorPosition, getFirstChild(wrapper, ".first"), 0);
+    });
+
+    test("Should move the cursor to the block before a table the last delete removed", () => {
+        const wrapper = createWrapper(`
+            <p class="text">text</p>
+            <table><thead><tr><th class="head">zero</th></tr></thead></table>
+            <p>after</p>
+        `);
+        const cell = selectCell(wrapper, ".head");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
+
+        expectCursorAt(cursorPosition, getFirstChild(wrapper, ".text"), "text".length);
+    });
+
+    test("Should move the cursor to the block after a table that opened the editor", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th class="head">zero</th></tr></thead></table>
+            <p class="text">text</p>
+        `);
+        const cell = selectCell(wrapper, ".head");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteColumn, table: {cell}});
+
+        expectCursorAt(cursorPosition, getFirstChild(wrapper, ".text"), 0);
     });
 });
