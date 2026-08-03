@@ -281,7 +281,7 @@ function applyDeleteRowCommand(command: Command) {
 
     const table = target.cell.closest("table") as HTMLTableElement | null;
     const row = target.cell.parentElement as HTMLTableRowElement | null;
-    if (!table || !row || table.rows.length <= 1) {
+    if (!table || !row) {
         return;
     }
 
@@ -290,6 +290,8 @@ function applyDeleteRowCommand(command: Command) {
     if (isSchemaContain(section, [Display.TableSection]) && section?.children.length === 0) {
         section.remove();
     }
+
+    removeEmptyTable(table);
 }
 
 function applyDeleteColumnCommand(command: Command) {
@@ -308,6 +310,11 @@ function applyDeleteColumnCommand(command: Command) {
         row.cells[columnIndex]?.remove();
     }
 
+    removeEmptyTable(table);
+}
+
+// A table with no cells left has nothing to edit, so the last delete takes the table with it.
+function removeEmptyTable(table: HTMLTableElement) {
     if (!table.querySelector("th, td")) {
         table.remove();
     }

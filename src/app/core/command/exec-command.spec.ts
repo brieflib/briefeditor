@@ -610,11 +610,15 @@ describe("Cursor position after MinusIndent command", () => {
 });
 
 describe("Delete row command", () => {
-    function selectCell(wrapper: HTMLElement, selector: string) {
+    function select(wrapper: HTMLElement, selector: string) {
         const range = new Range();
         range.setStart(getFirstChild(wrapper, selector), "".length);
         range.setEnd(getFirstChild(wrapper, selector), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    function selectCell(wrapper: HTMLElement, selector: string) {
+        select(wrapper, selector);
 
         return wrapper.querySelector(selector) as HTMLTableCellElement;
     }
@@ -647,5 +651,33 @@ describe("Delete row command", () => {
             <table>
             <tbody><tr><td class="first">first</td></tr><tr><td>second</td></tr></tbody></table>
         `);
+    });
+
+    // The cursor is kept outside the table, otherwise restoring it would land on a detached cell.
+    test("Should remove the table left without rows", () => {
+        const wrapper = createWrapper(`
+            <p class="text">text</p>
+            <table><thead><tr><th class="head">zero</th></tr></thead></table>
+        `);
+        const cell = wrapper.querySelector(".head") as HTMLTableCellElement;
+        select(wrapper, ".text");
+
+        execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
+
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+    });
+
+    test("Should remove the table left without columns", () => {
+        const wrapper = createWrapper(`
+            <p class="text">text</p>
+            <table><thead><tr><th class="head">zero</th></tr></thead>
+            <tbody><tr><td>first</td></tr></tbody></table>
+        `);
+        const cell = wrapper.querySelector(".head") as HTMLTableCellElement;
+        select(wrapper, ".text");
+
+        execCommand(wrapper, {action: Action.DeleteColumn, table: {cell}});
+
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
     });
 });

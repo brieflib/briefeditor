@@ -88,7 +88,10 @@ export default class Table {
     }
 
     private showRowDelete(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
-        if (table.rows.length <= 1 || cell.closest("thead")) {
+        // Body rows are deletable while more than one row is left; a header row only when it is the
+        // last one, where deleting it removes the whole table.
+        const deletable = cell.closest("thead") ? table.rows.length === 1 : table.rows.length > 1;
+        if (!deletable) {
             this.keepOrReset(this.row, event);
             return;
         }
