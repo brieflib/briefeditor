@@ -91,7 +91,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         applyAttributesCommand(contentEditable, command);
     }
 
-    setCursorPosition(contentEditable, cursorPosition);
+    setCursorPosition(contentEditable, cursorPosition, command);
     contentEditable.focus();
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
     return cursorPosition;

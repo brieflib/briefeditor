@@ -1,5 +1,6 @@
 import {getRange} from "@/core/shared/range-util";
 import {getFirstText, getLastText} from "@/core/shared/element-util";
+import {Command} from "@/core/command/type/command";
 
 export interface CursorPosition {
     readonly startContainer: Node,
@@ -139,7 +140,7 @@ export function cloneRange(cursorPosition: CursorPosition) {
     }
 }
 
-export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: CursorPosition, command?: Command) {
     const range: Range = getRangeFromCursorPosition(cursorPosition);
     const selection: Selection | null = window.getSelection();
     if (!selection) {
@@ -147,6 +148,32 @@ export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: 
     }
     selection.removeAllRanges();
     selection.addRange(range);
+
+
+    scrollToViewport(cursorPosition, command);
+}
+
+function scrollToViewport(cursorPosition: CursorPosition, command?: Command) {
+    if (command && command.event instanceof KeyboardEvent && command.event.key.length !== 1) {
+        return;
+    }
+
+    const element = cursorPosition.startContainer.parentElement;
+    if (!element || isInViewport(element)) {
+        return;
+    }
+
+    element.scrollIntoView({ behavior: 'auto', block: 'start' });
+}
+
+function isInViewport(element: HTMLElement) {
+    const rect = element.getBoundingClientRect();
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
 }
 
 export function isRangeIn(element?: HTMLElement, cursorPosition = getCursorPosition()) {
