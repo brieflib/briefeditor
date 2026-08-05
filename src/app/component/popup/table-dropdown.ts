@@ -6,10 +6,15 @@ const INITIAL_ROWS = 3;
 const INITIAL_COLUMNS = 3;
 const MAX_ROWS = 10;
 const MAX_COLUMNS = 10;
+const CLOSE_DELAY = 200;
 
 class TableDropdown extends HTMLElement {
     private readonly wrapper: HTMLElement;
+    private readonly panel: HTMLElement;
     private readonly grid: HTMLTableElement;
+    private readonly onDocumentClick: EventListener;
+    private target?: HTMLElement;
+    private closeTimer?: ReturnType<typeof setTimeout>;
 
     constructor() {
         super();
@@ -23,7 +28,24 @@ class TableDropdown extends HTMLElement {
         `;
 
         this.wrapper = shadowRoot.querySelector(".be-table-dropdown-wrapper") as HTMLElement;
+        this.panel = shadowRoot.querySelector(".be-table-dropdown") as HTMLElement;
         this.grid = shadowRoot.querySelector(".be-table-dropdown-grid") as HTMLTableElement;
+
+        // The dropdown lives in the icon's shadow root, so event.target is retargeted at document level.
+        this.onDocumentClick = (event: Event) => {
+            const path = event.composedPath();
+            if (path.includes(this) || (this.target !== undefined && path.includes(this.target))) {
+                return;
+            }
+            this.close();
+        };
+
+        this.panel.addEventListener("mouseleave", () => {
+            this.closeTimer = setTimeout(() => this.close(), CLOSE_DELAY);
+        });
+        this.panel.addEventListener("mouseenter", () => {
+            this.clearCloseTimer();
+        });
 
         this.grid.addEventListener("mouseover", (event: MouseEvent) => {
             this.highlight(event);
@@ -37,13 +59,28 @@ class TableDropdown extends HTMLElement {
     }
 
     open(target: HTMLElement) {
+        // Closing while the pointer is over the panel leaves a mouseleave, and so a pending
+        // close, queued behind us: drop it, or it would shut the dropdown we are opening.
+        this.clearCloseTimer();
         this.reset();
         this.move(target);
         this.wrapper.setAttribute("open", "");
+        this.target = target;
+        document.addEventListener("click", this.onDocumentClick);
     }
 
     close() {
+        this.clearCloseTimer();
         this.wrapper.removeAttribute("open");
+        document.removeEventListener("click", this.onDocumentClick);
+    }
+
+    isOpen(): boolean {
+        return this.wrapper.hasAttribute("open");
+    }
+
+    private clearCloseTimer() {
+        clearTimeout(this.closeTimer);
     }
 
     private move(target: HTMLElement) {
@@ -86,6 +123,8 @@ class TableDropdown extends HTMLElement {
         const rows = (cell.parentElement as HTMLTableRowElement).rowIndex + 1;
         const columns = cell.cellIndex + 1;
         console.log(rows, columns);
+
+        this.close();
     }
 
     private clearHighlight() {

@@ -56,7 +56,11 @@ class TableIcon extends HTMLElement implements Icon {
         this.contentEditableElement = contentEditable;
 
         this.button.addEventListener("click", () => {
-            this.tableDropdown.open(this.button);
+            if (this.tableDropdown.isOpen()) {
+                this.tableDropdown.close();
+            } else {
+                this.tableDropdown.open(this.button);
+            }
         });
     }
 }
