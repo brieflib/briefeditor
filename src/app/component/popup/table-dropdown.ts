@@ -12,7 +12,7 @@ class TableDropdown extends HTMLElement {
     private readonly wrapper: HTMLElement;
     private readonly panel: HTMLElement;
     private readonly grid: HTMLTableElement;
-    private readonly onDocumentClick: EventListener;
+    private readonly onDocumentPress: EventListener;
     private target?: HTMLElement;
     private closeTimer?: ReturnType<typeof setTimeout>;
 
@@ -32,7 +32,8 @@ class TableDropdown extends HTMLElement {
         this.grid = shadowRoot.querySelector(".be-table-dropdown-grid") as HTMLTableElement;
 
         // The dropdown lives in the icon's shadow root, so event.target is retargeted at document level.
-        this.onDocumentClick = (event: Event) => {
+        // Bound to touchstart as well: iOS does not bubble clicks from plain elements up to document.
+        this.onDocumentPress = (event: Event) => {
             const path = event.composedPath();
             if (path.includes(this) || (this.target !== undefined && path.includes(this.target))) {
                 return;
@@ -48,13 +49,27 @@ class TableDropdown extends HTMLElement {
         });
 
         this.grid.addEventListener("mouseover", (event: MouseEvent) => {
-            this.highlight(event);
+            this.highlight(this.cellFromTarget(event.target));
         });
         this.grid.addEventListener("mouseleave", () => {
             this.clearHighlight();
         });
         this.grid.addEventListener("click", (event: MouseEvent) => {
-            this.select(event);
+            this.select(this.cellFromTarget(event.target));
+        });
+
+        // Touch: a tap has no hover, so the finger itself previews the size by dragging over
+        // the grid. Touch events keep targeting where the touch started, hence the hit test.
+        this.grid.addEventListener("touchstart", (event: TouchEvent) => {
+            this.highlight(this.cellFromTouch(event));
+        });
+        this.grid.addEventListener("touchmove", (event: TouchEvent) => {
+            event.preventDefault(); // sizing the grid, not scrolling the page
+            this.highlight(this.cellFromTouch(event));
+        }, {passive: false});
+        this.grid.addEventListener("touchend", (event: TouchEvent) => {
+            event.preventDefault(); // suppress the emulated mouse events and click for this tap
+            this.select(this.cellFromTouch(event));
         });
     }
 
@@ -66,13 +81,15 @@ class TableDropdown extends HTMLElement {
         this.move(target);
         this.wrapper.setAttribute("open", "");
         this.target = target;
-        document.addEventListener("click", this.onDocumentClick);
+        document.addEventListener("click", this.onDocumentPress);
+        document.addEventListener("touchstart", this.onDocumentPress);
     }
 
     close() {
         this.clearCloseTimer();
         this.wrapper.removeAttribute("open");
-        document.removeEventListener("click", this.onDocumentClick);
+        document.removeEventListener("click", this.onDocumentPress);
+        document.removeEventListener("touchstart", this.onDocumentPress);
     }
 
     isOpen(): boolean {
@@ -96,8 +113,20 @@ class TableDropdown extends HTMLElement {
         }
     }
 
-    private highlight(event: MouseEvent) {
-        const cell = (event.target as HTMLElement).closest("td");
+    private cellFromTarget(target: EventTarget | null): HTMLTableCellElement | null {
+        return target instanceof HTMLElement ? target.closest("td") : null;
+    }
+
+    private cellFromTouch(event: TouchEvent): HTMLTableCellElement | null {
+        const touch = event.changedTouches[0];
+        if (!touch) {
+            return null;
+        }
+
+        return this.cellFromTarget(this.shadowRoot?.elementFromPoint(touch.clientX, touch.clientY) ?? null);
+    }
+
+    private highlight(cell: HTMLTableCellElement | null) {
         if (!cell) {
             return;
         }
@@ -114,8 +143,7 @@ class TableDropdown extends HTMLElement {
         }
     }
 
-    private select(event: MouseEvent) {
-        const cell = (event.target as HTMLElement).closest("td");
+    private select(cell: HTMLTableCellElement | null) {
         if (!cell) {
             return;
         }

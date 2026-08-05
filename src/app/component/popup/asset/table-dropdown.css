@@ -28,6 +28,7 @@
     border-collapse: separate;
     border-spacing: 0.1875em;
     margin: 0.375em;
+    touch-action: none;
 }
 
 .be-table-dropdown-grid td {
@@ -37,6 +38,14 @@
     border: 1px solid #ccc;
     border-radius: 0.125em;
     cursor: pointer;
+}
+
+/* Taller cells for fingers. Width is left alone: ten columns already span most of a phone. */
+@media (pointer: coarse) {
+    .be-table-dropdown-grid td {
+        padding: 0.375em 0.5em;
+        height: 1.5em;
+    }
 }
 
 .be-table-dropdown-grid td.highlighted {
