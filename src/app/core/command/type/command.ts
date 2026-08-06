@@ -13,6 +13,7 @@ export enum Action {
     Click = "Click",
     Clipboard = "Clipboard",
     Cut = "Cut",
+    InsertTable = "InsertTable",
     InsertRow = "InsertRow",
     InsertColumn = "InsertColumn",
     DeleteRow = "DeleteRow",
@@ -30,10 +31,16 @@ export interface TableTarget {
     after?: boolean;
 }
 
+export interface TableSize {
+    rows: number;
+    columns: number;
+}
+
 export interface Command {
     action: Action,
     tag?: string,
     attributes?: Attributes | undefined,
     event?: KeyboardEvent | ClipboardEvent | MouseEvent,
-    table?: TableTarget
+    table?: TableTarget,
+    size?: TableSize
 }

@@ -29,7 +29,7 @@ import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
 import {Carrier} from "@/core/carrier/carrier";
 import {removeAndNormalize} from "@/core/normalize/normalize";
-import {getCell, getCellCursorPosition, isTableEmpty, removeTable} from "@/core/command/util/table-util";
+import {getCell, getCellCursorPosition, insertTable, isTableEmpty, removeTable} from "@/core/command/util/table-util";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
@@ -69,6 +69,9 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             break;
         case Action.Cut:
             cursorPosition = handleCutEvent(contentEditable, command.event as ClipboardEvent);
+            break;
+        case Action.InsertTable:
+            cursorPosition = applyInsertTableCommand(contentEditable, command, cursorPosition);
             break;
         case Action.InsertRow:
             cursorPosition = applyInsertRowCommand(command, cursorPosition);
@@ -219,6 +222,23 @@ function removeCarrier(contentEditable: HTMLElement, cursorPosition: CursorPosit
     const rootElement = getFirstSelectedRoot(contentEditable, getCursorPositionFrom(carrier, 0, carrier, 0));
 
     return removeAndNormalize(contentEditable, rootElement, [], cloneRange(cursorPosition));
+}
+
+// The size picker takes the focus out of the editor, so the cursor the table is placed at is the one the
+// editor was left with. A cursor inside a cell has no first level element to place the table next to, and
+// a table cannot be nested in one, so the insert is dropped instead.
+function applyInsertTableCommand(contentEditable: HTMLElement, command: Command, cursorPosition: CursorPosition): CursorPosition {
+    const size = command.size;
+    if (!size || !isRangeIn(contentEditable, cursorPosition)) {
+        return cursorPosition;
+    }
+
+    const root = getFirstSelectedRoot(contentEditable, cursorPosition);
+    if (isSchemaContain(root, [Display.Table])) {
+        return cursorPosition;
+    }
+
+    return insertTable(contentEditable, cursorPosition, size.rows, size.columns);
 }
 
 // A table is edited from the margin controls, which take the focus out of the editor and leave a cursor

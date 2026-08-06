@@ -544,4 +544,38 @@ describe("History undo/redo", () => {
         history.undo();
         expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
     });
+
+    test("Should undo an inserted table together with the split it made", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "ze".length, "ze".length);
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 2, columns: 1}});
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">ze</p>
+            <table><thead><tr><th><br></th></tr></thead><tbody><tr><td><br></td></tr></tbody></table>
+            <p>ro</p>
+        `);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+    });
+
+    test("Should undo an inserted table together with the list it split", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">first</li></ul>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "".length);
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        expectHtml(wrapper.innerHTML, `
+            <ul><li>zero</li></ul>
+            <table><thead><tr><th><br></th></tr></thead></table>
+            <ul><li>first</li></ul>
+        `);
+
+        history.undo();
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">first</li></ul>`);
+    });
 });

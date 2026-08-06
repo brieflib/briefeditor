@@ -1,6 +1,8 @@
 // @ts-expect-error inline is not supported by lint
 import tableDropdownCss from "@/component/popup/asset/table-dropdown.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
+import execCommand from "@/core/command/exec-command";
+import {Action} from "@/core/command/type/command";
 
 const INITIAL_ROWS = 3;
 const INITIAL_COLUMNS = 3;
@@ -14,6 +16,7 @@ class TableDropdown extends HTMLElement {
     private readonly grid: HTMLTableElement;
     private readonly onDocumentPress: EventListener;
     private target?: HTMLElement;
+    private contentEditableElement?: HTMLElement;
     private closeTimer?: ReturnType<typeof setTimeout>;
 
     constructor() {
@@ -40,6 +43,13 @@ class TableDropdown extends HTMLElement {
             }
             this.close();
         };
+
+        // The grid is made of plain cells, and pressing one places the cursor there, which takes it out
+        // of the editor the table is about to be inserted into. The icon's own button keeps the cursor
+        // where it is because a button takes the focus instead, so only the panel needs this.
+        this.panel.addEventListener("mousedown", (event: MouseEvent) => {
+            event.preventDefault();
+        });
 
         this.panel.addEventListener("mouseleave", () => {
             this.closeTimer = setTimeout(() => this.close(), CLOSE_DELAY);
@@ -73,7 +83,7 @@ class TableDropdown extends HTMLElement {
         });
     }
 
-    open(target: HTMLElement) {
+    open(target: HTMLElement, contentEditable: HTMLElement) {
         // Closing while the pointer is over the panel leaves a mouseleave, and so a pending
         // close, queued behind us: drop it, or it would shut the dropdown we are opening.
         this.clearCloseTimer();
@@ -81,6 +91,7 @@ class TableDropdown extends HTMLElement {
         this.move(target);
         this.wrapper.setAttribute("open", "");
         this.target = target;
+        this.contentEditableElement = contentEditable;
         document.addEventListener("click", this.onDocumentPress);
         document.addEventListener("touchstart", this.onDocumentPress);
     }
@@ -150,7 +161,9 @@ class TableDropdown extends HTMLElement {
 
         const rows = (cell.parentElement as HTMLTableRowElement).rowIndex + 1;
         const columns = cell.cellIndex + 1;
-        console.log(rows, columns);
+        if (this.contentEditableElement) {
+            execCommand(this.contentEditableElement, {action: Action.InsertTable, size: {rows, columns}});
+        }
 
         this.close();
     }

@@ -59,7 +59,7 @@ class TableIcon extends HTMLElement implements Icon {
             if (this.tableDropdown.isOpen()) {
                 this.tableDropdown.close();
             } else {
-                this.tableDropdown.open(this.button);
+                this.tableDropdown.open(this.button, contentEditable);
             }
         });
     }

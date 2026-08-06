@@ -815,3 +815,201 @@ describe("Cursor position after a table command", () => {
         expectCursorAt(cursorPosition, getFirstChild(wrapper, ".text"), 0);
     });
 });
+// A table is not a first level element and cannot hold one, so it is never inserted at the cursor itself:
+// it goes before, after, or between the halves of the first level element the cursor is in.
+describe("Insert table command", () => {
+    function selectAt(wrapper: HTMLElement, selector: string, offset: number) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), offset);
+        range.setEnd(getFirstChild(wrapper, selector), offset);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    test("Should build a header row and a body of the picked size", () => {
+        const wrapper = createWrapper(`<p class="start">first</p>`);
+        selectAt(wrapper, ".start", "first".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 3, columns: 2}});
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">first</p>
+            <table><thead><tr><th><br></th><th><br></th></tr></thead>
+            <tbody><tr><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td></tr></tbody></table>
+        `);
+    });
+
+    test("Should build a table of a single header cell", () => {
+        const wrapper = createWrapper(`<p class="start">first</p>`);
+        selectAt(wrapper, ".start", "first".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">first</p>
+            <table><thead><tr><th><br></th></tr></thead></table>
+        `);
+    });
+
+    test("Should split the paragraph the cursor is in the middle of", () => {
+        const wrapper = createWrapper(`
+            <p>zero</p>
+            <p class="start">first</p>
+        `);
+        selectAt(wrapper, ".start", "fi".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <p class="start">fi</p>
+            <table><thead><tr><th><br></th></tr></thead></table>
+            <p>rst</p>
+        `);
+    });
+
+    test("Should keep the paragraph whole when the cursor is at its end", () => {
+        const wrapper = createWrapper(`
+            <p class="start">first</p>
+            <p>second</p>
+        `);
+        selectAt(wrapper, ".start", "first".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">first</p>
+            <table><thead><tr><th><br></th></tr></thead></table>
+            <p>second</p>
+        `);
+    });
+
+    test("Should keep the paragraph whole when the cursor is at its start", () => {
+        const wrapper = createWrapper(`
+            <p>zero</p>
+            <p class="start">first</p>
+        `);
+        selectAt(wrapper, ".start", "".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <table><thead><tr><th><br></th></tr></thead></table>
+            <p class="start">first</p>
+        `);
+    });
+
+    test("Should insert into an empty block without splitting it", () => {
+        const wrapper = createWrapper(`<p class="start"><br></p>`);
+        selectAt(wrapper, ".start", 0);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <table><thead><tr><th><br></th></tr></thead></table>
+            <p class="start"><br></p>
+        `);
+    });
+
+    test("Should split the list the cursor is in the middle of", () => {
+        const wrapper = createWrapper(`
+            <ul><li>zero</li><li class="start">first</li><li>second</li></ul>
+        `);
+        selectAt(wrapper, ".start", "fi".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <ul><li>zero</li><li>fi</li></ul>
+            <table><thead><tr><th><br></th></tr></thead></table>
+            <ul><li>rst</li><li>second</li></ul>
+        `);
+    });
+
+    test("Should split the list before the item the cursor opens", () => {
+        const wrapper = createWrapper(`
+            <ul><li>zero</li><li class="start">first</li><li>second</li></ul>
+        `);
+        selectAt(wrapper, ".start", "".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <ul><li>zero</li></ul>
+            <table><thead><tr><th><br></th></tr></thead></table>
+            <ul><li>first</li><li>second</li></ul>
+        `);
+    });
+
+    test("Should split the list after the item the cursor closes", () => {
+        const wrapper = createWrapper(`
+            <ul><li>zero</li><li class="start">first</li><li>second</li></ul>
+        `);
+        selectAt(wrapper, ".start", "first".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <ul><li>zero</li><li>first</li></ul>
+            <table><thead><tr><th><br></th></tr></thead></table>
+            <ul><li>second</li></ul>
+        `);
+    });
+
+    test("Should lift a nested item that opens the split side to a list of its own", () => {
+        const wrapper = createWrapper(`
+            <ul><li>zero<ul><li class="start">nested</li></ul></li><li>second</li></ul>
+        `);
+        selectAt(wrapper, ".start", "".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <ul><li>zero</li></ul>
+            <table><thead><tr><th><br></th></tr></thead></table>
+            <ul><li>nested</li><li>second</li></ul>
+        `);
+    });
+
+    test("Should keep the nesting of a side that holds a whole nested list", () => {
+        const wrapper = createWrapper(`
+            <ul><li class="start">zero<ul><li>nested</li></ul></li><li>second</li></ul>
+        `);
+        selectAt(wrapper, ".start", "".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <table><thead><tr><th><br></th></tr></thead></table>
+            <ul><li>zero<ul><li>nested</li></ul></li><li>second</li></ul>
+        `);
+    });
+
+    test("Should drop the insert when the cursor is inside a cell", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th class="start">zero</th></tr></thead>
+            <tbody><tr><td>first</td></tr></tbody></table>
+        `);
+        selectAt(wrapper, ".start", "ze".length);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 2, columns: 2}});
+
+        expectHtml(wrapper.innerHTML, `
+            <table><thead><tr><th class="start">zero</th></tr></thead>
+            <tbody><tr><td>first</td></tr></tbody></table>
+        `);
+    });
+
+    test("Should move the cursor into the first header cell", () => {
+        const wrapper = createWrapper(`<p class="start">first</p>`);
+        selectAt(wrapper, ".start", "fi".length);
+
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 2, columns: 2}});
+
+        const firstCell = wrapper.querySelector("th")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(firstCell);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(firstCell);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+});

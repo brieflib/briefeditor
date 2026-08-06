@@ -29,6 +29,7 @@
     border-spacing: 0.1875em;
     margin: 0.375em;
     touch-action: none;
+    user-select: none;
 }
 
 .be-table-dropdown-grid td {
