@@ -1,4 +1,5 @@
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
+import {isCursorInTable} from "@/core/cursor/util/cursor-util";
 import {
     newLine,
     isSpecialKey,
@@ -28,6 +29,12 @@ export function handleKeyboardEvent(contentEditable: HTMLElement, event: Keyboar
 
     if (event.key === "Enter") {
         event.preventDefault();
+        // A cell is not a first level block, so a new line has nothing to split and a break would only
+        // grow the row. Both are dropped and the cursor is left where it was.
+        if (isCursorInTable(contentEditable, cursorPosition)) {
+            return cursorPosition;
+        }
+
         if (!isCollapsed(cursorPosition)) {
             cursorPosition = deleteContents(cursorPosition);
         }

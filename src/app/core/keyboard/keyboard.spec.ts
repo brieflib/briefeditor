@@ -502,9 +502,7 @@ describe("Typing and deleting characters", () => {
         expect(cursorPosition.startOffset).toBe("a".length);
     });
 
-    // A cell is no block, so enter finds nothing to split and falls through to a normalize of the table
-    // it sits in. The table is rebuilt from its leaves there, and an empty cell is only among them
-    // because it is a leaf of its own.
+    // A cell is no block, so enter has nothing to split and is dropped rather than left to the browser.
     test("Enter inside a cell keeps a table of empty cells", () => {
         const wrapper = createWrapper(`
             <table><thead><tr><th class="start"></th><th></th></tr></thead>
@@ -513,15 +511,88 @@ describe("Typing and deleting characters", () => {
         const cell = wrapper.querySelector(".start") as HTMLElement;
         selectText(cell, 0, 0);
 
-        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter", cancelable: true});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
 
-        // The cell keeps its identity through the rebuild, so it keeps its attributes with it and the
-        // cursor standing on it stays connected.
         expectHtml(wrapper.innerHTML, `
             <table><thead><tr><th class="start"></th><th></th></tr></thead>
             <tbody><tr><td></td><td></td></tr></tbody></table>
         `);
         expect(cell.isConnected).toBe(true);
+        expect(keyboardEvent.defaultPrevented).toBe(true);
+        expect(cursorPosition.startContainer).toBe(cell);
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Enter in the middle of a cell leaves its text whole", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
+        `);
+        const text = getFirstChild(wrapper, ".start");
+        selectText(text, "ze".length, "ze".length);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
+        `);
+        expect(cursorPosition.startContainer).toBe(text);
+        expect(cursorPosition.startOffset).toBe("ze".length);
+    });
+
+    // A break would grow the row instead of ending a line, so shift does not make an exception.
+    test("Shift and enter in the middle of a cell inserts no break", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "ze".length, "ze".length);
+
+        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter", shiftKey: true}));
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
+        `);
+    });
+
+    // A selection reaching out of the table would take the split with it, so the cell it starts in is
+    // enough to drop the enter.
+    test("Enter over a selection running out of a cell keeps both blocks", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">zero</td></tr></tbody></table><p class="end">first</p>
+        `);
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td class="start">zero</td></tr></tbody></table><p class="end">first</p>
+        `);
+    });
+
+    // The editor is a block of a page it knows nothing about, and that page may well be laid out in a
+    // table. Only the tables the editor holds itself count, so the search for one stops at the editor.
+    test("Enter splits a paragraph of an editor embedded in a table of the page", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+        const cell = document.createElement("td");
+        wrapper.replaceWith(cell);
+        cell.appendChild(wrapper);
+        const row = document.createElement("tr");
+        row.appendChild(cell);
+        const table = document.createElement("table");
+        table.appendChild(row);
+        document.body.appendChild(table);
+        selectText(getFirstChild(wrapper, ".start"), "ze".length, "ze".length);
+
+        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze</p><p>ro</p>
+        `);
     });
 
     test("Arrow keys do not change the dom and are not prevented", () => {

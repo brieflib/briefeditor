@@ -8,7 +8,7 @@ import {
     setRangeEnd
 } from "@/core/shared/type/cursor-position";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getFirstText, getLastText} from "@/core/shared/element-util";
+import {getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
 
 export interface StrandedTable {
     table: HTMLTableElement;
@@ -31,6 +31,19 @@ export function getCursorOffsetInElement(element: HTMLElement, cursorPosition: C
     setRangeEnd(endRange);
 
     return getLength(endRange);
+}
+
+// A table is always a first level element, so the root of the cursor's container answers this. A climb of
+// closest would carry on past the editor and find a table of the page the editor is embedded in.
+// A selection reaching into a table from a block outside of it counts as being in one, so an edit is
+// judged by the whole of what it touches.
+export function isCursorInTable(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    return isInTable(contentEditable, cursorPosition.startContainer) ||
+        isInTable(contentEditable, cursorPosition.endContainer);
+}
+
+function isInTable(contentEditable: HTMLElement, container: Node) {
+    return isSchemaContain(getRootElement(contentEditable, container), [Display.Table]);
 }
 
 export function isCursorAtStartOfCell(cell: HTMLTableCellElement, cursorPosition: CursorPosition) {
