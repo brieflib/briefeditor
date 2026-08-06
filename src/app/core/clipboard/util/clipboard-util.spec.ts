@@ -490,6 +490,234 @@ describe("Sanitize input", () => {
     });
 });
 
+describe("Paste a table", () => {
+    const table = `<table><thead><tr><th>zero</th><th>first</th></tr></thead>` +
+        `<tbody><tr><td>second</td><td>third</td></tr></tbody></table>`;
+
+    test("Should divide the paragraph the cursor is in", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fourth</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, table, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fou</p>` + table + `<p>rth</p>
+        `);
+
+        const firstCell = wrapper.querySelector("th");
+        expect(cursorPosition.startContainer).toBe(firstCell?.firstChild);
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should go before the paragraph the cursor starts in", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fourth</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, table, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, table + `
+            <p>fourth</p>
+        `);
+    });
+
+    test("Should go after the paragraph the cursor ends in", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fourth</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fourth".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fourth".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, table, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fourth</p>` + table);
+    });
+
+    test("Should divide the list the cursor is in", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">fourth
+                    <ol>
+                        <li>fifth</li>
+                    </ol>
+                </li>
+                <li>sixth</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, table, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>fou</li>
+            </ul>` + table + `
+            <ul>
+                <li>rth
+                    <ol>
+                        <li>fifth</li>
+                    </ol>
+                </li>
+                <li>sixth</li>
+            </ul>
+        `);
+    });
+
+    test("Should go before the list the cursor starts in", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">fourth</li>
+                <li>fifth</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, table, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, table + `
+            <ul>
+                <li>fourth</li>
+                <li>fifth</li>
+            </ul>
+        `);
+    });
+
+    test("Should go after the list the cursor ends in", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>fourth</li>
+                <li class="start">fifth</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fifth".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fifth".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, table, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>fourth</li>
+                <li>fifth</li>
+            </ul>` + table);
+    });
+
+    test("Should keep the blocks pasted along with the table", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fourth</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<h1>fifth</h1>` + table + `<p>sixth</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fou</p>
+            <h1>fifth</h1>` + table + `
+            <p>sixth</p>
+            <p>rth</p>
+        `);
+    });
+
+    test("Should lift the table out of the block holding it", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fourth</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<div>fifth` + table + `sixth</div>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fou</p>
+            <div>fifth</div>` + table + `
+            <div>sixth</div>
+            <p>rth</p>
+        `);
+    });
+
+    test("Should drop the blocks the lifted table leaves empty", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fourth</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<div><p>` + table + `</p></div>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fou</p>` + table + `<p>rth</p>
+        `);
+    });
+
+    test("Should lift the table out of the list item holding it", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fourth</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fourth".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fourth".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<ul><li>fifth</li><li>` + table + `</li><li>sixth</li></ul>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fourth</p>
+            <ul>
+                <li>fifth</li>
+            </ul>` + table + `
+            <ul>
+                <li>sixth</li>
+            </ul>
+        `);
+    });
+});
+
 describe("Paste into a table cell", () => {
     test("Should paste only the children of the pasted paragraphs", () => {
         const wrapper = createWrapper(`

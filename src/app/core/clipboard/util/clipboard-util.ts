@@ -7,13 +7,13 @@ import {
     isCollapsed
 } from "@/core/shared/type/cursor-position";
 import {removeAndNormalize} from "@/core/normalize/normalize";
-import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
+import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 import {getLastText, getRootElement} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
-import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
-import {getCursorCell} from "@/core/cursor/util/cursor-util";
-import {newLine, splitAtCursor} from "@/core/keyboard/util/keyboard-util";
+import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
+import {splitAtCursor} from "@/core/keyboard/util/keyboard-util";
+import {getCellCursorPosition, insertBetweenBlocks} from "@/core/command/util/table-util";
 
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
     if (!isCollapsed(cursorPosition)) {
@@ -33,12 +33,18 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     // the split stays inside it.
     const firstRoot = cell ?? getFirstSelectedRoot(contentEditable, cursorPosition);
 
+    // A table pasted into a list splits it instead of joining it, so the check comes before the list root
+    // one. A cell never reaches it: the table tags are already unwrapped out of the pasted markup there.
+    if (hasTable(pastedContent)) {
+        return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
+    }
+
     if (isSchemaContain(firstRoot, [Display.ListWrapper])) {
         return pasteIntoList(contentEditable, firstRoot, htmlString, cursorPosition);
     }
 
     if (hasListWrapper(pastedContent)) {
-        return pasteListsBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
+        return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
     }
 
     // The pasted markup must land beside the formatting elements the cursor sits in, not inside them.
@@ -107,8 +113,35 @@ function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | nul
     }
 
     wrapListItems(doc.body);
+    hoistTables(doc.body);
 
     return doc.body;
+}
+
+const tableSelector = getOfType([Display.Table]).join(",");
+
+// A table cannot be nested in a block, so a pasted one is split out of the blocks holding it: each
+// ancestor is cloned around the table, keeping the markup on either side in a block of its own. A table
+// inside a list item comes out of its wrapper the same way, which leaves the list divided in two the way
+// placing a table in one does. A side the split leaves empty is left in place for normalization, which
+// throws away a block holding nothing on the way back up.
+function hoistTables(root: HTMLElement) {
+    root.querySelectorAll(tableSelector).forEach(table => hoistTable(root, table));
+}
+
+function hoistTable(root: HTMLElement, table: Element) {
+    let parent = table.parentElement;
+    while (parent && parent !== root) {
+        const tail = parent.cloneNode(false) as HTMLElement;
+        while (table.nextSibling) {
+            tail.appendChild(table.nextSibling);
+        }
+
+        parent.after(table);
+        table.after(tail);
+
+        parent = table.parentElement;
+    }
 }
 
 // A cell holds a single line - Enter is dropped inside a table - so a pasted block has nothing to split
@@ -168,41 +201,40 @@ function hasListWrapper(pastedContent: HTMLElement) {
     return Array.from(pastedContent.children).some(child => isSchemaContain(child, [Display.ListWrapper]));
 }
 
-function pasteListsBetweenBlocks(contentEditable: HTMLElement, firstRoot: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
-    // A list cannot be lifted out of the target block by normalization the way a
-    // heading or paragraph is, so place it between blocks instead. Both checks read
-    // the block from the current selection, so they must run before the DOM changes.
-    const block = getSelectedBlock(contentEditable, cursorPosition)[0] ?? firstRoot;
-    const isAtStart = isCursorAtStartOfBlock(contentEditable, cursorPosition);
-    const isAtEnd = isCursorAtEndOfBlock(contentEditable, cursorPosition);
+// The hoist leaves every pasted table as a child of the body it was parsed into, so a top level look is
+// all it takes to find one.
+function hasTable(pastedContent: HTMLElement) {
+    return Array.from(pastedContent.children).some(child => isSchemaContain(child, [Display.Table]));
+}
 
+function pasteBetweenBlocks(contentEditable: HTMLElement, firstRoot: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
+    // Neither a list nor a table can be lifted out of the target block by normalization the way a heading
+    // or paragraph is, so place the markup between blocks instead, where an inserted table goes.
     const fragmentToInsert = createContextualFragment(htmlString, cursorPosition);
-    const pastedCursorPosition = getCursorPositionFromElement(getLastText(fragmentToInsert));
+    const table = fragmentToInsert.querySelector(tableSelector) as HTMLTableElement | null;
+    // A pasted table takes the cursor into its first cell, the way an inserted one does; anything else
+    // leaves it at the end of what was pasted.
+    const pastedCursorPosition = table
+        ? getCellCursorPosition(getFirstCell(table), cursorPosition)
+        : getCursorPositionFromElement(getLastText(fragmentToInsert));
 
     // Wrap the pasted markup in a DELETED tag so removeAndNormalize rebuilds it in
     // place and remaps the cursor for us.
     const deleted = document.createElement("DELETED");
     deleted.append(fragmentToInsert);
 
-    if (isAtStart) {
-        block.before(deleted);
-    } else {
-        if (!isAtEnd) {
-            // Divides the block into two, keeping the first part in place.
-            newLine(contentEditable, cursorPosition);
-        }
-        block.after(deleted);
-    }
+    insertBetweenBlocks(contentEditable, firstRoot, cursorPosition, deleted);
 
     cursorPosition = removeAndNormalize(contentEditable, deleted, ["DELETED"], pastedCursorPosition);
 
     // The target block keeps whatever markup it had, so normalize it as well unless
-    // the pass above already rebuilt it as a part of a common root.
-    if (!block.isConnected) {
+    // the pass above already rebuilt it as a part of a common root. A list is parsed
+    // into a new one by the placement, which leaves the root it was read from gone.
+    if (!firstRoot.isConnected) {
         return cursorPosition;
     }
 
-    return removeAndNormalize(contentEditable, block, [], cursorPosition);
+    return removeAndNormalize(contentEditable, firstRoot, [], cursorPosition);
 }
 
 function pasteIntoList(contentEditable: HTMLElement, firstRoot: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
