@@ -52,6 +52,14 @@
     transition: background-color 0.15s ease;
 }
 
+/* An empty cell holds no br, so nothing builds a line box and the cell collapses to its padding.
+   An empty inline-block brings the line box back without a node the cursor could land on. */
+.be-editor td:empty::after,
+.be-editor th:empty::after {
+    content: "";
+    display: inline-block;
+}
+
 .be-editor td {
     background-color: #fafbfc;
 }
