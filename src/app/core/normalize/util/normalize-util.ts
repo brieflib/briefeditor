@@ -13,7 +13,8 @@ export interface ContainerAndCursorPosition {
 export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     if ((element.nodeType === Node.TEXT_NODE && element.textContent) ||
         element === Carrier.getCarrier() ||
-        isSchemaContain(element, [Display.SelfClose])) {
+        isSchemaContain(element, [Display.SelfClose]) ||
+        isEmptyCell(element)) {
         leafNodes.push(element);
         return leafNodes;
     }
@@ -23,6 +24,12 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     }
 
     return leafNodes;
+}
+
+// A cell holds no br to stand in for empty content, so an empty one is its own leaf: there is nothing
+// else left to rebuild it from and the collapse would drop it out of the table.
+function isEmptyCell(element: Node) {
+    return isSchemaContain(element, [Display.Cell]) && !element.textContent;
 }
 
 export function setLeafParents(findTill: HTMLElement, leafNode: Node, leaf: Leaf = new Leaf()) {
@@ -327,7 +334,8 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
         return cursorMove.getCursorPosition(cursorPosition);
     }
 
-    if (insertElement.textContent || hasSelfCloseDescendant(insertElement) || holdsCarrier(insertElement)) {
+    if (insertElement.textContent || hasSelfCloseDescendant(insertElement) || holdsCarrier(insertElement) ||
+        holdsCell(insertElement)) {
         containerChild.appendChild(insertElement);
 
         // insertNode keeps its identity, so only a cursor anchored on the container moves onto it.
@@ -343,6 +351,12 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
         keepOffset: false
     });
     return cursorMove.getCursorPosition(cursorPosition);
+}
+
+// A cell is kept even when it is empty, so the table it was rebuilt into carries content of its own even
+// though it holds no text: without this it is thrown away again on the way back up.
+function holdsCell(fragment: DocumentFragment) {
+    return !!fragment.querySelector("th, td");
 }
 
 function asText(node: Node | null): Text | null {
@@ -434,7 +448,9 @@ function clearElementHTML(node: Node | undefined) {
         return;
     }
 
-    if (node.nodeType === Node.TEXT_NODE || isSchemaContain(node, [Display.SelfClose])) {
+    // An empty cell is a leaf, and a leaf keeps its identity through the rebuild so that a cursor sitting
+    // on it is still connected afterwards. A cell with content is only ever a parent here and is cloned.
+    if (node.nodeType === Node.TEXT_NODE || isSchemaContain(node, [Display.SelfClose]) || isEmptyCell(node)) {
         return node;
     }
 

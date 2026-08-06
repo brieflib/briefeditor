@@ -553,7 +553,7 @@ describe("History undo/redo", () => {
         execCommand(wrapper, {action: Action.InsertTable, size: {rows: 2, columns: 1}});
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze</p>
-            <table><thead><tr><th><br></th></tr></thead><tbody><tr><td><br></td></tr></tbody></table>
+            <table><thead><tr><th></th></tr></thead><tbody><tr><td></td></tr></tbody></table>
             <p>ro</p>
         `);
 
@@ -570,7 +570,7 @@ describe("History undo/redo", () => {
         execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li></ul>
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
             <ul><li>first</li></ul>
         `);
 

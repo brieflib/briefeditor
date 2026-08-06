@@ -20,8 +20,8 @@ export function getCellCursorPosition(cell: HTMLTableCellElement | undefined | n
     return cell ? atStart(cell) : cursorPosition;
 }
 
-// The first row is a header, the way every table in the editor is built. A cell holds a br and nothing
-// else: an empty cell has no leaf node of its own and the next normalize pass would drop it.
+// The first row is a header, the way every table in the editor is built. The cells are left empty: a
+// cursor takes the cell itself when it holds nothing, so there is no br to stand in for the content.
 export function createTable(rows: number, columns: number) {
     const table = document.createElement("table");
     appendRow(table.createTHead(), columns, "th");
@@ -90,9 +90,7 @@ function insertTableIntoList(contentEditable: HTMLElement, root: HTMLElement, cu
 function appendRow(section: HTMLTableSectionElement, columns: number, cellName: string) {
     const row = section.insertRow();
     for (let column = 0; column < columns; column++) {
-        const cell = document.createElement(cellName);
-        cell.appendChild(document.createElement("br"));
-        row.appendChild(cell);
+        row.appendChild(document.createElement(cellName));
     }
 }
 

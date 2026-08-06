@@ -199,6 +199,28 @@ describe("Should normalize tags", () => {
         testNormalize(table, table);
     });
 
+    // A cell carries no br for its empty content, so it is its own leaf. Without that it holds nothing to
+    // rebuild it from and the collapse drops it, taking a table of empty cells with it.
+    test("Should preserve a table of empty cells", () => {
+        const table = `<table><thead><tr><th></th><th></th></tr></thead>` +
+            `<tbody><tr><td></td><td></td></tr></tbody></table>`;
+
+        testNormalize(table, table);
+    });
+
+    test("Should preserve an empty cell next to a filled one", () => {
+        const table = `<table><thead><tr><th>zero</th><th></th></tr></thead>` +
+            `<tbody><tr><td></td><td>first <strong>second</strong></td></tr></tbody></table>`;
+
+        testNormalize(table, table);
+    });
+
+    test("Should preserve a cell that holds nothing but a br", () => {
+        const table = `<table><tbody><tr><td><br></td><td>zero</td></tr></tbody></table>`;
+
+        testNormalize(table, table);
+    });
+
     test("Should remove empty tags", () => {
         const wrapper = createWrapper(`
             <div class="start">zero<ul><li></li></ul></div>

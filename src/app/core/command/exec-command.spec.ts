@@ -714,7 +714,7 @@ describe("Cursor position after a table command", () => {
 
         const cursorPosition = execCommand(wrapper, {action: Action.InsertRow, table: {cell, after: true}});
 
-        // After: <tr><td>zero</td><td>first</td></tr><tr><td><br></td><td><br></td></tr>
+        // After: <tr><td>zero</td><td>first</td></tr><tr><td></td><td></td></tr>
         expectCursorAt(cursorPosition, getEmptyCell(wrapper, 3), 0);
     });
 
@@ -833,8 +833,8 @@ describe("Insert table command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">first</p>
-            <table><thead><tr><th><br></th><th><br></th></tr></thead>
-            <tbody><tr><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td></tr></tbody></table>
+            <table><thead><tr><th></th><th></th></tr></thead>
+            <tbody><tr><td></td><td></td></tr><tr><td></td><td></td></tr></tbody></table>
         `);
     });
 
@@ -846,7 +846,7 @@ describe("Insert table command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">first</p>
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
         `);
     });
 
@@ -862,7 +862,7 @@ describe("Insert table command", () => {
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
             <p class="start">fi</p>
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
             <p>rst</p>
         `);
     });
@@ -878,7 +878,7 @@ describe("Insert table command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">first</p>
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
             <p>second</p>
         `);
     });
@@ -894,7 +894,7 @@ describe("Insert table command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
             <p class="start">first</p>
         `);
     });
@@ -906,7 +906,7 @@ describe("Insert table command", () => {
         execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
             <p class="start"><br></p>
         `);
     });
@@ -921,7 +921,7 @@ describe("Insert table command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li><li>fi</li></ul>
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
             <ul><li>rst</li><li>second</li></ul>
         `);
     });
@@ -936,7 +936,7 @@ describe("Insert table command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li></ul>
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
             <ul><li>first</li><li>second</li></ul>
         `);
     });
@@ -951,7 +951,7 @@ describe("Insert table command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li><li>first</li></ul>
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
             <ul><li>second</li></ul>
         `);
     });
@@ -966,7 +966,7 @@ describe("Insert table command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li></ul>
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
             <ul><li>nested</li><li>second</li></ul>
         `);
     });
@@ -980,7 +980,7 @@ describe("Insert table command", () => {
         execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
-            <table><thead><tr><th><br></th></tr></thead></table>
+            <table><thead><tr><th></th></tr></thead></table>
             <ul><li>zero<ul><li>nested</li></ul></li><li>second</li></ul>
         `);
     });
@@ -1006,7 +1006,8 @@ describe("Insert table command", () => {
 
         const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 2, columns: 2}});
 
-        const firstCell = wrapper.querySelector("th")?.firstChild;
+        // An empty cell holds nothing for the cursor to take, so it takes the cell itself.
+        const firstCell = wrapper.querySelector("th");
         expect(cursorPosition.startContainer).toBe(firstCell);
         expect(cursorPosition.startOffset).toBe(0);
         expect(cursorPosition.endContainer).toBe(firstCell);

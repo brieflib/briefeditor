@@ -502,6 +502,28 @@ describe("Typing and deleting characters", () => {
         expect(cursorPosition.startOffset).toBe("a".length);
     });
 
+    // A cell is no block, so enter finds nothing to split and falls through to a normalize of the table
+    // it sits in. The table is rebuilt from its leaves there, and an empty cell is only among them
+    // because it is a leaf of its own.
+    test("Enter inside a cell keeps a table of empty cells", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th class="start"></th><th></th></tr></thead>
+            <tbody><tr><td></td><td></td></tr></tbody></table>
+        `);
+        const cell = wrapper.querySelector(".start") as HTMLElement;
+        selectText(cell, 0, 0);
+
+        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
+
+        // The cell keeps its identity through the rebuild, so it keeps its attributes with it and the
+        // cursor standing on it stays connected.
+        expectHtml(wrapper.innerHTML, `
+            <table><thead><tr><th class="start"></th><th></th></tr></thead>
+            <tbody><tr><td></td><td></td></tr></tbody></table>
+        `);
+        expect(cell.isConnected).toBe(true);
+    });
+
     test("Arrow keys do not change the dom and are not prevented", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>
