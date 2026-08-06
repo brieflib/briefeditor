@@ -151,19 +151,28 @@ export function newLine(contentEditable: HTMLElement, cursorPosition: CursorPosi
     }
 
     const newBlock = document.createElement(block.nodeName);
-    cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, block, block.childNodes.length);
+    newBlock.appendChild(splitAtCursor(block, cursorPosition));
+    block.after(newBlock);
 
-    const fragment = extractContents(cursorPosition);
+    const firstText = getFirstText(newBlock);
+    return getCursorPositionFrom(firstText, 0, firstText, 0);
+}
+
+// Everything from the cursor to the end of the element, lifted out. The extract splits the text node at
+// the caret and clones the inline ancestors around it, so every tag open at the cursor is closed on both
+// sides of the split.
+export function splitAtCursor(element: HTMLElement, cursorPosition: CursorPosition): DocumentFragment {
+    const toEnd = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset,
+        element, element.childNodes.length);
+
+    const fragment = extractContents(toEnd);
     Array.from(fragment.childNodes).forEach(child => {
         if (child.nodeType === Node.TEXT_NODE && !child.textContent) {
             child.remove();
         }
     });
-    newBlock.appendChild(fragment);
-    block.after(newBlock);
 
-    const firstText = getFirstText(newBlock);
-    return getCursorPositionFrom(firstText, 0, firstText, 0);
+    return fragment;
 }
 
 export function isPrintableKey(event: KeyboardEvent) {

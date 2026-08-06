@@ -2,18 +2,18 @@ import {
     cloneContents,
     createContextualFragment,
     CursorPosition,
-    deleteContents, getCursorPositionFromElement,
+    deleteContents, getCursorPositionFrom, getCursorPositionFromElement,
     insertNode,
     isCollapsed
 } from "@/core/shared/type/cursor-position";
-import {closeTags, removeAndNormalize} from "@/core/normalize/normalize";
+import {removeAndNormalize} from "@/core/normalize/normalize";
 import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 import {getLastText, getRootElement} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {getCursorCell} from "@/core/cursor/util/cursor-util";
-import {newLine} from "@/core/keyboard/util/keyboard-util";
+import {newLine, splitAtCursor} from "@/core/keyboard/util/keyboard-util";
 
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
     if (!isCollapsed(cursorPosition)) {
@@ -41,7 +41,14 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
         return pasteListsBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
     }
 
-    cursorPosition = closeTags(firstRoot, cursorPosition);
+    // The pasted markup must land beside the formatting elements the cursor sits in, not inside them.
+    // Splitting the root at the cursor closes those tags; appending the tail straight back leaves one root
+    // whose children are divided at the seam, which is where the markup goes.
+    const tail = splitAtCursor(firstRoot, cursorPosition);
+    const seam = firstRoot.childNodes.length;
+    firstRoot.append(tail);
+    cursorPosition = getCursorPositionFrom(firstRoot, seam, firstRoot, seam);
+
     const fragmentToInsert = createContextualFragment(htmlString, cursorPosition);
     // Capture the paste-end position before insertNode empties the fragment; the
     // text node itself is moved into the DOM, so the reference stays valid.
