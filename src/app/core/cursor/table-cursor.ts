@@ -7,9 +7,10 @@ import {
     isCursorAtEndOfCell,
     isCursorAtStartOfCell,
     getCursorOffsetInElement,
-    getCursorPositionFromPoint
+    getCursorPositionFromPoint,
+    getCursorCell
 } from "@/core/cursor/util/cursor-util";
-import {getElement, getRootElement} from "@/core/shared/element-util";
+import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     CursorPosition,
@@ -99,15 +100,12 @@ export class TableCursor {
 
     // The table the cursor is about to be carried out of, or null when the browser's own move is fine.
     private getEscapedTable(cursorPosition: CursorPosition, isBefore: boolean) {
-        // The climb stops at the editor, and its two misses, a block in no table and a container outside
-        // the editor, are both caught by asking the result for a cell.
-        const element = getElement(this.contentEditable, cursorPosition.startContainer as HTMLElement, [Display.Cell]);
-        if (!isSchemaContain(element, [Display.Cell])) {
+        const cell = getCursorCell(this.contentEditable, cursorPosition);
+        if (!cell) {
             return null;
         }
 
         // A table is a first level element, so the root of the cell is the table holding it.
-        const cell = element as HTMLTableCellElement;
         const table = getRootElement(this.contentEditable, cell) as HTMLTableElement;
 
         if (cell !== (isBefore ? getFirstCell(table) : getLastCell(table))) {

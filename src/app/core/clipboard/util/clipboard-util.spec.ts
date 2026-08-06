@@ -489,3 +489,129 @@ describe("Sanitize input", () => {
         expect(cursorPosition.endOffset).toBe("second".length);
     });
 });
+
+describe("Paste into a table cell", () => {
+    test("Should paste only the children of the pasted paragraphs", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fo".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fo".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td>fofirstsecondo</td><td>bar</td></tr></tbody></table>
+        `);
+
+        const cell = wrapper.querySelector("td");
+        expect(cursorPosition.startContainer).toBe(cell?.firstChild);
+        expect(cursorPosition.endContainer).toBe(cell?.firstChild);
+        expect(cursorPosition.startOffset).toBe("fofirstsecond".length);
+        expect(cursorPosition.endOffset).toBe("fofirstsecond".length);
+    });
+
+    test("Should paste only the children of the pasted heading into a header cell", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th class="start">zero</th><th>first</th></tr></thead></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<h1>second</h1>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <table><thead><tr><th>secondzero</th><th>first</th></tr></thead></table>
+        `);
+
+        const cell = wrapper.querySelector("th");
+        expect(cursorPosition.startContainer).toBe(cell?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+    });
+
+    test("Should keep the inline markup of the pasted content", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "foo".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "foo".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<p><strong>first</strong> second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td>foo<strong>first</strong> second</td><td>bar</td></tr></tbody></table>
+        `);
+    });
+
+    test("Should paste only the children of the pasted list", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "foo".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "foo".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td>foofirstsecond</td><td>bar</td></tr></tbody></table>
+        `);
+        expect(wrapper.querySelectorAll("ul, li").length).toBe(0);
+    });
+
+    test("Should paste only the children of a pasted table", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "foo".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "foo".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<table><tbody><tr><td>first</td><td>second</td></tr></tbody></table>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td>foofirstsecond</td><td>bar</td></tr></tbody></table>
+        `);
+        expect(wrapper.querySelectorAll("table").length).toBe(1);
+    });
+
+    test("Should preserve the rest of the table", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th>zero</th><th></th></tr></thead>` +
+            `<tbody><tr><td class="start">first</td><td>second <strong>third</strong></td></tr>` +
+            `<tr><td></td><td>fourth</td></tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<p>fifth</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <table><thead><tr><th>zero</th><th></th></tr></thead>` +
+            `<tbody><tr><td>firstfifth</td><td>second <strong>third</strong></td></tr>` +
+            `<tr><td></td><td>fourth</td></tr></tbody></table>
+        `);
+    });
+});

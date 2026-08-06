@@ -8,7 +8,7 @@ import {
     setRangeEnd
 } from "@/core/shared/type/cursor-position";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
+import {getElement, getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
 
 export interface StrandedTable {
     table: HTMLTableElement;
@@ -44,6 +44,18 @@ export function isCursorInTable(contentEditable: HTMLElement, cursorPosition: Cu
 
 function isInTable(contentEditable: HTMLElement, container: Node) {
     return isSchemaContain(getRootElement(contentEditable, container), [Display.Table]);
+}
+
+// The cell holding the cursor, or null when it sits in no cell at all. The climb stops at the editor, so
+// its two misses, a block in no table and a container outside the editor, both come back as something
+// that is not a cell.
+export function getCursorCell(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const element = getElement(contentEditable, cursorPosition.startContainer as HTMLElement, [Display.Cell]);
+    if (!isSchemaContain(element, [Display.Cell])) {
+        return null;
+    }
+
+    return element as HTMLTableCellElement;
 }
 
 export function isCursorAtStartOfCell(cell: HTMLTableCellElement, cursorPosition: CursorPosition) {

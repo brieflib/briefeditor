@@ -8,21 +8,30 @@ import {
 } from "@/core/shared/type/cursor-position";
 import {closeTags, removeAndNormalize} from "@/core/normalize/normalize";
 import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
-import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 import {getLastText, getRootElement} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
+import {getCursorCell} from "@/core/cursor/util/cursor-util";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
 
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
-    const pastedContent = cleanPastedContent(htmlString);
-    htmlString = pastedContent.innerHTML;
-
     if (!isCollapsed(cursorPosition)) {
         cursorPosition = deleteContents(cursorPosition);
     }
 
-    const firstRoot = getFirstSelectedRoot(contentEditable, cursorPosition);
+    // Read after the delete: it is the surviving cursor that says where the markup lands.
+    const cell = getCursorCell(contentEditable, cursorPosition);
+    const pastedContent = cleanPastedContent(htmlString, cell);
+    htmlString = pastedContent.innerHTML;
+    if (!htmlString) {
+        return cursorPosition;
+    }
+
+    // A cell is not a first level element, so its root is the table holding it. Closing the tags on that
+    // root would rebuild every row onto the table element itself, so the cell stands in as the root and
+    // the split stays inside it.
+    const firstRoot = cell ?? getFirstSelectedRoot(contentEditable, cursorPosition);
 
     if (isSchemaContain(firstRoot, [Display.ListWrapper])) {
         return pasteIntoList(contentEditable, firstRoot, htmlString, cursorPosition);
@@ -75,7 +84,7 @@ function isInlineFormatting(element: HTMLElement): boolean {
         !isSchemaContain(element, [Display.FirstLevel]);
 }
 
-function cleanPastedContent(htmlString: string) {
+function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | null) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlString, 'text/html');
 
@@ -84,9 +93,30 @@ function cleanPastedContent(htmlString: string) {
         node.remove();
     });
 
+    // wrapListItems only gives orphaned items a wrapper, and the unwrap drops both.
+    if (cell) {
+        unwrapBlocks(doc.body);
+        return doc.body;
+    }
+
     wrapListItems(doc.body);
 
     return doc.body;
+}
+
+// A cell holds a single line - Enter is dropped inside a table - so a pasted block has nothing to split
+// off into and only its children survive. Table tags go the same way: the editor never nests a table in
+// a cell, so a pasted one must not arrive as one.
+const cellUnwrapSelector = getOfType([Display.FirstLevel, Display.List, Display.Table,
+    Display.TableSection, Display.Cell]).join(",");
+
+function unwrapBlocks(root: ParentNode) {
+    // querySelector answers with the outermost match, so the blocks it held surface on the next pass.
+    let block = root.querySelector(cellUnwrapSelector);
+    while (block) {
+        block.replaceWith(...block.childNodes);
+        block = root.querySelector(cellUnwrapSelector);
+    }
 }
 
 function wrapListItems(root: ParentNode) {
