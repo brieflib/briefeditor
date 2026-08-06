@@ -13,7 +13,7 @@ import {getLastText, getRootElement} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
 import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {splitAtCursor} from "@/core/keyboard/util/keyboard-util";
-import {getCellCursorPosition, insertBetweenBlocks} from "@/core/command/util/table-util";
+import {getCellCursorPosition, insertBetweenBlocks, normalizeTable} from "@/core/command/util/table-util";
 
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
     if (!isCollapsed(cursorPosition)) {
@@ -81,8 +81,13 @@ export function getSelectedHtml(cursorPosition: CursorPosition): string {
     }
     // A list wrapper is dropped the same way when the selection spans its items, so
     // re-wrap it too. The shallow clone keeps the source tag, which is the only place
-    // where UL and OL can still be told apart.
-    while (ancestor instanceof HTMLElement && (isInlineFormatting(ancestor) || isSchemaContain(ancestor, [Display.ListWrapper]))) {
+    // where UL and OL can still be told apart. The rows and the table around selected
+    // cells go the same way, and without them the cells do not survive the parse the
+    // paste puts them through: the tags of a cell outside a table are thrown away.
+    // A selection held inside a single cell stops at the cell, which is not re-wrapped,
+    // so copied words stay words and only a selection crossing a cell carries a table.
+    while (ancestor instanceof HTMLElement &&
+        (isInlineFormatting(ancestor) || isSchemaContain(ancestor, [Display.ListWrapper, Display.TableSection, Display.Table]))) {
         const wrapper = ancestor.cloneNode(false) as HTMLElement;
         wrapper.append(...container.childNodes);
         container.appendChild(wrapper);
@@ -114,6 +119,7 @@ function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | nul
 
     wrapListItems(doc.body);
     hoistTables(doc.body);
+    doc.body.querySelectorAll(tableSelector).forEach(table => normalizeTable(table as HTMLTableElement));
 
     return doc.body;
 }

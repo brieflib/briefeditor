@@ -231,6 +231,58 @@ describe("Sanitize input", () => {
         expect(html).not.toContain("localhost");
     });
 
+    test("Should keep the table of copied body cells", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th>zero</th><th>first</th></tr></thead>` +
+            `<tbody><tr><td>second</td><td>third</td></tr>` +
+            `<tr><td>fourth</td><td>fifth</td></tr></tbody></table>
+        `);
+
+        const cells = wrapper.querySelectorAll("td");
+        const range = new Range();
+        range.setStartBefore(cells[0] as Node);
+        range.setEndAfter(cells[1] as Node);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const html = getSelectedHtml(getCursorPosition());
+
+        // Only the copied cells travel: the shallow clones carry no rows of their own.
+        expectHtml(html, `<table><tbody><tr><td>second</td><td>third</td></tr></tbody></table>`);
+    });
+
+    test("Should keep the header of copied header cells", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th>zero</th><th>first</th></tr></thead>` +
+            `<tbody><tr><td>second</td><td>third</td></tr></tbody></table>
+        `);
+
+        const cells = wrapper.querySelectorAll("th");
+        const range = new Range();
+        range.setStartBefore(cells[0] as Node);
+        range.setEndAfter(cells[1] as Node);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const html = getSelectedHtml(getCursorPosition());
+
+        expectHtml(html, `<table><thead><tr><th>zero</th><th>first</th></tr></thead></table>`);
+    });
+
+    test("Should copy the text of a selection held inside one cell", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">second</td><td>third</td></tr></tbody></table>
+        `);
+
+        const cell = getFirstChild(wrapper, ".start"); // "second" text node inside the <td>
+        const range = new Range();
+        range.setStart(cell, "s".length);
+        range.setEnd(cell, "seco".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const html = getSelectedHtml(getCursorPosition());
+
+        expect(html).toBe("eco");
+    });
+
     test("Should insert text inside p", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>
@@ -671,6 +723,70 @@ describe("Paste a table", () => {
             <p>fou</p>
             <div>fifth</div>` + table + `
             <div>sixth</div>
+            <p>rth</p>
+        `);
+    });
+
+    test("Should give copied body cells an empty header", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fourth</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<table><tbody><tr><td>second</td><td>third</td></tr></tbody></table>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fou</p>
+            <table><thead><tr><th></th><th></th></tr></thead>` +
+            `<tbody><tr><td>second</td><td>third</td></tr></tbody></table>
+            <p>rth</p>
+        `);
+    });
+
+    test("Should keep the header of copied header cells", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fourth</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<table><thead><tr><th>zero</th><th>first</th></tr></thead></table>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fou</p>
+            <table><thead><tr><th>zero</th><th>first</th></tr></thead></table>
+            <p>rth</p>
+        `);
+    });
+
+    test("Should fill up the rows a ragged copy left short", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fourth</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<table><tbody><tr><td>second</td><td>third</td></tr>` +
+            `<tr><td>fifth</td></tr></tbody></table>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fou</p>
+            <table><thead><tr><th></th><th></th></tr></thead>` +
+            `<tbody><tr><td>second</td><td>third</td></tr>` +
+            `<tr><td>fifth</td><td></td></tr></tbody></table>
             <p>rth</p>
         `);
     });
