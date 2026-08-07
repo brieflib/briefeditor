@@ -2029,4 +2029,106 @@ describe("Insert break", () => {
         expect(cursorPosition.startOffset).toBe(0);
     });
 
+    test("Should insert empty list item before the nested list", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li class="start">first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = newLine(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li class="start">first</li>
+                <li><br>
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+
+        expect(cursorPosition.startContainer.textContent).toBe("");
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should divide list item and move the nested list to the divided part", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li class="start">first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fir".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = newLine(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li class="start">fir</li>
+                <li>st
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+
+        expect(cursorPosition.startContainer.textContent).toBe("st");
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should keep the nested list when empty list item is inserted before", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li class="start">first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = newLine(wrapper, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li><br></li>
+                <li class="start">first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+
+        expect(cursorPosition.startContainer.textContent).toBe("first");
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
 });

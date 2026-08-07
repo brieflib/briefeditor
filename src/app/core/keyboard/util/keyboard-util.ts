@@ -20,6 +20,7 @@ import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor
 import {normalize} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {maybeInsertLists} from "@/core/list/list";
+import {getDirectChildren} from "@/core/list/util/list-util";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
@@ -138,6 +139,11 @@ export function newLine(contentEditable: HTMLElement, cursorPosition: CursorPosi
     if (isCursorAtEndOfBlock(contentEditable, cursorPosition)) {
         const emptyBlock = document.createElement(block.nodeName);
         emptyBlock.appendChild(document.createElement("br"));
+        // The cursor sits after the li text but before its nested list, so the sublist belongs to what
+        // comes after the break. Left in place it would push the new li below the whole nested list.
+        if (isSchemaContain(block, [Display.List])) {
+            getDirectChildren(block, [Display.ListWrapper]).forEach(listWrapper => emptyBlock.appendChild(listWrapper));
+        }
         block.after(emptyBlock);
         const emptyFirstText = getFirstText(emptyBlock);
         return getCursorPositionFrom(emptyFirstText, 0, emptyFirstText, 0);
