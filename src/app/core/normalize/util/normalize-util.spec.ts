@@ -1,4 +1,5 @@
 import {
+    anchorCursorOnLeaf,
     collapseLeaves,
     filterLeafParents,
     getLeafNodes,
@@ -9,6 +10,7 @@ import {
 } from "@/core/normalize/util/normalize-util";
 import {Leaf} from "@/core/normalize/type/leaf";
 import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
+import {getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 
 test("Should find all leaves", () => {
     const wrapper = createWrapper(`
@@ -206,6 +208,67 @@ describe("Should collapse duplicate tags", () => {
             <br>
             <strong>first</strong>
         `);
+    });
+});
+
+describe("Anchor a cursor on a leaf", () => {
+    function cursorOn(container: Node, offset: number) {
+        return getCursorPositionFrom(container, offset, container, offset, false);
+    }
+
+    test("Should move a cursor on an empty block onto the br standing in for its content", () => {
+        const wrapper = createWrapper(`<p class="start"><br></p>`);
+        const block = wrapper.querySelector(".start") as HTMLElement;
+
+        const anchored = anchorCursorOnLeaf(cursorOn(block, 0));
+
+        expect(anchored.startContainer).toBe(block.firstChild);
+        expect(anchored.startOffset).toBe(0);
+        expect(anchored.endContainer).toBe(block.firstChild);
+        expect(anchored.endOffset).toBe(0);
+    });
+
+    test("Should move a cursor onto the leaf its offset points at", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br>first</p>`);
+        const block = wrapper.querySelector(".start") as HTMLElement;
+
+        const anchored = anchorCursorOnLeaf(cursorOn(block, 1));
+
+        expect(anchored.startContainer).toBe(block.childNodes[1]);
+        expect(anchored.startOffset).toBe(0);
+    });
+
+    test("Should move a cursor past the last child onto the end of the last leaf", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const block = wrapper.querySelector(".start") as HTMLElement;
+
+        const anchored = anchorCursorOnLeaf(cursorOn(block, block.childNodes.length));
+
+        expect(anchored.startContainer).toBe(block.firstChild);
+        expect(anchored.startOffset).toBe("zero".length);
+    });
+
+    test("Should leave a cursor already on a text node alone", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const text = getFirstChild(wrapper, ".start");
+        const cursorPosition = cursorOn(text, "ze".length);
+
+        const anchored = anchorCursorOnLeaf(cursorPosition);
+
+        expect(anchored).toBe(cursorPosition);
+        expect(anchored.startOffset).toBe("ze".length);
+    });
+
+    // Nothing survives the rebuild to move onto, so there is nowhere better for the cursor to go.
+    test("Should leave a cursor on a block with no leaves alone", () => {
+        const wrapper = createWrapper(`<p class="start"></p>`);
+        const block = wrapper.querySelector(".start") as HTMLElement;
+        const cursorPosition = cursorOn(block, 0);
+
+        const anchored = anchorCursorOnLeaf(cursorPosition);
+
+        expect(anchored).toBe(cursorPosition);
+        expect(anchored.startContainer).toBe(block);
     });
 });
 

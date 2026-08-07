@@ -1,4 +1,5 @@
 import {appendTag, mergeLists, removeTags, replaceTags} from "@/core/normalize/normalize";
+import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {getElement, getFirstText, getLastText} from "@/core/shared/element-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {getSelectedBlock, getSelectedListWrapper} from "@/core/selection/selection";
@@ -88,9 +89,13 @@ export function applyAttributes(element: HTMLElement, attributes?: Attributes) {
     }
 }
 
+// Each block is rebuilt from its leaves, so a cursor anchored on a block element is left pointing at a node
+// the rebuild threw away. Anchoring it on a leaf up front keeps it valid through every replacement, which is
+// what the re-read of the selected blocks below relies on, and gives the caller a position it can restore.
 export function changeBlock(contentEditable: HTMLElement, replaceTo: string[],
-                            cursorPosition: CursorPosition = getCursorPosition()) {
+                            cursorPosition: CursorPosition = getCursorPosition()): CursorPosition {
     const isList = replaceTo.length === 1 && isSchemaContainNodeName(replaceTo[0], [Display.ListWrapper]);
+    cursorPosition = anchorCursorOnLeaf(cursorPosition);
 
     const blocks = getSelectedBlock(contentEditable, cursorPosition);
     for (let i = blocks.length - 1; i >= 0; i--) {
@@ -104,6 +109,8 @@ export function changeBlock(contentEditable: HTMLElement, replaceTo: string[],
         replaceTags(contentEditable, block, replaceFrom, replaceTo, isList);
     }
     mergeLists(contentEditable, cursorPosition);
+
+    return cursorPosition;
 }
 
 export function isElementsEqualToTags(elements: HTMLElement[], tags: string[]) {

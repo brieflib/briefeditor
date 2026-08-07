@@ -57,10 +57,10 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             cursorPosition = applyTagCommand(contentEditable, command);
             break;
         case Action.FirstLevel:
-            applyFirstLevelCommand(contentEditable, command);
+            cursorPosition = applyFirstLevelCommand(contentEditable, command);
             break;
         case Action.List:
-            applyListCommand(contentEditable, command);
+            cursorPosition = applyListCommand(contentEditable, command);
             break;
         case Action.PlusIndent:
             plusIndent(contentEditable);
@@ -104,7 +104,9 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
 
     if (!isCursorPlacedByBrowser) {
         setCursorPosition(contentEditable, cursorPosition, command);
-        contentEditable.focus();
+        // The command is issued from the toolbar, which takes the focus, so it has to come back. Where it
+        // belongs on screen is already settled by the cursor above, so the focus is not to scroll anywhere.
+        contentEditable.focus({preventScroll: true});
     }
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
     return cursorPosition;
@@ -185,34 +187,36 @@ function applyTagCommand(contentEditable: HTMLElement, command: Command): Cursor
     }
 }
 
-function applyFirstLevelCommand(contentEditable: HTMLElement, command: Command) {
+function applyFirstLevelCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     const tagName = (command.tag as string).toUpperCase();
     if (!getSelectedSharedTags(contentEditable).includes(tagName)) {
-        changeBlock(contentEditable, [tagName]);
-    } else {
-        const blockElements = getSelectedBlock(contentEditable);
-        const isParagraph = isElementsEqualToTags(blockElements, [tagName]);
-        let tags = [tagName];
-        if (isParagraph) {
-            tags = ["P"];
-        }
-        changeBlock(contentEditable, tags);
+        return changeBlock(contentEditable, [tagName]);
     }
+
+    const blockElements = getSelectedBlock(contentEditable);
+    const isParagraph = isElementsEqualToTags(blockElements, [tagName]);
+    let tags = [tagName];
+    if (isParagraph) {
+        tags = ["P"];
+    }
+
+    return changeBlock(contentEditable, tags);
 }
 
-function applyListCommand(contentEditable: HTMLElement, command: Command) {
+function applyListCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     const tagName = (command.tag as string).toUpperCase();
     if (isListWrapper(contentEditable) && !getSelectedSharedTags(contentEditable).includes(tagName)) {
-        changeBlock(contentEditable, [tagName]);
-    } else {
-        const blockElements = getSelectedBlock(contentEditable);
-        let tags = [tagName, "LI"];
-        const isParagraph = isElementsEqualToTags(blockElements, tags);
-        if (isParagraph) {
-            tags = ["P"];
-        }
-        changeBlock(contentEditable, tags);
+        return changeBlock(contentEditable, [tagName]);
     }
+
+    const blockElements = getSelectedBlock(contentEditable);
+    let tags = [tagName, "LI"];
+    const isParagraph = isElementsEqualToTags(blockElements, tags);
+    if (isParagraph) {
+        tags = ["P"];
+    }
+
+    return changeBlock(contentEditable, tags);
 }
 
 // Dropping the carrier collapses its root element again, which rebuilds every element under it from a clone.

@@ -1093,3 +1093,81 @@ describe("Click command", () => {
         expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
     });
 });
+
+// An empty block holds no text of its own, so the browser anchors the cursor on the block element itself.
+// The block is rebuilt from its leaves, and only leaves keep their identity through the rebuild, so a cursor
+// left on the block would come back pointing at a node that has left the document - the browser drops such a
+// selection, and the editor is then focused with no cursor at all, which lands the next character typed at
+// the very start of the document.
+describe("Block command with the cursor on an empty block", () => {
+    function selectBlock(wrapper: HTMLElement, selector: string) {
+        const block = wrapper.querySelector(selector) as HTMLElement;
+        const range = new Range();
+        range.setStart(block, 0);
+        range.setEnd(block, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        return block;
+    }
+
+    function selectCursor(cursorPosition: CursorPosition) {
+        const range = new Range();
+        range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
+        range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    test("Should keep the cursor in the block when an empty line becomes a heading", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="start"><br></p>`);
+        selectBlock(wrapper, ".start");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
+
+        expectHtml(wrapper.innerHTML, `<p>zero</p><h1><br></h1>`);
+        const heading = wrapper.querySelector("h1") as HTMLElement;
+        expect(cursorPosition.startContainer).toBe(heading.firstChild);
+        expect(cursorPosition.startContainer.isConnected).toBe(true);
+        expect(cursorPosition.endContainer).toBe(heading.firstChild);
+    });
+
+    test("Should keep the cursor in the block when an empty line becomes a list", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="start"><br></p>`);
+        selectBlock(wrapper, ".start");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
+
+        expectHtml(wrapper.innerHTML, `<p>zero</p><ul><li><br></li></ul>`);
+        const item = wrapper.querySelector("li") as HTMLElement;
+        expect(cursorPosition.startContainer).toBe(item.firstChild);
+        expect(cursorPosition.startContainer.isConnected).toBe(true);
+    });
+
+    // The cursor the command leaves behind is the one the next command starts from, so an empty line can be
+    // turned into a heading and back without the cursor ever leaving it.
+    test("Should keep the cursor in the block when the heading is turned back into a paragraph", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="start"><br></p>`);
+        selectBlock(wrapper, ".start");
+
+        selectCursor(execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"}));
+        expectHtml(wrapper.innerHTML, `<p>zero</p><h1><br></h1>`);
+        const cursorPosition = execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
+
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p><br></p>`);
+        const paragraph = wrapper.querySelectorAll("p")[1] as HTMLElement;
+        expect(cursorPosition.startContainer).toBe(paragraph.firstChild);
+        expect(cursorPosition.startContainer.isConnected).toBe(true);
+    });
+
+    // The text of a block is a leaf, so it is the same node before and after - the cursor on it needs no help.
+    test("Should keep the cursor on the text of a block that holds some", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const text = getFirstChild(wrapper, ".start");
+        selectBlock(wrapper, ".start");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
+
+        expectHtml(wrapper.innerHTML, `<h1>zero</h1>`);
+        expect(cursorPosition.startContainer).toBe(text);
+        expect(cursorPosition.startContainer.isConnected).toBe(true);
+    });
+});

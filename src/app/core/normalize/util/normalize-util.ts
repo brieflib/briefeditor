@@ -240,19 +240,38 @@ interface DroppedCursorPoint {
     readonly offset: number;
 }
 
-// getLeafNodes drops empty text nodes, and collapseLeaves relocates the cursor only through the leaves it
-// receives. An endpoint left on a dropped node - deleteContents empties the start text node in place instead
-// of removing it - would keep pointing inside the subtree replaceElement throws away. Move such endpoints onto
-// the nearest surviving leaf, which is where the dropped node's neighbours end up after the collapse.
-export function remapDroppedLeafCursor(rootElement: Node, leafNodes: Node[], cursor: CursorPosition): CursorPosition {
-    const start = remapDroppedContainer(rootElement, leafNodes, cursor.startContainer, cursor.startOffset);
-    const end = remapDroppedContainer(rootElement, leafNodes, cursor.endContainer, cursor.endOffset);
+// Both remappings move an endpoint that would not survive a collapse onto one that would, and differ only in
+// which endpoints they pick up and where those belong afterwards. A cursor nothing moved is handed back as it
+// came, so the caller can tell it still points where it did.
+function mapCursorPoints(cursor: CursorPosition,
+                         mapPoint: (container: Node, offset: number) => DroppedCursorPoint): CursorPosition {
+    const start = mapPoint(cursor.startContainer, cursor.startOffset);
+    const end = mapPoint(cursor.endContainer, cursor.endOffset);
 
     if (start.container === cursor.startContainer && end.container === cursor.endContainer) {
         return cursor;
     }
 
     return getCursorPositionFrom(start.container, start.offset, end.container, end.offset);
+}
+
+// Nothing ahead for the cursor to move onto, so it belongs after the last leaf there is.
+function atLastLeaf(leafNodes: Node[], fallback: DroppedCursorPoint): DroppedCursorPoint {
+    const preceding = leafNodes[leafNodes.length - 1];
+    if (!preceding) {
+        return fallback;
+    }
+
+    return {container: preceding, offset: preceding.textContent?.length ?? 0};
+}
+
+// getLeafNodes drops empty text nodes, and collapseLeaves relocates the cursor only through the leaves it
+// receives. An endpoint left on a dropped node - deleteContents empties the start text node in place instead
+// of removing it - would keep pointing inside the subtree replaceElement throws away. Move such endpoints onto
+// the nearest surviving leaf, which is where the dropped node's neighbours end up after the collapse.
+export function remapDroppedLeafCursor(rootElement: Node, leafNodes: Node[], cursor: CursorPosition): CursorPosition {
+    return mapCursorPoints(cursor, (container, offset) =>
+        remapDroppedContainer(rootElement, leafNodes, container, offset));
 }
 
 function remapDroppedContainer(rootElement: Node, leafNodes: Node[], cursorContainer: Node, offset: number): DroppedCursorPoint {
@@ -267,12 +286,32 @@ function remapDroppedContainer(rootElement: Node, leafNodes: Node[], cursorConta
     }
 
     // No leaf follows, so every leaf precedes the dropped node and the cursor belongs after the last one.
-    const preceding = leafNodes[leafNodes.length - 1];
-    if (preceding) {
-        return {container: preceding, offset: preceding.textContent?.length ?? 0};
+    return atLastLeaf(leafNodes, {container: cursorContainer, offset: offset});
+}
+
+// Only leaves keep their identity through a collapse - every parent is cloned - so a cursor anchored on an
+// element does not survive one. An empty block is where the browser leaves it there: the block has no text of
+// its own to hold the cursor. Anchor such an endpoint on the leaf its offset points at, which for an empty
+// block is the br standing in for its content - the very node the browser anchors on once the block is typed
+// into. An element with no leaves at all has nothing to move onto and is left alone.
+export function anchorCursorOnLeaf(cursor: CursorPosition): CursorPosition {
+    return mapCursorPoints(cursor, anchorContainerOnLeaf);
+}
+
+function anchorContainerOnLeaf(container: Node, offset: number): DroppedCursorPoint {
+    if (container.nodeType !== Node.ELEMENT_NODE) {
+        return {container: container, offset: offset};
     }
 
-    return {container: cursorContainer, offset: offset};
+    const leafNodes = getLeafNodes(container);
+    const child = container.childNodes[offset];
+    const following = child && leafNodes.find(leaf => leaf === child || child.contains(leaf));
+    if (following) {
+        return {container: following, offset: 0};
+    }
+
+    // The offset points past the last child, so the cursor belongs at the end of the last leaf.
+    return atLastLeaf(leafNodes, {container: container, offset: offset});
 }
 
 function isDroppedLeaf(rootElement: Node, leafNodes: Node[], container: Node) {

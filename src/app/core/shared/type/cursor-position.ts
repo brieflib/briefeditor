@@ -150,20 +150,37 @@ export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: 
     selection.addRange(range);
 
 
-    scrollToViewport(cursorPosition, command);
+    scrollToViewport(contentEditable, cursorPosition, command);
 }
 
-function scrollToViewport(cursorPosition: CursorPosition, command?: Command) {
+function scrollToViewport(contentEditable: HTMLElement, cursorPosition: CursorPosition, command?: Command) {
     if (command && command.event instanceof KeyboardEvent && command.event.key.length !== 1) {
         return;
     }
 
-    const element = cursorPosition.startContainer.parentElement;
+    const element = getCursorElement(contentEditable, cursorPosition);
     if (!element || isInViewport(element)) {
         return;
     }
 
     element.scrollIntoView({ behavior: 'auto', block: 'start' });
+}
+
+// The element the cursor sits in. An empty block holds no text of its own, so the cursor is anchored on the
+// block itself - climbing to its parent from there lands on the editor, and an editor taller than the viewport
+// is never in view, so scrolling it into one carries the whole document back to its first element. A container
+// left detached by an edit has no place on screen to scroll to either.
+function getCursorElement(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const container = cursorPosition.startContainer;
+    const element = container.nodeType === Node.ELEMENT_NODE
+        ? container as HTMLElement
+        : container.parentElement;
+
+    if (!element || !element.isConnected || element === contentEditable) {
+        return null;
+    }
+
+    return element;
 }
 
 function isInViewport(element: HTMLElement) {
