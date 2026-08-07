@@ -3,6 +3,7 @@ import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {CursorPosition} from "@/core/shared/type/cursor-position";
+import {Carrier} from "@/core/carrier/carrier";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -1012,5 +1013,83 @@ describe("Insert table command", () => {
         expect(cursorPosition.startOffset).toBe(0);
         expect(cursorPosition.endContainer).toBe(firstCell);
         expect(cursorPosition.endOffset).toBe(0);
+    });
+});
+
+// The browser places a click's cursor only once the event is over, so the editor has to leave the
+// selection alone for the placement to survive. jsdom drives no selection of its own, so what is
+// pinned here is that decision: whether the command writes a selection at all.
+describe("Click command", () => {
+    // The carrier is static, so a test that leaves one behind would follow the next one into its first command.
+    beforeEach(() => Carrier.removeCarrier());
+
+    function stubSelection() {
+        const selection = {removeAllRanges: jest.fn(), addRange: jest.fn()} as unknown as Selection;
+        jest.spyOn(window, "getSelection").mockReturnValue(selection);
+
+        return selection;
+    }
+
+    function select(wrapper: HTMLElement, selector: string, start: number, end: number) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), start);
+        range.setEnd(getFirstChild(wrapper, selector), end);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    function selectCursor(cursorPosition: CursorPosition) {
+        const range = new Range();
+        range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
+        range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    test("Should leave a plain click's cursor to the browser", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        select(wrapper, ".start", "".length, "zero".length);
+
+        const selection = stubSelection();
+        const focus = jest.spyOn(wrapper, "focus");
+        const event = new MouseEvent("click");
+        const preventDefault = jest.spyOn(event, "preventDefault");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.Click, event});
+
+        expect(selection.removeAllRanges).not.toHaveBeenCalled();
+        expect(selection.addRange).not.toHaveBeenCalled();
+        expect(focus).not.toHaveBeenCalled();
+        expect(preventDefault).not.toHaveBeenCalled();
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
+
+        // The selection it started from is still what it hands back, untouched.
+        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
+    });
+
+    test("Should place the cursor itself when the click drops a carrier", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        select(wrapper, "strong", "ze".length, "ze".length);
+        selectCursor(execCommand(wrapper, {action: Action.Tag, tag: "STRONG"}));
+        expect(Carrier.isCarrierExist()).toBe(true);
+
+        const selection = stubSelection();
+        const focus = jest.spyOn(wrapper, "focus");
+        const event = new MouseEvent("click");
+        const preventDefault = jest.spyOn(event, "preventDefault");
+
+        execCommand(wrapper, {action: Action.Click, event});
+
+        // The rebuilt block is not the one the browser aimed at, and its default action is suppressed
+        // along with the placement, so the command names the spot itself.
+        expect(preventDefault).toHaveBeenCalled();
+        expect(selection.removeAllRanges).toHaveBeenCalled();
+        expect(selection.addRange).toHaveBeenCalled();
+        expect(focus).toHaveBeenCalled();
+        expect(Carrier.isCarrierExist()).toBe(false);
+        expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
     });
 });

@@ -35,6 +35,14 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
     let cursorPosition = getCursorPosition();
 
+    // A click is the one command whose cursor the editor does not own. The browser places it only once the
+    // event is over, and a click that drops a selection places it nowhere until then, so the cursor this
+    // command starts from is still the whole selection. Writing that back hands the selection straight back
+    // and the click never clears it. The one click that does own its cursor is the one dropping a carrier: it
+    // rebuilds the block the browser was aiming at and suppresses the click's default action along with the
+    // placement, so it has to name the spot in the rebuilt block itself. Read before the carrier is dropped.
+    const isCursorPlacedByBrowser = command.action === Action.Click && !Carrier.isCarrierExist();
+
     switch (command.action)  {
         case Action.Attribute:
             applyAttributesCommand(contentEditable, command);
@@ -94,8 +102,10 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         applyAttributesCommand(contentEditable, command);
     }
 
-    setCursorPosition(contentEditable, cursorPosition, command);
-    contentEditable.focus();
+    if (!isCursorPlacedByBrowser) {
+        setCursorPosition(contentEditable, cursorPosition, command);
+        contentEditable.focus();
+    }
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
     return cursorPosition;
 }

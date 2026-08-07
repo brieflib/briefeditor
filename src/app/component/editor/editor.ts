@@ -7,7 +7,7 @@ import Table from "@/component/table/table";
 import {TableCursor} from "@/core/cursor/table-cursor";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
-import {handleCopyEvent} from "@/core/clipboard/clipboard";
+import {handleCopyEvent, handleDragEvent, handleDragOverEvent} from "@/core/clipboard/clipboard";
 
 class Editor extends HTMLElement {
     constructor(contentEditable: HTMLElement, settings: Settings) {
@@ -46,6 +46,7 @@ class Editor extends HTMLElement {
         this.addKeyboardEvent(contentEditable);
         this.addClickEvent(contentEditable);
         this.addClipboardEvent(contentEditable);
+        this.addDragEvent(contentEditable);
         this.addHistory(contentEditable);
         this.addTable(contentEditable);
     }
@@ -74,6 +75,12 @@ class Editor extends HTMLElement {
         contentEditable.addEventListener("paste", (event) => execCommand(contentEditable, {action: Action.Clipboard, event}));
         contentEditable.addEventListener("copy", (event) => handleCopyEvent(event));
         contentEditable.addEventListener("cut", (event) => execCommand(contentEditable, {action: Action.Cut, event}));
+    }
+
+    private addDragEvent(contentEditable: HTMLElement) {
+        contentEditable.addEventListener("dragstart", (event) => handleDragEvent(event));
+        contentEditable.addEventListener("dragover", (event) => handleDragOverEvent(event));
+        contentEditable.addEventListener("drop", (event) => handleDragEvent(event));
     }
 
     addToolbarItem(toolbar: HTMLElement) {
