@@ -84,6 +84,54 @@ describe("Shared tags", () => {
 
         expect(shared).toStrictEqual(["STRONG", "P"]);
     });
+
+    test("Should find parents when cursor is at the empty element", () => {
+        const wrapper = createWrapper(`
+            <h1 class="empty"><br></h1>
+        `);
+
+        const empty = wrapper.querySelector(".empty") as HTMLElement;
+        const range = new Range();
+        range.setStart(empty, 0);
+        range.setEnd(empty, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const shared = getSelectedSharedTags(wrapper);
+
+        expect(shared).toStrictEqual(["H1"]);
+    });
+
+    test("Should find parents when cursor is at the empty list element", () => {
+        const wrapper = createWrapper(`
+            <ul><li class="empty"><br></li></ul>
+        `);
+
+        const empty = wrapper.querySelector(".empty") as HTMLElement;
+        const range = new Range();
+        range.setStart(empty, 0);
+        range.setEnd(empty, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const shared = getSelectedSharedTags(wrapper);
+
+        expect(shared).toStrictEqual(["LI", "UL"]);
+    });
+
+    test("Should find parents when cursor is at the break of the empty element", () => {
+        const wrapper = createWrapper(`
+            <h1 class="empty"><br></h1>
+        `);
+
+        const br = getFirstChild(wrapper, ".empty");
+        const range = new Range();
+        range.setStart(br, 0);
+        range.setEnd(br, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const shared = getSelectedSharedTags(wrapper);
+
+        expect(shared).toStrictEqual(["H1"]);
+    });
 });
 
 test("Should find first level elements arranged by selection", () => {

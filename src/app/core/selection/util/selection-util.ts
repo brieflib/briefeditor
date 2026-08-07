@@ -41,9 +41,12 @@ function firstChildOrNextNode(findTill: HTMLElement, node: Node): Node | null {
     return getNextNode(findTill, node);
 }
 
+// An empty block holds no text of its own, so the cursor is anchored on the block itself. Climbing from its
+// parent then skips the block's own tag and leaves the toolbar reading the cursor as being in nothing at all.
+// A leaf anchors the cursor next to itself rather than inside it, so its own tag stays out of the tags.
 export function getParentTags(findTill: HTMLElement, node: Node) {
     const parents = [];
-    let parent = node.parentElement;
+    let parent = isCursorInside(findTill, node) ? node as HTMLElement : node.parentElement;
 
     while (parent && parent !== findTill) {
         parents.push(parent.nodeName)
@@ -51,6 +54,12 @@ export function getParentTags(findTill: HTMLElement, node: Node) {
     }
 
     return parents;
+}
+
+function isCursorInside(findTill: HTMLElement, node: Node) {
+    return node.nodeType === Node.ELEMENT_NODE &&
+        node !== findTill &&
+        !isSchemaContain(node, [Display.SelfClose]);
 }
 
 export function filterListWrapperTag(parents: string[]) {
