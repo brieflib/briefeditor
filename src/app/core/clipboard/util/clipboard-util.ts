@@ -113,6 +113,7 @@ function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | nul
 
     // wrapListItems only gives orphaned items a wrapper, and the unwrap drops both.
     if (cell) {
+        removeImages(doc.body);
         unwrapBlocks(doc.body);
         return doc.body;
     }
@@ -155,6 +156,15 @@ function hoistTable(root: HTMLElement, table: Element) {
 // a cell, so a pasted one must not arrive as one.
 const cellUnwrapSelector = getOfType([Display.FirstLevel, Display.List, Display.Table,
     Display.TableSection, Display.Cell]).join(",");
+
+// An image is not inline content: it takes a line of its own, which is the one thing a cell does not
+// have to give. It is dropped rather than unwrapped - a self closing tag has no children to surface -
+// so a paste carrying one arrives as the words around it, and one carrying nothing else arrives empty.
+const imageSelector = getOfType([Display.Image]).join(",");
+
+function removeImages(root: ParentNode) {
+    root.querySelectorAll(imageSelector).forEach(image => image.remove());
+}
 
 function unwrapBlocks(root: ParentNode) {
     // querySelector answers with the outermost match, so the blocks it held surface on the next pass.

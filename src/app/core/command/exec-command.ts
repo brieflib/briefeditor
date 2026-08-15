@@ -30,6 +30,7 @@ import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
 import {Carrier} from "@/core/carrier/carrier";
 import {removeAndNormalize} from "@/core/normalize/normalize";
 import {getCell, getCellCursorPosition, insertTable, isTableEmpty, removeTable} from "@/core/command/util/table-util";
+import {isCursorInTable} from "@/core/cursor/util/cursor-util";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
@@ -131,8 +132,10 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
             const img = document.createElement(imgTag);
             img.src = event.target?.result as string;
 
+            // The cursor is read again once the file is: a table it has moved into by then refuses the
+            // image the same way the toolbar refuses it, since a cell has no line to give an image.
             const cursorPosition = getCursorPosition();
-            if (isRangeIn(contentEditable, cursorPosition)) {
+            if (isRangeIn(contentEditable, cursorPosition) && !isCursorInTable(contentEditable, cursorPosition)) {
                 insertNode(cursorPosition, img);
                 setCursorPosition(contentEditable, cursorPosition);
             }

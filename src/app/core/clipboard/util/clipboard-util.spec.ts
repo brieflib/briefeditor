@@ -8,6 +8,8 @@ jest.mock("../../shared/range-util", () => ({
     })
 );
 
+const image = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+
 describe("Sanitize input", () => {
     test("Should insert p", () => {
         const wrapper = createWrapper(`
@@ -25,6 +27,23 @@ describe("Sanitize input", () => {
         expectHtml(wrapper.innerHTML, `
             <p>f<strong>second<span>third</span></strong>irst</p>
         `);
+    });
+
+    test("Should keep a pasted image outside of a table", () => {
+        const wrapper = createWrapper(`
+            <p class="start">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<p>second<img src="${image}"> third</p>`, cursorPosition);
+
+        expect(wrapper.querySelectorAll("img").length).toBe(1);
+        expect(wrapper.textContent).toBe("firstsecond third");
     });
 
     test("Should insert html outside of formating elements (em)", () => {
@@ -935,6 +954,50 @@ describe("Paste into a table cell", () => {
             <table><tbody><tr><td>foofirstsecond</td><td>bar</td></tr></tbody></table>
         `);
         expect(wrapper.querySelectorAll("table").length).toBe(1);
+    });
+
+    test("Should drop a pasted image and keep the words around it", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "foo".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "foo".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<p>first<img src="${image}"> second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td>foofirst second</td><td>bar</td></tr></tbody></table>
+        `);
+        expect(wrapper.querySelectorAll("img").length).toBe(0);
+    });
+
+    test("Should paste nothing when the pasted content is an image alone", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fo".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fo".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
+
+        // The paste is empty once the image is dropped, so it returns before anything is
+        // rebuilt and the markup is left exactly as it was, the marker class included.
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
+        `);
+
+        const cell = wrapper.querySelector("td");
+        expect(cursorPosition.startContainer).toBe(cell?.firstChild);
+        expect(cursorPosition.startOffset).toBe("fo".length);
+        expect(cursorPosition.endOffset).toBe("fo".length);
     });
 
     test("Should preserve the rest of the table", () => {
