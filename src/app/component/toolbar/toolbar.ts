@@ -11,10 +11,9 @@ import UnorderedListIcon from "@/component/toolbar-icon/unordered-list-icon";
 import OrderedListIcon from "@/component/toolbar-icon/ordered-list-icon";
 import PlusIndentIcon from "@/component/toolbar-icon/plus-indent";
 import MinusIndentIcon from "@/component/toolbar-icon/minus-indent";
-import {isNextListNested} from "@/core/list/list";
 import LinkIcon from "@/component/toolbar-icon/link-icon";
 import ImageIcon from "@/component/toolbar-icon/image-icon";
-import {isRangeIn} from "@/core/shared/type/cursor-position";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import TableIcon from "@/component/toolbar-icon/table-icon";
 
 export default class Toolbar {
@@ -29,14 +28,14 @@ export default class Toolbar {
         this.addToolbarIcons();
 
         document.addEventListener("selectionchange", () => {
-            const sharedTags = getSelectedSharedTags(this.contentEditable);
-            const isEnabled = !isNextListNested(this.contentEditable) && isRangeIn(this.contentEditable);
+            const cursorPosition = getCursorPosition();
+            const sharedTags = getSelectedSharedTags(this.contentEditable, cursorPosition);
             for (const item of this.items) {
                 if (item.setActive) {
                     item.setActive(sharedTags);
                 }
                 if (item.setEnabled) {
-                    item.setEnabled(isEnabled);
+                    item.setEnabled(this.contentEditable, cursorPosition, sharedTags);
                 }
             }
         });

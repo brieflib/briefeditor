@@ -4,10 +4,9 @@ import initShadowRoot from "@/component/shared/shadow-root";
 import {Icon} from "@/component/toolbar-icon/type/icon";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
-import {isRangeIn} from "@/core/shared/type/cursor-position";
+import {CursorPosition, isRangeIn} from "@/core/shared/type/cursor-position";
 
 class ImageIcon extends HTMLElement implements Icon {
-    private contentEditableElement?: HTMLElement;
     private readonly button: HTMLElement;
     private readonly input: HTMLInputElement;
 
@@ -29,17 +28,20 @@ class ImageIcon extends HTMLElement implements Icon {
         this.input = shadowRoot.querySelector(".be-image-input") as HTMLInputElement;
     }
 
-    setEnabled() {
+    // An image is dropped into a first level block, which a cell is not.
+    setEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition, tags: string[]) {
         this.button.setAttribute("disabled", "true");
 
-        if (isRangeIn(this.contentEditableElement)) {
+        if (tags.includes("TABLE")) {
+            return;
+        }
+
+        if (isRangeIn(contentEditable, cursorPosition)) {
             this.button.removeAttribute("disabled");
         }
     }
 
     setContentEditable(contentEditable: HTMLElement) {
-        this.contentEditableElement = contentEditable;
-
         this.button.addEventListener("click", () => {
             this.input.click();
         });

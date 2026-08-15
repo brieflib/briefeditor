@@ -5,10 +5,10 @@ import {Icon} from "@/component/toolbar-icon/type/icon";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {isPlusIndentEnabled} from "@/core/list/list";
+import {CursorPosition} from "@/core/shared/type/cursor-position";
 
 class PlusIndentIcon extends HTMLElement implements Icon {
     private readonly button: HTMLElement;
-    private contentEditableElement?: HTMLElement;
 
     constructor() {
         super();
@@ -26,17 +26,20 @@ class PlusIndentIcon extends HTMLElement implements Icon {
         this.button = shadowRoot.getElementById("button") as HTMLElement;
     }
 
-    setEnabled() {
+    // A cell is not a first level element and holds no list of its own, so there is nothing in one to indent.
+    setEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition, tags: string[]) {
         this.button.setAttribute("disabled", "true");
 
-        if (this.contentEditableElement && isPlusIndentEnabled(this.contentEditableElement)) {
+        if (tags.includes("TABLE")) {
+            return;
+        }
+
+        if (isPlusIndentEnabled(contentEditable)) {
             this.button.removeAttribute("disabled");
         }
     }
 
     setContentEditable(contentEditable: HTMLElement) {
-        this.contentEditableElement = contentEditable;
-
         this.button.addEventListener("click", () => execCommand(contentEditable, {
             action: Action.PlusIndent
         }));

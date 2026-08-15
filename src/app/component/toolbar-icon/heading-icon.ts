@@ -4,6 +4,8 @@ import initShadowRoot from "@/component/shared/shadow-root";
 import {Icon} from "@/component/toolbar-icon/type/icon";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
+import {isNextListNested} from "@/core/list/list";
+import {CursorPosition, isRangeIn} from "@/core/shared/type/cursor-position";
 
 class HeadingIcon extends HTMLElement implements Icon {
     private button: Map<string, HTMLElement | null> = new Map<string, HTMLElement | null>();
@@ -57,10 +59,15 @@ class HeadingIcon extends HTMLElement implements Icon {
         this.getButtonSafe("H0").className = "icon";
     }
 
-    setEnabled(isEnabled: boolean) {
+    setEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition, tags: string[]) {
         this.getButtonSafe("H0").setAttribute("disabled", "true");
 
-        if (isEnabled) {
+        // A cell is not a first level element, so there is no block for a heading to be made of.
+        if (tags.includes("TABLE")) {
+            return;
+        }
+
+        if (!isNextListNested(contentEditable) && isRangeIn(contentEditable, cursorPosition)) {
             this.getButtonSafe("H0").removeAttribute("disabled");
         }
     }

@@ -2,14 +2,12 @@
 import toolbarIconCss from "@/component/toolbar-icon/asset/toolbar-icon.css?inline=true";
 import {Icon} from "@/component/toolbar-icon/type/icon";
 import initShadowRoot from "@/component/shared/shadow-root";
-import {isRangeIn} from "@/core/shared/type/cursor-position";
+import {CursorPosition, isRangeIn} from "@/core/shared/type/cursor-position";
 import TableDropdown from "@/component/popup/table-dropdown";
 
 class TableIcon extends HTMLElement implements Icon {
-    private contentEditableElement?: HTMLElement;
     private readonly button: HTMLElement;
     private readonly tableDropdown: TableDropdown;
-    private isActive?: boolean;
 
     constructor() {
         super();
@@ -30,31 +28,23 @@ class TableIcon extends HTMLElement implements Icon {
         this.tableDropdown = shadowRoot.querySelector("be-table-dropdown") as TableDropdown;
     }
 
-    setActive(tags: string[]) {
-        this.isActive = tags.includes("TABLE");
-
-        if (this.isActive) {
-            this.button.className = "icon active"
-        } else {
-            this.button.className = "icon"
-        }
-    }
-
-    setEnabled(isEnabled: boolean) {
+    // A table cannot be nested in a table, so a cursor inside one leaves nothing to insert. The dropdown is
+    // shut along with the button: a cursor moved into a table by the keyboard leaves no click for the
+    // dropdown to close itself on.
+    setEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition, tags: string[]) {
         this.button.setAttribute("disabled", "true");
 
-        if (!isRangeIn(this.contentEditableElement)) {
+        if (tags.includes("TABLE")) {
+            this.tableDropdown.close();
             return;
         }
 
-        if (isEnabled || !this.isActive) {
+        if (isRangeIn(contentEditable, cursorPosition)) {
             this.button.removeAttribute("disabled");
         }
     }
 
     setContentEditable(contentEditable: HTMLElement) {
-        this.contentEditableElement = contentEditable;
-
         this.button.addEventListener("click", () => {
             if (this.tableDropdown.isOpen()) {
                 this.tableDropdown.close();

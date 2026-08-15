@@ -4,10 +4,10 @@ import initShadowRoot from "@/component/shared/shadow-root";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {Icon} from "@/component/toolbar-icon/type/icon";
-import {isRangeIn} from "@/core/shared/type/cursor-position";
+import {CursorPosition, isRangeIn} from "@/core/shared/type/cursor-position";
+import {isNextListNested} from "@/core/list/list";
 
 class UnorderedListIcon extends HTMLElement implements Icon {
-    private contentEditableElement?: HTMLElement;
     private readonly button: HTMLElement;
     private isActive?: boolean;
 
@@ -39,21 +39,20 @@ class UnorderedListIcon extends HTMLElement implements Icon {
         }
     }
 
-    setEnabled(isEnabled: boolean) {
+    // A cell is not a first level element, so there is no block for a list to be made of.
+    setEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition, tags: string[]) {
         this.button.setAttribute("disabled", "true");
 
-        if (!isRangeIn(this.contentEditableElement)) {
+        if (!isRangeIn(contentEditable, cursorPosition) || tags.includes("TABLE")) {
             return;
         }
 
-        if (isEnabled || !this.isActive) {
+        if (!isNextListNested(contentEditable) || !this.isActive) {
             this.button.removeAttribute("disabled");
         }
     }
 
     setContentEditable(contentEditable: HTMLElement) {
-        this.contentEditableElement = contentEditable;
-
         this.button.addEventListener("click", () => {
             execCommand(contentEditable, {
                 action: Action.List,
