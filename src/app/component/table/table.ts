@@ -29,8 +29,11 @@ export default class Table {
         this.row = this.createControl((pending) => this.applyRow(pending));
         this.column = this.createControl((pending) => this.applyColumn(pending));
 
-        this.contentEditable.addEventListener("mousemove", (event) => this.onMouseMove(event));
-        this.contentEditable.addEventListener("mouseleave", (event) => this.onMouseLeave(event));
+        // Pointer events rather than mouse events, so that the mouse ones a touch has the browser
+        // emulate afterwards go unheard: they would reopen a control the touch path just faded.
+        this.contentEditable.addEventListener("pointermove", (event) => this.onHover(event));
+        this.contentEditable.addEventListener("pointerleave", (event) => this.onHoverLeave(event));
+        this.contentEditable.addEventListener("pointerdown", (event) => this.onPress(event), {passive: true});
         document.querySelector("#be-content")?.addEventListener("scroll", () => this.resetAll());
     }
 
@@ -43,68 +46,95 @@ export default class Table {
             }
             this.resetAll();
         };
+        control.onFadeEnd = () => {
+            state.pending = null;
+        };
         document.body.appendChild(control);
         return state;
     }
 
-    private onMouseMove(event: MouseEvent) {
-        const target = event.target as HTMLElement | null;
-        const cell = target?.closest("td, th") as HTMLTableCellElement | null;
+    private onHover(event: PointerEvent) {
+        if (event.pointerType !== "mouse") {
+            return;
+        }
+        this.update(event.target, event.clientX, event.clientY);
+    }
+
+    // A touch has no hover to show the control through, so the press itself shows it and the
+    // control then times itself out, staying clickable long enough to travel to and press.
+    private onPress(event: PointerEvent) {
+        if (event.pointerType === "mouse") {
+            return;
+        }
+
+        this.update(event.target, event.clientX, event.clientY);
+        this.fade(this.row);
+        this.fade(this.column);
+    }
+
+    private update(target: EventTarget | null, x: number, y: number) {
+        const cell = (target as HTMLElement | null)?.closest("td, th") as HTMLTableCellElement | null;
         const table = cell?.closest("table") as HTMLTableElement | null;
         if (!cell || !table || !this.contentEditable.contains(table)) {
-            this.keepOrReset(this.row, event);
-            this.keepOrReset(this.column, event);
+            this.keepOrReset(this.row, x, y);
+            this.keepOrReset(this.column, x, y);
             return;
         }
 
         const tableRect = table.getBoundingClientRect();
         const rect = cell.getBoundingClientRect();
 
-        this.updateRow(event, cell, table, tableRect, rect);
-        this.updateColumn(event, cell, tableRect, rect);
+        this.updateRow(x, y, cell, table, tableRect, rect);
+        this.updateColumn(x, cell, tableRect, rect);
+    }
+
+    private fade(state: ControlState) {
+        if (state.pending) {
+            state.control.fade();
+        }
     }
 
     // Near a horizontal border -> insert control; in the middle of the cell -> delete control.
-    private updateRow(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
-        const top = Math.abs(event.clientY - rect.top);
-        const bottom = Math.abs(event.clientY - rect.bottom);
+    private updateRow(x: number, y: number, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
+        const top = Math.abs(y - rect.top);
+        const bottom = Math.abs(y - rect.bottom);
         if (Math.min(top, bottom) <= THRESHOLD) {
-            this.showRowInsert(event, cell, table, tableRect, rect, bottom < top);
+            this.showRowInsert(x, y, cell, table, tableRect, rect, bottom < top);
         } else {
-            this.showRowDelete(event, cell, table, tableRect, rect);
+            this.showRowDelete(x, y, cell, table, tableRect, rect);
         }
     }
 
-    private showRowInsert(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement,
+    private showRowInsert(x: number, y: number, cell: HTMLTableCellElement, table: HTMLTableElement,
                           tableRect: DOMRect, rect: DOMRect, after: boolean) {
         if (cell.closest("thead") && !(after && table.rows.length <= 1)) {
-            this.keepOrReset(this.row, event);
+            this.keepOrReset(this.row, x, y);
             return;
         }
 
-        const y = after ? rect.bottom : rect.top;
-        this.assign(this.row, {mode: "insert", cell, after}, tableRect.left, y);
-        this.row.control.showRowInsert(tableRect, y);
+        const border = after ? rect.bottom : rect.top;
+        this.assign(this.row, {mode: "insert", cell, after}, tableRect.left, border);
+        this.row.control.showRowInsert(tableRect, border);
     }
 
-    private showRowDelete(event: MouseEvent, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
+    private showRowDelete(x: number, y: number, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
         // Body rows are deletable while more than one row is left; a header row only when it is the
         // last one, where deleting it removes the whole table.
         const deletable = cell.closest("thead") ? table.rows.length === 1 : table.rows.length > 1;
         if (!deletable) {
-            this.keepOrReset(this.row, event);
+            this.keepOrReset(this.row, x, y);
             return;
         }
 
-        const y = (rect.top + rect.bottom) / 2;
-        this.assign(this.row, {mode: "delete", cell, after: false}, tableRect.left, y);
-        this.row.control.showDelete(tableRect.left, y);
+        const middle = (rect.top + rect.bottom) / 2;
+        this.assign(this.row, {mode: "delete", cell, after: false}, tableRect.left, middle);
+        this.row.control.showDelete(tableRect.left, middle);
     }
 
     // Near a vertical border -> insert control; in the middle of the cell -> delete control.
-    private updateColumn(event: MouseEvent, cell: HTMLTableCellElement, tableRect: DOMRect, rect: DOMRect) {
-        const left = Math.abs(event.clientX - rect.left);
-        const right = Math.abs(event.clientX - rect.right);
+    private updateColumn(x: number, cell: HTMLTableCellElement, tableRect: DOMRect, rect: DOMRect) {
+        const left = Math.abs(x - rect.left);
+        const right = Math.abs(x - rect.right);
         if (Math.min(left, right) <= THRESHOLD) {
             this.showColumnInsert(cell, tableRect, rect, right < left);
         } else {
@@ -124,7 +154,11 @@ export default class Table {
         this.column.control.showDelete(x, tableRect.top);
     }
 
-    private onMouseLeave(event: MouseEvent) {
+    private onHoverLeave(event: PointerEvent) {
+        if (event.pointerType !== "mouse") {
+            return;
+        }
+
         const related = event.relatedTarget as Node | null;
         if (related && (this.row.control.contains(related) || this.column.control.contains(related))) {
             return;
@@ -134,8 +168,8 @@ export default class Table {
 
     // Moving off a control's spot keeps it alive while the cursor is close to its button,
     // so the user can travel from the cell to the margin control and click it.
-    private keepOrReset(state: ControlState, event: MouseEvent) {
-        if (state.pending && Math.hypot(event.clientX - state.x, event.clientY - state.y) <= KEEP_ALIVE) {
+    private keepOrReset(state: ControlState, x: number, y: number) {
+        if (state.pending && Math.hypot(x - state.x, y - state.y) <= KEEP_ALIVE) {
             return;
         }
         this.reset(state);

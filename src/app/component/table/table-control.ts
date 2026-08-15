@@ -35,6 +35,12 @@ class TableControl extends HTMLElement {
         this.button.addEventListener("click", callback);
     }
 
+    // A fade cut short reports itself as a cancel instead, so this only runs once the control
+    // has actually gone, which is where the state behind it stops being worth keeping.
+    set onFadeEnd(callback: () => void) {
+        this.button.addEventListener("animationend", callback);
+    }
+
     // Insert row: "+" at the table's left edge, highlight along the horizontal border at y.
     showRowInsert(tableRect: DOMRect, y: number) {
         this.icon("plus");
@@ -61,12 +67,28 @@ class TableControl extends HTMLElement {
         this.open();
     }
 
+    // Hands the control over to the fade in the stylesheet: it holds where it is, then goes.
+    fade() {
+        this.wrapper.removeAttribute("fade");
+        this.wrapper.removeAttribute("open");
+        this.restart();
+        this.wrapper.setAttribute("fade", "");
+    }
+
     hide() {
+        this.wrapper.removeAttribute("fade");
         this.wrapper.removeAttribute("open");
     }
 
     private open() {
+        this.wrapper.removeAttribute("fade");
         this.wrapper.setAttribute("open", "");
+    }
+
+    // Reading the layout commits the attribute just dropped, so that putting it back counts as a
+    // new fade rather than one already part way through from wherever the control was last shown.
+    private restart() {
+        void this.wrapper.offsetWidth;
     }
 
     private icon(kind: "plus" | "minus") {

@@ -1,6 +1,8 @@
 .be-table-control-wrapper {
     --color-active: oklch(72.3% .219 149.579);
     --color-secondary: oklch(72.3% .219 149.579 / 0.5);
+    --fade-delay: 2s;
+    --fade-duration: .5s;
 }
 
 .be-table-control-button,
@@ -14,6 +16,27 @@
 .be-table-control-wrapper[open] .be-table-control-highlight {
     opacity: 1;
     visibility: visible;
+}
+
+/* A touch leaves no pointer behind to end the hover on, so the control dismisses itself: it holds
+   still for the delay, carried by the backwards fill, and then fades. Visibility only flips on the
+   closing frame, so the button stays clickable throughout. An animation rather than a transition
+   because dropping the attribute has to take the control with it, and a transition cancelled during
+   its delay leaves the value it started from behind. */
+.be-table-control-wrapper[fade] .be-table-control-button,
+.be-table-control-wrapper[fade] .be-table-control-highlight {
+    animation: be-table-control-fade var(--fade-duration) linear var(--fade-delay) both;
+}
+
+@keyframes be-table-control-fade {
+    from {
+        opacity: 1;
+        visibility: visible;
+    }
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
 }
 
 .be-table-control-highlight {
