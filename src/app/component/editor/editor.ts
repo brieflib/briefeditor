@@ -23,9 +23,9 @@ class Editor extends HTMLElement {
           </div>
         `;
 
-        this.initContentEditable(contentEditable, settings?.hasToolbar);
+        const history = this.initContentEditable(contentEditable, settings?.hasToolbar);
         if (settings?.hasToolbar) {
-            new Toolbar(contentEditable, this);
+            new Toolbar(contentEditable, this, history);
         }
         cleanElementWhitespace(contentEditable);
     }
@@ -47,12 +47,14 @@ class Editor extends HTMLElement {
         this.addClickEvent(contentEditable);
         this.addClipboardEvent(contentEditable);
         this.addDragEvent(contentEditable);
-        this.addHistory(contentEditable);
+        const history = this.addHistory(contentEditable);
         this.addTable(contentEditable);
+
+        return history;
     }
 
     private addHistory(contentEditable: HTMLElement) {
-        new History(contentEditable);
+        return new History(contentEditable);
     }
 
     private addTable(contentEditable: HTMLElement) {

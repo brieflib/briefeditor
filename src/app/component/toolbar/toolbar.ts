@@ -15,15 +15,20 @@ import LinkIcon from "@/component/toolbar-icon/link-icon";
 import ImageIcon from "@/component/toolbar-icon/image-icon";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import TableIcon from "@/component/toolbar-icon/table-icon";
+import UndoIcon from "@/component/toolbar-icon/undo-icon";
+import RedoIcon from "@/component/toolbar-icon/redo-icon";
+import {History} from "@/core/history/history";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;
+    private readonly history: History;
     private editorLayout: Editor;
     private items: Icon[] = [];
 
-    constructor(contentEditable: HTMLElement, editor: Editor) {
+    constructor(contentEditable: HTMLElement, editor: Editor, history: History) {
         this.contentEditable = contentEditable;
         this.editorLayout = editor;
+        this.history = history;
 
         this.addToolbarIcons();
 
@@ -42,6 +47,9 @@ export default class Toolbar {
     }
 
     private addToolbarIcons() {
+        this.addIcon(new UndoIcon());
+        this.addIcon(new RedoIcon());
+        this.addEmptyItem();
         this.addIcon(new BoldIcon());
         this.addIcon(new ItalicIcon());
         this.addIcon(new UnderlineIcon());
@@ -62,6 +70,9 @@ export default class Toolbar {
 
     private addIcon(icon: Icon) {
         icon.setContentEditable(this.contentEditable);
+        if (icon.setHistory) {
+            icon.setHistory(this.history);
+        }
         this.items.push(icon);
         this.editorLayout.addToolbarItem(icon);
     }

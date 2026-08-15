@@ -22,6 +22,7 @@ export class History {
     private carrierOnly = false;
     private carrierMutations: Mutation[] = [];
     private carrierCursorBefore: CursorPath | null = null;
+    private readonly changeListeners: (() => void)[] = [];
 
     constructor(contentEditable: HTMLElement) {
         this.contentEditable = contentEditable;
@@ -42,6 +43,7 @@ export class History {
         revertMutations(entry.mutations);
         this.restoreCursor(entry.cursorBefore);
         this.redoStack.push(entry);
+        this.notifyChange();
     }
 
     redo() {
@@ -53,6 +55,27 @@ export class History {
         applyMutations(entry.mutations);
         this.restoreCursor(entry.cursorAfter);
         this.undoStack.push(entry);
+        this.notifyChange();
+    }
+
+    canUndo() {
+        return this.undoStack.length > 0;
+    }
+
+    canRedo() {
+        return this.redoStack.length > 0;
+    }
+
+    // Listeners are appended rather than replaced: the undo and the redo icon each subscribe, and a setter
+    // that assigned would leave whichever registered first without notifications.
+    onChange(listener: () => void) {
+        this.changeListeners.push(listener);
+    }
+
+    private notifyChange() {
+        for (const listener of this.changeListeners) {
+            listener();
+        }
     }
 
     private start() {
@@ -97,6 +120,7 @@ export class History {
 
         if (this.isCarrierOnly()) {
             this.holdCarrier(mutations, cursorAfter);
+            this.notifyChange();
             return;
         }
 
@@ -107,6 +131,7 @@ export class History {
         });
         this.carrierMutations = [];
         this.carrierCursorBefore = null;
+        this.notifyChange();
     }
 
     // Carrier mutations cost no undo step, but they cannot be thrown away: collapsing the block rebuilds it

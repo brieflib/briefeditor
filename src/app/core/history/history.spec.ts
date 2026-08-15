@@ -579,3 +579,99 @@ describe("History undo/redo", () => {
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">first</li></ul>`);
     });
 });
+
+describe("History stack state", () => {
+    beforeEach(() => Carrier.removeCarrier());
+
+    test("Should report both stacks empty before anything is recorded", () => {
+        const history = new History(createWrapper(`<p class="start">zero</p>`));
+
+        expect(history.canUndo()).toBe(false);
+        expect(history.canRedo()).toBe(false);
+    });
+
+    test("Should report an undoable command and nothing to redo", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        expect(history.canUndo()).toBe(true);
+        expect(history.canRedo()).toBe(false);
+    });
+
+    test("Should move the entry between the stacks as it is undone and redone", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        history.undo();
+        expect(history.canUndo()).toBe(false);
+        expect(history.canRedo()).toBe(true);
+
+        history.redo();
+        expect(history.canUndo()).toBe(true);
+        expect(history.canRedo()).toBe(false);
+    });
+
+    test("Should drop the redo stack when a new command is recorded after an undo", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        history.undo();
+        expect(history.canRedo()).toBe(true);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
+
+        expect(history.canRedo()).toBe(false);
+    });
+
+    test("Should notify on a recorded command, on undo and on redo", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+        const listener = jest.fn();
+        history.onChange(listener);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expect(listener).toHaveBeenCalledTimes(1);
+
+        history.undo();
+        expect(listener).toHaveBeenCalledTimes(2);
+
+        history.redo();
+        expect(listener).toHaveBeenCalledTimes(3);
+    });
+
+    test("Should not notify when there is nothing to undo or redo", () => {
+        const history = new History(createWrapper(`<p class="start">zero</p>`));
+        const listener = jest.fn();
+        history.onChange(listener);
+
+        history.undo();
+        history.redo();
+
+        expect(listener).not.toHaveBeenCalled();
+    });
+
+    test("Should notify every registered listener", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const history = new History(wrapper);
+        const undoListener = jest.fn();
+        const redoListener = jest.fn();
+        history.onChange(undoListener);
+        history.onChange(redoListener);
+
+        select(wrapper, ".start", "".length, "zero".length);
+        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        expect(undoListener).toHaveBeenCalledTimes(1);
+        expect(redoListener).toHaveBeenCalledTimes(1);
+    });
+});
