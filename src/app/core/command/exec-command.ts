@@ -136,8 +136,12 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
             // image the same way the toolbar refuses it, since a cell has no line to give an image.
             const cursorPosition = getCursorPosition();
             if (isRangeIn(contentEditable, cursorPosition) && !isCursorInTable(contentEditable, cursorPosition)) {
+                // The file is read once the command that asked for it is over, so the insert has to open a
+                // recording window of its own - without one history never sees the image and cannot undo it.
+                contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
                 insertNode(cursorPosition, img);
                 setCursorPosition(contentEditable, cursorPosition);
+                contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
             }
         };
 
