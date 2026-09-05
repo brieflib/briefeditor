@@ -132,7 +132,7 @@ describe("Is plus indent enabled", () => {
     });
 });
 
-describe("Plus indent run in browser", () => {
+describe("Plus indent", () => {
     test("Plus indent of empty list should keep cursor position", () => {
         const wrapper = createWrapper(`
             <ol>
@@ -145,9 +145,10 @@ describe("Plus indent run in browser", () => {
             </ol>
         `);
 
+        const start = wrapper.querySelector(".start") as Node;
         const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        range.setStart(start, 0);
+        range.setEnd(start, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = plusIndent(wrapper);
@@ -182,9 +183,10 @@ describe("Plus indent run in browser", () => {
             </ol>
         `);
 
+        const start = wrapper.querySelector(".start") as Node;
         const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        range.setStart(start, 0);
+        range.setEnd(start, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = plusIndent(wrapper);
@@ -206,9 +208,7 @@ describe("Plus indent run in browser", () => {
         expect(cursorPosition.startOffset).toBe("".length);
         expect(cursorPosition.endOffset).toBe("".length);
     });
-});
 
-describe("Plus indent", () => {
     test("Should indent two lists with another one at nesting level zero", () => {
         const wrapper = createWrapper(`
             <ol>
@@ -1540,7 +1540,46 @@ describe("Minus indent", () => {
             </ul>
         `);
     });
+
+    test("Minus indent of empty list should keep cursor position", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                        <li class="start"><br></li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const start = wrapper.querySelector(".start") as Node;
+        const range = new Range();
+        range.setStart(start, 0);
+        range.setEnd(start, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = minusIndent(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+                <li><br></li>
+            </ol>
+        `);
+
+        const expectedContainer = wrapper.querySelector("ol > li:last-child > br");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endOffset).toBe("".length);
+    });
 });
+
 describe("Exit list", () => {
     test("Should replace the only empty item with a paragraph", () => {
         const wrapper = createWrapper(`
@@ -1692,9 +1731,10 @@ describe("Exit list", () => {
         `);
 
         const br = getFirstChild(wrapper, ".start");
+        const start = wrapper.querySelector(".start") as Node;
         const range = new Range();
-        range.setStart(br, 0);
-        range.setEnd(br, 0);
+        range.setStart(start, 0);
+        range.setEnd(start, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = exitList(wrapper, getCursorPosition());

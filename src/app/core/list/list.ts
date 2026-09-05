@@ -9,6 +9,7 @@ import {
     isListEmpty
 } from "@/core/list/util/list-util";
 import {getFirstText, getNextNode} from "@/core/shared/element-util";
+import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {CursorPosition, getCursorPosition, getCursorPositionFrom, isCollapsed} from "@/core/shared/type/cursor-position";
 import {
     convertList,
@@ -74,9 +75,13 @@ export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLEle
     return true;
 }
 
-export function plusIndent(contentEditable: HTMLElement) {
-    const cursorPosition = getCursorPosition();
-    if (!isPlusIndentEnabled(contentEditable, getSelectedBlock(contentEditable))) {
+// The list is rebuilt from the content of its items, so a cursor anchored on an item is left pointing at a
+// node the rebuild threw away. An empty item is where the browser leaves it: the item has no text of its own
+// to hold the cursor. Anchoring it on the br standing in for that content up front keeps it valid, and the
+// caller restores the position handed back to it.
+export function plusIndent(contentEditable: HTMLElement): CursorPosition {
+    const cursorPosition = anchorCursorOnLeaf(getCursorPosition());
+    if (!isPlusIndentEnabled(contentEditable, getSelectedBlock(contentEditable, cursorPosition))) {
         return cursorPosition;
     }
 
@@ -118,18 +123,22 @@ export function isMinusIndentEnabled(contentEditable: HTMLElement) {
     return true;
 }
 
-export function minusIndent(contentEditable: HTMLElement) {
+// The cursor is anchored on a leaf for the same reason as the plus indent above, which rebuilds the list the
+// same way.
+export function minusIndent(contentEditable: HTMLElement): CursorPosition {
+    const cursorPosition = anchorCursorOnLeaf(getCursorPosition());
     if (!isMinusIndentEnabled(contentEditable)) {
-        return;
+        return cursorPosition;
     }
 
-    const cursorPosition = getCursorPosition();
     const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
-    const listsOrderNumbers = getListsOrderNumbers(contentEditable);
+    const listsOrderNumbers = getListsOrderNumbers(contentEditable, cursorPosition);
     const lists = parseList(firstListWrapper);
     const minusLists = minusOrderNumbers(lists, listsOrderNumbers);
     const listWrappers = convertList(minusLists);
     appendBeforeAndDelete(firstListWrapper, listWrappers);
+
+    return cursorPosition;
 }
 
 export function maybeInsertLists(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
@@ -165,6 +174,9 @@ export function isCursorInEmptyList(contentEditable: HTMLElement, cursorPosition
 // followed it stay on the level they were on, which turns them into its children. An item on the first level
 // has nowhere left to be lifted to and leaves the list instead.
 export function exitList(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    // The item is empty, so the browser anchors the cursor on the item itself, and the item is one of the
+    // nodes the rebuild below throws away. The br standing in for its content is carried over instead.
+    cursorPosition = anchorCursorOnLeaf(cursorPosition);
     const root = getFirstSelectedRoot(contentEditable, cursorPosition);
     const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
     const block = getSelectedBlock(contentEditable, cursorPosition)[0];

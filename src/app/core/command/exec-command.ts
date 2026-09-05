@@ -68,10 +68,10 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             cursorPosition = applyListCommand(contentEditable, command);
             break;
         case Action.PlusIndent:
-            plusIndent(contentEditable);
+            cursorPosition = plusIndent(contentEditable);
             break;
         case Action.MinusIndent:
-            minusIndent(contentEditable);
+            cursorPosition = minusIndent(contentEditable);
             break;
         case Action.Keyboard:
             cursorPosition = handleKeyboardEvent(contentEditable, command.event as KeyboardEvent, cursorPosition);
