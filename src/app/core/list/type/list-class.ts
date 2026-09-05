@@ -114,21 +114,18 @@ function appendToFragment(fragment: DocumentFragment, rootWrappers: HTMLElement[
 }
 
 export function plusOrderNumbers(lists: ListClass[], orderNumbers: number[]): ListClass[] {
-    for (const orderNumber of orderNumbers) {
-        const list = lists[orderNumber];
-        if (list) {
-            list.nestedLevel++;
-        }
-    }
-
-    return lists;
+    return shiftOrderNumbers(lists, orderNumbers, 1);
 }
 
 export function minusOrderNumbers(lists: ListClass[], orderNumbers: number[]): ListClass[] {
+    return shiftOrderNumbers(lists, orderNumbers, -1);
+}
+
+export function shiftOrderNumbers(lists: ListClass[], orderNumbers: number[], shift: number): ListClass[] {
     for (const orderNumber of orderNumbers) {
         const list = lists[orderNumber];
         if (list) {
-            list.nestedLevel--;
+            list.nestedLevel += shift;
         }
     }
 

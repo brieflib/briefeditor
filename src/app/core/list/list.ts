@@ -17,7 +17,8 @@ import {
     minusOrderNumbers,
     normalizeLists,
     parseList,
-    plusOrderNumbers
+    plusOrderNumbers,
+    shiftOrderNumbers
 } from "@/core/list/type/list-class";
 
 export function isNextListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
@@ -152,6 +153,34 @@ export function maybeInsertLists(contentEditable: HTMLElement, cursorPosition: C
     const normalized = normalizeLists(lists, cursorPosition);
     const listWrappers = convertList(normalized.lists);
     appendBeforeAndDelete(firstRoot, listWrappers);
+
+    return normalized.cursorPosition;
+}
+
+// Backspace at the start of an item merges it into the item above it. An item above that stands empty holds no
+// content to merge into: it is the line the merge lands on, so it is dropped and the item takes the level it
+// stood on, keeping the wrapper it was written in the way a lifted item does. The rebuild below drops the empty
+// item on its own and lowers the levels it finds, but it never raises one, so an item merging into one nested
+// deeper is raised here first. The items nested inside it come along, or they would be left two levels below it.
+export function mergeIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const root = getFirstSelectedRoot(contentEditable, cursorPosition);
+    // Both the order numbers and the parse walk the wrappers in the order the items are written in, so the empty
+    // item above the one the cursor is in is the entry before it.
+    const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
+    const lists = parseList(root);
+    const previous = lists[orderNumber - 1];
+    const current = lists[orderNumber];
+    if (previous && current) {
+        // Read before the levels are changed, as withNested reads them to tell the nested items apart.
+        const nested = withNested(lists, orderNumber);
+        shiftOrderNumbers(lists, nested, previous.nestedLevel - current.nestedLevel);
+    }
+
+    // The parse moves the content of every item into a fragment of its own, the cursor's text node with it, and
+    // the convert moves it back into the rebuilt item, so the cursor is left pointing at a node that is still
+    // there.
+    const normalized = normalizeLists(lists, cursorPosition);
+    appendBeforeAndDelete(root, convertList(normalized.lists));
 
     return normalized.cursorPosition;
 }

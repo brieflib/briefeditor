@@ -10,8 +10,10 @@ import {
 } from "@/core/shared/type/cursor-position";
 import {
     getChildFragment,
+    getElement,
     getFirstText,
     getLastNonEmptyText,
+    getLastText,
     getNextNode, getNextNotEmptyNode,
     getPreviousNode,
     hasSelfCloseDescendant
@@ -19,13 +21,21 @@ import {
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {normalize} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {maybeInsertLists} from "@/core/list/list";
-import {getDirectChildren, isListEmpty} from "@/core/list/util/list-util";
+import {maybeInsertLists, mergeIntoEmptyItem} from "@/core/list/list";
+import {countListWrapperParents, getDirectChildren, isListEmpty} from "@/core/list/util/list-util";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
     if (!previousNode) {
         return cursorPosition;
+    }
+
+    // The item above may be nested deeper than the one the cursor is in, and an empty one there is the line the
+    // merge lands on rather than an item to merge into. An empty item on the same level or a shallower one is
+    // dropped by the list rebuild the merge below ends with, which is left to do it.
+    const previousBlock = getElement(contentEditable, getLastText(previousNode), [Display.FirstLevel, Display.List]);
+    if (isMergedIntoEmptyItem(contentEditable, cursorPosition, previousBlock)) {
+        return mergeIntoEmptyItem(contentEditable, cursorPosition);
     }
 
     const lastText = getLastNonEmptyText(previousNode);
@@ -38,6 +48,19 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
     }
 
     return cursorPosition;
+}
+
+function isMergedIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition, previousBlock: HTMLElement | null) {
+    if (!previousBlock || !isSchemaContain(previousBlock, [Display.List]) || !isListEmpty(previousBlock)) {
+        return false;
+    }
+
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+    if (!block || !isSchemaContain(block, [Display.List])) {
+        return false;
+    }
+
+    return countListWrapperParents(contentEditable, previousBlock) > countListWrapperParents(contentEditable, block);
 }
 
 export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
