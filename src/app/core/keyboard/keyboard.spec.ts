@@ -457,12 +457,13 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>zero</li>
-                <li>first</li>
-                <li>second</li>
+                <li>first
+                    <ol><li>second</li></ol>
+                </li>
             </ol>
         `);
 
-        const expectedContainer = wrapper.querySelector("ol li:last-child")?.firstChild;
+        const expectedContainer = wrapper.querySelector("ol li ol li")?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe("".length);
     });
@@ -556,8 +557,9 @@ describe("Typing and deleting characters", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li>zero</li>
-                <li>first</li>
+                <li>zero
+                    <ol><li>first</li></ol>
+                </li>
                 <li>second</li>
             </ol>
         `);
@@ -582,8 +584,9 @@ describe("Typing and deleting characters", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li>zero</li>
-                <li>first</li>
+                <li>zero
+                    <ol><li>first</li></ol>
+                </li>
                 <li>second</li>
             </ol>
         `);
@@ -733,6 +736,23 @@ describe("Typing and deleting characters", () => {
             <p class="start">a</p>
         `);
         expect(cursorPosition.startOffset).toBe("a".length);
+    });
+
+    test("After removing content and pressing delete next tag should merge", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">z</h1>
+            <p>zero</p>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "".length, "z".length);
+        let keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        handleKeyboardEvent(wrapper, keyboardEvent);
+
+        keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
+        handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+        `);
     });
 
     // A cell is no block, so enter has nothing to split and is dropped rather than left to the browser.

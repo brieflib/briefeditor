@@ -1,5 +1,5 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getChildFragment} from "@/core/shared/element-util";
+import {getChildFragment, imageSelector} from "@/core/shared/element-util";
 import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {getFirstListWrapper} from "@/core/list/util/list-util";
 
@@ -137,7 +137,11 @@ export interface NormalizeListsResult {
     cursorPosition: CursorPosition;
 }
 
-export function normalizeLists(lists: ListClass[], cursorPosition: CursorPosition): NormalizeListsResult {
+// A line the writer left open stands in the list the way a written one does, so the rebuild keeps it. What it
+// drops on its own is an item holding no content at all: a wrapper the parse walked through, or one an edit
+// emptied of everything it had. The item a modification takes the place of is named by the caller, which is
+// the one blank line that goes.
+export function normalizeLists(lists: ListClass[], cursorPosition: CursorPosition, dropped?: ListClass): NormalizeListsResult {
     const result: ListClass[] = [];
     const levelMap = new Map<number, number>();
     const cursorOrphaned = isCursorOrphaned(cursorPosition, lists);
@@ -146,7 +150,7 @@ export function normalizeLists(lists: ListClass[], cursorPosition: CursorPositio
 
     for (let i = 0; i < lists.length; i++) {
         const list = lists[i];
-        if (!list || !list.listContent.textContent) {
+        if (!list || list === dropped || isWithoutContent(list)) {
             if (!redirected && list &&
                 (cursorOrphaned || list.listContent.contains(cursorPosition.startContainer))) {
                 const found = findCursorInNextNonEmpty(lists, i + 1);
@@ -179,6 +183,23 @@ export function normalizeLists(lists: ListClass[], cursorPosition: CursorPositio
     }
 
     return {lists: result, cursorPosition: updatedCursorPosition};
+}
+
+// An item holds the line it was written as, and a nested list is the content of its own items rather than of
+// the item holding it, so it is left out of the content the parse reads. What is left of an item standing for
+// no line at all is nothing.
+function isWithoutContent(list: ListClass): boolean {
+    return !list.listContent.textContent && !list.listContent.firstElementChild;
+}
+
+// A blank line is an item with nothing written on it, which is the br standing in for the line it holds. An
+// image stands for content the way text does and keeps the item from reading as a blank line.
+export function isListClassEmpty(list: ListClass | undefined): boolean {
+    if (!list) {
+        return false;
+    }
+
+    return !list.listContent.textContent && !list.listContent.querySelector(imageSelector);
 }
 
 function isCursorOrphaned(cursorPosition: CursorPosition, lists: ListClass[]): boolean {

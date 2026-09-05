@@ -22,12 +22,19 @@ import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor
 import {normalize} from "@/core/normalize/normalize";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {maybeInsertLists, mergeIntoPreviousEmptyItem, mergeNextIntoEmptyItem} from "@/core/list/list";
+import {maybeInsertLists, mergeIntoPreviousEmptyItem, mergeNextIntoEmptyItem, removeEmptyItem} from "@/core/list/list";
 import {getDirectChildren, isListEmpty} from "@/core/list/util/list-util";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
     if (!previousNode) {
+        // An item opening the document has no line above it to merge into, and an empty one holds nothing to
+        // keep either: it is dropped and the list is left standing on the item written below it.
+        const firstBlock = getSelectedBlock(contentEditable, cursorPosition)[0];
+        if (firstBlock && isSchemaContain(firstBlock, [Display.List]) && isListEmpty(firstBlock)) {
+            return removeEmptyItem(contentEditable, cursorPosition);
+        }
+
         return cursorPosition;
     }
 
@@ -68,7 +75,13 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
     // Anchored on the br standing in for the line instead, the cursor sits after the item's own tag and the
     // nested list is the node that follows.
     cursorPosition = anchorCursorOnLeaf(cursorPosition);
-    const nextNode = getNextNode(contentEditable, cursorPosition.endContainer);
+    let nextNode = getNextNode(contentEditable, cursorPosition.endContainer);
+    // The br standing in for the line of an empty block is not content the merge can pull up: it is the line
+    // itself, and the cursor sits before it whenever the block was left holding nothing. The node the merge
+    // reads is the one written after that placeholder, or the block below has nothing to be merged into it.
+    if (nextNode && isPlaceholderOf(getSelectedBlock(contentEditable, cursorPosition)[0], nextNode)) {
+        nextNode = getNextNode(contentEditable, nextNode);
+    }
     if (!nextNode) {
         return cursorPosition;
     }
@@ -100,6 +113,16 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
 
     cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, nextNodeFirstChild, 0);
     return mergeBlocks(contentEditable, cursorPosition, "");
+}
+
+// A nested list is the content of its own items, so an item holding one is weighed by its own line alone,
+// which is what isListEmpty reads.
+function isPlaceholderOf(block: HTMLElement | undefined, node: Node) {
+    if (!block || !isListEmpty(block)) {
+        return false;
+    }
+
+    return block.contains(node) && isSchemaContain(node, [Display.SelfClose]);
 }
 
 function isEmptyItemMergedInto(contentEditable: HTMLElement, cursorPosition: CursorPosition, nextNode: Node) {

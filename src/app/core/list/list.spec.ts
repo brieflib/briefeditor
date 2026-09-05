@@ -1860,7 +1860,7 @@ describe("Exit list", () => {
     });
 });
 
-describe("List clipboard events", () => {
+describe("List side events", () => {
     test("Pasting lists on the same level", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -1891,4 +1891,62 @@ describe("List clipboard events", () => {
         expect(cursorPosition.endOffset).toBe("second".length);
         expect(cursorPosition.startOffset).toBe("second".length);
     });
+
+    test("Should keep empty tags", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li><br>
+                    <ol>
+                        <li class="start">second</li>
+                    </ol>
+                </li>
+                <li><br></li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"),  "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+                <li><br></li>
+            </ol>
+        `);
+    });
+
+    test("Should remove empty list", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li class="start"><br></li>
+                <li>zero</li>
+                <li><br></li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".start") as Node, "".length);
+        range.setEnd(wrapper.querySelector(".start") as Node,  "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li><br></li>
+            </ol>
+        `);
+    });
+
+
 });
