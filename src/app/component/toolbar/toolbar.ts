@@ -18,6 +18,8 @@ import TableIcon from "@/component/toolbar-icon/table-icon";
 import UndoIcon from "@/component/toolbar-icon/undo-icon";
 import RedoIcon from "@/component/toolbar-icon/redo-icon";
 import {History} from "@/core/history/history";
+import SuperscriptIcon from "@/component/toolbar-icon/superscript-icon";
+import SubscriptIcon from "@/component/toolbar-icon/subscript-icon";
 
 export default class Toolbar {
     private readonly contentEditable: HTMLElement;
@@ -53,6 +55,9 @@ export default class Toolbar {
         this.addIcon(new BoldIcon());
         this.addIcon(new ItalicIcon());
         this.addIcon(new UnderlineIcon());
+        this.addEmptyItem();
+        this.addIcon(new SuperscriptIcon());
+        this.addIcon(new SubscriptIcon());
         this.addEmptyItem();
         this.addIcon(new HeadingIcon());
         this.addIcon(new BlockquoteIcon());

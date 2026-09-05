@@ -79,3 +79,19 @@
 .be-editor:focus {
     outline: none;
 }
+
+.be-editor sup {
+    top: -.5em;
+}
+
+.be-editor sub {
+    bottom: -.25em;
+}
+
+.be-editor sub, sup {
+    letter-spacing: 0.05em;
+    font-size: 70%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+}

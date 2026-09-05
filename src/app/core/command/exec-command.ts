@@ -57,6 +57,9 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         case Action.Tag:
             cursorPosition = applyTagCommand(contentEditable, command);
             break;
+        case Action.Unwrap:
+            cursorPosition = applyUnwrapCommand(contentEditable, command);
+            break;
         case Action.FirstLevel:
             cursorPosition = applyFirstLevelCommand(contentEditable, command);
             break;
@@ -192,6 +195,12 @@ function applyTagCommand(contentEditable: HTMLElement, command: Command): Cursor
     } else {
         return tag(contentEditable, tagName, Action.Wrap, command.attributes);
     }
+}
+
+function applyUnwrapCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
+    const tagName = (command.tag as string).toUpperCase();
+
+    return tag(contentEditable, tagName, Action.Unwrap, command.attributes);
 }
 
 function applyFirstLevelCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
