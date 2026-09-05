@@ -44,6 +44,7 @@ schema.set("STRONG", [Display.Collapse]);
 schema.set("EM", [Display.Collapse]);
 schema.set("U", [Display.Collapse]);
 schema.set("SUP", [Display.Collapse]);
+schema.set("SUB", [Display.Collapse]);
 
 schema.set("A", [Display.Link]);
 schema.set("#text", []);

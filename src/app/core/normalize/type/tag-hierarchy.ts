@@ -26,10 +26,11 @@ tagHierarchy.set("H3", max);
 tagHierarchy.set("H4", max);
 tagHierarchy.set("H5", max);
 tagHierarchy.set("H6", max);
-tagHierarchy.set("A", 4);
-tagHierarchy.set("STRONG", 3);
-tagHierarchy.set("EM", 2);
-tagHierarchy.set("U", 1);
-tagHierarchy.set("SUP", 0);
+tagHierarchy.set("A", 5);
+tagHierarchy.set("STRONG", 4);
+tagHierarchy.set("EM", 3);
+tagHierarchy.set("U", 2);
+tagHierarchy.set("SUP", 1);
+tagHierarchy.set("SUB", 0);
 
 export default tagHierarchy;
