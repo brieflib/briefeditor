@@ -439,6 +439,34 @@ describe("Typing and deleting characters", () => {
         expect(cursorPosition.startOffset).toBe("a".length);
     });
 
+    test("Should merge lists when pressing delete before br", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+                <li class="start"><br>
+                    <ol><li>second</li></ol>
+                </li>
+            </ol>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "".length, "".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+
+        const expectedContainer = wrapper.querySelector("ol li:last-child")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("".length);
+    });
+
     test("Press backspace when selection is inside one paragraph", () => {
         const wrapper = createWrapper(`
             <p class="start">zerofirst</p>

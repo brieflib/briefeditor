@@ -20,7 +20,7 @@ import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor
 import {normalize} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {maybeInsertLists} from "@/core/list/list";
-import {getDirectChildren} from "@/core/list/util/list-util";
+import {getDirectChildren, isListEmpty} from "@/core/list/util/list-util";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
@@ -68,9 +68,13 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
 
 export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = ""): CursorPosition {
     const firstBlock = getSelectedBlock(contentEditable, cursorPosition)[0];
+    const wasEmpty = !!firstBlock && isListEmpty(firstBlock);
     let cursorPositionAfterDelete = deleteContents(cursorPosition);
 
     const lastBlock = appendToStartOfFirstBlock(contentEditable, cursorPosition, pressedKey, firstBlock);
+    if (firstBlock && wasEmpty) {
+        cursorPositionAfterDelete = removePlaceholder(firstBlock, cursorPositionAfterDelete);
+    }
     cursorPositionAfterDelete = maybeInsertLists(contentEditable, cursorPositionAfterDelete);
 
     if (lastBlock && lastBlock.isConnected) {
@@ -80,6 +84,22 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
         cursorPositionAfterDelete = normalize(contentEditable, cursorPositionAfterDelete);
     }
     return getCursorPositionFrom(cursorPositionAfterDelete.startContainer, cursorPositionAfterDelete.startOffset + pressedKey.length, cursorPositionAfterDelete.endContainer, cursorPositionAfterDelete.endOffset + pressedKey.length);
+}
+
+// The br stands in for the content an empty block does not have. Once a merge has moved content in it stands
+// in for nothing and shows as a blank line above the merged text, so it goes. The cursor the browser anchors
+// on it has to come along: maybeInsertLists and normalize both resolve the work they do from the cursor's
+// container, and a detached one leaves them quietly doing nothing at all.
+function removePlaceholder(block: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const placeholder = block.firstChild;
+    if (placeholder?.nodeName !== "BR" || isListEmpty(block)) {
+        return cursorPosition;
+    }
+
+    placeholder.remove();
+    const firstText = getFirstText(block);
+
+    return getCursorPositionFrom(firstText, 0, firstText, 0);
 }
 
 export function isSpecialKey(event: KeyboardEvent) {
