@@ -11,6 +11,76 @@ jest.mock("../../shared/range-util", () => ({
 const image = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 
 describe("Sanitize input", () => {
+    test("Should paste into an empty paragraph without keeping its placeholder br", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `word`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>word</p>
+        `);
+    });
+
+    test("Should paste into an empty list item without keeping its placeholder br", () => {
+        const wrapper = createWrapper(`
+            <ul><li>zero</li><li><br></li></ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `word`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul><li>zero</li><li>word</li></ul>
+        `);
+    });
+
+    // The br left in the item is content the pasted items are divided around, which buries the second one
+    // in a list of its own nested in the first.
+    test("Should paste items into an empty list item as items of its list", () => {
+        const wrapper = createWrapper(`
+            <ul><li><br></li></ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ul><li>zero</li><li>first</li></ul>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul><li>zero</li><li>first</li></ul>
+        `);
+    });
+
+    test("Should keep the line breaks of what is pasted into an empty paragraph", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `zero<br>first`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero<br>first</p>
+        `);
+    });
+
     test("Should insert p", () => {
         const wrapper = createWrapper(`
             <p class="start">first</p>

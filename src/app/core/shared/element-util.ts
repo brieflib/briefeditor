@@ -1,5 +1,10 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {commonAncestorContainer, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {
+    commonAncestorContainer,
+    CursorPosition,
+    getCursorPosition,
+    getCursorPositionFrom
+} from "@/core/shared/type/cursor-position";
 
 export function getChildFragment(child: Element) {
     const fragment = new DocumentFragment();
@@ -175,6 +180,30 @@ export function pasteParagraph(contentEditable: HTMLElement) {
         p.innerHTML = "<br>";
         contentEditable.appendChild(p);
     }
+}
+
+// The editable element is a first level tag itself, so with every block deleted the cursor is left on the root
+// and the editor takes the root for the block it is editing. The br that stands in for an emptied block, or the
+// character typed over the selection, is then written straight into the root, outside of any paragraph, and the
+// document is left with no line to hold the next one. Such a leftover is wrapped in the paragraph it belongs in
+// and the cursor follows it there. Only a text or a self closing tag counts as one: an element opening the
+// document is markup its author put there, and it is left where it is.
+export function ensureParagraph(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const stray = contentEditable.firstChild;
+    if (stray && stray.nodeType !== Node.TEXT_NODE && !isSchemaContain(stray, [Display.SelfClose])) {
+        return cursorPosition;
+    }
+
+    const paragraph = document.createElement("p");
+    paragraph.appendChild(stray ?? document.createElement("br"));
+    contentEditable.prepend(paragraph);
+
+    if (paragraph.contains(cursorPosition.startContainer)) {
+        return cursorPosition;
+    }
+
+    const firstText = getFirstText(paragraph);
+    return getCursorPositionFrom(firstText, 0, firstText, 0);
 }
 
 export function clone(node: Node) {

@@ -14,7 +14,7 @@ import {
     selectElement
 } from "@/core/selection/selection";
 import {minusIndent, plusIndent} from "@/core/list/list";
-import {getElementByTagName} from "@/core/shared/element-util";
+import {ensureParagraph, getElementByTagName} from "@/core/shared/element-util";
 import {
     cloneRange,
     CursorPosition,
@@ -106,6 +106,10 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     if (command.action !== Action.Attribute && command.tag) {
         applyAttributesCommand(contentEditable, command);
     }
+
+    // Every command runs before the cursor is written back, so this is the one place the editor is left with a
+    // document again whichever way the last block was taken out of it.
+    cursorPosition = ensureParagraph(contentEditable, cursorPosition);
 
     if (!isCursorPlacedByBrowser) {
         setCursorPosition(contentEditable, cursorPosition, command);

@@ -1198,3 +1198,75 @@ describe("Block command with the cursor on an empty block", () => {
         expect(cursorPosition.startContainer.isConnected).toBe(true);
     });
 });
+
+// The editable element is a first level tag of its own, so once every block is deleted the browser anchors the
+// cursor on the root and the editor takes the root for the block it is editing. Anything written then lands in
+// the root itself, outside of any paragraph, and the document has no line to hold the next one either.
+describe("Keyboard command that empties the document", () => {
+    function selectAll(wrapper: HTMLElement) {
+        const range = new Range();
+        range.setStart(wrapper, 0);
+        range.setEnd(wrapper, wrapper.childNodes.length);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    function keyboard(wrapper: HTMLElement, key: string) {
+        return execCommand(wrapper, {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key})});
+    }
+
+    test("Should leave an empty paragraph with the cursor in it when the whole document is deleted", () => {
+        const wrapper = createWrapper(`<p>zero</p><p>first</p>`);
+        selectAll(wrapper);
+
+        const cursorPosition = keyboard(wrapper, "Backspace");
+
+        expectHtml(wrapper.innerHTML, `<p><br></p>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.startContainer.isConnected).toBe(true);
+    });
+
+    test("Should type into a paragraph when a character replaces the whole document", () => {
+        const wrapper = createWrapper(`<p>zero</p><p>first</p>`);
+        selectAll(wrapper);
+
+        const cursorPosition = keyboard(wrapper, "a");
+
+        expectHtml(wrapper.innerHTML, `<p>a</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.startOffset).toBe("a".length);
+    });
+
+    test("Should type into the paragraph the deleted document was given back", () => {
+        const wrapper = createWrapper(`<p>zero</p>`);
+        selectAll(wrapper);
+        selectCursor(keyboard(wrapper, "Backspace"));
+
+        const cursorPosition = keyboard(wrapper, "a");
+
+        expectHtml(wrapper.innerHTML, `<p>a</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+    });
+
+    // A table is no first level element, but it is a document of its own all the same - wrapping it in a
+    // paragraph would nest it in one.
+    test("Should leave a document that is only a table alone", () => {
+        const wrapper = createWrapper(`<table><tbody><tr><td class="start">a</td></tr></tbody></table>`);
+        const text = getFirstChild(wrapper, ".start");
+        const range = new Range();
+        range.setStart(text, "a".length);
+        range.setEnd(text, "a".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        keyboard(wrapper, "b");
+
+        expectHtml(wrapper.innerHTML, `<table><tbody><tr><td class="start">ab</td></tr></tbody></table>`);
+    });
+
+    function selectCursor(cursorPosition: CursorPosition) {
+        const range = new Range();
+        range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
+        range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+});

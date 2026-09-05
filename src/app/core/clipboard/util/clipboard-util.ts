@@ -7,7 +7,7 @@ import {
     isCollapsed
 } from "@/core/shared/type/cursor-position";
 import {removeAndNormalize} from "@/core/normalize/normalize";
-import {getFirstSelectedRoot} from "@/core/selection/selection";
+import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 import {getLastText, getRootElement} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
@@ -47,13 +47,21 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
         return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
     }
 
-    // The pasted markup must land beside the formatting elements the cursor sits in, not inside them.
-    // Splitting the root at the cursor closes those tags; appending the tail straight back leaves one root
-    // whose children are divided at the seam, which is where the markup goes.
-    const tail = splitAtCursor(firstRoot, cursorPosition);
-    const seam = firstRoot.childNodes.length;
-    firstRoot.append(tail);
-    cursorPosition = getCursorPositionFrom(firstRoot, seam, firstRoot, seam);
+    // An empty block has nothing on either side of the cursor to close tags around, and the br standing in for
+    // its line is not content to keep: it is what the pasted markup takes the place of. Splitting it would hand
+    // the block a second br as well - a range that opens inside a self closing tag extracts a clone of it.
+    if (isEmptyBlock(firstRoot)) {
+        firstRoot.replaceChildren();
+        cursorPosition = getCursorPositionFrom(firstRoot, 0, firstRoot, 0);
+    } else {
+        // The pasted markup must land beside the formatting elements the cursor sits in, not inside them.
+        // Splitting the root at the cursor closes those tags; appending the tail straight back leaves one root
+        // whose children are divided at the seam, which is where the markup goes.
+        const tail = splitAtCursor(firstRoot, cursorPosition);
+        const seam = firstRoot.childNodes.length;
+        firstRoot.append(tail);
+        cursorPosition = getCursorPositionFrom(firstRoot, seam, firstRoot, seam);
+    }
 
     const fragmentToInsert = createContextualFragment(htmlString, cursorPosition);
     // Capture the paste-end position before insertNode empties the fragment; the
@@ -162,6 +170,12 @@ const cellUnwrapSelector = getOfType([Display.FirstLevel, Display.List, Display.
 // so a paste carrying one arrives as the words around it, and one carrying nothing else arrives empty.
 const imageSelector = getOfType([Display.Image]).join(",");
 
+// A block that holds nothing but the br standing in for its line. An image is the one thing that can be in
+// there without any text of its own, so it is asked for by name.
+function isEmptyBlock(block: HTMLElement) {
+    return !block.textContent && !block.querySelector(imageSelector);
+}
+
 function removeImages(root: ParentNode) {
     root.querySelectorAll(imageSelector).forEach(image => image.remove());
 }
@@ -254,6 +268,14 @@ function pasteBetweenBlocks(contentEditable: HTMLElement, firstRoot: HTMLElement
 }
 
 function pasteIntoList(contentEditable: HTMLElement, firstRoot: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
+    // The item the cursor is in stands to an empty line the way a block does: the br holding its line open is
+    // what the pasted markup takes the place of, not something to keep beside it.
+    const item = getSelectedBlock(contentEditable, cursorPosition)[0];
+    if (item && isEmptyBlock(item)) {
+        item.replaceChildren();
+        cursorPosition = getCursorPositionFrom(item, 0, item, 0);
+    }
+
     // Insert the fragment nested at the cursor so block elements stay inside the
     // list item; removeAndNormalize then lifts them out keeping the list wrappers.
     const fragmentToInsert = createContextualFragment(htmlString, cursorPosition);
