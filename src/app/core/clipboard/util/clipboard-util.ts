@@ -9,11 +9,11 @@ import {
 import {removeAndNormalize} from "@/core/normalize/normalize";
 import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
-import {getLastText, getRootElement} from "@/core/shared/element-util";
+import {getLastText, getRootElement, insertBetweenBlocks} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
 import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {splitAtCursor} from "@/core/keyboard/util/keyboard-util";
-import {getCellCursorPosition, insertBetweenBlocks, normalizeTable} from "@/core/command/util/table-util";
+import {getCellCursorPosition, normalizeTable} from "@/core/command/util/table-util";
 
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
     if (!isCollapsed(cursorPosition)) {

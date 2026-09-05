@@ -1,11 +1,7 @@
 import {CursorPosition} from "@/core/shared/type/cursor-position";
 import {atEnd, atStart, getFirstCell} from "@/core/cursor/util/cursor-util";
-import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
-import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getFirstListWrapper, getListsOrderNumbers} from "@/core/list/util/list-util";
-import {splitListAround} from "@/core/list/list";
-import {newLine} from "@/core/keyboard/util/keyboard-util";
+import {insertBetweenBlocks} from "@/core/shared/element-util";
 
 // The row and the column behind the deleted one slide into its place, so the cursor stays where the
 // deleted cell was. Deleting the last row or column leaves nothing to slide in, and the cursor keeps to
@@ -65,44 +61,6 @@ export function insertTable(contentEditable: HTMLElement, cursorPosition: Cursor
     insertBetweenBlocks(contentEditable, root, cursorPosition, table);
 
     return getCellCursorPosition(getFirstCell(table), cursorPosition);
-}
-
-// A table is not a first level element and cannot be nested in one, so it never goes at the cursor
-// itself. It goes before or after the first level element holding the cursor, and only a cursor in the
-// middle of one splits it in two for the node to sit between the halves. Both flags are read from the
-// cursor before anything moves, so they must be the first thing done.
-export function insertBetweenBlocks(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition, node: Node) {
-    const isAtStart = isCursorAtStartOfBlock(contentEditable, cursorPosition);
-    const isAtEnd = isCursorAtEndOfBlock(contentEditable, cursorPosition);
-
-    if (isSchemaContain(getFirstListWrapper(root), [Display.ListWrapper])) {
-        insertIntoList(contentEditable, root, cursorPosition, node, isAtStart, isAtEnd);
-    } else if (isAtStart) {
-        root.before(node);
-    } else {
-        // The split leaves the second half right after the root, so the node still goes after the root
-        // to end up between the two halves.
-        if (!isAtEnd) {
-            newLine(contentEditable, cursorPosition);
-        }
-        root.after(node);
-    }
-}
-
-function insertIntoList(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition,
-                        node: Node, isAtStart: boolean, isAtEnd: boolean) {
-    // Read before the split: it inserts the second half after the item the cursor is in, which leaves
-    // that item's own position untouched but carries the cursor over to the new one.
-    const index = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
-    let splitIndex = index;
-    if (!isAtStart) {
-        if (!isAtEnd) {
-            newLine(contentEditable, cursorPosition);
-        }
-        splitIndex = index + 1;
-    }
-
-    splitListAround(root, cursorPosition, node, splitIndex);
 }
 
 function appendRow(section: HTMLTableSectionElement, columns: number, cellName: string) {

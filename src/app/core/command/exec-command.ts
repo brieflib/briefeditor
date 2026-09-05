@@ -14,7 +14,7 @@ import {
     selectElement
 } from "@/core/selection/selection";
 import {minusIndent, plusIndent} from "@/core/list/list";
-import {ensureParagraph, getElementByTagName} from "@/core/shared/element-util";
+import {ensureParagraph, getElementByTagName, insertBetweenBlocks} from "@/core/shared/element-util";
 import {
     cloneRange,
     CursorPosition,
@@ -139,6 +139,8 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
             const imgTag = "img";
             const img = document.createElement(imgTag);
             img.src = event.target?.result as string;
+            const paragraph = document.createElement("p");
+            paragraph.appendChild(img);
 
             // The cursor is read again once the file is: a table it has moved into by then refuses the
             // image the same way the toolbar refuses it, since a cell has no line to give an image. A cursor
@@ -148,7 +150,9 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
                 // The file is read once the command that asked for it is over, so the insert has to open a
                 // recording window of its own - without one history never sees the image and cannot undo it.
                 contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
-                insertNode(cursorPosition, img);
+                const root = getFirstSelectedRoot(contentEditable, cursorPosition);
+                insertBetweenBlocks(contentEditable, root, cursorPosition, paragraph);
+                //insertNode(cursorPosition, img);
                 setCursorPosition(contentEditable, cursorPosition);
                 contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
             }
