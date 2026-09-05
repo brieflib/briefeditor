@@ -18,7 +18,7 @@ import {ensureParagraph, getElementByTagName, insertBetweenBlocks} from "@/core/
 import {
     cloneRange,
     CursorPosition,
-    getCursorPosition, getCursorPositionFrom, insertNode,
+    getCursorPosition, getCursorPositionFrom,
     isCollapsed,
     isRangeIn,
     setCursorPosition
@@ -152,8 +152,13 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
                 contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
                 const root = getFirstSelectedRoot(contentEditable, cursorPosition);
                 insertBetweenBlocks(contentEditable, root, cursorPosition, paragraph);
-                //insertNode(cursorPosition, img);
-                setCursorPosition(contentEditable, cursorPosition);
+                // An empty block is taken the place of rather than kept beside the image, and the cursor
+                // anchored on it goes with it. It moves to the end of the line the image is on, past the
+                // image itself, which is where typing goes on.
+                setCursorPosition(contentEditable, cursorPosition.startContainer.isConnected
+                    ? cursorPosition
+                    : getCursorPositionFrom(paragraph, paragraph.childNodes.length,
+                        paragraph, paragraph.childNodes.length));
                 contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
             }
         };

@@ -618,8 +618,8 @@ describe("Image command", () => {
         }
     }
 
-    // The cursor of an empty block is anchored on the br standing in for its content, and an image inserted
-    // there would end up inside that br, which nothing ever shows. It belongs beside the br instead.
+    // An empty block holds nothing but the br standing in for its line, which is the line the image is
+    // dropped on: the image takes the block's place rather than being left with an empty line beside it.
     test("Should insert an image in an empty paragraph", async () => {
         const wrapper = createWrapper(`<p class="start"><br></p>`);
 
@@ -633,7 +633,26 @@ describe("Image command", () => {
 
         const img = wrapper.querySelector("img") as HTMLElement;
         expect(img.parentElement?.nodeName).toBe("P");
-        expect(img.nextSibling?.nodeName).toBe("BR");
+        expect(img.nextSibling).toBe(null);
+        expect(wrapper.querySelectorAll("p").length).toBe(1);
+        expect(wrapper.querySelector("br")).toBe(null);
+    });
+
+    test("Should keep the paragraph the image is dropped at the end of", async () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        await waitForImage(wrapper);
+
+        const paragraphs = wrapper.querySelectorAll("p");
+        expect(paragraphs.length).toBe(2);
+        expect(paragraphs[0]?.textContent).toBe("zero");
+        expect(paragraphs[1]?.firstChild?.nodeName).toBe("IMG");
     });
 });
 
@@ -927,7 +946,7 @@ describe("Insert table command", () => {
         `);
     });
 
-    test("Should insert into an empty block without splitting it", () => {
+    test("Should take the place of the empty block the cursor is in", () => {
         const wrapper = createWrapper(`<p class="start"><br></p>`);
         selectAt(wrapper, ".start", 0);
 
@@ -935,7 +954,50 @@ describe("Insert table command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <table><thead><tr><th></th></tr></thead></table>
+        `);
+    });
+
+    test("Should leave the blocks around the empty one the table takes the place of", () => {
+        const wrapper = createWrapper(`
+            <p>zero</p>
             <p class="start"><br></p>
+            <p>second</p>
+        `);
+        selectAt(wrapper, ".start", 0);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <table><thead><tr><th></th></tr></thead></table>
+            <p>second</p>
+        `);
+    });
+
+    // An empty block is the line the cursor is on and nothing more, so the heading it was written as goes
+    // with it: there is no content left for the heading to be the heading of.
+    test("Should take the place of an empty heading", () => {
+        const wrapper = createWrapper(`<h1 class="start"><br></h1>`);
+        selectAt(wrapper, ".start", 0);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <table><thead><tr><th></th></tr></thead></table>
+        `);
+    });
+
+    test("Should drop the empty item the table splits the list at", () => {
+        const wrapper = createWrapper(`
+            <ul><li>zero</li><li class="start"><br></li></ul>
+        `);
+        selectAt(wrapper, ".start", 0);
+
+        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+
+        expectHtml(wrapper.innerHTML, `
+            <ul><li>zero</li></ul>
+            <table><thead><tr><th></th></tr></thead></table>
         `);
     });
 

@@ -657,6 +657,28 @@ describe("Paste a table", () => {
         expect(cursorPosition.startOffset).toBe(0);
     });
 
+    // The br standing in for the line of an empty block is what the table takes the place of, not
+    // something to keep beside it.
+    test("Should take the place of the empty paragraph the cursor is in", () => {
+        const wrapper = createWrapper(`
+            <p class="start"><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, table, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, table);
+
+        const firstCell = wrapper.querySelector("th");
+        expect(cursorPosition.startContainer).toBe(firstCell?.firstChild);
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
     test("Should go before the paragraph the cursor starts in", () => {
         const wrapper = createWrapper(`
             <p class="start">fourth</p>

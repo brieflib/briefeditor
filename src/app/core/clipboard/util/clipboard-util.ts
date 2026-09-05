@@ -9,7 +9,7 @@ import {
 import {removeAndNormalize} from "@/core/normalize/normalize";
 import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
-import {getLastText, getRootElement, insertBetweenBlocks} from "@/core/shared/element-util";
+import {getLastText, getRootElement, imageSelector, insertBetweenBlocks, isEmptyBlock} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
 import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {splitAtCursor} from "@/core/keyboard/util/keyboard-util";
@@ -164,17 +164,6 @@ function hoistTable(root: HTMLElement, table: Element) {
 // a cell, so a pasted one must not arrive as one.
 const cellUnwrapSelector = getOfType([Display.FirstLevel, Display.List, Display.Table,
     Display.TableSection, Display.Cell]).join(",");
-
-// An image is not inline content: it takes a line of its own, which is the one thing a cell does not
-// have to give. It is dropped rather than unwrapped - a self closing tag has no children to surface -
-// so a paste carrying one arrives as the words around it, and one carrying nothing else arrives empty.
-const imageSelector = getOfType([Display.Image]).join(",");
-
-// A block that holds nothing but the br standing in for its line. An image is the one thing that can be in
-// there without any text of its own, so it is asked for by name.
-function isEmptyBlock(block: HTMLElement) {
-    return !block.textContent && !block.querySelector(imageSelector);
-}
 
 function removeImages(root: ParentNode) {
     root.querySelectorAll(imageSelector).forEach(image => image.remove());

@@ -1,4 +1,4 @@
-import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     commonAncestorContainer,
     CursorPosition,
@@ -224,16 +224,31 @@ export function clone(node: Node) {
     return cloned;
 }
 
+// An image is the one thing that can be in a block without any text of its own, so it is asked for by name.
+export const imageSelector = getOfType([Display.Image]).join(",");
+
+// A block that holds nothing but the br standing in for its line.
+export function isEmptyBlock(block: HTMLElement) {
+    return !block.textContent && !block.querySelector(imageSelector);
+}
+
 // A node is not a first level element and cannot be nested in one, so it never goes at the cursor
 // itself. It goes before or after the first level element holding the cursor, and only a cursor in the
-// middle of one splits it in two for the node to sit between the halves. Both flags are read from the
-// cursor before anything moves, so they must be the first thing done.
+// middle of one splits it in two for the node to sit between the halves. A block that holds nothing but
+// the br standing in for its line has nothing to divide and nothing worth keeping beside the node: the
+// node takes its place, so an inserted table or image lands on the empty line the cursor is on instead
+// of pushing an empty line ahead of itself. Both flags are read from the cursor before anything moves,
+// so they must be the first thing done.
 export function insertBetweenBlocks(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition, node: Node) {
     const isAtStart = isCursorAtStartOfBlock(contentEditable, cursorPosition);
     const isAtEnd = isCursorAtEndOfBlock(contentEditable, cursorPosition);
 
     if (isSchemaContain(getFirstListWrapper(root), [Display.ListWrapper])) {
+        // An empty item goes the same way without a branch of its own: the split drops the item it leaves
+        // empty, so the node takes the place of an empty line inside a list too.
         insertIntoList(contentEditable, root, cursorPosition, node, isAtStart, isAtEnd);
+    } else if (isSchemaContain(root, [Display.FirstLevel]) && isEmptyBlock(root)) {
+        root.replaceWith(node);
     } else if (isAtStart) {
         root.before(node);
     } else {
