@@ -467,6 +467,76 @@ describe("Typing and deleting characters", () => {
         expect(cursorPosition.startOffset).toBe("".length);
     });
 
+    test("Should merge lists when pressing backspace after br", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                        <li><br></li>
+                    </ol>
+                </li>
+                <li class="start">second</li>
+            </ol>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "".length, "".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const expectedContainer = wrapper.querySelector("ol li ol li:last-child")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("".length);
+    });
+
+    test("Should merge lists of different types when pressing backspace after br", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                        <li><br></li>
+                    </ol>
+                </li>
+            </ol>
+            <ul>
+                <li class="start">second</li>
+            </ul>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "".length, "".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+
+        const expectedContainer = wrapper.querySelector("ol li ul li:last-child")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("".length);
+    });
+
     test("Press backspace when selection is inside one paragraph", () => {
         const wrapper = createWrapper(`
             <p class="start">zerofirst</p>

@@ -2,6 +2,7 @@ import {getRange} from "@/core/shared/range-util";
 import {exitList, isMinusIndentEnabled, isPlusIndentEnabled, minusIndent, plusIndent} from "@/core/list/list";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {pasteHtml} from "@/core/clipboard/util/clipboard-util";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -1740,5 +1741,38 @@ describe("Exit list", () => {
                 </li>
             </ul>
         `);
+    });
+});
+
+describe("List clipboard events", () => {
+    test("Pasting lists on the same level", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"),  "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<ol><li>first</li><li>second</li></ol>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <ol>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ol li:last-child"));
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ol li:last-child"));
+        expect(cursorPosition.endOffset).toBe("second".length);
+        expect(cursorPosition.startOffset).toBe("second".length);
     });
 });
