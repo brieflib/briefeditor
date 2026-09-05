@@ -393,6 +393,39 @@ describe("Should leave an empty element for a collapsed cursor", () => {
         expectCarrierIn(cursorPosition, "STRONG");
     });
 
+    // The cursor is anchored on the br standing in for the empty block, and the br is left where it is:
+    // it is still what gives the block its line while the appended tag holds nothing but the carrier.
+    test("Insert strong in an empty paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start"><br></p>
+        `);
+        collapseRangeAt(getFirstChild(wrapper, ".start"), "".length);
+
+        const cursorPosition = appendTag(wrapper, getCursorPosition(), "STRONG");
+
+        expectHtml(wrapper.innerHTML, `
+            <p><strong></strong><br></p>
+        `);
+        expectCarrierIn(cursorPosition, "STRONG");
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p strong"));
+        expect(cursorPosition.startOffset).toBe("".length);
+    });
+
+    test("Remove strong in an empty paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start"><strong><br></strong></p>
+        `);
+        collapseRangeAt(getFirstChild(wrapper, ".start strong"), "".length);
+
+        const cursorPosition = removeTags(wrapper, ["STRONG"], getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p><strong><br></strong></p>
+        `);
+        expectCarrierIn(cursorPosition, "P");
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+    });
+
     test("Should collapse back to plain text when the same tag is toggled twice", () => {
         const wrapper = createWrapper(`<p class="start">plain</p>`);
         collapseRangeAt(getFirstChild(wrapper, ".start"), "pl".length);

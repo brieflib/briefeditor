@@ -610,6 +610,33 @@ describe("Cursor position after MinusIndent command", () => {
     });
 });
 
+describe("Image command", () => {
+    // The image command hands its file to a FileReader, so the insert lands turns after the command is over.
+    async function waitForImage(wrapper: HTMLElement) {
+        for (let attempt = 0; attempt < 100 && !wrapper.querySelector("img"); attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, 1));
+        }
+    }
+
+    // The cursor of an empty block is anchored on the br standing in for its content, and an image inserted
+    // there would end up inside that br, which nothing ever shows. It belongs beside the br instead.
+    test("Should insert an image in an empty paragraph", async () => {
+        const wrapper = createWrapper(`<p class="start"><br></p>`);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        await waitForImage(wrapper);
+
+        const img = wrapper.querySelector("img") as HTMLElement;
+        expect(img.parentElement?.nodeName).toBe("P");
+        expect(img.nextSibling?.nodeName).toBe("BR");
+    });
+});
+
 describe("Delete row command", () => {
     function select(wrapper: HTMLElement, selector: string) {
         const range = new Range();

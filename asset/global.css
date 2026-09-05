@@ -1,6 +1,6 @@
 /* Reset */
 
-be-editor-layout :where(div, span, applet, object, iframe,
+.be-editor :where(div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre,
 a, abbr, acronym, address, big, cite, code,
 del, dfn, em, img, ins, kbd, q, s, samp,
@@ -21,31 +21,31 @@ time, mark, audio, video) {
     vertical-align: baseline;
 }
 
-be-editor-layout :where(input) {
+.be-editor :where(input) {
     border: none;
     outline: none;
 }
 
-be-editor-layout :where(article, aside, details, figcaption, figure,
+.be-editor :where(article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section) {
     display: block;
 }
 
-be-editor-layout :where(ol, ul) {
+.be-editor :where(ol, ul) {
     list-style: none;
 }
 
-be-editor-layout :where(blockquote, q) {
+.be-editor :where(blockquote, q) {
     quotes: none;
 }
 
-be-editor-layout :where(blockquote:before, blockquote:after,
+.be-editor :where(blockquote:before, blockquote:after,
 q:before, q:after) {
     content: '';
     content: none;
 }
 
-be-editor-layout :where(table) {
+.be-editor :where(table) {
     border-collapse: collapse;
     border-spacing: 0;
 }
@@ -56,7 +56,7 @@ be-editor-layout :where(table) {
 
 /* Variables */
 
-be-editor-layout {
+.be-editor {
     --color-gray-50: oklch(98.5% .002 247.839);
     --color-gray-100: oklch(96.7% .003 264.542);
     --color-gray-200: oklch(92.8% .006 264.531);
@@ -69,43 +69,43 @@ be-editor-layout {
 
 /* Element styles */
 
-be-editor-layout .be-editor :where(div, p, h1, h2, h3, h4, h5, h6, blockquote, li) {
+.be-editor :where(div, p, h1, h2, h3, h4, h5, h6, blockquote, li) {
     white-space: pre-wrap;
     word-wrap: break-word;
 }
 
-be-editor-layout {
+.be-editor {
     font-family: sans-serif;
     line-height: 1.75;
     color: var(--color-gray-700);
 }
 
-be-editor-layout p {
+.be-editor p {
     margin-bottom: 1.25em;
 }
 
-be-editor-layout strong {
+.be-editor strong {
     font-weight: bold;
     color: var(--color-gray-900);
 }
 
-be-editor-layout a {
+.be-editor a {
     color: #0000EE;
 }
 
-be-editor-layout a strong {
+.be-editor a strong {
     color: #0000EE;
 }
 
-be-editor-layout em {
+.be-editor em {
     font-style: italic;
 }
 
-be-editor-layout :where(h1, h2, h3, h4, h5) {
+.be-editor :where(h1, h2, h3, h4, h5) {
     color: var(--color-gray-900);
 }
 
-be-editor-layout h1 {
+.be-editor h1 {
     font-size: 2em;
     line-height: calc(2 / 1.5);
     font-weight: 900;
@@ -114,7 +114,7 @@ be-editor-layout h1 {
     margin-bottom: 1rem;
 }
 
-be-editor-layout h2 {
+.be-editor h2 {
     margin-top: 2em;
     margin-bottom: 1em;
     font-size: 1.5em;
@@ -122,7 +122,7 @@ be-editor-layout h2 {
     line-height: 1.33333;
 }
 
-be-editor-layout h3 {
+.be-editor h3 {
     margin-top: 1.6em;
     margin-bottom: .6em;
     font-size: 1.25em;
@@ -130,7 +130,7 @@ be-editor-layout h3 {
     line-height: 1.6;
 }
 
-be-editor-layout h4 {
+.be-editor h4 {
     margin-top: 1.5em;
     margin-bottom: .5em;
     font-size: 1em;
@@ -138,7 +138,7 @@ be-editor-layout h4 {
     line-height: 1.5;
 }
 
-be-editor-layout h5 {
+.be-editor h5 {
     margin-top: 1.4em;
     margin-bottom: .4em;
     font-size: .8em;
@@ -146,7 +146,7 @@ be-editor-layout h5 {
     line-height: 1.5;
 }
 
-be-editor-layout blockquote {
+.be-editor blockquote {
     border-left: 4px solid var(--color-gray-200);
     margin-top: 1.6em;
     margin-bottom: 1.6em;
@@ -154,36 +154,36 @@ be-editor-layout blockquote {
     font-weight: 500;
 }
 
-be-editor-layout :where(ul, ol) {
+.be-editor :where(ul, ol) {
     padding-inline-start: 1.625em;
     margin-top: .75em;
     margin-bottom: .75em;
 }
 
-be-editor-layout :where(ul) {
+.be-editor :where(ul) {
     list-style-type: disc;
 }
 
-be-editor-layout :where(ol) {
+.be-editor :where(ol) {
     padding-inline-start: 1.75em;
     list-style-type: decimal;
     counter-reset: list-counter;
 }
 
-be-editor-layout :where(ul > li) {
+.be-editor :where(ul > li) {
     display: block;
     line-height: 1.46;
     padding-inline-start: .375em;
 }
 
-be-editor-layout :where(ol > li) {
+.be-editor :where(ol > li) {
     display: block;
     line-height: 1.75;
     padding-inline-start: .375em;
     counter-increment: list-counter;
 }
 
-be-editor-layout :where(ul > li)::before {
+.be-editor :where(ul > li)::before {
     content: "•";
     font-size: 1.2em;
     margin-left: -1.2em;
@@ -192,7 +192,7 @@ be-editor-layout :where(ul > li)::before {
     color: var(--color-gray-300);
 }
 
-be-editor-layout :where(ol > li)::before {
+.be-editor :where(ol > li)::before {
     content: counter(list-counter)".";
     font-size: 1em;
     margin-left: -1.5em;
@@ -201,11 +201,92 @@ be-editor-layout :where(ol > li)::before {
     color: var(--color-gray-500);
 }
 
-be-editor-layout :where(li) {
+.be-editor :where(li) {
     margin-top: .75em;
     margin-bottom: .75em;
 }
 
-be-editor-layout :where(img) {
-    max-width: 100%;
+.be-editor :where(img) {
+    max-width: 80%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.be-editor sup {
+    top: -.5em;
+}
+
+.be-editor sub {
+    bottom: -.25em;
+}
+
+.be-editor sub, sup {
+    letter-spacing: 0.05em;
+    font-size: 70%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+}
+
+
+.be-editor table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 0.75em;
+}
+
+.be-editor thead tr:first-child th:first-child {
+    border-top-left-radius: 0.75em;
+}
+
+.be-editor thead tr:first-child th:last-child {
+    border-top-right-radius: 0.75em;
+}
+
+.be-editor tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 0.75em;
+}
+
+.be-editor tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 0.75em;
+}
+
+.be-editor td,
+.be-editor th {
+    text-align: left;
+    border: 1px solid #fff;
+    padding: 0.375em 0.5em;
+    min-width: 2em;
+}
+
+.be-editor td,
+.be-editor th {
+    transition: background-color 0.15s ease;
+}
+
+/* An empty cell holds no br, so nothing builds a line box and the cell collapses to its padding.
+   An empty inline-block brings the line box back without a node the cursor could land on. */
+.be-editor td:empty::after,
+.be-editor th:empty::after {
+    content: "";
+    display: inline-block;
+}
+
+.be-editor td {
+    background-color: #fafbfc;
+}
+
+.be-editor th {
+    background-color: #f5f6f7;
+}
+
+.be-editor tr:hover td {
+    background-color: #f5f6f7;
+}
+
+.be-editor tr:hover th {
+    background-color: #f5f6f7;
 }

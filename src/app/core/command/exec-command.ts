@@ -29,6 +29,7 @@ import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
 import {Carrier} from "@/core/carrier/carrier";
 import {removeAndNormalize} from "@/core/normalize/normalize";
+import {anchorCursorBeforeSelfClose} from "@/core/normalize/util/normalize-util";
 import {getCell, getCellCursorPosition, insertTable, isTableEmpty, removeTable} from "@/core/command/util/table-util";
 import {isCursorInTable} from "@/core/cursor/util/cursor-util";
 
@@ -136,8 +137,9 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
             img.src = event.target?.result as string;
 
             // The cursor is read again once the file is: a table it has moved into by then refuses the
-            // image the same way the toolbar refuses it, since a cell has no line to give an image.
-            const cursorPosition = getCursorPosition();
+            // image the same way the toolbar refuses it, since a cell has no line to give an image. A cursor
+            // anchored on the br of an empty block would bury the image inside that br, where nothing shows it.
+            const cursorPosition = anchorCursorBeforeSelfClose(getCursorPosition());
             if (isRangeIn(contentEditable, cursorPosition) && !isCursorInTable(contentEditable, cursorPosition)) {
                 // The file is read once the command that asked for it is over, so the insert has to open a
                 // recording window of its own - without one history never sees the image and cannot undo it.

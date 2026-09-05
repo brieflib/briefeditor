@@ -1,4 +1,5 @@
 import {
+    anchorCursorBeforeSelfClose,
     collapseLeaves,
     ContainerAndCursorPosition,
     extractFirstLevel,
@@ -58,6 +59,7 @@ export function normalize(contentEditable: HTMLElement, ...cursorPosition: Curso
 }
 
 export function removeTags(contentEditable: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
+    cursorPosition = anchorCursorBeforeSelfClose(cursorPosition);
     const documentFragment: DocumentFragment = extractContents(cursorPosition);
     const removeTagFrom = document.createElement("DELETED");
     maybeAppendCarrier(documentFragment);
@@ -72,6 +74,7 @@ export function removeTags(contentEditable: HTMLElement, tags: string[], cursorP
 }
 
 export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, attributes?: Attributes) {
+    cursorPosition = anchorCursorBeforeSelfClose(cursorPosition);
     const documentFragment: DocumentFragment = extractContents(cursorPosition);
     maybeAppendCarrier(documentFragment);
     const firstText = getFirstText(documentFragment);

@@ -1,7 +1,7 @@
 import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPosition, getCursorPositionFrom, isCollapsed} from "@/core/shared/type/cursor-position";
 import {hasSelfCloseDescendant} from "@/core/shared/element-util";
 import {Carrier} from "@/core/carrier/carrier";
 
@@ -312,6 +312,27 @@ function anchorContainerOnLeaf(container: Node, offset: number): DroppedCursorPo
 
     // The offset points past the last child, so the cursor belongs at the end of the last leaf.
     return atLastLeaf(leafNodes, {container: container, offset: offset});
+}
+
+// A self-close leaf holds nothing, so a cursor anchored on the br standing in for an empty block has no
+// position of its own to insert at: an insert lands inside the br, where the serializer never shows it and
+// getLeafNodes never descends. It belongs where the br sits instead. The br is left alone - it is still the
+// block's placeholder while the inserted element carries no text of its own.
+export function anchorCursorBeforeSelfClose(cursor: CursorPosition): CursorPosition {
+    if (!isCollapsed(cursor)) {
+        return cursor;
+    }
+
+    return mapCursorPoints(cursor, beforeSelfClose);
+}
+
+function beforeSelfClose(container: Node, offset: number): DroppedCursorPoint {
+    const parent = container.parentNode;
+    if (!parent || !isSchemaContain(container, [Display.SelfClose])) {
+        return {container: container, offset: offset};
+    }
+
+    return {container: parent, offset: Array.prototype.indexOf.call(parent.childNodes, container)};
 }
 
 function isDroppedLeaf(rootElement: Node, leafNodes: Node[], container: Node) {
