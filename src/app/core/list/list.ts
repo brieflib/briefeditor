@@ -75,17 +75,18 @@ export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLEle
 }
 
 export function plusIndent(contentEditable: HTMLElement) {
+    const cursorPosition = getCursorPosition();
     if (!isPlusIndentEnabled(contentEditable, getSelectedBlock(contentEditable))) {
-        return;
+        return cursorPosition;
     }
 
-    const cursorPosition = getCursorPosition();
     const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
     const listsOrderNumbers = getListsOrderNumbers(contentEditable, cursorPosition);
     const lists = parseList(firstListWrapper);
     const plussedLists = plusOrderNumbers(lists, listsOrderNumbers);
     const listWrappers = convertList(plussedLists);
     appendBeforeAndDelete(firstListWrapper, listWrappers);
+    return cursorPosition;
 }
 
 export function isMinusIndentEnabled(contentEditable: HTMLElement) {

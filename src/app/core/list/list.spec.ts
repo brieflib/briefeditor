@@ -3,6 +3,7 @@ import {exitList, isMinusIndentEnabled, isPlusIndentEnabled, minusIndent, plusIn
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {pasteHtml} from "@/core/clipboard/util/clipboard-util";
+import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -131,8 +132,83 @@ describe("Is plus indent enabled", () => {
     });
 });
 
-describe("Plus indent", () => {
+describe("Plus indent run in browser", () => {
+    test("Plus indent of empty list should keep cursor position", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                        <li class="start"><br></li>
+                    </ol>
+                </li>
+            </ol>
+        `);
 
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = plusIndent(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ol>
+                                <li><br></li>                            
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const expectedContainer = wrapper.querySelector("ol li ol li ol li")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endOffset).toBe("".length);
+    });
+
+    test("Plus indent of last empty list should keep cursor position", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+                <li class="start"><br></li>                
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = plusIndent(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first
+                    <ol>
+                        <li><br></li>                       
+                    </ol>
+                </li>             
+            </ol>
+        `);
+
+        const expectedContainer = wrapper.querySelector("ol li:last-child ol li")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endOffset).toBe("".length);
+    });
+});
+
+describe("Plus indent", () => {
     test("Should indent two lists with another one at nesting level zero", () => {
         const wrapper = createWrapper(`
             <ol>
