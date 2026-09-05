@@ -1,7 +1,9 @@
-import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 import {getElement, getNextNode} from "@/core/shared/element-util";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
+
+const imageSelector = getOfType([Display.Image]).join(",");
 
 export function getListsOrderNumbers(contentEditable: HTMLElement, cursorPosition = getCursorPosition()): number[] {
     const rootListElement = getFirstSelectedRoot(contentEditable, cursorPosition);
@@ -71,6 +73,15 @@ export function getDirectChildren(li: Element, display: Display[]) {
     });
 
     return listWrappers;
+}
+
+// A nested list is the content of its own items, not of the item holding it, so it is left out when the
+// item is weighed. An image stands for content the way text does and keeps the item from counting as empty.
+export function isListEmpty(list: Element) {
+    const listWithoutListWrappers = list.cloneNode(true) as HTMLElement;
+    listWithoutListWrappers.querySelectorAll("ul, ol").forEach(listWrapper => listWrapper.remove());
+
+    return !listWithoutListWrappers.textContent && !listWithoutListWrappers.querySelector(imageSelector);
 }
 
 export function getFirstListWrapper(rootWrapper: HTMLElement) {

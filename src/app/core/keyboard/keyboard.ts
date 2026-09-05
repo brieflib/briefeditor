@@ -21,6 +21,7 @@ import {
 } from "@/core/shared/type/cursor-position";
 import {normalize} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {exitList, isCursorInEmptyList} from "@/core/list/list";
 
 export function handleKeyboardEvent(contentEditable: HTMLElement, event: KeyboardEvent, cursorPosition = getCursorPosition()): CursorPosition {
     if (isSpecialKey(event)) {
@@ -32,6 +33,14 @@ export function handleKeyboardEvent(contentEditable: HTMLElement, event: Keyboar
         // A cell is not a first level block, so a new line has nothing to split and a break would only
         // grow the row. Both are dropped and the cursor is left where it was.
         if (isCursorInTable(contentEditable, cursorPosition)) {
+            return cursorPosition;
+        }
+
+        // An empty item has nothing left to break, so a new line unwraps it instead of growing the list by
+        // one more empty item. A break belongs inside the item and keeps to its own behaviour.
+        if (!event.shiftKey && isCursorInEmptyList(contentEditable, cursorPosition)) {
+            cursorPosition = exitList(contentEditable, cursorPosition);
+            setCursorPosition(contentEditable, cursorPosition);
             return cursorPosition;
         }
 

@@ -5,12 +5,14 @@ import {
     countListWrapperParents,
     getDirectChildren, getFirstListWrapper,
     getListsOrderNumbers,
-    isChildrenContain
+    isChildrenContain,
+    isListEmpty
 } from "@/core/list/util/list-util";
-import {getNextNode} from "@/core/shared/element-util";
-import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {getFirstText, getNextNode} from "@/core/shared/element-util";
+import {CursorPosition, getCursorPosition, getCursorPositionFrom, isCollapsed} from "@/core/shared/type/cursor-position";
 import {
     convertList,
+    ListClass,
     minusOrderNumbers,
     normalizeLists,
     parseList,
@@ -142,4 +144,84 @@ export function maybeInsertLists(contentEditable: HTMLElement, cursorPosition: C
     appendBeforeAndDelete(firstRoot, listWrappers);
 
     return normalized.cursorPosition;
+}
+
+export function isCursorInEmptyList(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    if (!isCollapsed(cursorPosition)) {
+        return false;
+    }
+
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+    if (!block || !isSchemaContain(block, [Display.List])) {
+        return false;
+    }
+
+    return isListEmpty(block);
+}
+
+// An empty item has nothing left to break, so a new line unwraps it instead of growing the list by one more
+// empty item. A nested item is lifted one level, the way the minus indent button lifts it, and the items that
+// followed it stay on the level they were on, which turns them into its children. An item on the first level
+// has nowhere left to be lifted to and leaves the list instead.
+export function exitList(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const root = getFirstSelectedRoot(contentEditable, cursorPosition);
+    const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+
+    if (block && countListWrapperParents(contentEditable, block) > 1) {
+        return minusIndentList(root, cursorPosition, orderNumber);
+    }
+
+    const paragraph = document.createElement("p");
+    paragraph.appendChild(document.createElement("br"));
+    splitListAround(root, cursorPosition, paragraph, orderNumber);
+
+    const firstText = getFirstText(paragraph);
+    return getCursorPositionFrom(firstText, 0, firstText, 0);
+}
+
+// The item is lifted together with the items nested inside it: left where they are they would jump two levels
+// below the lifted item, and a list two levels apart is built as an item inside an item. The br standing in for
+// the content of the item is moved into the rebuilt list rather than made anew, so the cursor keeps to it.
+function minusIndentList(root: HTMLElement, cursorPosition: CursorPosition, orderNumber: number): CursorPosition {
+    const lists = parseList(root);
+    const minusLists = minusOrderNumbers(lists, withNested(lists, orderNumber));
+    appendBeforeAndDelete(root, convertList(minusLists));
+
+    return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset,
+        cursorPosition.endContainer, cursorPosition.endOffset);
+}
+
+// The items nested inside the one at the order number are the ones following it until the level it sits on is
+// reached again. Read before the levels are changed, as the minus writes them back in place.
+function withNested(lists: ListClass[], orderNumber: number): number[] {
+    const list = lists[orderNumber];
+    if (!list) {
+        return [orderNumber];
+    }
+
+    const orderNumbers = [orderNumber];
+    for (let i = orderNumber + 1; i < lists.length; i++) {
+        const nested = lists[i];
+        if (!nested || nested.nestedLevel <= list.nestedLevel) {
+            break;
+        }
+        orderNumbers.push(i);
+    }
+
+    return orderNumbers;
+}
+
+// A list wrapper holds nothing but its items, so a node cannot be placed inside one. The list is parsed into
+// its items instead, and the two sides of the split are converted back into a list of their own, with the node
+// between them. Both sides are normalized first, which rebases the nesting of a side that starts inside a
+// nested list and drops the item left empty by the split.
+export function splitListAround(root: HTMLElement, cursorPosition: CursorPosition, node: Node, splitIndex: number) {
+    const lists = parseList(root);
+    const fragment = new DocumentFragment();
+    fragment.append(convertList(normalizeLists(lists.slice(0, splitIndex), cursorPosition).lists));
+    fragment.append(node);
+    fragment.append(convertList(normalizeLists(lists.slice(splitIndex), cursorPosition).lists));
+
+    appendBeforeAndDelete(root, fragment);
 }

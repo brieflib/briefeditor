@@ -3,8 +3,8 @@ import {atEnd, atStart, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {appendBeforeAndDelete, getFirstListWrapper, getListsOrderNumbers} from "@/core/list/util/list-util";
-import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
+import {getFirstListWrapper, getListsOrderNumbers} from "@/core/list/util/list-util";
+import {splitListAround} from "@/core/list/list";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
 
 // The row and the column behind the deleted one slide into its place, so the cursor stays where the
@@ -89,10 +89,6 @@ export function insertBetweenBlocks(contentEditable: HTMLElement, root: HTMLElem
     }
 }
 
-// A list wrapper holds nothing but its items, so the node cannot be placed inside one. The list is
-// parsed into its items instead, and the two sides of the cursor are converted back into a list of their
-// own, with the node between them. Both sides are normalized first, which rebases the nesting of a side
-// that starts inside a nested list and drops the item left empty by the split.
 function insertIntoList(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition,
                         node: Node, isAtStart: boolean, isAtEnd: boolean) {
     // Read before the split: it inserts the second half after the item the cursor is in, which leaves
@@ -106,13 +102,7 @@ function insertIntoList(contentEditable: HTMLElement, root: HTMLElement, cursorP
         splitIndex = index + 1;
     }
 
-    const lists = parseList(root);
-    const fragment = new DocumentFragment();
-    fragment.append(convertList(normalizeLists(lists.slice(0, splitIndex), cursorPosition).lists));
-    fragment.append(node);
-    fragment.append(convertList(normalizeLists(lists.slice(splitIndex), cursorPosition).lists));
-
-    appendBeforeAndDelete(root, fragment);
+    splitListAround(root, cursorPosition, node, splitIndex);
 }
 
 function appendRow(section: HTMLTableSectionElement, columns: number, cellName: string) {

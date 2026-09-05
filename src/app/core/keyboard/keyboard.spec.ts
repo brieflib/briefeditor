@@ -611,3 +611,135 @@ describe("Typing and deleting characters", () => {
         expect(preventDefault).not.toHaveBeenCalled();
     });
 });
+describe("Enter in an empty list item", () => {
+    test("Enter in an empty item at the first level leaves the list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start"><br></li>
+                <li>first</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <p><br></p>
+            <ul>
+                <li>first</li>
+            </ul>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p br"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Enter in a nested empty item lifts it one level", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ul>
+                        <li class="start"><br></li>
+                        <li>first</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        const range = new Range();
+        range.setStart(br, 0);
+        range.setEnd(br, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li><br>
+                    <ul>
+                        <li>first</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(br);
+    });
+
+    test("Enter in an item holding an image only inserts an item, the image being content of its own", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><img src="image.png"></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".start") as Element, 0);
+        range.setEnd(wrapper.querySelector(".start") as Element, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start"><img src="image.png"></li>
+                <li><br></li>
+            </ul>
+        `);
+    });
+
+    test("Shift enter in an empty item keeps the item in the list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start"><br></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter", shiftKey: true}));
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li class="start"><br></li>
+            </ul>
+        `);
+    });
+
+    test("Enter over a selection emptying an item divides the item, the item not having been empty", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start"></li>
+                <li><br></li>
+            </ul>
+        `);
+    });
+});

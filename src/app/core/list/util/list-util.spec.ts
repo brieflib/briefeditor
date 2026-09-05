@@ -1,5 +1,5 @@
 import {createWrapper, getLastChild} from "@/core/shared/test-util";
-import {getListsOrderNumbers} from "@/core/list/util/list-util";
+import {getListsOrderNumbers, isListEmpty} from "@/core/list/util/list-util";
 import {getRange} from "@/core/shared/range-util";
 
 jest.mock("../../shared/range-util", () => ({
@@ -55,3 +55,36 @@ describe ("Calculate lists order numbers", () => {
         expect(orderNumbers[2]).toBe(3);
     });
 })
+describe("Is list empty", () => {
+    test("Should count an item holding a break only as empty", () => {
+        const wrapper = createWrapper(`<ul><li class="start"><br></li></ul>`);
+
+        expect(isListEmpty(wrapper.querySelector(".start") as Element)).toBe(true);
+    });
+
+    test("Should count an item holding text as not empty", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li></ul>`);
+
+        expect(isListEmpty(wrapper.querySelector(".start") as Element)).toBe(false);
+    });
+
+    test("Should count an item holding an image as not empty", () => {
+        const wrapper = createWrapper(`<ul><li class="start"><img src="image.png"></li></ul>`);
+
+        expect(isListEmpty(wrapper.querySelector(".start") as Element)).toBe(false);
+    });
+
+    test("Should count an item holding a nested list only as empty", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br>
+                    <ul>
+                        <li>zero</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        expect(isListEmpty(wrapper.querySelector(".start") as Element)).toBe(true);
+    });
+});

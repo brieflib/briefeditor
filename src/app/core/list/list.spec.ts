@@ -1,5 +1,6 @@
 import {getRange} from "@/core/shared/range-util";
-import {isMinusIndentEnabled, isPlusIndentEnabled, minusIndent, plusIndent} from "@/core/list/list";
+import {exitList, isMinusIndentEnabled, isPlusIndentEnabled, minusIndent, plusIndent} from "@/core/list/list";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 
 jest.mock("../shared/range-util", () => ({
@@ -1458,6 +1459,284 @@ describe("Minus indent", () => {
                         </li>
                         <li>third</li>
                     </ol>
+                </li>
+            </ul>
+        `);
+    });
+});
+describe("Exit list", () => {
+    test("Should replace the only empty item with a paragraph", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = exitList(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p><br></p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p br"));
+    });
+
+    test("Should leave the list when the empty item closes it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start"><br></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        exitList(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <p><br></p>
+        `);
+    });
+
+    test("Should leave the list when the empty item opens it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br></li>
+                <li>zero</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        exitList(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p><br></p>
+            <ul>
+                <li>zero</li>
+            </ul>
+        `);
+    });
+
+    test("Should split the list around the paragraph when the empty item is in the middle", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start"><br></li>
+                <li>first</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        exitList(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <p><br></p>
+            <ul>
+                <li>first</li>
+            </ul>
+        `);
+    });
+
+    test("Should start the items below the paragraph at the first level", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+                <li class="start"><br></li>
+                <li>second
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        exitList(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+            </ul>
+            <p><br></p>
+            <ul>
+                <li>second
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+    });
+
+    test("Should lift a nested empty item and keep the item following it a level below", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ul>
+                        <li class="start"><br></li>
+                        <li>first</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        const range = new Range();
+        range.setStart(br, 0);
+        range.setEnd(br, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = exitList(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li><br>
+                    <ul>
+                        <li>first</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(br);
+    });
+
+    test("Should lift the list nested in the empty item along with it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ul>
+                        <li class="start"><br>
+                            <ul>
+                                <li>first</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        exitList(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li><br>
+                    <ul>
+                        <li>first</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+    });
+
+    test("Should lift an empty item of the third level to the second one", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ol>
+                                <li class="start"><br></li>
+                            </ol>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        exitList(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                        <li><br></li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+    });
+
+    // The lifted item keeps the wrapper it was written in, so one of another type opens a wrapper of its own
+    // beside the level it lands on, the way the minus indent button leaves it.
+    test("Should keep the wrapper of a lifted empty item of another type", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ul>
+                                <li class="start"><br></li>
+                            </ul>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        exitList(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                    <ul>
+                        <li><br></li>
+                    </ul>
                 </li>
             </ul>
         `);
