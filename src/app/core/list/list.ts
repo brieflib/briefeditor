@@ -158,27 +158,42 @@ export function maybeInsertLists(contentEditable: HTMLElement, cursorPosition: C
 }
 
 // Backspace at the start of an item merges it into the item above it. An item above that stands empty holds no
-// content to merge into: it is the line the merge lands on, so it is dropped and the item takes the level it
+// content to merge into: the cursor is in the item that merges, and the empty one is the entry before it.
+export function mergeIntoPreviousEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
+
+    return mergeIntoEmptyItem(contentEditable, cursorPosition, orderNumber - 1);
+}
+
+// Delete at the end of an empty item joins the same two lines from the other side: the cursor is in the empty
+// item itself, and the item merging into it is the one written after it.
+export function mergeNextIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
+
+    return mergeIntoEmptyItem(contentEditable, cursorPosition, orderNumber);
+}
+
+// An empty item is the line the merge lands on, so it is dropped and the item merging into it takes the level it
 // stood on, keeping the wrapper it was written in the way a lifted item does. The rebuild below drops the empty
 // item on its own and lowers the levels it finds, but it never raises one, so an item merging into one nested
 // deeper is raised here first. The items nested inside it come along, or they would be left two levels below it.
-export function mergeIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+// Both the order numbers and the parse walk the wrappers in the order the items are written in, so the item
+// merging into the empty one is always the entry after it, whichever of the two the cursor is in.
+function mergeIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition, emptyOrderNumber: number): CursorPosition {
     const root = getFirstSelectedRoot(contentEditable, cursorPosition);
-    // Both the order numbers and the parse walk the wrappers in the order the items are written in, so the empty
-    // item above the one the cursor is in is the entry before it.
-    const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
     const lists = parseList(root);
-    const previous = lists[orderNumber - 1];
-    const current = lists[orderNumber];
-    if (previous && current) {
+    const empty = lists[emptyOrderNumber];
+    const merged = lists[emptyOrderNumber + 1];
+    if (empty && merged) {
         // Read before the levels are changed, as withNested reads them to tell the nested items apart.
-        const nested = withNested(lists, orderNumber);
-        shiftOrderNumbers(lists, nested, previous.nestedLevel - current.nestedLevel);
+        const nested = withNested(lists, emptyOrderNumber + 1);
+        shiftOrderNumbers(lists, nested, empty.nestedLevel - merged.nestedLevel);
     }
 
     // The parse moves the content of every item into a fragment of its own, the cursor's text node with it, and
     // the convert moves it back into the rebuilt item, so the cursor is left pointing at a node that is still
-    // there.
+    // there. A cursor on the br of the empty item is the one node thrown away, and normalizeLists carries it
+    // over to the item that took its line.
     const normalized = normalizeLists(lists, cursorPosition);
     appendBeforeAndDelete(root, convertList(normalized.lists));
 

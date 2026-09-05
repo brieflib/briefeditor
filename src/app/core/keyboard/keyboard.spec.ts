@@ -537,6 +537,141 @@ describe("Typing and deleting characters", () => {
         expect(cursorPosition.startOffset).toBe("".length);
     });
 
+    test("Should merge lists of the same types when pressing delete before nested br", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start"><br>
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+                <li>second</li>
+            </ol>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, "".length, "".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
+        handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+    });
+
+    test("Should merge lists of the same types when pressing backspace after nested br", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li><br>
+                    <ol>
+                        <li class="start">first</li>
+                    </ol>
+                </li>
+                <li>second</li>
+            </ol>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "".length, "".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+    });
+
+    test("Should merge lists of the same types when pressing delete before nested br 2", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li class="start"><br></li>
+                    </ol>
+                </li>
+                <li>first</li>
+            </ol>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, "".length, "".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
+        handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+    });
+
+    test("Delete over the text of an item holding a nested list leaves the placeholder above the list", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start">first
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "".length, "first".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
+        handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li class="start"><br>
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+    });
+
+    test("Backspace over the text of an item holding a nested list leaves the placeholder above the list", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start">first
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "".length, "first".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li class="start"><br>
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+    });
+
     test("Press backspace when selection is inside one paragraph", () => {
         const wrapper = createWrapper(`
             <p class="start">zerofirst</p>

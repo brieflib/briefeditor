@@ -20,9 +20,10 @@ import {
 } from "@/core/shared/element-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {normalize} from "@/core/normalize/normalize";
+import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {maybeInsertLists, mergeIntoEmptyItem} from "@/core/list/list";
-import {countListWrapperParents, getDirectChildren, isListEmpty} from "@/core/list/util/list-util";
+import {maybeInsertLists, mergeIntoPreviousEmptyItem, mergeNextIntoEmptyItem} from "@/core/list/list";
+import {getDirectChildren, isListEmpty} from "@/core/list/util/list-util";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
@@ -30,12 +31,12 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
         return cursorPosition;
     }
 
-    // The item above may be nested deeper than the one the cursor is in, and an empty one there is the line the
-    // merge lands on rather than an item to merge into. An empty item on the same level or a shallower one is
-    // dropped by the list rebuild the merge below ends with, which is left to do it.
+    // An empty item above is the line the merge lands on rather than an item to merge into: it holds no content
+    // to take over, and the item merging into it keeps the wrapper it was written in, which the merge below
+    // would trade for the wrapper of the item above.
     const previousBlock = getElement(contentEditable, getLastText(previousNode), [Display.FirstLevel, Display.List]);
     if (isMergedIntoEmptyItem(contentEditable, cursorPosition, previousBlock)) {
-        return mergeIntoEmptyItem(contentEditable, cursorPosition);
+        return mergeIntoPreviousEmptyItem(contentEditable, cursorPosition);
     }
 
     const lastText = getLastNonEmptyText(previousNode);
@@ -56,18 +57,30 @@ function isMergedIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: Cur
     }
 
     const block = getSelectedBlock(contentEditable, cursorPosition)[0];
-    if (!block || !isSchemaContain(block, [Display.List])) {
-        return false;
-    }
 
-    return countListWrapperParents(contentEditable, previousBlock) > countListWrapperParents(contentEditable, block);
+    return !!block && isSchemaContain(block, [Display.List]);
 }
 
 export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+    // An empty item holds no text of its own, so the browser anchors the cursor on the item itself. The item
+    // comes before everything it holds, so the node following it is the item after it and the list nested inside
+    // it is left in between - where the merge below reads it as content selected between the two and deletes it.
+    // Anchored on the br standing in for the line instead, the cursor sits after the item's own tag and the
+    // nested list is the node that follows.
+    cursorPosition = anchorCursorOnLeaf(cursorPosition);
     const nextNode = getNextNode(contentEditable, cursorPosition.endContainer);
     if (!nextNode) {
         return cursorPosition;
     }
+
+    // An empty item the cursor is in is the line the item below it is pulled onto, which is the merge a
+    // backspace does from the other side. The item holds no content to merge into and its own tag is dropped,
+    // so the merge below - which moves content into the item and keeps it - has nothing to work with: it leaves
+    // the emptied wrapper of a nested list standing and the item merging in on the level it came from.
+    if (isEmptyItemMergedInto(contentEditable, cursorPosition, nextNode)) {
+        return mergeNextIntoEmptyItem(contentEditable, cursorPosition);
+    }
+
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
     const isRemoved = removeEmptyBlock(contentEditable, nextNode);
     const nextNodeFirstChild = getFirstText(nextNode);
@@ -87,6 +100,19 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
 
     cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, nextNodeFirstChild, 0);
     return mergeBlocks(contentEditable, cursorPosition, "");
+}
+
+function isEmptyItemMergedInto(contentEditable: HTMLElement, cursorPosition: CursorPosition, nextNode: Node) {
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+    if (!block || !isSchemaContain(block, [Display.List]) || !isListEmpty(block)) {
+        return false;
+    }
+
+    // The node following the cursor may be the list nested inside the item itself, whose first item is the item
+    // written below it, so the block it belongs to is what says whether an item follows at all.
+    const nextBlock = getElement(contentEditable, getFirstText(nextNode), [Display.FirstLevel, Display.List]);
+
+    return isSchemaContain(nextBlock, [Display.List]);
 }
 
 export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = ""): CursorPosition {
@@ -316,15 +342,39 @@ export function addBrForEmptyBlockAndNormalize(contentEditable: HTMLElement, cur
         return cursorPosition;
     }
 
-    if (!block.textContent) {
-        if (!hasSelfCloseDescendant(block)) {
-            block.appendChild(document.createElement("br"));
+    // A nested list is the content of its own items, not of the item holding it, so it is left out both when
+    // the line of the block is weighed and when the line is read for a placeholder already standing on it.
+    const line = withoutNestedLists(block);
+    if (!line.textContent) {
+        if (!hasSelfCloseDescendant(line)) {
+            addPlaceholder(block);
         }
         const firstText = getFirstText(block);
         return getCursorPositionFrom(firstText, 0, firstText, 0);
     }
 
     return normalize(contentEditable, cursorPosition);
+}
+
+function withoutNestedLists(block: HTMLElement) {
+    const line = block.cloneNode(true) as HTMLElement;
+    getDirectChildren(line, [Display.ListWrapper]).forEach(listWrapper => listWrapper.remove());
+
+    return line;
+}
+
+// The placeholder stands in for the line the block has lost, and the line is written above the list nested
+// under it. Appended after everything the block holds it would stand below that list instead, showing as a
+// blank line of its own under items it is meant to head.
+function addPlaceholder(block: HTMLElement) {
+    const br = document.createElement("br");
+    const nestedListWrapper = getDirectChildren(block, [Display.ListWrapper])[0];
+    if (nestedListWrapper) {
+        nestedListWrapper.before(br);
+        return;
+    }
+
+    block.appendChild(br);
 }
 
 enum Direction {
