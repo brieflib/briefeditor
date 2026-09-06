@@ -602,10 +602,11 @@ describe("Change first level", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>zero</li>
-                <ol>
-                    <li>first</li>
-                </ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
             </ul>
         `);
     });

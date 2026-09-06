@@ -11,6 +11,7 @@ import {
     setCursorPositionEndAsLastTextOfElement, setCursorPositionStartAsFirstTextOfElement
 } from "@/core/shared/type/cursor-position";
 import {Carrier} from "@/core/carrier/carrier";
+import {maybeInsertLists} from "@/core/list/list";
 
 export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Attributes): CursorPosition {
     const cursorPosition = getCursorPosition();
@@ -108,7 +109,14 @@ export function changeBlock(contentEditable: HTMLElement, replaceTo: string[],
         const replaceFrom = getOfType(displays).filter(item => !replaceTo.includes(item));
         replaceTags(contentEditable, block, replaceFrom, replaceTo, isList);
     }
-    mergeLists(contentEditable, cursorPosition);
+    // A list built out of blocks stands beside whatever list was already written there. Parsing the run and
+    // rebuilding it is what joins the two: convertList opens one wrapper for each type a run of items is
+    // written in, so two lists of one type come back as one. Anything else is merged as it always was.
+    if (isList) {
+        maybeInsertLists(contentEditable, cursorPosition);
+    } else {
+        mergeLists(contentEditable, cursorPosition);
+    }
 
     return cursorPosition;
 }

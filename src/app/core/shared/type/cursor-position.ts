@@ -1,6 +1,13 @@
 import {getRange} from "@/core/shared/range-util";
 import {getFirstText, getLastText} from "@/core/shared/element-util";
 import {Command} from "@/core/command/type/command";
+import {
+    anchorCursorOnLeaf,
+    collapseLeaves,
+    getLeafNodes,
+    remapDroppedLeafCursor,
+    setLeafParents
+} from "@/core/normalize/util/normalize-util";
 
 export interface CursorPosition {
     readonly startContainer: Node,
@@ -85,6 +92,75 @@ export function setCursorPositionStartAsFirstTextOfElement(cursorPosition: Curso
 
 export function extractContents(cursorPosition: CursorPosition): DocumentFragment {
     return cursorPosition.range.extractContents();
+}
+
+// Everything written after the cursor, lifted out of the container. Both sides are written back from the
+// leaves they hold, each leaf carrying the tags standing over it, so a tag open at the cursor is closed on
+// the one side and opened again on the other. The container keeps what was written before the cursor and
+// what follows is handed back. The container is an element on the page or the fragment an item's content
+// was parsed into; either one holds the leaves the split reads.
+export function splitAtCursor(container: HTMLElement | DocumentFragment, cursorPosition: CursorPosition): DocumentFragment {
+    const leafNodes = getLeafNodes(container);
+    // The cursor has to name a leaf for the split to have a place to fall. The browser leaves it on the
+    // block itself where a block holds no text of its own, and a selection deleted just before the split
+    // leaves it on a text node emptied in place, which is no longer a leaf at all - the same two cursors
+    // every rebuild here remaps before it reads them.
+    const splitIndex = getSplitIndex(leafNodes,
+        remapDroppedLeafCursor(container, leafNodes, anchorCursorOnLeaf(cursorPosition)));
+    if (splitIndex < 0) {
+        return new DocumentFragment();
+    }
+
+    // Both sides are read before either is written back: collapsing one moves its leaves out of the
+    // container the other is still standing in.
+    const head = collapseToFragment(container, leafNodes.slice(0, splitIndex), cursorPosition);
+    const tail = collapseToFragment(container, leafNodes.slice(splitIndex), cursorPosition);
+    container.replaceChildren(head);
+
+    return tail;
+}
+
+// The leaf the tail opens on. The cursor standing in the middle of a leaf divides it, the writer's own node
+// keeping what was written before the cursor and a node of its own taking what follows, so the two sides
+// never share one. Resting at either end of a leaf it divides the leaves where it stands, and a leaf holding
+// no text of its own to stand in - the br standing in for a line - goes whole to the side the cursor leaves
+// it on. A cursor outside the container names no leaf here and there is nothing to divide.
+function getSplitIndex(leafNodes: Node[], cursorPosition: CursorPosition): number {
+    const index = leafNodes.indexOf(cursorPosition.startContainer);
+    const leafNode = leafNodes[index];
+    if (!leafNode) {
+        return -1;
+    }
+
+    if (leafNode.nodeType !== Node.TEXT_NODE) {
+        return cursorPosition.startOffset === 0 ? index : index + 1;
+    }
+
+    const text = leafNode as Text;
+    if (cursorPosition.startOffset === 0) {
+        return index;
+    }
+    if (cursorPosition.startOffset >= text.length) {
+        return index + 1;
+    }
+
+    leafNodes.splice(index + 1, 0, text.splitText(cursorPosition.startOffset));
+
+    return index + 1;
+}
+
+// The leaves of one side, written back as the markup they were written in. The collapse hands them back
+// inside a wrapper of its own, the way it does for every rebuild, and only what it holds is wanted here.
+function collapseToFragment(container: Node, leafNodes: Node[], cursorPosition: CursorPosition): DocumentFragment {
+    const leaves = leafNodes.map(leafNode => setLeafParents(container, leafNode));
+    const collapsed = collapseLeaves(leaves, cursorPosition).container.firstChild;
+
+    const fragment = new DocumentFragment();
+    if (collapsed) {
+        fragment.append(...Array.from(collapsed.childNodes));
+    }
+
+    return fragment;
 }
 
 export function cloneContents(cursorPosition: CursorPosition): DocumentFragment {

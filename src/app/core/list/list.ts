@@ -3,18 +3,25 @@ import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     appendBeforeAndDelete,
     countListWrapperParents,
-    getDirectChildren, getFirstListWrapper,
+    getFirstListWrapper,
     getListsOrderNumbers,
-    isChildrenContain,
     isListEmpty
 } from "@/core/list/util/list-util";
-import {getFirstText, getNextNode} from "@/core/shared/element-util";
+import {getFirstText} from "@/core/shared/element-util";
+import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
-import {CursorPosition, getCursorPosition, getCursorPositionFrom, isCollapsed} from "@/core/shared/type/cursor-position";
+import {
+    CursorPosition,
+    getCursorPosition,
+    getCursorPositionFrom,
+    isCollapsed,
+    splitAtCursor
+} from "@/core/shared/type/cursor-position";
 import {
     convertList,
     isListClassEmpty,
     ListClass,
+    ListWrapper,
     minusOrderNumbers,
     normalizeLists,
     parseList,
@@ -22,59 +29,117 @@ import {
     shiftOrderNumbers
 } from "@/core/list/type/list-class";
 
-export function isNextListNested(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
-    const lastList = lists[lists.length - 1];
-    if (!lastList) {
+// A list is written five wrappers deep at the most, which is one wrapper for the level an item stands on
+// and one for each level above it.
+const deepestNestedLevel = 4;
+
+// The question every list button asks is about the item the selection ends on: whether anything is written
+// below it deeper than it stands. A parsed list answers it by level alone - the entry after the item either
+// opens a list of its own, which is a level deeper, or is one more line of the list the item is already in.
+export function isNextListNested(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+    const blocks = getSelectedBlock(contentEditable, cursorPosition);
+    const lastBlock = blocks[blocks.length - 1];
+    if (!lastBlock || !isSchemaContain(lastBlock, [Display.List])) {
         return false;
-    }
-    if (!isSchemaContain(lastList, [Display.List])) {
-        return false;
-    }
-    const listWrapperChildren = getDirectChildren(lastList, [Display.ListWrapper]);
-    if (listWrapperChildren.length) {
-        return true;
-    }
-    const maybeNextList = getNextNode(contentEditable, lastList);
-    if (!maybeNextList) {
-        return false;
-    }
-    const nestedLevel = countListWrapperParents(contentEditable, maybeNextList as HTMLElement);
-    if (isSchemaContain(maybeNextList, [Display.List])) {
-        return nestedLevel !== 1;
-    }
-    if (isSchemaContain(maybeNextList, [Display.ListWrapper])) {
-        return nestedLevel !== 0;
     }
 
-    return false;
+    // The selection may open on an item other than the one it ends on, and only the last one is asked
+    // about, so the parse is anchored on that item rather than on the selection.
+    const parsed = parseSelectedList(contentEditable, cursorPositionOf(lastBlock));
+    if (!parsed) {
+        return false;
+    }
+
+    const orderNumber = parsed.orderNumbers[0] ?? 0;
+    const list = parsed.lists[orderNumber];
+    const next = parsed.lists[orderNumber + 1];
+
+    return !!list && !!next && next.nestedLevel > list.nestedLevel;
 }
 
-export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLElement[] = getSelectedBlock(contentEditable)) {
-    const firstList = lists[0];
-    if (!firstList) {
+// An item is indented by being written into a list of the item above it, so it needs a line above it to be
+// written under - one standing on its own level or deeper, since an item nested deeper still holds a list
+// of that level open. A list only goes so deep, and no selected item may already stand at the bottom of it.
+export function isPlusIndentEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+    const parsed = parseSelectedList(contentEditable, cursorPosition);
+    if (!parsed) {
         return false;
     }
 
-    const previousListWrapper = firstList.parentElement?.previousElementSibling;
-    if (previousListWrapper && previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper])) {
-        return true;
-    }
-
-    if (!firstList.previousElementSibling || !isSchemaContain(firstList.previousElementSibling, [Display.List, Display.ListWrapper])) {
+    const {lists, orderNumbers} = parsed;
+    const first = orderNumbers[0] ?? 0;
+    const list = lists[first];
+    const previous = lists[first - 1];
+    if (!list || !previous || previous.nestedLevel < list.nestedLevel) {
         return false;
     }
 
-    for (const list of lists) {
-        if (!isSchemaContain(list, [Display.List])) {
+    return orderNumbers.every(orderNumber => (lists[orderNumber]?.nestedLevel ?? deepestNestedLevel) < deepestNestedLevel);
+}
+
+// An item is lifted out of the list it stands in, so it needs one to be lifted out of. The list nested
+// under it comes along with it, which only works when its own items are lifted too: left where they are
+// they would jump two levels below the item they hang from, and a list two levels apart cannot be written.
+export function isMinusIndentEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+    const parsed = parseSelectedList(contentEditable, cursorPosition);
+    if (!parsed) {
+        return false;
+    }
+
+    const {lists, orderNumbers} = parsed;
+    for (const orderNumber of orderNumbers) {
+        const list = lists[orderNumber];
+        if (!list || list.nestedLevel === 0) {
             return false;
         }
 
-        if (countListWrapperParents(contentEditable, list) >= 5) {
+        const nested = lists[orderNumber + 1];
+        if (nested && nested.nestedLevel > list.nestedLevel && !orderNumbers.includes(orderNumber + 1)) {
             return false;
         }
     }
 
     return true;
+}
+
+// A selection reaching outside the list holds a block that is not an item, and there is nothing to parse
+// there. Inside one, both the parse and the order numbers walk the wrappers in the order the items are
+// written in, so an order number indexes the parsed list directly.
+function parseSelectedList(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const blocks = getSelectedBlock(contentEditable, cursorPosition);
+    if (!blocks.length || blocks.some(block => !isSchemaContain(block, [Display.List]))) {
+        return undefined;
+    }
+
+    // The order numbers are read off the document before anything is parsed, since the parse below leaves
+    // the writer's own items behind.
+    const orderNumbers = getListsOrderNumbers(contentEditable, cursorPosition);
+    const lists = parseList(copyListRun(getFirstSelectedRoot(contentEditable, cursorPosition)));
+
+    return {lists, orderNumbers};
+}
+
+// The parse moves the content of every item into a fragment of its own, which is what the rebuild that
+// follows it puts back. A question about the list rebuilds nothing, so it is asked of a copy - the writer's
+// own items are left holding the lines they were written with. A list stands as a run of wrappers side by
+// side and both the parse and the order numbers read the whole run, so the copy holds all of it: a single
+// wrapper would leave out the items written before it and shift every order number.
+function copyListRun(root: HTMLElement): HTMLElement {
+    const container = document.createElement("div");
+    let current: Element | null = getFirstListWrapper(root);
+    while (current && isSchemaContain(current, [Display.ListWrapper])) {
+        container.appendChild(current.cloneNode(true));
+        current = current.nextElementSibling;
+    }
+
+    return (container.firstElementChild ?? container) as HTMLElement;
+}
+
+// The item on its own, named to the reads above the way a cursor resting on it would name it.
+function cursorPositionOf(block: HTMLElement): CursorPosition {
+    const firstText = getFirstText(block);
+
+    return getCursorPositionFrom(firstText, 0, firstText, 0, false);
 }
 
 // The list is rebuilt from the content of its items, so a cursor anchored on an item is left pointing at a
@@ -83,7 +148,7 @@ export function isPlusIndentEnabled(contentEditable: HTMLElement, lists: HTMLEle
 // caller restores the position handed back to it.
 export function plusIndent(contentEditable: HTMLElement): CursorPosition {
     const cursorPosition = anchorCursorOnLeaf(getCursorPosition());
-    if (!isPlusIndentEnabled(contentEditable, getSelectedBlock(contentEditable, cursorPosition))) {
+    if (!isPlusIndentEnabled(contentEditable, cursorPosition)) {
         return cursorPosition;
     }
 
@@ -96,40 +161,11 @@ export function plusIndent(contentEditable: HTMLElement): CursorPosition {
     return cursorPosition;
 }
 
-export function isMinusIndentEnabled(contentEditable: HTMLElement) {
-    const lists = getSelectedBlock(contentEditable);
-    for (const list of lists) {
-        if (!list) {
-            return false;
-        }
-
-        if (!isSchemaContain(list, [Display.List])) {
-            return false;
-        }
-
-        const listNesting = countListWrapperParents(contentEditable, list);
-        if (listNesting === 1) {
-            return false;
-        }
-
-        const nextList = list.querySelectorAll("ul, ol")[0];
-        if (!nextList) {
-            continue;
-        }
-
-        if (!isChildrenContain(nextList.children, lists) && isSchemaContain(nextList, [Display.ListWrapper])) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 // The cursor is anchored on a leaf for the same reason as the plus indent above, which rebuilds the list the
 // same way.
 export function minusIndent(contentEditable: HTMLElement): CursorPosition {
     const cursorPosition = anchorCursorOnLeaf(getCursorPosition());
-    if (!isMinusIndentEnabled(contentEditable)) {
+    if (!isMinusIndentEnabled(contentEditable, cursorPosition)) {
         return cursorPosition;
     }
 
@@ -154,6 +190,36 @@ export function maybeInsertLists(contentEditable: HTMLElement, cursorPosition: C
     const normalized = normalizeLists(lists, cursorPosition);
     const listWrappers = convertList(normalized.lists);
     appendBeforeAndDelete(firstRoot, listWrappers);
+
+    return normalized.cursorPosition;
+}
+
+// A list is written as one type for all the lines standing in it, so switching a list to the other type is
+// a change to the items rather than to the markup around them: the lines the writer named take the type the
+// way an indented line takes a level, and the rebuild opens and closes the wrappers that follow from it. A
+// line changing type inside a list of the other one divides it, the wrapper it was written in closing above
+// the line and opening again below it, which is what convertList makes of two levels that no longer agree.
+export function changeListWrapper(contentEditable: HTMLElement, tagName: string): CursorPosition {
+    const cursorPosition = anchorCursorOnLeaf(getCursorPosition());
+    const root = getFirstSelectedRoot(contentEditable, cursorPosition);
+    if (!isSchemaContain(getFirstListWrapper(root), [Display.ListWrapper])) {
+        return cursorPosition;
+    }
+
+    // Read before the parse, which moves the content of every item into a fragment of its own and leaves
+    // the cursor the order numbers are counted from with no item to be counted in.
+    const orderNumbers = getListsOrderNumbers(contentEditable, cursorPosition);
+    const listWrapper = tagName === ListWrapper.OL ? ListWrapper.OL : ListWrapper.UL;
+    const lists = parseList(root);
+    for (const orderNumber of orderNumbers) {
+        const list = lists[orderNumber];
+        if (list) {
+            list.listWrapper = listWrapper;
+        }
+    }
+
+    const normalized = normalizeLists(lists, cursorPosition);
+    appendBeforeAndDelete(root, convertList(normalized.lists));
 
     return normalized.cursorPosition;
 }
@@ -236,6 +302,74 @@ export function removeEmptyItem(contentEditable: HTMLElement, cursorPosition: Cu
     appendBeforeAndDelete(root, convertList(normalized.lists));
 
     return normalized.cursorPosition;
+}
+
+// A new line inside an item writes one more item beside it. The item is written into the parsed list
+// rather than built beside the one on screen: an item written at the entry after the current one stands on
+// the same level, and the items nested under it - each an entry of its own, a level deeper - are left
+// following it, so the list nested under the line the writer broke comes along to the item that now holds
+// the end of that line. That is what the rebuild reads; nothing has to be moved by hand.
+export function splitItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const isAtEnd = isCursorAtEndOfBlock(contentEditable, cursorPosition);
+    const isAtStart = isCursorAtStartOfBlock(contentEditable, cursorPosition);
+
+    const root = getFirstSelectedRoot(contentEditable, cursorPosition);
+    const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
+    const lists = parseList(root);
+    const current = lists[orderNumber];
+    if (!current) {
+        return cursorPosition;
+    }
+
+    // An item holding nothing but an image stands at its end and at its start at once, having no text for
+    // the cursor to stand anywhere in. A line is broken below the writer there, the way it is at the end of
+    // any other line, so the end is read first.
+    const isBefore = isAtStart && !isAtEnd;
+    // A line broken at its end or its start opens a blank one, which is the br standing in for the content
+    // it has none of. Broken in the middle it hands over everything written after the cursor.
+    const content = isAtEnd || isAtStart ? placeholderContent() : splitAtCursor(current.listContent, cursorPosition);
+    // Read before the rebuild: the convert moves the content out of the fragment and into the item it
+    // builds, which leaves the fragment empty but every node in it still standing.
+    const firstNode = content.firstChild;
+    lists.splice(isBefore ? orderNumber : orderNumber + 1, 0, newList(current, content));
+    // A selection deleted just before the break leaves the item holding nothing at all, which the rebuild
+    // reads as an item standing for no line and throws away. It is the line the writer is on, so it is
+    // given the br that stands in for the content it no longer has, as any emptied line is.
+    keepLine(current);
+
+    const normalized = normalizeLists(lists, cursorPosition);
+    appendBeforeAndDelete(root, convertList(normalized.lists));
+
+    // The writer goes on writing where the line they broke goes on: at the start of the item that took it
+    // over. A blank line opened above them leaves them on the line they were already writing.
+    if (isBefore || !firstNode) {
+        return normalized.cursorPosition;
+    }
+
+    const firstText = getFirstText(firstNode);
+    return getCursorPositionFrom(firstText, 0, firstText, 0);
+}
+
+function newList(current: ListClass, listContent: DocumentFragment): ListClass {
+    const list = new ListClass();
+    list.nestedLevel = current.nestedLevel;
+    list.listWrapper = current.listWrapper;
+    list.listContent = listContent;
+
+    return list;
+}
+
+function keepLine(list: ListClass) {
+    if (!list.listContent.textContent && !list.listContent.firstElementChild) {
+        list.listContent.appendChild(document.createElement("br"));
+    }
+}
+
+function placeholderContent(): DocumentFragment {
+    const content = new DocumentFragment();
+    content.appendChild(document.createElement("br"));
+
+    return content;
 }
 
 export function isCursorInEmptyList(contentEditable: HTMLElement, cursorPosition: CursorPosition) {

@@ -1,5 +1,12 @@
 import {getRange} from "@/core/shared/range-util";
-import {exitList, isMinusIndentEnabled, isPlusIndentEnabled, minusIndent, plusIndent} from "@/core/list/list";
+import {
+    changeListWrapper,
+    exitList,
+    isMinusIndentEnabled,
+    isPlusIndentEnabled,
+    minusIndent,
+    plusIndent
+} from "@/core/list/list";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {pasteHtml} from "@/core/clipboard/util/clipboard-util";
@@ -1873,8 +1880,7 @@ describe("List side events", () => {
         range.setEnd(getFirstChild(wrapper, ".start"),  "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<ol><li>first</li><li>second</li></ol>`, cursorPosition);
+        const cursorPosition = pasteHtml(wrapper, `<ol><li>first</li><li>second</li></ol>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1886,8 +1892,9 @@ describe("List side events", () => {
             </ol>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ol li:last-child"));
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ol li:last-child"));
+        const lastPasted = wrapper.querySelector("ol li:last-child")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(lastPasted);
+        expect(cursorPosition.endContainer).toBe(lastPasted);
         expect(cursorPosition.endOffset).toBe("second".length);
         expect(cursorPosition.startOffset).toBe("second".length);
     });
@@ -1949,4 +1956,151 @@ describe("List side events", () => {
     });
 
 
+});
+
+describe("Change list wrapper", () => {
+    test("Should divide the wrapper around the lines that changed type", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li class="start">first</li>
+                        <li class="end">second</li>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        changeListWrapper(wrapper, "UL");
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ul>
+                        <li>first</li>
+                        <li>second</li>
+                    </ul>
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+    });
+
+    test("Should keep the nested list when the list holding it changes type", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+                <li class="end">first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        changeListWrapper(wrapper, "OL");
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+    });
+
+    test("Should join the list to the one beside it when both are written in the type asked for", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+            </ol>
+            <ul>
+                <li class="start">first</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        changeListWrapper(wrapper, "OL");
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+            </ol>
+        `);
+    });
+});
+
+describe("Pasting a list into a list", () => {
+    test("Pasting a list of the same type joins it to the list it is dropped in", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li>first</li>
+                <li>second</li>
+            </ul>
+        `);
+    });
+
+    test("Pasting a list in the middle of a line divides the line around it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+                <li>tail</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ol><li>first</li></ol>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>ze</li>
+            </ul>
+            <ol>
+                <li>first</li>
+            </ol>
+            <ul>
+                <li>ro</li>
+                <li>tail</li>
+            </ul>
+        `);
+    });
 });

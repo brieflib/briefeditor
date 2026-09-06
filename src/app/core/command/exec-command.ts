@@ -13,7 +13,7 @@ import {
     getSelectedSharedTags,
     selectElement
 } from "@/core/selection/selection";
-import {minusIndent, plusIndent} from "@/core/list/list";
+import {changeListWrapper, minusIndent, plusIndent} from "@/core/list/list";
 import {ensureParagraph, getElementByTagName, insertBetweenBlocks} from "@/core/shared/element-util";
 import {
     cloneRange,
@@ -236,8 +236,10 @@ function applyFirstLevelCommand(contentEditable: HTMLElement, command: Command):
 
 function applyListCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     const tagName = (command.tag as string).toUpperCase();
+    // The selection already stands in a list and is asked for the other type, which is a change to the
+    // list itself rather than to the blocks the selection holds.
     if (isListWrapper(contentEditable) && !getSelectedSharedTags(contentEditable).includes(tagName)) {
-        return changeBlock(contentEditable, [tagName]);
+        return changeListWrapper(contentEditable, tagName);
     }
 
     const blockElements = getSelectedBlock(contentEditable);

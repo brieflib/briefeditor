@@ -32,7 +32,7 @@ function isEmptyCell(element: Node) {
     return isSchemaContain(element, [Display.Cell]) && !element.textContent;
 }
 
-export function setLeafParents(findTill: HTMLElement, leafNode: Node, leaf: Leaf = new Leaf()) {
+export function setLeafParents(findTill: Node, leafNode: Node, leaf: Leaf = new Leaf()) {
     const parents: HTMLElement[] = [];
     let parent = leafNode.parentElement;
 

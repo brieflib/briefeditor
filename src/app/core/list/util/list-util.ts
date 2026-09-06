@@ -53,16 +53,6 @@ export function countListWrapperParents(findTill: HTMLElement, element: Element)
     return count;
 }
 
-export function isChildrenContain(children: HTMLCollection, containIn: HTMLElement[]) {
-    for (const child of children) {
-        if (containIn.includes(child as HTMLElement)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 export function getDirectChildren(li: Element, display: Display[]) {
     const listWrappers: Element[] = [];
 
@@ -75,13 +65,22 @@ export function getDirectChildren(li: Element, display: Display[]) {
     return listWrappers;
 }
 
-// A nested list is the content of its own items, not of the item holding it, so it is left out when the
-// item is weighed. An image stands for content the way text does and keeps the item from counting as empty.
-export function isListEmpty(list: Element) {
-    const listWithoutListWrappers = list.cloneNode(true) as HTMLElement;
-    listWithoutListWrappers.querySelectorAll("ul, ol").forEach(listWrapper => listWrapper.remove());
+// The line an item was written as. A nested list is the content of its own items, not of the item holding
+// it, so it is left out of the line the item stands for - which is the content parseList reads into a
+// ListClass. Everything that weighs an item, or writes onto its line, asks for the line here rather than
+// stripping the wrappers again on its own.
+export function getLine(block: Element): HTMLElement {
+    const line = block.cloneNode(true) as HTMLElement;
+    getDirectChildren(line, [Display.ListWrapper]).forEach(listWrapper => listWrapper.remove());
 
-    return !listWithoutListWrappers.textContent && !listWithoutListWrappers.querySelector(imageSelector);
+    return line;
+}
+
+// An image stands for content the way text does and keeps the item from counting as empty.
+export function isListEmpty(list: Element) {
+    const line = getLine(list);
+
+    return !line.textContent && !line.querySelector(imageSelector);
 }
 
 export function getFirstListWrapper(rootWrapper: HTMLElement) {

@@ -269,7 +269,11 @@ function insertIntoList(contentEditable: HTMLElement, root: HTMLElement, cursorP
     let splitIndex = index;
     if (!isAtStart) {
         if (!isAtEnd) {
+            // Dividing an item rebuilds the list it stands in, which leaves the root read above gone. The
+            // cursor keeps to the half of the line written before it, so the list that took its place is
+            // read back from there.
             newLine(contentEditable, cursorPosition);
+            root = getRootElement(contentEditable, cursorPosition.startContainer);
         }
         splitIndex = index + 1;
     }

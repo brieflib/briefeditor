@@ -2,11 +2,11 @@ import {getSelectedBlock} from "@/core/selection/selection";
 import {
     CursorPosition,
     deleteContents,
-    extractContents,
     getCursorPosition,
     getCursorPositionFrom,
     getCursorPositionFromElement, insertNode,
-    isCollapsed
+    isCollapsed,
+    splitAtCursor
 } from "@/core/shared/type/cursor-position";
 import {
     getChildFragment,
@@ -22,8 +22,14 @@ import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor
 import {normalize} from "@/core/normalize/normalize";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {maybeInsertLists, mergeIntoPreviousEmptyItem, mergeNextIntoEmptyItem, removeEmptyItem} from "@/core/list/list";
-import {getDirectChildren, isListEmpty} from "@/core/list/util/list-util";
+import {
+    maybeInsertLists,
+    mergeIntoPreviousEmptyItem,
+    mergeNextIntoEmptyItem,
+    removeEmptyItem,
+    splitItem
+} from "@/core/list/list";
+import {getDirectChildren, getLine, isListEmpty} from "@/core/list/util/list-util";
 
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
@@ -194,7 +200,7 @@ function appendToStartOfFirstBlock(contentEditable: HTMLElement, cursorPosition:
             const textNode = document.createTextNode(pressedKey);
             getFirstText(firstBlock).after(textNode);
             const fragment = getChildFragment(lastBlock);
-            const nestedListWrapper = firstBlock.querySelector("ul, ol");
+            const nestedListWrapper = getDirectChildren(firstBlock, [Display.ListWrapper])[0];
             if (nestedListWrapper) {
                 nestedListWrapper.before(fragment);
             } else {
@@ -228,14 +234,15 @@ export function newLine(contentEditable: HTMLElement, cursorPosition: CursorPosi
         return cursorPosition;
     }
 
+    // An item is one line of a list, and a list is written from the items it holds rather than from the
+    // markup around them, so a line broken inside one is broken there.
+    if (isSchemaContain(block, [Display.List])) {
+        return splitItem(contentEditable, cursorPosition);
+    }
+
     if (isCursorAtEndOfBlock(contentEditable, cursorPosition)) {
         const emptyBlock = document.createElement(block.nodeName);
         emptyBlock.appendChild(document.createElement("br"));
-        // The cursor sits after the li text but before its nested list, so the sublist belongs to what
-        // comes after the break. Left in place it would push the new li below the whole nested list.
-        if (isSchemaContain(block, [Display.List])) {
-            getDirectChildren(block, [Display.ListWrapper]).forEach(listWrapper => emptyBlock.appendChild(listWrapper));
-        }
         block.after(emptyBlock);
         const emptyFirstText = getFirstText(emptyBlock);
         return getCursorPositionFrom(emptyFirstText, 0, emptyFirstText, 0);
@@ -254,23 +261,6 @@ export function newLine(contentEditable: HTMLElement, cursorPosition: CursorPosi
 
     const firstText = getFirstText(newBlock);
     return getCursorPositionFrom(firstText, 0, firstText, 0);
-}
-
-// Everything from the cursor to the end of the element, lifted out. The extract splits the text node at
-// the caret and clones the inline ancestors around it, so every tag open at the cursor is closed on both
-// sides of the split.
-export function splitAtCursor(element: HTMLElement, cursorPosition: CursorPosition): DocumentFragment {
-    const toEnd = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset,
-        element, element.childNodes.length);
-
-    const fragment = extractContents(toEnd);
-    Array.from(fragment.childNodes).forEach(child => {
-        if (child.nodeType === Node.TEXT_NODE && !child.textContent) {
-            child.remove();
-        }
-    });
-
-    return fragment;
 }
 
 export function isPrintableKey(event: KeyboardEvent) {
@@ -367,7 +357,7 @@ export function addBrForEmptyBlockAndNormalize(contentEditable: HTMLElement, cur
 
     // A nested list is the content of its own items, not of the item holding it, so it is left out both when
     // the line of the block is weighed and when the line is read for a placeholder already standing on it.
-    const line = withoutNestedLists(block);
+    const line = getLine(block);
     if (!line.textContent) {
         if (!hasSelfCloseDescendant(line)) {
             addPlaceholder(block);
@@ -377,13 +367,6 @@ export function addBrForEmptyBlockAndNormalize(contentEditable: HTMLElement, cur
     }
 
     return normalize(contentEditable, cursorPosition);
-}
-
-function withoutNestedLists(block: HTMLElement) {
-    const line = block.cloneNode(true) as HTMLElement;
-    getDirectChildren(line, [Display.ListWrapper]).forEach(listWrapper => listWrapper.remove());
-
-    return line;
 }
 
 // The placeholder stands in for the line the block has lost, and the line is written above the list nested

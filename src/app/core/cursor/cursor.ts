@@ -2,6 +2,7 @@ import {getCursorPosition, isCollapsed} from "@/core/shared/type/cursor-position
 import {getCursorOffsetInElement} from "@/core/cursor/util/cursor-util";
 import {getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {getLine} from "@/core/list/util/list-util";
 
 export function isCursorAtEndOfBlock(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
     if (!isCollapsed(cursorPosition)) {
@@ -18,14 +19,7 @@ export function isCursorAtEndOfBlock(contentEditable: HTMLElement, cursorPositio
         return endOffset === block.textContent.length;
     }
 
-    const blockWithoutListWrappers = block.cloneNode(true) as HTMLElement;
-    const nestedListWrappers = blockWithoutListWrappers.querySelectorAll("ul, ol");
-    nestedListWrappers.forEach(listWrapper => {
-        listWrapper.remove();
-    });
-    const elementLength = blockWithoutListWrappers.textContent.length;
-
-    return endOffset === elementLength;
+    return endOffset === getLine(block).textContent.length;
 }
 
 export function isCursorAtStartOfBlock(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {

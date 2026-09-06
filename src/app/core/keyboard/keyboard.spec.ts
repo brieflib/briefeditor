@@ -997,7 +997,7 @@ describe("Enter in an empty list item", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start"><img src="image.png"></li>
+                <li><img src="image.png"></li>
                 <li><br></li>
             </ul>
         `);
@@ -1042,7 +1042,7 @@ describe("Enter in an empty list item", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start"></li>
+                <li><br></li>
                 <li><br></li>
             </ul>
         `);

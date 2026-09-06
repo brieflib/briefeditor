@@ -1977,6 +1977,62 @@ describe("Insert break", () => {
         expect(cursorPosition.startOffset).toBe(0);
     });
 
+    test("Should not leave the emptied formatting behind when the line divides at its start", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<strong>bold</strong></p>
+        `);
+
+        const boldText = (wrapper.querySelector(".start strong") as Element).firstChild as Node;
+        const range = new Range();
+        range.setStart(boldText, "".length);
+        range.setEnd(boldText, "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        newLine(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zero</p><p><strong>bold</strong></p>
+        `);
+    });
+
+    test("Should not leave an empty text node behind when the line divides at the start of one", () => {
+        const wrapper = createWrapper(`
+            <p class="start"><em>ze</em>ro</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getLastChild(wrapper, ".start"), "".length);
+        range.setEnd(getLastChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        newLine(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start"><em>ze</em></p><p>ro</p>
+        `);
+
+        // The node the line was divided at is left holding nothing, and a node standing for no content is
+        // not written back into either side. It shows in no markup, so it is counted instead.
+        expect((wrapper.querySelector(".start") as Element).childNodes.length).toBe(1);
+    });
+
+    test("Should keep the break whole on the side of the line it was written on", () => {
+        const wrapper = createWrapper(`
+            <p class="start">fir<br>st</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getLastChild(wrapper, ".start"), "".length);
+        range.setEnd(getLastChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        newLine(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">fir<br></p><p>st</p>
+        `);
+    });
+
     test("Should divide list item", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -1994,7 +2050,7 @@ describe("Insert break", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">fir</li>
+                <li>fir</li>
                 <li>st</li>
             </ul>
         `);
@@ -2020,7 +2076,7 @@ describe("Insert break", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li class="start">first</li>
+                <li>first</li>
                 <li><br></li>
             </ul>
         `);
@@ -2050,7 +2106,7 @@ describe("Insert break", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li class="start">first</li>
+                <li>first</li>
                 <li><br>
                     <ul>
                         <li>second</li>
@@ -2084,7 +2140,7 @@ describe("Insert break", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li class="start">fir</li>
+                <li>fir</li>
                 <li>st
                     <ul>
                         <li>second</li>
@@ -2119,7 +2175,7 @@ describe("Insert break", () => {
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li><br></li>
-                <li class="start">first
+                <li>first
                     <ul>
                         <li>second</li>
                     </ul>
@@ -2129,6 +2185,44 @@ describe("Insert break", () => {
 
         expect(cursorPosition.startContainer.textContent).toBe("first");
         expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should insert the empty item on the level of the deeply nested one it follows", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ul>
+                                <li class="start">second</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "second".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        newLine(wrapper, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first
+                            <ul>
+                                <li>second</li>
+                                <li><br></li>
+                            </ul>
+                        </li>
+                    </ol>
+                </li>
+            </ul>
+        `);
     });
 
 });

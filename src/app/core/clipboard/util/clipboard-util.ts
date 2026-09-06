@@ -4,7 +4,8 @@ import {
     CursorPosition,
     deleteContents, getCursorPositionFrom, getCursorPositionFromElement,
     insertNode,
-    isCollapsed
+    isCollapsed,
+    splitAtCursor
 } from "@/core/shared/type/cursor-position";
 import {removeAndNormalize} from "@/core/normalize/normalize";
 import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
@@ -12,7 +13,6 @@ import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema"
 import {getLastText, getRootElement, imageSelector, insertBetweenBlocks, isEmptyBlock} from "@/core/shared/element-util";
 import {maybeInsertLists} from "@/core/list/list";
 import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
-import {splitAtCursor} from "@/core/keyboard/util/keyboard-util";
 import {getCellCursorPosition, normalizeTable} from "@/core/command/util/table-util";
 
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
@@ -39,17 +39,21 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
         return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
     }
 
-    if (isSchemaContain(firstRoot, [Display.ListWrapper])) {
-        return pasteIntoList(contentEditable, firstRoot, htmlString, cursorPosition);
-    }
-
+    // A list is written as a run of wrappers standing side by side, so a pasted one stands beside the list
+    // the cursor is in rather than inside the item it rests on - the way a pasted table does, and the way a
+    // list pasted anywhere else does. The placement divides the list around it and convertList joins the
+    // two back into one wrapper wherever they share a type.
     if (hasListWrapper(pastedContent)) {
         return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
     }
 
+    if (isSchemaContain(firstRoot, [Display.ListWrapper])) {
+        return pasteIntoList(contentEditable, firstRoot, htmlString, cursorPosition);
+    }
+
     // An empty block has nothing on either side of the cursor to close tags around, and the br standing in for
-    // its line is not content to keep: it is what the pasted markup takes the place of. Splitting it would hand
-    // the block a second br as well - a range that opens inside a self closing tag extracts a clone of it.
+    // its line is not content to keep: it is what the pasted markup takes the place of, so the block is
+    // emptied rather than divided.
     if (isEmptyBlock(firstRoot)) {
         firstRoot.replaceChildren();
         cursorPosition = getCursorPositionFrom(firstRoot, 0, firstRoot, 0);
@@ -190,6 +194,10 @@ function wrapListItems(root: ParentNode) {
     parents.forEach(parent => wrapChildListItems(parent));
 }
 
+// An orphaned item has no wrapper of its own to be read from, so it is given the one the parse needs before
+// the run is read. Content copied inside the editor keeps its wrapper, so anything orphaned here comes from
+// outside and has no tag to inherit. Where the wrapper goes is all this decides - what stands inside what is
+// left to the read below, which puts a list wrapper found between items where a nested list belongs.
 function wrapChildListItems(parent: HTMLElement) {
     let listWrapper: HTMLElement | null = null;
 
@@ -197,8 +205,6 @@ function wrapChildListItems(parent: HTMLElement) {
     for (const child of Array.from(parent.children)) {
         if (isSchemaContain(child, [Display.List])) {
             if (!listWrapper) {
-                // Content copied inside the editor keeps its wrapper, so anything
-                // orphaned here comes from outside and has no tag to inherit.
                 listWrapper = document.createElement("UL");
                 child.before(listWrapper);
             }
@@ -206,9 +212,8 @@ function wrapChildListItems(parent: HTMLElement) {
             continue;
         }
 
-        // A list wrapper between orphaned items is the nested list of the previous item.
         if (listWrapper && isSchemaContain(child, [Display.ListWrapper])) {
-            (listWrapper.lastElementChild ?? listWrapper).appendChild(child);
+            listWrapper.appendChild(child);
             continue;
         }
 
@@ -216,7 +221,7 @@ function wrapChildListItems(parent: HTMLElement) {
     }
 }
 
-function hasListWrapper(pastedContent: HTMLElement) {
+function hasListWrapper(pastedContent: HTMLElement | DocumentFragment) {
     return Array.from(pastedContent.children).some(child => isSchemaContain(child, [Display.ListWrapper]));
 }
 
@@ -231,6 +236,8 @@ function pasteBetweenBlocks(contentEditable: HTMLElement, firstRoot: HTMLElement
     // or paragraph is, so place the markup between blocks instead, where an inserted table goes.
     const fragmentToInsert = createContextualFragment(htmlString, cursorPosition);
     const table = fragmentToInsert.querySelector(tableSelector) as HTMLTableElement | null;
+    // Read before the fragment is emptied into the tag below.
+    const isList = hasListWrapper(fragmentToInsert);
     // A pasted table takes the cursor into its first cell, the way an inserted one does; anything else
     // leaves it at the end of what was pasted.
     const pastedCursorPosition = table
@@ -245,6 +252,14 @@ function pasteBetweenBlocks(contentEditable: HTMLElement, firstRoot: HTMLElement
     insertBetweenBlocks(contentEditable, firstRoot, cursorPosition, deleted);
 
     cursorPosition = removeAndNormalize(contentEditable, deleted, ["DELETED"], pastedCursorPosition);
+
+    // A pasted list is placed beside the list it was dropped into, which leaves the two standing side by
+    // side. They are lines of one run, so the run is read and written back as one: convertList opens a
+    // single wrapper for as long as the type holds, which joins two lists written in the same type and
+    // leaves two written in different ones apart.
+    if (isList) {
+        cursorPosition = maybeInsertLists(contentEditable, cursorPosition);
+    }
 
     // The target block keeps whatever markup it had, so normalize it as well unless
     // the pass above already rebuilt it as a part of a common root. A list is parsed
