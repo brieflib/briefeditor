@@ -159,38 +159,50 @@ export function maybeInsertLists(contentEditable: HTMLElement, cursorPosition: C
 }
 
 // Backspace at the start of an item merges it into the item above it. An item above that stands empty holds no
-// content to merge into: the cursor is in the item that merges, and the empty one is the entry before it.
+// content to merge into: the cursor is in the item that merges, and the empty one is the entry before it. The
+// item the cursor is in is the one that survives, so it is written as it stands.
 export function mergeIntoPreviousEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
     const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
 
-    return mergeIntoEmptyItem(contentEditable, cursorPosition, orderNumber - 1);
+    return mergeIntoEmptyItem(contentEditable, cursorPosition, orderNumber - 1, false);
 }
 
 // Delete at the end of an empty item joins the same two lines from the other side: the cursor is in the empty
-// item itself, and the item merging into it is the one written after it.
+// item itself, and the item merging into it is the one written after it. The empty line is the one the cursor
+// stands on, so it is the line that survives and the item merging in is written onto it.
 export function mergeNextIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
     const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
 
-    return mergeIntoEmptyItem(contentEditable, cursorPosition, orderNumber);
+    return mergeIntoEmptyItem(contentEditable, cursorPosition, orderNumber, true);
 }
 
 // An empty item is the line the merge lands on, so it is dropped, and the item merging into it is named to the
-// rebuild below: the line it stood on is the one blank line that goes. An item merging into an empty item nested
-// deeper than it is pushed down onto its level first, keeping the wrapper it was written in the way a lifted
-// item does - the rebuild lowers the levels it finds but never deepens one. The items nested inside it come
-// along, or they would be left two levels below it. An item merging up from inside the empty item's own list is
-// left on its level instead: the line above it goes and the list it stands in is left to the item above that.
-// Both the order numbers and the parse walk the wrappers in the order the items are written in, so the item
-// merging into the empty one is always the entry after it, whichever of the two the cursor is in.
-function mergeIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition, emptyOrderNumber: number): CursorPosition {
+// rebuild below: the line it stood on is the one blank line that goes. Which of the two the cursor is in says
+// what becomes of the item merging in. Standing on the empty line, the writer deletes forward onto the line
+// itself, and the item is written onto it: it takes the level the line stood on, whichever level it came from.
+// Standing in the item, the writer deletes the line above it, and the item is left as it was written - pushed
+// down only onto a line nested deeper than it, which the rebuild cannot do on its own, lowering the levels it
+// finds but never deepening one. The items nested inside it come along either way, or they would be left two
+// levels below it. Both the order numbers and the parse walk the wrappers in the order the items are written
+// in, so the item merging into the empty one is always the entry after it, whichever of the two the cursor is
+// in.
+function mergeIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition, emptyOrderNumber: number,
+                            isCursorOnEmptyLine: boolean): CursorPosition {
     const root = getFirstSelectedRoot(contentEditable, cursorPosition);
     const lists = parseList(root);
     const empty = lists[emptyOrderNumber];
     const merged = lists[emptyOrderNumber + 1];
-    if (empty && merged && merged.nestedLevel < empty.nestedLevel) {
+    if (empty && merged && (isCursorOnEmptyLine || merged.nestedLevel < empty.nestedLevel)) {
         // Read before the levels are changed, as withNested reads them to tell the nested items apart.
         const nested = withNested(lists, emptyOrderNumber + 1);
         shiftOrderNumbers(lists, nested, empty.nestedLevel - merged.nestedLevel);
+
+        // The line the item is written onto belongs to the wrapper it was written in, and a wrapper ending at
+        // that line goes with it. The item takes it over rather than letting it go: a list does not change its
+        // type because a line was deleted from it.
+        if (isCursorOnEmptyLine && !hasLineBelow(lists, emptyOrderNumber, nested)) {
+            merged.listWrapper = empty.listWrapper;
+        }
     }
 
     // The parse moves the content of every item into a fragment of its own, the cursor's text node with it, and
@@ -273,6 +285,33 @@ function minusIndentList(root: HTMLElement, cursorPosition: CursorPosition, orde
 
     return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset,
         cursorPosition.endContainer, cursorPosition.endOffset);
+}
+
+// A wrapper is written top down, so it goes on below the line only when another of its own lines follows.
+// Standing for those it keeps the type it was written as, and the item merging in - written where the line
+// stood, above them - opens a list of its own instead. The lines written above the empty one hold no wrapper
+// of their own open: the item takes their wrapper over and is written as one more of their lines. The search
+// starts after the items nested inside the one merging in, which come along with it, and walks past items
+// nested deeper, each a line of a list of its own; the first item written on the level of the empty line
+// either shares its wrapper or opens a list of another type below it.
+function hasLineBelow(lists: ListClass[], emptyOrderNumber: number, nested: number[]): boolean {
+    const empty = lists[emptyOrderNumber];
+    if (!empty) {
+        return false;
+    }
+
+    for (let i = (nested[nested.length - 1] ?? emptyOrderNumber) + 1; i < lists.length; i++) {
+        const list = lists[i];
+        if (!list || list.nestedLevel < empty.nestedLevel) {
+            return false;
+        }
+
+        if (list.nestedLevel === empty.nestedLevel) {
+            return list.listWrapper === empty.listWrapper;
+        }
+    }
+
+    return false;
 }
 
 // The items nested inside the one at the order number are the ones following it until the level it sits on is

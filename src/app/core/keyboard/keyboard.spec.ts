@@ -457,13 +457,66 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>zero</li>
-                <li>first
-                    <ol><li>second</li></ol>
-                </li>
+                <li>first</li>
+                <li>second</li>
             </ol>
         `);
 
-        const expectedContainer = wrapper.querySelector("ol li ol li")?.firstChild;
+        const expectedContainer = wrapper.querySelector("ol li:last-child")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("".length);
+    });
+
+    test("Should merge lists of different types when pressing delete before br", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br>
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "".length, "".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>second</li>
+            </ul>
+        `);
+
+        const expectedContainer = wrapper.querySelector("ul li")?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("".length);
+    });
+
+    test("Should merge lists of different types when pressing delete before br 2", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start"><br>
+                    <ul>
+                        <li>first</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), "".length, "".length);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+            </ol>
+        `);
+
+        const expectedContainer = wrapper.querySelector("ol li:last-child")?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe("".length);
     });
@@ -557,9 +610,8 @@ describe("Typing and deleting characters", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li>zero
-                    <ol><li>first</li></ol>
-                </li>
+                <li>zero</li>
+                <li>first</li>
                 <li>second</li>
             </ol>
         `);
