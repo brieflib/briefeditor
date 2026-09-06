@@ -57,6 +57,23 @@ export function isNextListNested(contentEditable: HTMLElement, cursorPosition: C
     return !!list && !!next && next.nestedLevel > list.nestedLevel;
 }
 
+// Leaving the list writes the item as a block of its own, which divides the list around it: the lines below
+// it open a list of their own and are rebased onto its first level, so they end up standing at a level they
+// were never written at. The item can only leave when that costs the lines below it nothing - when nothing
+// is written after it, or what is written next already stands on the first level. A line nested under the
+// item is one of those lines too, so this is the whole of the question the old nesting check asked.
+export function isLeavingListEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+    const parsed = parseSelectedList(contentEditable, cursorPosition);
+    if (!parsed) {
+        return true;
+    }
+
+    const {lists, orderNumbers} = parsed;
+    const next = lists[(orderNumbers[orderNumbers.length - 1] ?? 0) + 1];
+
+    return !next || next.nestedLevel === 0;
+}
+
 // An item is indented by being written into a list of the item above it, so it needs a line above it to be
 // written under - one standing on its own level or deeper, since an item nested deeper still holds a list
 // of that level open. A list only goes so deep, and no selected item may already stand at the bottom of it.

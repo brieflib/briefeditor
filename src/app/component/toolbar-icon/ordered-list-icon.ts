@@ -5,7 +5,7 @@ import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {Icon} from "@/component/toolbar-icon/type/icon";
 import {CursorPosition, isRangeIn} from "@/core/shared/type/cursor-position";
-import {isNextListNested} from "@/core/list/list";
+import {isLeavingListEnabled} from "@/core/list/list";
 
 class OrderedListIcon extends HTMLElement implements Icon {
     private readonly button: HTMLElement;
@@ -47,7 +47,9 @@ class OrderedListIcon extends HTMLElement implements Icon {
             return;
         }
 
-        if (!isNextListNested(contentEditable) || !this.isActive) {
+        // The icon is only ever refused when it would take the item out of the list, which is what the
+        // active one does: the lines written below it must not be moved to another level for it.
+        if (isLeavingListEnabled(contentEditable) || !this.isActive) {
             this.button.removeAttribute("disabled");
         }
     }

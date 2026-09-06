@@ -2,6 +2,7 @@ import {getRange} from "@/core/shared/range-util";
 import {
     changeListWrapper,
     exitList,
+    isLeavingListEnabled,
     isMinusIndentEnabled,
     isPlusIndentEnabled,
     minusIndent,
@@ -2233,5 +2234,77 @@ describe("Lists written apart from one another", () => {
                 <li>two</li>
             </ul>
         `);
+    });
+});
+
+describe("Is leaving the list enabled", () => {
+    // Leaving the list divides it around the item, and the lines written below it are rebased onto the
+    // first level of the list that opens under the block. Only a line already standing there, or no line
+    // at all, costs nothing.
+    const mixed = `
+        <ul>
+            <li>first
+                <ol>
+                    <li>second
+                        <ul>
+                            <li class="third">third</li>
+                        </ul>
+                    </li>
+                </ol>
+                <ol>
+                    <li class="fourth">fourth</li>
+                </ol>
+            </li>
+        </ul>
+    `;
+
+    function isEnabledAt(selector: string) {
+        const wrapper = createWrapper(mixed);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), 1);
+        range.setEnd(getFirstChild(wrapper, selector), 1);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        return isLeavingListEnabled(wrapper, getCursorPosition());
+    }
+
+    test("Should refuse an item a deeper line is written below", () => {
+        expect(isEnabledAt("li")).toBe(false);
+    });
+
+    test("Should refuse an item nested lines are written below", () => {
+        expect(isEnabledAt(".third")).toBe(false);
+    });
+
+    test("Should allow the item the list ends on", () => {
+        expect(isEnabledAt(".fourth")).toBe(true);
+    });
+
+    test("Should allow an item the next line stands level with", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+                <li>one</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 1);
+        range.setEnd(getFirstChild(wrapper, ".start"), 1);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        expect(isLeavingListEnabled(wrapper, getCursorPosition())).toBe(true);
+    });
+
+    test("Should allow a cursor standing outside any list", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 1);
+        range.setEnd(getFirstChild(wrapper, ".start"), 1);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        expect(isLeavingListEnabled(wrapper, getCursorPosition())).toBe(true);
     });
 });
