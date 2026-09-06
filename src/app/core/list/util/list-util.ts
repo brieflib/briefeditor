@@ -83,13 +83,38 @@ export function isListEmpty(list: Element) {
     return !line.textContent && !line.querySelector(imageSelector);
 }
 
+// A list is written as a run of wrappers standing side by side, so the wrapper the run opens on is found by
+// walking to the end of it and back. Anything written between two wrappers keeps them apart and ends the run
+// there - but the whitespace an author leaves between tags is not writing, and the wrappers on either side
+// of it are still lines of one list.
+export function getNextListWrapper(wrapper: Element): Element | null {
+    return getSiblingListWrapper(wrapper, node => node.nextSibling);
+}
+
+export function getPreviousListWrapper(wrapper: Element): Element | null {
+    return getSiblingListWrapper(wrapper, node => node.previousSibling);
+}
+
+function getSiblingListWrapper(wrapper: Element, sibling: (node: ChildNode) => ChildNode | null): Element | null {
+    let node: ChildNode | null = sibling(wrapper);
+    while (node && node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) {
+        node = sibling(node);
+    }
+
+    return node && isSchemaContain(node, [Display.ListWrapper]) ? node as Element : null;
+}
+
 export function getFirstListWrapper(rootWrapper: HTMLElement) {
     let firstWrapper: Element = rootWrapper;
-    while (firstWrapper.nextElementSibling && isSchemaContain(firstWrapper.nextElementSibling, [Display.ListWrapper])) {
-        firstWrapper = firstWrapper.nextElementSibling;
+    let next = getNextListWrapper(firstWrapper);
+    while (next) {
+        firstWrapper = next;
+        next = getNextListWrapper(firstWrapper);
     }
-    while (firstWrapper.previousElementSibling && isSchemaContain(firstWrapper.previousElementSibling, [Display.ListWrapper])) {
-        firstWrapper = firstWrapper.previousElementSibling;
+    let previous = getPreviousListWrapper(firstWrapper);
+    while (previous) {
+        firstWrapper = previous;
+        previous = getPreviousListWrapper(firstWrapper);
     }
 
     return firstWrapper;
@@ -100,8 +125,8 @@ export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: Doc
     firstWrapper.before(listWrapper);
 
     let current: Element | null = firstWrapper;
-    while (current && isSchemaContain(current, [Display.ListWrapper])) {
-        const next: Element | null = current.nextElementSibling;
+    while (current) {
+        const next: Element | null = getNextListWrapper(current);
         current.remove();
         current = next;
     }

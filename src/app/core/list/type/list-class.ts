@@ -1,7 +1,7 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {getChildFragment, imageSelector} from "@/core/shared/element-util";
 import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
-import {getFirstListWrapper} from "@/core/list/util/list-util";
+import {getFirstListWrapper, getNextListWrapper} from "@/core/list/util/list-util";
 
 export enum ListWrapper {
     UL = "UL",
@@ -20,7 +20,7 @@ export function parseList(rootWrapper: HTMLElement): ListClass[] {
     let current: Element | null = getFirstListWrapper(rootWrapper);
     while (current && isSchemaContain(current, [Display.ListWrapper])) {
         parseListWrapper(current as HTMLElement, toListWrapper(current), 0, result);
-        current = current.nextElementSibling;
+        current = getNextListWrapper(current);
     }
 
     return result;
@@ -74,6 +74,15 @@ export function convertList(lists: ListClass[]): DocumentFragment {
                 currentLi = currentLi?.parentElement?.parentElement;
             }
             currentLi = currentLi?.parentElement;
+
+            // The wrapper the climb lands in was opened for the lines written above it. A line written in the
+            // other type is not one of them: it closes that wrapper and opens one of its own beside it, the
+            // way a line changing type on the level it already stands on does.
+            if (currentLi && currentLi.nodeName !== nextList.listWrapper) {
+                const nextWrapper = document.createElement(nextList.listWrapper);
+                currentLi.parentElement?.appendChild(nextWrapper);
+                currentLi = nextWrapper;
+            }
         }
 
         if (list.nestedLevel === nextList.nestedLevel && list.listWrapper !== nextList.listWrapper) {

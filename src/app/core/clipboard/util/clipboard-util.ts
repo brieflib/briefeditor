@@ -98,8 +98,14 @@ export function getSelectedHtml(cursorPosition: CursorPosition): string {
     // paste puts them through: the tags of a cell outside a table are thrown away.
     // A selection held inside a single cell stops at the cell, which is not re-wrapped,
     // so copied words stay words and only a selection crossing a cell carries a table.
+    // An item goes by the same rule, and it is the ancestor a selection stops at
+    // whenever it runs from the line an item was written as into the list nested under
+    // it - the item is what stands between that line and the wrapper holding it, so
+    // without it the line is copied as loose words and the wrapper is never reached.
+    const isCrossingItems = isSelectionCrossingItems(cursorPosition);
     while (ancestor instanceof HTMLElement &&
-        (isInlineFormatting(ancestor) || isSchemaContain(ancestor, [Display.ListWrapper, Display.TableSection, Display.Table]))) {
+        (isInlineFormatting(ancestor) || isSchemaContain(ancestor, [Display.ListWrapper, Display.TableSection, Display.Table]) ||
+            (isCrossingItems && isSchemaContain(ancestor, [Display.List])))) {
         const wrapper = ancestor.cloneNode(false) as HTMLElement;
         wrapper.append(...container.childNodes);
         container.appendChild(wrapper);
@@ -107,6 +113,25 @@ export function getSelectedHtml(cursorPosition: CursorPosition): string {
     }
 
     return container.innerHTML;
+}
+
+// Whether the selection runs from one item into another - the line an item was written as and the list
+// nested under it being two items of their own. A selection held inside one item carries no list with it.
+function isSelectionCrossingItems(cursorPosition: CursorPosition): boolean {
+    const startItem = getClosestItem(cursorPosition.startContainer);
+
+    return !!startItem && startItem !== getClosestItem(cursorPosition.endContainer);
+}
+
+// The item a node was written in, read by walking the tags standing over it rather than by asking for one
+// by name: a tag name is spelled the way the schema spells it, and not every engine matches that spelling.
+function getClosestItem(node: Node): Element | null {
+    let element = node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement;
+    while (element && !isSchemaContain(element, [Display.List])) {
+        element = element.parentElement;
+    }
+
+    return element;
 }
 
 function isInlineFormatting(element: HTMLElement): boolean {

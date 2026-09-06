@@ -320,6 +320,47 @@ describe("Sanitize input", () => {
         expect(html).not.toContain("localhost");
     });
 
+    test("Should keep the item and its wrapper when the selection runs into the nested list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">first
+                    <ul>
+                        <li class="end">second</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        // What a drag across the whole list gives: from the line the item was written as into the list
+        // nested under it. The item is what stands between the two, so without it the line is copied as
+        // loose words and the wrapper around it is never reached.
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const html = getSelectedHtml(getCursorPosition());
+
+        expect(html).toBe(`<ul><li class="start">first<ul><li class="end">second</li></ul></li></ul>`);
+    });
+
+    test("Should copy what is written inside a single item as words", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">first</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "f".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        // A selection held inside one item carries no list with it, the way one held inside a cell
+        // carries no table.
+        expect(getSelectedHtml(getCursorPosition())).toBe("ir");
+    });
+
     test("Should keep the table of copied body cells", () => {
         const wrapper = createWrapper(`
             <table><thead><tr><th>zero</th><th>first</th></tr></thead>` +

@@ -1994,6 +1994,49 @@ describe("Change list wrapper", () => {
         `);
     });
 
+    test("Should change only selected list type", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>first
+                    <ol>
+                        <li class="start">second
+                            <ul>
+                                <li>third</li>
+                            </ul>
+                        </li>
+                    </ol>
+                    <ol>
+                        <li>fourth</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "second".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        changeListWrapper(wrapper, "UL");
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>first
+                    <ul>
+                        <li>second
+                            <ul>
+                                <li>third</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <ol>
+                        <li>fourth</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+    });
+
     test("Should keep the nested list when the list holding it changes type", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -2075,6 +2118,32 @@ describe("Pasting a list into a list", () => {
         `);
     });
 
+    test("Paste nesting list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+    });
+
     test("Pasting a list in the middle of a line divides the line around it", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -2100,6 +2169,68 @@ describe("Pasting a list into a list", () => {
             <ul>
                 <li>ro</li>
                 <li>tail</li>
+            </ul>
+        `);
+    });
+});
+
+describe("Lists written apart from one another", () => {
+    // A run of wrappers is one list only while nothing is written between them. The whitespace an author
+    // leaves between tags is not writing; anything else keeps the two lists apart, and an edit to one of
+    // them leaves the other where it was written.
+    test("Should leave a list written below the text apart from the one being indented", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">one</li></ul>apart<ul><li>two</li></ul>`);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "on".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "one".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        plusIndent(wrapper);
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero<ul><li>one</li></ul></li></ul>apart<ul><li>two</li></ul>`);
+    });
+
+    test("Should join only the list the paste lands in", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li></ul>apart<ul><li>two</li></ul>`);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML,
+            `<ul><li>zero</li><li>first<ul><li>second</li></ul></li></ul>apart<ul><li>two</li></ul>`);
+    });
+
+    test("Should join two lists an author left only whitespace between", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start">one</li>
+            </ul>
+            <ul>
+                <li>two</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "on".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "one".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        plusIndent(wrapper);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ul>
+                        <li>one</li>
+                    </ul>
+                </li>
+                <li>two</li>
             </ul>
         `);
     });
