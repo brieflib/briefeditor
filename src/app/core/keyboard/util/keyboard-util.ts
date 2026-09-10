@@ -19,8 +19,8 @@ import {
     hasSelfCloseDescendant
 } from "@/core/shared/element-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
-import {normalize} from "@/core/normalize/normalize";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
+import {normalize} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     maybeInsertLists,

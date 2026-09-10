@@ -75,7 +75,8 @@ export default class Table {
     private update(target: EventTarget | null, x: number, y: number) {
         const cell = (target as HTMLElement | null)?.closest("td, th") as HTMLTableCellElement | null;
         const table = cell?.closest("table") as HTMLTableElement | null;
-        if (!cell || !table || !this.contentEditable.contains(table)) {
+        // A table the editor is no longer holding is a table no longer in the page.
+        if (!cell || !table || !table.isConnected) {
             this.keepOrReset(this.row, x, y);
             this.keepOrReset(this.column, x, y);
             return;

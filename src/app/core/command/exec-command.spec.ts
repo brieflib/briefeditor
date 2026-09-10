@@ -244,10 +244,13 @@ describe("Cursor position after Tag command", () => {
              <p>z<strong>erofirst</strong>second</p>
         `);
 
-        const expectedStart = wrapper.querySelector("p")?.firstChild;
+        // The selection opens on the boundary between the paragraph's own text and the tag the wrap wrote,
+        // which is one caret written two ways. It is anchored inside the tag, on the content the selection
+        // covers, rather than at the end of the text written before it.
+        const expectedStart = wrapper.querySelector("p strong")?.firstChild;
         const expectedEnd = wrapper.querySelector("p strong")?.firstChild;
         expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("z".length);
+        expect(cursorPosition.startOffset).toBe("".length);
         expect(cursorPosition.endContainer).toBe(expectedEnd);
         expect(cursorPosition.endOffset).toBe("erofir".length);
     });

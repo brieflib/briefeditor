@@ -306,5 +306,5 @@ function createLeafFromNode(element: Node, nodeNames: string[]) {
 
 function testCollapse(toCollapse: Leaf[], result: string) {
     const collapsed = collapseLeaves(toCollapse);
-    expectHtml((collapsed.container.firstChild as HTMLElement).innerHTML, result);
+    expectHtml((collapsed.firstChild as HTMLElement).innerHTML, result);
 }

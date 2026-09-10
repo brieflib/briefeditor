@@ -1,26 +1,24 @@
 import {
-    anchorCursorBeforeSelfClose,
     collapseLeaves,
-    ContainerAndCursorPosition,
     extractFirstLevel,
     filterLeafParents,
     getLeafNodes, maybeAppendCarrier,
-    remapCursor,
-    remapDroppedLeafCursor,
     removeConsecutiveDuplicates,
     replaceLeafParents,
     setLeafParents,
     sortLeafParents
 } from "@/core/normalize/util/normalize-util";
-import {getFirstText, getLastText, getRootElement} from "@/core/shared/element-util";
+import {getRootElement} from "@/core/shared/element-util";
+import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     CursorPosition,
     extractContents,
     getCursorPosition,
+    getCursorPositionFrom,
     insertNode,
-    isCursorPositionEqual,
-    selectNode
+    isCollapsed,
+    isCursorPositionEqual
 } from "@/core/shared/type/cursor-position";
 import {getFirstSelectedRoot, getSelectedRoot} from "@/core/selection/selection";
 import {applyAttributes} from "@/core/command/util/command-util";
@@ -59,26 +57,25 @@ export function normalize(contentEditable: HTMLElement, ...cursorPosition: Curso
 }
 
 export function removeTags(contentEditable: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
-    cursorPosition = anchorCursorBeforeSelfClose(cursorPosition);
+    cursorPosition = anchorBeforeSelfClose(cursorPosition);
+    // Read before the extract: it lifts the selected text out of the nodes the cursor names, leaving the
+    // offsets it holds pointing past the end of what is left of them.
+    const cursorAnchor = getCursorAnchor(contentEditable, cursorPosition);
     const documentFragment: DocumentFragment = extractContents(cursorPosition);
     const removeTagFrom = document.createElement("DELETED");
     maybeAppendCarrier(documentFragment);
-    const firstText = getFirstText(documentFragment);
-    const lastText = getLastText(documentFragment);
     removeTagFrom.appendChild(documentFragment);
 
     insertNode(cursorPosition, removeTagFrom);
 
-    cursorPosition = remapCursor(firstText, lastText, cursorPosition);
-    return removeAndNormalize(contentEditable, removeTagFrom, [...tags, "DELETED"], cursorPosition);
+    return removeAndNormalize(contentEditable, removeTagFrom, [...tags, "DELETED"], cursorPosition, cursorAnchor);
 }
 
 export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, attributes?: Attributes) {
-    cursorPosition = anchorCursorBeforeSelfClose(cursorPosition);
+    cursorPosition = anchorBeforeSelfClose(cursorPosition);
+    const cursorAnchor = getCursorAnchor(contentEditable, cursorPosition);
     const documentFragment: DocumentFragment = extractContents(cursorPosition);
     maybeAppendCarrier(documentFragment);
-    const firstText = getFirstText(documentFragment);
-    const lastText = getLastText(documentFragment);
 
     const tagElement = document.createElement(tag);
     applyAttributes(tagElement, attributes);
@@ -88,25 +85,27 @@ export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPo
     removeTagFrom.appendChild(tagElement);
     insertNode(cursorPosition, removeTagFrom);
 
-    cursorPosition = remapCursor(firstText, lastText, cursorPosition);
-    return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition);
+    return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition, cursorAnchor);
 }
 
-export function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
+// The rebuild replaces every element it touches, so the cursor is read as a place in the text before it and
+// put back from there afterwards. A rebuild writes no text of its own - it only rewrites the markup standing
+// over it - so the offsets it was read at name the same places once it is done.
+export function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[],
+                                   cursorPosition: CursorPosition,
+                                   cursorAnchor = getCursorAnchor(contentEditable, cursorPosition)) {
     const rootElement = getRootElement(contentEditable, removeTagFrom);
 
-    const leafNodes = getLeafNodes(rootElement);
-    cursorPosition = remapDroppedLeafCursor(rootElement, leafNodes, cursorPosition);
-
-    const leaves = leafNodes
+    const leaves = getLeafNodes(rootElement)
         .map(node => setLeafParents(contentEditable, node))
         .filter(leaf => filterLeafParents(removeTagFrom, tags, leaf))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf))
         .map(leaf => extractFirstLevel(leaf));
 
-    const containerAndCursorPosition = collapseLeaves(leaves, cursorPosition);
-    return replaceElement(containerAndCursorPosition, rootElement);
+    replaceElement(collapseLeaves(leaves), rootElement);
+
+    return resolveCursorAnchor(contentEditable, cursorAnchor) ?? cursorPosition;
 }
 
 export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[], isClosest = false) {
@@ -119,8 +118,7 @@ export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLEl
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    const containerAndCursorPosition = collapseLeaves(leaves);
-    return replaceElement(containerAndCursorPosition, rootElement);
+    replaceElement(collapseLeaves(leaves), rootElement);
 }
 
 export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
@@ -156,6 +154,22 @@ export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorP
     removeAndNormalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
 }
 
+// A self-close leaf holds nothing, so a collapsed cursor anchored on the br standing in for an empty block
+// has no position of its own to insert at: the tag would be built inside the br, where the serializer never
+// shows it and getLeafNodes never descends. It belongs where the br sits instead. The br is left alone - it
+// is still the block's placeholder while the inserted tag carries no text of its own.
+function anchorBeforeSelfClose(cursorPosition: CursorPosition): CursorPosition {
+    const container = cursorPosition.startContainer;
+    if (!isCollapsed(cursorPosition) || !isSchemaContain(container, [Display.SelfClose]) ||
+        !container.parentNode) {
+        return cursorPosition;
+    }
+
+    const offset = Array.prototype.indexOf.call(container.parentNode.childNodes, container);
+
+    return getCursorPositionFrom(container.parentNode, offset, container.parentNode, offset);
+}
+
 function buildElementsToReplace(replaceTo: string[]) {
     const elementsToReplace: HTMLElement[] = [];
     for (const replaceTag of replaceTo) {
@@ -166,20 +180,22 @@ function buildElementsToReplace(replaceTo: string[]) {
     return elementsToReplace;
 }
 
-function replaceElement(containerAndCursorPosition: ContainerAndCursorPosition, replaceableElement: HTMLElement) {
-    const cursorPosition = containerAndCursorPosition.cursorPosition;
+// The range here is scratch space for naming the spot the rebuilt content goes back into, and nothing reads
+// it afterwards. It is the replace's own, so a caller's cursor - which in the browser is the live selection
+// itself - is not moved about by the rebuild.
+function replaceElement(container: DocumentFragment, replaceableElement: HTMLElement) {
     if (!replaceableElement.parentNode) {
-        return cursorPosition;
+        return;
     }
-    selectNode(cursorPosition, replaceableElement);
+
+    const range = new Range();
+    range.selectNode(replaceableElement);
     replaceableElement.remove();
-    const container = containerAndCursorPosition.container;
     const childNodes = container.firstChild?.childNodes;
     const innerFragment = new DocumentFragment();
     if (childNodes) {
         innerFragment.append(...childNodes);
     }
 
-    insertNode(cursorPosition, innerFragment);
-    return cursorPosition;
+    range.insertNode(innerFragment);
 }

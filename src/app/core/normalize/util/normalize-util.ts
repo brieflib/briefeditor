@@ -1,14 +1,9 @@
 import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {CursorPosition, getCursorPosition, getCursorPositionFrom, isCollapsed} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {hasSelfCloseDescendant} from "@/core/shared/element-util";
 import {Carrier} from "@/core/carrier/carrier";
-
-export interface ContainerAndCursorPosition {
-    container: DocumentFragment,
-    cursorPosition: CursorPosition
-}
 
 export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     if ((element.nodeType === Node.TEXT_NODE && element.textContent) ||
@@ -65,8 +60,7 @@ export function sortLeafParents(toSort: Leaf) {
 }
 
 export function collapseLeaves(leaves: Leaf[],
-                               cursorPosition: CursorPosition = getCursorPosition(),
-                               container: DocumentFragment = nodeToFragment(document.createElement("div"))): ContainerAndCursorPosition {
+                               container: DocumentFragment = nodeToFragment(document.createElement("div"))): DocumentFragment {
     const parent = getSameFirstParent(leaves);
 
     for (const leafGroup of parent) {
@@ -74,13 +68,12 @@ export function collapseLeaves(leaves: Leaf[],
         firstParentElement = clearElementHTML(firstParentElement);
 
         if (!firstParentElement) {
-            return {container: container, cursorPosition: cursorPosition};
+            return container;
         }
-        const fragment = collapseLeaves(leafGroup.leaves, cursorPosition, nodeToFragment(firstParentElement));
-        cursorPosition = insertAfterLastChild(container, fragment.container, fragment.cursorPosition);
+        insertAfterLastChild(container, collapseLeaves(leafGroup.leaves, nodeToFragment(firstParentElement)));
     }
 
-    return {container: container, cursorPosition: cursorPosition};
+    return container;
 }
 
 export function getSameFirstParent(leaves: Leaf[]): LeafGroup[] {
@@ -222,31 +215,15 @@ export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
     return leaf;
 }
 
-export function remapCursor(firstText: Node, lastText: Node, cursor: CursorPosition): CursorPosition {
-    if (cursor.startContainer === cursor.endContainer) {
-        return getCursorPositionFrom(
-            firstText, 0,
-            firstText, cursor.endOffset - cursor.startOffset
-        );
-    }
-
-    const startContainer = cursor.startOffset > 0 ? cursor.startContainer : firstText;
-    const startOffset = cursor.startOffset > 0 ? cursor.startOffset : 0;
-    return getCursorPositionFrom(startContainer, startOffset, lastText, cursor.endOffset);
-}
-
-interface DroppedCursorPoint {
-    readonly container: Node;
-    readonly offset: number;
-}
-
-// Both remappings move an endpoint that would not survive a collapse onto one that would, and differ only in
-// which endpoints they pick up and where those belong afterwards. A cursor nothing moved is handed back as it
-// came, so the caller can tell it still points where it did.
-function mapCursorPoints(cursor: CursorPosition,
-                         mapPoint: (container: Node, offset: number) => DroppedCursorPoint): CursorPosition {
-    const start = mapPoint(cursor.startContainer, cursor.startOffset);
-    const end = mapPoint(cursor.endContainer, cursor.endOffset);
+// Only leaves keep their identity through a collapse - every parent is cloned - so a cursor anchored on an
+// element does not survive one. An empty block is where the browser leaves it there: the block has no text
+// of its own to hold the cursor. Anchor such an endpoint on the leaf its offset points at, which for an
+// empty block is the br standing in for its content - the very node the browser anchors on once the block
+// is typed into. This is a job no character offset can do: a br holds no text, so there is no offset that
+// names it. An element with no leaves at all has nothing to move onto and is left alone.
+export function anchorCursorOnLeaf(cursor: CursorPosition): CursorPosition {
+    const start = anchorContainerOnLeaf(cursor.startContainer, cursor.startOffset);
+    const end = anchorContainerOnLeaf(cursor.endContainer, cursor.endOffset);
 
     if (start.container === cursor.startContainer && end.container === cursor.endContainer) {
         return cursor;
@@ -255,50 +232,7 @@ function mapCursorPoints(cursor: CursorPosition,
     return getCursorPositionFrom(start.container, start.offset, end.container, end.offset);
 }
 
-// Nothing ahead for the cursor to move onto, so it belongs after the last leaf there is.
-function atLastLeaf(leafNodes: Node[], fallback: DroppedCursorPoint): DroppedCursorPoint {
-    const preceding = leafNodes[leafNodes.length - 1];
-    if (!preceding) {
-        return fallback;
-    }
-
-    return {container: preceding, offset: preceding.textContent?.length ?? 0};
-}
-
-// getLeafNodes drops empty text nodes, and collapseLeaves relocates the cursor only through the leaves it
-// receives. An endpoint left on a dropped node - deleteContents empties the start text node in place instead
-// of removing it - would keep pointing inside the subtree replaceElement throws away. Move such endpoints onto
-// the nearest surviving leaf, which is where the dropped node's neighbours end up after the collapse.
-export function remapDroppedLeafCursor(rootElement: Node, leafNodes: Node[], cursor: CursorPosition): CursorPosition {
-    return mapCursorPoints(cursor, (container, offset) =>
-        remapDroppedContainer(rootElement, leafNodes, container, offset));
-}
-
-function remapDroppedContainer(rootElement: Node, leafNodes: Node[], cursorContainer: Node, offset: number): DroppedCursorPoint {
-    if (!isDroppedLeaf(rootElement, leafNodes, cursorContainer)) {
-        return {container: cursorContainer, offset: offset};
-    }
-
-    const following = leafNodes.find(leaf =>
-        !!(cursorContainer.compareDocumentPosition(leaf) & Node.DOCUMENT_POSITION_FOLLOWING));
-    if (following) {
-        return {container: following, offset: 0};
-    }
-
-    // No leaf follows, so every leaf precedes the dropped node and the cursor belongs after the last one.
-    return atLastLeaf(leafNodes, {container: cursorContainer, offset: offset});
-}
-
-// Only leaves keep their identity through a collapse - every parent is cloned - so a cursor anchored on an
-// element does not survive one. An empty block is where the browser leaves it there: the block has no text of
-// its own to hold the cursor. Anchor such an endpoint on the leaf its offset points at, which for an empty
-// block is the br standing in for its content - the very node the browser anchors on once the block is typed
-// into. An element with no leaves at all has nothing to move onto and is left alone.
-export function anchorCursorOnLeaf(cursor: CursorPosition): CursorPosition {
-    return mapCursorPoints(cursor, anchorContainerOnLeaf);
-}
-
-function anchorContainerOnLeaf(container: Node, offset: number): DroppedCursorPoint {
+function anchorContainerOnLeaf(container: Node, offset: number) {
     if (container.nodeType !== Node.ELEMENT_NODE) {
         return {container: container, offset: offset};
     }
@@ -311,36 +245,12 @@ function anchorContainerOnLeaf(container: Node, offset: number): DroppedCursorPo
     }
 
     // The offset points past the last child, so the cursor belongs at the end of the last leaf.
-    return atLastLeaf(leafNodes, {container: container, offset: offset});
-}
-
-// A self-close leaf holds nothing, so a cursor anchored on the br standing in for an empty block has no
-// position of its own to insert at: an insert lands inside the br, where the serializer never shows it and
-// getLeafNodes never descends. It belongs where the br sits instead. The br is left alone - it is still the
-// block's placeholder while the inserted element carries no text of its own.
-export function anchorCursorBeforeSelfClose(cursor: CursorPosition): CursorPosition {
-    if (!isCollapsed(cursor)) {
-        return cursor;
-    }
-
-    return mapCursorPoints(cursor, beforeSelfClose);
-}
-
-function beforeSelfClose(container: Node, offset: number): DroppedCursorPoint {
-    const parent = container.parentNode;
-    if (!parent || !isSchemaContain(container, [Display.SelfClose])) {
+    const preceding = leafNodes[leafNodes.length - 1];
+    if (!preceding) {
         return {container: container, offset: offset};
     }
 
-    return {container: parent, offset: Array.prototype.indexOf.call(parent.childNodes, container)};
-}
-
-function isDroppedLeaf(rootElement: Node, leafNodes: Node[], container: Node) {
-    return container.nodeType === Node.TEXT_NODE &&
-        !container.textContent &&
-        container !== Carrier.getCarrier() &&
-        rootElement.contains(container) &&
-        !leafNodes.includes(container);
+    return {container: preceding, offset: preceding.textContent?.length ?? 0};
 }
 
 export function maybeAppendCarrier(documentFragment: DocumentFragment) {
@@ -378,39 +288,27 @@ function nodeToFragment(node: Node) {
     return fragment;
 }
 
-function insertAfterLastChild(container: DocumentFragment, insertElement: DocumentFragment, cursorPosition: CursorPosition): CursorPosition {
+function insertAfterLastChild(container: DocumentFragment, insertElement: DocumentFragment) {
     const containerChild = container.lastChild;
     const insertNode = insertElement.firstChild;
 
     if (!containerChild || !insertNode) {
-        return cursorPosition;
+        return;
     }
 
     const previousText = asText(containerChild.lastChild);
     const insertText = asText(insertNode);
 
+    // The two text leaves combine into one node, which is the whole of what the insert had to give.
     if (previousText && insertText) {
-        const cursorMove = mergeText(containerChild, previousText, insertText);
-        return cursorMove.getCursorPosition(cursorPosition);
+        mergeText(previousText, insertText);
+        return;
     }
 
     if (insertElement.textContent || hasSelfCloseDescendant(insertElement) || holdsCarrier(insertElement) ||
         holdsCell(insertElement)) {
         containerChild.appendChild(insertElement);
-
-        // insertNode keeps its identity, so only a cursor anchored on the container moves onto it.
-        const cursorMove = new CursorMove({node: containerChild, target: insertNode, offset: 0, keepOffset: false});
-        return cursorMove.getCursorPosition(cursorPosition);
     }
-
-    // insertElement was thrown away, so cursors inside it belong after the content that was kept.
-    const cursorMove = new CursorMove({
-        node: insertNode,
-        target: containerChild,
-        offset: containerChild.childNodes.length,
-        keepOffset: false
-    });
-    return cursorMove.getCursorPosition(cursorPosition);
 }
 
 // A cell is kept even when it is empty, so the table it was rebuilt into carries content of its own even
@@ -427,71 +325,18 @@ function holdsCarrier(insertElement: DocumentFragment) {
     return Carrier.isCarrierExist() && insertElement.contains(Carrier.getCarrier());
 }
 
-function mergeText(containerChild: Node, previousText: Text, insertText: Text): CursorMove {
-    const mergeOffset = previousText.length;
-    let mergedText = previousText;
-
-    // Two text leaves must combine into one node. When both carry text, appending in place would rewrite
-    // the reused original leaf while it is detached - a change the history MutationObserver cannot see, so
-    // the leaf's pre-merge text would be lost on undo. Swap in a fresh node instead, leaving the original
-    // pristine so its content survives in the childList records. When either side is empty the append only
-    // touches an empty node, so keep it in place to preserve the node identity the cursor mapping relies on.
+// When both leaves carry text, appending in place would rewrite the reused original leaf while it is
+// detached - a change the history MutationObserver cannot see, so the leaf's pre-merge text would be lost
+// on undo. Swap in a fresh node instead, leaving the original pristine so its content survives in the
+// childList records. When either side is empty the append only touches an empty node, so keep it in place:
+// the carrier is such a node, and it is the one leaf a cursor is restored onto by name.
+function mergeText(previousText: Text, insertText: Text) {
     if (previousText.length > 0 && insertText.length > 0) {
-        mergedText = document.createTextNode(previousText.data + insertText.data);
-        previousText.replaceWith(mergedText);
-    } else {
-        previousText.appendData(insertText.data);
+        previousText.replaceWith(document.createTextNode(previousText.data + insertText.data));
+        return;
     }
 
-    return new CursorMove({node: insertText, target: mergedText, offset: mergeOffset, keepOffset: true},
-        {node: containerChild, target: mergedText, offset: mergeOffset, keepOffset: false},
-        {node: previousText, target: mergedText, offset: 0, keepOffset: true});
-}
-
-// Where a cursor sitting on some node belongs once the insert is done: inside target, at offset, plus the
-// offset it already had when the node it sat on was folded into target rather than replaced by it.
-interface CursorPoint {
-    readonly node: Node;
-    readonly target: Node;
-    readonly offset: number;
-    readonly keepOffset: boolean;
-}
-
-class CursorMove {
-    private readonly cursorPointNodes: Map<Node, CursorPoint> = new Map<Node, CursorPoint>;
-
-    constructor(...cursorPoints: CursorPoint[]) {
-        for (const cursorPoint of cursorPoints) {
-            this.cursorPointNodes.set(cursorPoint.node, cursorPoint)
-        }
-    }
-
-    getCursorPosition(cursorPosition: CursorPosition): CursorPosition {
-        let startMove = this.cursorPointNodes.get(cursorPosition.startContainer);
-        if (!startMove) {
-            startMove = {
-                node: cursorPosition.startContainer,
-                target: cursorPosition.startContainer,
-                offset: cursorPosition.startOffset,
-                keepOffset: false
-            };
-        }
-        let endMove = this.cursorPointNodes.get(cursorPosition.endContainer);
-        if (!endMove) {
-            endMove = {
-                node: cursorPosition.endContainer,
-                target: cursorPosition.endContainer,
-                offset: cursorPosition.endOffset,
-                keepOffset: false
-            };
-        }
-
-        return getCursorPositionFrom(startMove.target, this.getOffset(startMove, cursorPosition.startOffset), endMove.target, this.getOffset(endMove, cursorPosition.endOffset));
-    }
-
-    private getOffset(cursorPoint: CursorPoint, offset: number) {
-        return cursorPoint.keepOffset ? cursorPoint.offset + offset : cursorPoint.offset;
-    }
+    previousText.appendData(insertText.data);
 }
 
 function shiftFirstParent(leaves: Leaf[]) {

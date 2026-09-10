@@ -1,6 +1,6 @@
 import {appendTag, mergeLists, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {getElement, getFirstText, getLastText} from "@/core/shared/element-util";
+import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {getSelectedBlock, getSelectedListWrapper} from "@/core/selection/selection";
 import {Action, Attributes} from "@/core/command/type/command";

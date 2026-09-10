@@ -29,9 +29,12 @@ import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
 import {Carrier} from "@/core/carrier/carrier";
 import {removeAndNormalize} from "@/core/normalize/normalize";
-import {anchorCursorBeforeSelfClose} from "@/core/normalize/util/normalize-util";
 import {getCell, getCellCursorPosition, insertTable, isTableEmpty, removeTable} from "@/core/command/util/table-util";
-import {isCursorInTable} from "@/core/cursor/util/cursor-util";
+import {
+    getCursorAnchor,
+    isCursorInTable,
+    restoreCursorPosition
+} from "@/core/cursor/util/cursor-util";
 
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
@@ -44,6 +47,11 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     // rebuilds the block the browser was aiming at and suppresses the click's default action along with the
     // placement, so it has to name the spot in the rebuilt block itself. Read before the carrier is dropped.
     const isCursorPlacedByBrowser = command.action === Action.Click && !Carrier.isCarrierExist();
+
+    // Read before anything moves. Every command below rebuilds the blocks it touches, and a cursor read as
+    // a pair of nodes does not survive that, so it is read as a place in the text as well - the offset it
+    // stands at inside its own block, which the rebuild cannot invalidate.
+    const cursorAnchor = getCursorAnchor(contentEditable, cursorPosition);
 
     switch (command.action)  {
         case Action.Attribute:
@@ -107,6 +115,14 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         applyAttributesCommand(contentEditable, command);
     }
 
+    // The cursor is written back from the anchor rather than from the nodes the command carried through the
+    // rebuild. A node that survived the rebuild is no proof the offset on it still means what it did: a text
+    // leaf keeps its identity while the text around it is written into other nodes, so a position that still
+    // names something in the document can name the wrong place in it.
+    if (isCursorRestorable(command)) {
+        cursorPosition = restoreCursorPosition(contentEditable, cursorAnchor, cursorPosition);
+    }
+
     // Every command runs before the cursor is written back, so this is the one place the editor is left with a
     // document again whichever way the last block was taken out of it.
     cursorPosition = ensureParagraph(contentEditable, cursorPosition);
@@ -119,6 +135,28 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     }
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
     return cursorPosition;
+}
+
+// The commands that place the cursor themselves, which the anchor read before them cannot speak for. A
+// table edit names the cell the cursor belongs in, one that in the case of an inserted row or column holds
+// no text for an offset to find. An image is inserted once the file is read, long after this returns. A
+// click is placed by the browser. Enter divides a line without writing any text, so the offset the cursor
+// stood at is unchanged while the place it belongs is not.
+function isCursorRestorable(command: Command) {
+    switch (command.action) {
+        case Action.Click:
+        case Action.Image:
+        case Action.InsertTable:
+        case Action.InsertRow:
+        case Action.InsertColumn:
+        case Action.DeleteRow:
+        case Action.DeleteColumn:
+            return false;
+        case Action.Keyboard:
+            return (command.event as KeyboardEvent).key !== "Enter";
+        default:
+            return true;
+    }
 }
 
 function applyAttributesCommand(contentEditable: HTMLElement, command: Command) {
@@ -143,9 +181,8 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
             paragraph.appendChild(img);
 
             // The cursor is read again once the file is: a table it has moved into by then refuses the
-            // image the same way the toolbar refuses it, since a cell has no line to give an image. A cursor
-            // anchored on the br of an empty block would bury the image inside that br, where nothing shows it.
-            const cursorPosition = anchorCursorBeforeSelfClose(getCursorPosition());
+            // image the same way the toolbar refuses it, since a cell has no line to give an image.
+            const cursorPosition = getCursorPosition();
             if (isRangeIn(contentEditable, cursorPosition) && !isCursorInTable(contentEditable, cursorPosition)) {
                 // The file is read once the command that asked for it is over, so the insert has to open a
                 // recording window of its own - without one history never sees the image and cannot undo it.

@@ -1,13 +1,7 @@
 import {getRange} from "@/core/shared/range-util";
 import {getFirstText, getLastText} from "@/core/shared/element-util";
 import {Command} from "@/core/command/type/command";
-import {
-    anchorCursorOnLeaf,
-    collapseLeaves,
-    getLeafNodes,
-    remapDroppedLeafCursor,
-    setLeafParents
-} from "@/core/normalize/util/normalize-util";
+import {anchorCursorOnLeaf, collapseLeaves, getLeafNodes, setLeafParents} from "@/core/normalize/util/normalize-util";
 
 export interface CursorPosition {
     readonly startContainer: Node,
@@ -101,20 +95,16 @@ export function extractContents(cursorPosition: CursorPosition): DocumentFragmen
 // was parsed into; either one holds the leaves the split reads.
 export function splitAtCursor(container: HTMLElement | DocumentFragment, cursorPosition: CursorPosition): DocumentFragment {
     const leafNodes = getLeafNodes(container);
-    // The cursor has to name a leaf for the split to have a place to fall. The browser leaves it on the
-    // block itself where a block holds no text of its own, and a selection deleted just before the split
-    // leaves it on a text node emptied in place, which is no longer a leaf at all - the same two cursors
-    // every rebuild here remaps before it reads them.
-    const splitIndex = getSplitIndex(leafNodes,
-        remapDroppedLeafCursor(container, leafNodes, anchorCursorOnLeaf(cursorPosition)));
+    // The cursor has to name a leaf for the split to have a place to fall.
+    const splitIndex = getSplitIndex(container, leafNodes, anchorCursorOnLeaf(cursorPosition));
     if (splitIndex < 0) {
         return new DocumentFragment();
     }
 
     // Both sides are read before either is written back: collapsing one moves its leaves out of the
     // container the other is still standing in.
-    const head = collapseToFragment(container, leafNodes.slice(0, splitIndex), cursorPosition);
-    const tail = collapseToFragment(container, leafNodes.slice(splitIndex), cursorPosition);
+    const head = collapseToFragment(container, leafNodes.slice(0, splitIndex));
+    const tail = collapseToFragment(container, leafNodes.slice(splitIndex));
     container.replaceChildren(head);
 
     return tail;
@@ -125,11 +115,11 @@ export function splitAtCursor(container: HTMLElement | DocumentFragment, cursorP
 // never share one. Resting at either end of a leaf it divides the leaves where it stands, and a leaf holding
 // no text of its own to stand in - the br standing in for a line - goes whole to the side the cursor leaves
 // it on. A cursor outside the container names no leaf here and there is nothing to divide.
-function getSplitIndex(leafNodes: Node[], cursorPosition: CursorPosition): number {
+function getSplitIndex(container: Node, leafNodes: Node[], cursorPosition: CursorPosition): number {
     const index = leafNodes.indexOf(cursorPosition.startContainer);
     const leafNode = leafNodes[index];
     if (!leafNode) {
-        return -1;
+        return getSplitIndexAtOffset(container, leafNodes, cursorPosition);
     }
 
     if (leafNode.nodeType !== Node.TEXT_NODE) {
@@ -149,11 +139,43 @@ function getSplitIndex(leafNodes: Node[], cursorPosition: CursorPosition): numbe
     return index + 1;
 }
 
+// The cursor names no leaf of its own: it stands on the block itself, which holds no text for it to stand
+// in, or on a text node a deletion emptied in place, which is no longer a leaf at all. Both name a place in
+// the text all the same, and the leaves can be counted up to it. A cursor outside the container names no
+// place here and there is nothing to divide.
+function getSplitIndexAtOffset(container: Node, leafNodes: Node[], cursorPosition: CursorPosition): number {
+    if (!container.contains(cursorPosition.startContainer)) {
+        return -1;
+    }
+
+    const range = new Range();
+    range.selectNodeContents(container);
+    range.setEnd(cursorPosition.startContainer, cursorPosition.startOffset);
+    const offset = range.toString().length;
+
+    let position = 0;
+    for (let index = 0; index < leafNodes.length; index++) {
+        const leafNode = leafNodes[index] as Node;
+        const length = leafNode.textContent?.length ?? 0;
+
+        if (offset <= position) {
+            return index;
+        }
+        if (offset < position + length) {
+            leafNodes.splice(index + 1, 0, (leafNode as Text).splitText(offset - position));
+            return index + 1;
+        }
+        position += length;
+    }
+
+    return leafNodes.length;
+}
+
 // The leaves of one side, written back as the markup they were written in. The collapse hands them back
 // inside a wrapper of its own, the way it does for every rebuild, and only what it holds is wanted here.
-function collapseToFragment(container: Node, leafNodes: Node[], cursorPosition: CursorPosition): DocumentFragment {
+function collapseToFragment(container: Node, leafNodes: Node[]): DocumentFragment {
     const leaves = leafNodes.map(leafNode => setLeafParents(container, leafNode));
-    const collapsed = collapseLeaves(leaves, cursorPosition).container.firstChild;
+    const collapsed = collapseLeaves(leaves).firstChild;
 
     const fragment = new DocumentFragment();
     if (collapsed) {
