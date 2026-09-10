@@ -51,6 +51,14 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
         return pasteIntoList(contentEditable, firstRoot, htmlString, cursorPosition);
     }
 
+    // A run of blocks pasted into a block of the same kind is read by the rebuild as a repeat of the tag it was
+    // dropped into and thrown away, which leaves every line collapsed into the one line of the target. The run
+    // is placed between blocks instead, the way a pasted list or table is, so each block keeps a line of its
+    // own. A block on its own is left to the path below, where it merges into the line the cursor is on.
+    if (hasSeveralBlocks(pastedContent)) {
+        return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
+    }
+
     // An empty block has nothing on either side of the cursor to close tags around, and the br standing in for
     // its line is not content to keep: it is what the pasted markup takes the place of, so the block is
     // emptied rather than divided.
@@ -248,6 +256,14 @@ function wrapChildListItems(parent: HTMLElement) {
 
 function hasListWrapper(pastedContent: HTMLElement | DocumentFragment) {
     return Array.from(pastedContent.children).some(child => isSchemaContain(child, [Display.ListWrapper]));
+}
+
+// Whether more than one block was pasted. A list wrapper is a first level element too, but one never reaches
+// this: a pasted list is placed between blocks above.
+function hasSeveralBlocks(pastedContent: HTMLElement) {
+    return Array.from(pastedContent.children)
+        .filter(child => isSchemaContain(child, [Display.FirstLevel]) &&
+            !isSchemaContain(child, [Display.ListWrapper])).length > 1;
 }
 
 // The hoist leaves every pasted table as a child of the body it was parsed into, so a top level look is

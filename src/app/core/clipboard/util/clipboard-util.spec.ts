@@ -646,6 +646,143 @@ describe("Sanitize input", () => {
         expect(cursorPosition.endOffset).toBe("second".length);
     });
 
+    test("Should paste multiple paragraphs to the middle of a paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze</p>
+            <p>first</p>
+            <p>second</p>
+            <p>ro</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[2]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("p")[2]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+        expect(cursorPosition.endOffset).toBe("second".length);
+    });
+
+    test("Should paste multiple paragraphs to the end of a paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <p>first</p>
+            <p>second</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[2]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+    });
+
+    test("Should paste multiple paragraphs before a paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>first</p>
+            <p>second</p>
+            <p>zero</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+    });
+
+    test("Should paste multiple paragraphs into an empty paragraph without keeping its placeholder br", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>first</p>
+            <p>second</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+    });
+
+    // The rule is about blocks, not about the paragraph tag: two headings of the kind they are pasted into
+    // are read as repeats of it by the rebuild the same way two paragraphs are.
+    test("Should paste multiple headings to the middle of a heading of their own kind", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<h1>first</h1><h1>second</h1>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>ze</h1>
+            <h1>first</h1>
+            <h1>second</h1>
+            <h1>ro</h1>
+        `);
+    });
+
+    // A block on its own keeps the line it is pasted into: words copied from a page arrive wrapped in a
+    // block of their own, and such a paste must not divide the line the cursor is on.
+    test("Should keep the line when a single paragraph is pasted into a paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<p>first</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zefirstro</p>
+        `);
+    });
+
     test("Should paste multiple paragraphs before the heading", () => {
         const wrapper = createWrapper(`
             <h1 class="start">zero</h1>
