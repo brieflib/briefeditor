@@ -185,6 +185,42 @@ describe("Cursor as a place in the text", () => {
         expect(cursorPosition.startOffset).toBe("sec".length);
     });
 
+    test("Should keep a caret the command left on the br of an empty item", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end"><br></li></ul>`);
+        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "zero".length);
+
+        // An item is measured against the whole list, and the empty line answers to the same offset as the
+        // end of the item above it. Only the caret the command handed back can tell the two apart.
+        const br = getFirstChild(wrapper, ".end");
+        const given = getCursorPositionFrom(br, 0, br, 0);
+
+        expect(restoreCursorPosition(wrapper, cursorAnchor, given)).toBe(given);
+    });
+
+    test("Should keep a caret the command left on the text node a deletion emptied", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end"><br></li></ul>`);
+        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "zero".length);
+
+        const emptied = document.createTextNode("");
+        (wrapper.querySelector(".end") as HTMLElement).prepend(emptied);
+        const given = getCursorPositionFrom(emptied, 0, emptied, 0);
+
+        expect(restoreCursorPosition(wrapper, cursorAnchor, given)).toBe(given);
+    });
+
+    test("Should resolve the anchor when the br the command left the caret on is gone", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li><br></li></ul>`);
+        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "zero".length);
+
+        const br = wrapper.querySelector("br") as HTMLElement;
+        const given = getCursorPositionFrom(br, 0, br, 0);
+        br.remove();
+        const cursorPosition = restoreCursorPosition(wrapper, cursorAnchor, given);
+
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("zero".length);
+    });
+
     test("Should hand back the given position when the block it was read in is gone", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "ze".length);

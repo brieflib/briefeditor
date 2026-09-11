@@ -523,6 +523,49 @@ describe("Cursor position after PlusIndent command", () => {
         expect(cursorPosition.endContainer).toBe(expectedEnd);
         expect(cursorPosition.endOffset).toBe("rst".length);
     });
+
+    // An empty item holds no text, and an item is measured against the whole list: the empty line answers to
+    // the same offset as the end of the item above it, which is where the cursor used to be put back.
+    test("Should keep cursor on the br of an empty item after indent", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start"><br></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero<ul><li><br></li></ul></li></ul>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ul li ul li br"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    // The browser anchors the cursor on an empty item itself rather than on the br standing in for its line.
+    test("Should keep cursor in an empty item the browser anchored the cursor on after indent", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start"><br></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".start") as HTMLElement, 0);
+        range.setEnd(wrapper.querySelector(".start") as HTMLElement, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero<ul><li><br></li></ul></li></ul>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ul li ul li br"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
 });
 
 describe("Cursor position after MinusIndent command", () => {
@@ -610,6 +653,67 @@ describe("Cursor position after MinusIndent command", () => {
         expect(cursorPosition.startOffset).toBe("r".length);
         expect(cursorPosition.endContainer).toBe(expectedNode);
         expect(cursorPosition.endOffset).toBe("rst".length);
+    });
+
+    test("Should keep cursor on the br of an empty item after outdent", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ul>
+                        <li class="start"><br></li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".start"), 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.MinusIndent});
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li><br></li></ul>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("ul li")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+});
+
+describe("Keyboard command that empties a list item", () => {
+    function keyboard(wrapper: HTMLElement, key: string) {
+        return execCommand(wrapper, {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key})});
+    }
+
+    // An item is measured against the whole list, so the emptied line answers to the same offset as the end
+    // of the item above it: the cursor has to stay on the line the command left it on.
+    test("Should keep the cursor in the item backspace emptied", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">a</li></ul>`);
+        const text = getFirstChild(wrapper, ".start");
+        const range = new Range();
+        range.setStart(text, "a".length);
+        range.setEnd(text, "a".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = keyboard(wrapper, "Backspace");
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br></li></ul>`);
+        expect(cursorPosition.startContainer.parentElement).toBe(wrapper.querySelector(".start"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should keep the cursor in the item delete emptied", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">a</li><li>first</li></ul>`);
+        const text = getFirstChild(wrapper, ".start");
+        const range = new Range();
+        range.setStart(text, 0);
+        range.setEnd(text, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = keyboard(wrapper, "Delete");
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br></li><li>first</li></ul>`);
+        expect(cursorPosition.startContainer.parentElement).toBe(wrapper.querySelector(".start"));
+        expect(cursorPosition.startOffset).toBe(0);
     });
 });
 
