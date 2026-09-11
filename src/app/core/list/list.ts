@@ -300,19 +300,22 @@ function mergeIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: Cursor
 }
 
 // Backspace at the start of an empty item merges it into the line above it. The item holds no content to
-// keep, so the merge is the item going: the list is rebuilt without it, and the items nested inside it are
-// lowered onto the level below the line they now hang from. The parse moves the content of every item into
-// a fragment of its own, so the list is rebuilt whether or not the item turns out to be one to drop.
+// keep, so the merge is the item going: it is taken out of the parsed list and the list is rebuilt from what
+// is left, the items nested inside it lowered onto the level below the line they now hang from. The item is
+// named by the cursor as the browser reported it - which is on the item itself, or on the br standing in for
+// its line - rather than by a cursor anchored on a leaf: an empty item holds no leaf of its own, and the
+// nearest one is inside the list nested under it, which names the wrong item. The parse moves the content of
+// every item into a fragment of its own, so the list is rebuilt whether or not the item turns out to be
+// empty.
 export function removeEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
-    // The item is empty, so the browser anchors the cursor on the item itself, and the item is one of the
-    // nodes the rebuild throws away. The br standing in for its content is carried over instead.
-    cursorPosition = anchorCursorOnLeaf(cursorPosition);
     const root = getFirstSelectedRoot(contentEditable, cursorPosition);
     const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
     const lists = parseList(root);
-    const empty = lists[orderNumber];
+    if (isListClassEmpty(lists[orderNumber])) {
+        lists.splice(orderNumber, 1);
+    }
 
-    const normalized = normalizeLists(lists, cursorPosition, isListClassEmpty(empty) ? empty : undefined);
+    const normalized = normalizeLists(lists, cursorPosition);
     appendBeforeAndDelete(root, convertList(normalized.lists));
 
     return normalized.cursorPosition;

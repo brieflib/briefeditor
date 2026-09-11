@@ -858,6 +858,66 @@ describe("Typing and deleting characters", () => {
         expect(cursorPosition.startOffset).toBe("one".length);
     });
 
+    test("Backspace in an empty first level item holding a nested list drops it", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>First ordered item</li>
+                <li class="start"><br>
+                    <ol>
+                        <li>Third ordered item</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>First ordered item
+                    <ol>
+                        <li>Third ordered item</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
+        expect(cursorPosition.startOffset).toBe("First ordered item".length);
+    });
+
+    // Arriving at the end of the empty line, the browser anchors the cursor on the item after the br, which
+    // is just before the list nested inside it. The item is the one on that line, not the nested one.
+    test("Backspace after the br of an empty first level item holding a nested list drops it", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>First ordered item</li>
+                <li class="start"><br>
+                    <ol>
+                        <li>Third ordered item</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, 1, 1);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>First ordered item
+                    <ol>
+                        <li>Third ordered item</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
+        expect(cursorPosition.startOffset).toBe("First ordered item".length);
+    });
+
     test("Backspace in the only empty item below a paragraph drops the list", () => {
         const wrapper = createWrapper(`
             <p>one</p>
