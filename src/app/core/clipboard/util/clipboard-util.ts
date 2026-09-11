@@ -47,6 +47,19 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
         return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
     }
 
+    // A blank paste - whitespace, or the br an empty line was copied as - dropped into a line stands as the
+    // space between the words on either side, not as a break dividing them and not as the formatting that
+    // wrapped it: tags around nothing are nothing to keep. Dropped onto an empty line it is nothing at all:
+    // a space written into an emptied block would leave one with no br to hold its line open. Several brs
+    // are lines of their own and are left to the paths around this one.
+    if (isBlank(pastedContent)) {
+        const line = cell ?? getSelectedBlock(contentEditable, cursorPosition)[0];
+        if (!line || isEmptyBlock(line)) {
+            return cursorPosition;
+        }
+        htmlString = " ";
+    }
+
     if (isSchemaContain(firstRoot, [Display.ListWrapper])) {
         return pasteIntoList(contentEditable, firstRoot, htmlString, cursorPosition);
     }
@@ -264,6 +277,19 @@ function hasSeveralBlocks(pastedContent: HTMLElement) {
     return Array.from(pastedContent.children)
         .filter(child => isSchemaContain(child, [Display.FirstLevel]) &&
             !isSchemaContain(child, [Display.ListWrapper])).length > 1;
+}
+
+// Whether the paste holds nothing but whitespace or a single br, whatever block or formatting it was wrapped
+// in. Something blank has to be there: tags holding nothing at all are no paste. trim takes a no-break space
+// for whitespace too, so a copied nbsp is a blank as well.
+function isBlank(pastedContent: HTMLElement) {
+    const text = pastedContent.textContent ?? "";
+    const breaks = pastedContent.querySelectorAll("br").length;
+
+    return !text.trim() &&
+        !pastedContent.querySelector(imageSelector) &&
+        breaks <= 1 &&
+        (breaks === 1 || text.length > 0);
 }
 
 // The hoist leaves every pasted table as a child of the body it was parsed into, so a top level look is
