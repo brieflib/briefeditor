@@ -566,6 +566,108 @@ describe("Cursor position after PlusIndent command", () => {
         expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ul li ul li br"));
         expect(cursorPosition.startOffset).toBe(0);
     });
+
+    // A selection reaching into an empty item ends on a line holding no text, which answers to the same
+    // offset as the end of the item above it, so the empty item used to drop out of the selection.
+    test("Should keep selection ending on an empty item after indent", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start">First ordered item</li>
+                <li class="end"><br></li>
+                <li>Third ordered item</li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "Fi".length);
+        range.setEnd(wrapper.querySelector(".end") as HTMLElement, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>First ordered item</li>
+                        <li><br></li>
+                    </ol>
+                </li>
+                <li>Third ordered item</li>
+            </ol>
+        `);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ol li ol li")?.firstChild);
+        expect(cursorPosition.startOffset).toBe("Fi".length);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ol li ol li br"));
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+
+    test("Should keep selection starting on an empty item after indent", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>First ordered item</li>
+                <li class="start"><br></li>
+                <li class="end">Third ordered item</li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".start") as HTMLElement, 0);
+        range.setEnd(getFirstChild(wrapper, ".end"), "Thi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>First ordered item
+                    <ol>
+                        <li><br></li>
+                        <li>Third ordered item</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ol li ol li br"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ol li ol li:last-child")?.firstChild);
+        expect(cursorPosition.endOffset).toBe("Thi".length);
+    });
+
+    test("Should keep selection ending on an empty item after outdent", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li class="start">First ordered item</li>
+                        <li class="end"><br></li>
+                    </ol>
+                </li>
+                <li>Third ordered item</li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "Fi".length);
+        range.setEnd(wrapper.querySelector(".end") as HTMLElement, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.MinusIndent});
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>First ordered item</li>
+                <li><br></li>
+                <li>Third ordered item</li>
+            </ol>
+        `);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("ol li")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("Fi".length);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ol li br"));
+        expect(cursorPosition.endOffset).toBe(0);
+    });
 });
 
 describe("Cursor position after MinusIndent command", () => {

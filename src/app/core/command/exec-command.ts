@@ -116,9 +116,10 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     }
 
     // The cursor is written back from the anchor rather than from the nodes the command carried through the
-    // rebuild. A node that survived the rebuild is no proof the offset on it still means what it did: a text
-    // leaf keeps its identity while the text around it is written into other nodes, so a position that still
-    // names something in the document can name the wrong place in it.
+    // rebuild once text was written or those nodes are gone. A node that survived a write is no proof the
+    // offset on it still means what it did: a text leaf keeps its identity while the text around it is
+    // written into other nodes, so a position that still names something in the document can name the wrong
+    // place in it.
     if (isCursorRestorable(command)) {
         cursorPosition = restoreCursorPosition(contentEditable, cursorAnchor, cursorPosition);
     }

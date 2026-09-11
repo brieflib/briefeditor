@@ -228,17 +228,21 @@ function getBlockOffset(contentEditable: HTMLElement, container: Node, offset: n
 }
 
 // The cursor written back from the anchor it was read at, corrected for whatever text the command wrote.
-// Where the anchor names nothing that is left in the document the command's own position is handed back,
-// since there is nothing better to say.
+// Where the command wrote none and the position it hands back still stands in the document, that position
+// is kept, and where the anchor names nothing that is left in the document the command's own position is
+// handed back too, since there is nothing better to say.
 export function restoreCursorPosition(contentEditable: HTMLElement, cursorAnchor: CursorAnchor,
                                       cursorPosition: CursorPosition): CursorPosition {
+    // The carrier is a leaf holding no text, and one still in the document keeps its claim on the cursor
+    // the way it does below, over anything the command handed back.
+    const isCarrierConnected = Carrier.getCarrier()?.isConnected ?? false;
+
     // An offset counted over text cannot name a leaf that holds none: the br standing in for an empty line,
     // or the text node a deletion emptied in place, answers to the same offset as the end of the line written
     // above it, and an item of a list is measured against the whole list, so the anchor would put the caret
     // at the end of the item above. A command that hands back a caret standing on such a leaf, one still in
-    // the document, is the only thing that can say which of the two is meant. The carrier is such a leaf too,
-    // and one still in the document keeps its claim on the cursor the way it does below.
-    if (!Carrier.getCarrier()?.isConnected && isCaretOnEmptyLeaf(cursorPosition)) {
+    // the document, is the only thing that can say which of the two is meant.
+    if (!isCarrierConnected && isCaretOnEmptyLeaf(cursorPosition)) {
         return cursorPosition;
     }
 
@@ -246,7 +250,19 @@ export function restoreCursorPosition(contentEditable: HTMLElement, cursorAnchor
     // whatever the cursor spanned is gone. What is left is a cursor standing after what was written.
     const delta = contentEditable.textContent.length - cursorAnchor.textLength;
 
+    // A rebuild writes no text, and every layer below the command carries the cursor through its own rebuild
+    // and hands back the place it resolved. With nothing written there is nothing to correct for, and where
+    // that place is still in the document it is the one answer that can name a leaf holding no text - the br
+    // of an empty item at either end of a selection - which an offset counted over text never reaches.
+    if (delta === 0 && !isCarrierConnected && isPositionConnected(cursorPosition)) {
+        return cursorPosition;
+    }
+
     return resolveCursorAnchor(contentEditable, cursorAnchor, delta) ?? cursorPosition;
+}
+
+function isPositionConnected(cursorPosition: CursorPosition) {
+    return cursorPosition.startContainer.isConnected && cursorPosition.endContainer.isConnected;
 }
 
 function isCaretOnEmptyLeaf(cursorPosition: CursorPosition) {
