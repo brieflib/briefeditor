@@ -35,10 +35,18 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
     const previousNode = getPreviousNode(contentEditable, cursorPosition.startContainer);
     if (!previousNode) {
         // An item opening the document has no line above it to merge into, and an empty one holds nothing to
-        // keep either: it is dropped and the list is left standing on the item written below it.
+        // keep either: it is dropped and the list is left standing on the item written below it. The only
+        // item of a list takes the list with it, and the writer goes on at the start of what was written
+        // below - or on the paragraph the editor is left with once the last block is gone.
         const firstBlock = getSelectedBlock(contentEditable, cursorPosition)[0];
         if (firstBlock && isSchemaContain(firstBlock, [Display.List]) && isListEmpty(firstBlock)) {
-            return removeEmptyItem(contentEditable, cursorPosition);
+            cursorPosition = removeEmptyItem(contentEditable, cursorPosition);
+            if (cursorPosition.startContainer.isConnected) {
+                return cursorPosition;
+            }
+
+            const firstText = getFirstText(contentEditable);
+            return getCursorPositionFrom(firstText, 0, firstText, 0);
         }
 
         return cursorPosition;
@@ -50,6 +58,18 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
     const previousBlock = getElement(contentEditable, getLastText(previousNode), [Display.FirstLevel, Display.List]);
     if (isMergedIntoEmptyItem(contentEditable, cursorPosition, previousBlock)) {
         return mergeIntoPreviousEmptyItem(contentEditable, cursorPosition);
+    }
+
+    // An empty item holds no content to carry onto the line above it, so the merge below has nothing to move
+    // and leaves the item standing. The rebuild drops it instead, lowering the items nested inside it onto the
+    // level below the line above, and the writer goes on at the end of that line. The line above keeps what it
+    // has and stays where it is, so the end of it is read before the item goes.
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+    if (previousBlock && block && isSchemaContain(block, [Display.List]) && isListEmpty(block)) {
+        const lastText = getLastNonEmptyText(previousNode);
+        const offset = lastText.textContent?.length ?? 0;
+        removeEmptyItem(contentEditable, cursorPosition);
+        return getCursorPositionFrom(lastText, offset, lastText, offset);
     }
 
     const lastText = getLastNonEmptyText(previousNode);

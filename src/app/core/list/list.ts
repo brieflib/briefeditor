@@ -299,10 +299,10 @@ function mergeIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: Cursor
     return normalized.cursorPosition;
 }
 
-// Backspace at the start of an item opening the document has no line above it to merge into. An empty item
-// holds no content to keep, so it is dropped and the list is left standing on the item written below it. The
-// only item of a list is left where it is: dropped it would take the list with it, and leaving the list is
-// what a new line in an empty item is for.
+// Backspace at the start of an empty item merges it into the line above it. The item holds no content to
+// keep, so the merge is the item going: the list is rebuilt without it, and the items nested inside it are
+// lowered onto the level below the line they now hang from. The parse moves the content of every item into
+// a fragment of its own, so the list is rebuilt whether or not the item turns out to be one to drop.
 export function removeEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
     // The item is empty, so the browser anchors the cursor on the item itself, and the item is one of the
     // nodes the rebuild throws away. The br standing in for its content is carried over instead.
@@ -311,11 +311,8 @@ export function removeEmptyItem(contentEditable: HTMLElement, cursorPosition: Cu
     const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
     const lists = parseList(root);
     const empty = lists[orderNumber];
-    if (lists.length < 2 || !isListClassEmpty(empty)) {
-        return cursorPosition;
-    }
 
-    const normalized = normalizeLists(lists, cursorPosition, empty);
+    const normalized = normalizeLists(lists, cursorPosition, isListClassEmpty(empty) ? empty : undefined);
     appendBeforeAndDelete(root, convertList(normalized.lists));
 
     return normalized.cursorPosition;

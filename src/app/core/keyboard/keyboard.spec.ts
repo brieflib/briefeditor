@@ -727,6 +727,192 @@ describe("Typing and deleting characters", () => {
         `);
     });
 
+    // The browser anchors the cursor on an empty item itself, so the item is what the cursor is set on.
+    test("Backspace in an empty nested item drops it and lands at the end of the line above", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>Unordered item one
+                    <ul>
+                        <li class="start"><br></li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>Unordered item one</li>
+            </ul>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
+        expect(cursorPosition.startOffset).toBe("Unordered item one".length);
+    });
+
+    test("Backspace on the br of an empty nested item drops the item", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>one
+                    <ul>
+                        <li class="start"><br></li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        selectText(getFirstChild(wrapper, ".start"), 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>one</li>
+            </ul>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
+        expect(cursorPosition.startOffset).toBe("one".length);
+    });
+
+    test("Backspace in an empty nested item lowers the items nested inside it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>one
+                    <ul>
+                        <li class="start"><br>
+                            <ul>
+                                <li>deep</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>one
+                    <ul>
+                        <li>deep</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
+        expect(cursorPosition.startOffset).toBe("one".length);
+    });
+
+    test("Backspace in an empty nested item keeps the item written below it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>one
+                    <ul>
+                        <li class="start"><br></li>
+                        <li>two</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>one
+                    <ul>
+                        <li>two</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
+        expect(cursorPosition.startOffset).toBe("one".length);
+    });
+
+    test("Backspace in an empty first level item drops it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>one</li>
+                <li class="start"><br></li>
+            </ul>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>one</li>
+            </ul>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
+        expect(cursorPosition.startOffset).toBe("one".length);
+    });
+
+    test("Backspace in the only empty item below a paragraph drops the list", () => {
+        const wrapper = createWrapper(`
+            <p>one</p>
+            <ul>
+                <li class="start"><br></li>
+            </ul>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>one</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.startOffset).toBe("one".length);
+    });
+
+    test("Backspace in the only empty item opening the document drops the list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br></li>
+            </ul>
+            <p>one</p>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>one</p>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    // The paragraph the editor is left with is written by the command once the keyboard is done.
+    test("Backspace in the only empty item of the document empties the editor", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br></li>
+            </ul>
+        `);
+        selectText(wrapper.querySelector(".start") as Node, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "Backspace"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, ``);
+        expect(cursorPosition.startContainer).toBe(wrapper);
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
     test("Press backspace when selection is inside one paragraph", () => {
         const wrapper = createWrapper(`
             <p class="start">zerofirst</p>
