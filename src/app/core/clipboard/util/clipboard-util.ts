@@ -60,6 +60,16 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
         htmlString = " ";
     }
 
+    // A block on its own is dropped into the line the cursor is on - a block or an item - so the tag it was
+    // written in has no line of its own to name. The rebuild keeps the innermost block standing over a leaf,
+    // which would set the pasted words in a line of the pasted tag between the two halves of the target,
+    // so only what stood inside the block goes in and the target keeps its tag. A blank one was already
+    // read as the space it stands for above.
+    const loneBlock = getLoneBlock(pastedContent);
+    if (loneBlock && !isBlank(pastedContent)) {
+        htmlString = loneBlock.innerHTML;
+    }
+
     if (isSchemaContain(firstRoot, [Display.ListWrapper])) {
         return pasteIntoList(contentEditable, firstRoot, htmlString, cursorPosition);
     }
@@ -269,6 +279,24 @@ function wrapChildListItems(parent: HTMLElement) {
 
 function hasListWrapper(pastedContent: HTMLElement | DocumentFragment) {
     return Array.from(pastedContent.children).some(child => isSchemaContain(child, [Display.ListWrapper]));
+}
+
+// The one block the paste holds, when it holds nothing else: a comment - the fragment markers a browser wraps
+// clipboard html in - or whitespace beside it is not content. A list wrapper is a run of lines, not a block.
+function getLoneBlock(pastedContent: HTMLElement): HTMLElement | null {
+    let block: HTMLElement | null = null;
+    for (const child of pastedContent.childNodes) {
+        if (child.nodeType === Node.COMMENT_NODE ||
+            (child.nodeType === Node.TEXT_NODE && !child.textContent?.trim())) {
+            continue;
+        }
+        if (block || !isSchemaContain(child, [Display.FirstLevel]) || isSchemaContain(child, [Display.ListWrapper])) {
+            return null;
+        }
+        block = child as HTMLElement;
+    }
+
+    return block;
 }
 
 // Whether more than one block was pasted. A list wrapper is a first level element too, but one never reaches

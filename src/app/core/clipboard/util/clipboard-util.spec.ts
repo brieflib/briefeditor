@@ -206,7 +206,7 @@ describe("Sanitize input", () => {
         `);
     });
 
-    test("Should insert heading outside of list normalizing it", () => {
+    test("Should paste a lone heading into the list item it was dropped in", () => {
         const wrapper = createWrapper(`
             <ul>
                 <li class="start">zero
@@ -228,15 +228,89 @@ describe("Sanitize input", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>zero</li>
-            </ul>
-            <h1>third</h1>
-            <ol>
-                <li>first</li>
-            </ol>
-            <ul>
+                <li>zerothird
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
                 <li>second</li>
             </ul>
+        `);
+    });
+
+    test("Should paste a lone paragraph into the middle of a heading keeping the heading", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">first</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p><strong>zero</strong></p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>fi<strong>zero</strong>rst</h1>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("strong")?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("strong")?.firstChild);
+        expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
+    });
+
+    test("Should paste a lone heading into the middle of a paragraph keeping the paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<h2>zero</h2>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fizerorst</p>
+        `);
+    });
+
+    test("Should paste a lone paragraph into an empty heading keeping the heading", () => {
+        const wrapper = createWrapper(`
+            <h1><br></h1>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p>zero</p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>zero</h1>
+        `);
+    });
+
+    test("Should paste a lone paragraph wrapped in fragment markers into a heading", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">first</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = getCursorPosition();
+        pasteHtml(wrapper, `<!--StartFragment--><p>zero</p><!--EndFragment-->`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>fizerorst</h1>
         `);
     });
 
