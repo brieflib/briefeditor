@@ -882,6 +882,122 @@ describe("Sanitize input", () => {
         expect(cursorPosition.endOffset).toBe("ze ".length);
     });
 
+    // The parser drops a space standing before anything that would open a body, which is all a copied space is.
+    test("Should paste a bare space into the middle of a paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, ` `, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze ro</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("p")?.firstChild);
+        expect(cursorPosition.startOffset).toBe("ze ".length);
+        expect(cursorPosition.endOffset).toBe("ze ".length);
+    });
+
+    // A space read off the system clipboard comes with the charset the browser wrote in front of it.
+    test("Should paste a bare space led by a charset meta into the middle of a paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<meta charset="utf-8"> `, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze ro</p>
+        `);
+    });
+
+    // An empty line selected from the end of the line before it is copied as two blocks, and they are one
+    // space, not a run of lines to place between blocks.
+    test("Should paste an empty line copied with the block before it into the middle of a paragraph as a space", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p></p><p><br></p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze ro</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
+        expect(cursorPosition.startOffset).toBe("ze ".length);
+    });
+
+    test("Should paste an empty line copied with the block before it into the middle of a heading as a space", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>ze ro</h1>
+        `);
+    });
+
+    test("Should paste an empty line copied with the block before it into the middle of a list item as a space", () => {
+        const wrapper = createWrapper(`
+            <ul><li class="start">zero</li></ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul><li>ze ro</li></ul>
+        `);
+    });
+
+    test("Should leave an empty paragraph alone when an empty line copied with the block before it is pasted into it", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p><br></p>
+        `);
+    });
+
     // An empty line copied inside the editor is a bare br, and it goes the same way.
     test("Should paste a bare br into the middle of a paragraph as a space", () => {
         const wrapper = createWrapper(`

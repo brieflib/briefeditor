@@ -51,23 +51,25 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     // space between the words on either side, not as a break dividing them and not as the formatting that
     // wrapped it: tags around nothing are nothing to keep. Dropped onto an empty line it is nothing at all:
     // a space written into an emptied block would leave one with no br to hold its line open. Several brs
-    // are lines of their own and are left to the paths around this one.
-    if (isBlank(pastedContent)) {
+    // are lines of their own and are left to the paths around this one. The blocks a blank was copied in
+    // are nothing to keep either: an empty line selected from the end of the line before it comes as two
+    // blocks, and they are one space, not a run of lines to place between blocks.
+    const blank = isBlank(pastedContent);
+    if (blank) {
         const line = cell ?? getSelectedBlock(contentEditable, cursorPosition)[0];
         if (!line || isEmptyBlock(line)) {
             return cursorPosition;
         }
         htmlString = " ";
-    }
-
-    // A block on its own is dropped into the line the cursor is on - a block or an item - so the tag it was
-    // written in has no line of its own to name. The rebuild keeps the innermost block standing over a leaf,
-    // which would set the pasted words in a line of the pasted tag between the two halves of the target,
-    // so only what stood inside the block goes in and the target keeps its tag. A blank one was already
-    // read as the space it stands for above.
-    const loneBlock = getLoneBlock(pastedContent);
-    if (loneBlock && !isBlank(pastedContent)) {
-        htmlString = loneBlock.innerHTML;
+    } else {
+        // A block on its own is dropped into the line the cursor is on - a block or an item - so the tag it was
+        // written in has no line of its own to name. The rebuild keeps the innermost block standing over a
+        // leaf, which would set the pasted words in a line of the pasted tag between the two halves of the
+        // target, so only what stood inside the block goes in and the target keeps its tag.
+        const loneBlock = getLoneBlock(pastedContent);
+        if (loneBlock) {
+            htmlString = loneBlock.innerHTML;
+        }
     }
 
     if (isSchemaContain(firstRoot, [Display.ListWrapper])) {
@@ -78,7 +80,7 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     // dropped into and thrown away, which leaves every line collapsed into the one line of the target. The run
     // is placed between blocks instead, the way a pasted list or table is, so each block keeps a line of its
     // own. A block on its own is left to the path below, where it merges into the line the cursor is on.
-    if (hasSeveralBlocks(pastedContent)) {
+    if (!blank && hasSeveralBlocks(pastedContent)) {
         return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
     }
 
@@ -173,6 +175,13 @@ function isInlineFormatting(element: HTMLElement): boolean {
 function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | null) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlString, 'text/html');
+
+    // A copied space is all the markup there is, and the parser has no body to put it in: whitespace standing
+    // before anything that would open one goes to the head, or nowhere. It is put back as the one space it
+    // was, which the blank check reads as the space it stands for.
+    if (!doc.body.hasChildNodes() && /^\s+$/.test(htmlString.replace(/<[^>]*>/g, ""))) {
+        doc.body.append(" ");
+    }
 
     const nodes = doc.querySelectorAll('.Apple-interchange-newline');
     nodes.forEach(node => {
