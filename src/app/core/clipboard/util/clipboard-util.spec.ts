@@ -435,7 +435,8 @@ describe("Sanitize input", () => {
         `);
     });
 
-    test("Should paste what was copied out of a paragraph into an empty heading keeping the heading", () => {
+    // An empty line has no words to join, so it gives its tag up: what is pasted takes its place as it came.
+    test("Should take the place of an empty heading with what was copied out of a paragraph", () => {
         const wrapper = createWrapper(`
             <p class="source">Editor Reference Guide</p>
             <h1><br></h1>
@@ -455,7 +456,7 @@ describe("Sanitize input", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p class="source">Editor Reference Guide</p>
-            <h1>Reference</h1>
+            <p>Reference</p>
         `);
     });
 
@@ -608,7 +609,7 @@ describe("Sanitize input", () => {
         `);
     });
 
-    test("Should paste a lone paragraph into an empty heading keeping the heading", () => {
+    test("Should take the place of an empty heading with a lone paragraph", () => {
         const wrapper = createWrapper(`
             <h1><br></h1>
         `);
@@ -621,7 +622,7 @@ describe("Sanitize input", () => {
         pasteHtml(wrapper, `<p>zero</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
-            <h1>zero</h1>
+            <p>zero</p>
         `);
     });
 
@@ -2455,7 +2456,7 @@ describe("Paste lines into the line the cursor is on", () => {
     });
 
     // An empty line has no words to join, so it gives its tag up: the pasted blocks take its place as they
-    // came. A paragraph is the one block that fills the line instead, keeping its tag.
+    // came, a paragraph included.
     test("Should take the place of an empty heading with a lone heading of another kind", () => {
         const wrapper = createWrapper(`
             <h2><br></h2>

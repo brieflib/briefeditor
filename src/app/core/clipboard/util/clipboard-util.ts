@@ -97,11 +97,11 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     } else {
         // A lone line carries only words for the cursor's line, so just its inner markup is
         // merged in and the target keeps its own tag. Conforming writes every line in that
-        // tag; only an empty line skips it, keeping the pasted tags. There a paragraph is
-        // still words filling the line, while any other block takes the line's place and is
-        // placed between blocks instead, since the rebuild would otherwise fold it in.
+        // tag; only an empty line skips it, keeping the pasted tags. There the block takes
+        // the line's place and is placed between blocks instead, since the rebuild would
+        // otherwise fold it in.
         const loneBlock = getLoneBlock(pastedContent);
-        if (loneBlock && (loneBlock.nodeName === "P" || (line && loneBlock.nodeName === lineTag(line)))) {
+        if (loneBlock && line && loneBlock.nodeName === lineTag(line)) {
             htmlString = loneBlock.innerHTML;
         } else if (loneBlock) {
             return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
