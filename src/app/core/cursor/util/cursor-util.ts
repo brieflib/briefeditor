@@ -21,9 +21,12 @@ interface BlockOffset {
     readonly offset: number;
 }
 
+// The text the cursor spans is kept as well: the two ends are each measured against the block of their
+// own, so it is the one thing that says how far the end stands from the start once the two blocks are one.
 export interface CursorAnchor {
     readonly start: BlockOffset | null;
     readonly end: BlockOffset | null;
+    readonly length: number;
     readonly textLength: number;
 }
 
@@ -201,8 +204,22 @@ export function getCursorAnchor(contentEditable: HTMLElement, cursorPosition: Cu
     return {
         start: getBlockOffset(contentEditable, cursorPosition.startContainer, cursorPosition.startOffset),
         end: getBlockOffset(contentEditable, cursorPosition.endContainer, cursorPosition.endOffset),
+        length: getSelectedLength(cursorPosition),
         textLength: contentEditable.textContent.length
     };
+}
+
+// How much text the cursor spans, counted the way the offsets of its ends are.
+function getSelectedLength(cursorPosition: CursorPosition) {
+    if (!cursorPosition.startContainer.isConnected || !cursorPosition.endContainer.isConnected) {
+        return 0;
+    }
+
+    const range = new Range();
+    range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
+    range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
+
+    return range.toString().length;
 }
 
 // The first level element the endpoint stands in, which is the whole of what a command rebuilds: an
@@ -291,7 +308,7 @@ export function resolveCursorAnchor(contentEditable: HTMLElement, cursorAnchor: 
     // A caret standing on its own is one place, and it belongs where a caret always does: at the end of
     // what was written before it, unless what was written next is a line of its own.
     if (delta !== 0 || isAnchorCollapsed(cursorAnchor)) {
-        const caret = resolveCaret(contentEditable, cursorAnchor.end, delta);
+        const caret = resolveCaret(contentEditable, getCaretAnchor(cursorAnchor), delta);
         if (!caret) {
             return null;
         }
@@ -309,6 +326,20 @@ export function resolveCursorAnchor(contentEditable: HTMLElement, cursorAnchor: 
     }
 
     return getCursorPositionFrom(start.node, start.offset, end.node, end.offset);
+}
+
+// Where the caret stands once the text the anchor spanned is written over: the end of the selection, measured
+// from its start. Both ends standing in one block, that is the place the end was measured to. Standing in two
+// blocks, each end is measured against a block of its own, and the command writing over the selection joins
+// the two - the end lands in the block the start was read in, the text the selection spanned further along
+// it. Measured against its own block instead, the end would name a place in the block written after the one
+// the caret is left in, once the delta has taken it back to nothing.
+function getCaretAnchor(cursorAnchor: CursorAnchor): BlockOffset | null {
+    if (!cursorAnchor.start) {
+        return cursorAnchor.end;
+    }
+
+    return {...cursorAnchor.start, offset: cursorAnchor.start.offset + cursorAnchor.length};
 }
 
 // A br holds no text of its own, so the offsets on either side of it are the same offset and only the br

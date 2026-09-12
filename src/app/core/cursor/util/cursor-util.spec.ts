@@ -193,6 +193,40 @@ describe("Cursor as a place in the text", () => {
         expect(cursorPosition.startOffset).toBe("sec".length);
     });
 
+    test("Should leave the caret after the text written over a line selected up to the start of the next block", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
+        // A triple click selects a line from its start to the start of the block below it.
+        const given = getCursorPositionFrom(getFirstChild(wrapper, ".start"), "".length,
+            wrapper.querySelector(".end") as HTMLElement, 0);
+        const cursorAnchor = getCursorAnchor(wrapper, given);
+
+        // What typing over the line does: the line is written over, and the block below keeps to itself. The
+        // end was measured at nothing into that block, and the caret does not belong there but after what
+        // was written in the block the start was read in.
+        wrapper.innerHTML = `<p class="start">k</p><p class="end">first</p>`;
+        const cursorPosition = restoreCursorPosition(wrapper, cursorAnchor, given);
+
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("k".length);
+        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.endOffset).toBe("k".length);
+    });
+
+    test("Should leave the caret after the text written over a selection reaching into the next block", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p><p>second</p>`);
+        const given = getCursorPositionFrom(getFirstChild(wrapper, ".start"), "ze".length,
+            getFirstChild(wrapper, ".end"), "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, given);
+
+        // The two blocks are joined around what was written, so the end of the selection is that much text
+        // along the block the start was read in - not two characters into whatever block stands second now.
+        wrapper.innerHTML = `<p class="start">zekrst</p><p>second</p>`;
+        const cursorPosition = restoreCursorPosition(wrapper, cursorAnchor, given);
+
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("zek".length);
+    });
+
     test("Should keep a caret the command left on the br of an empty item", () => {
         const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end"><br></li></ul>`);
         const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "zero".length);
