@@ -20,7 +20,6 @@ schema.set("LI", [Display.List]);
 schema.set("UL", [Display.FirstLevel, Display.ListWrapper, Display.Collapse]);
 schema.set("OL", [Display.FirstLevel, Display.ListWrapper, Display.Collapse]);
 
-schema.set("DIV", [Display.FirstLevel]);
 schema.set("P", [Display.FirstLevel]);
 schema.set("H1", [Display.FirstLevel]);
 schema.set("H2", [Display.FirstLevel]);

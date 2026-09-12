@@ -27,7 +27,7 @@ test("Should find all leaves", () => {
     expect(leaves[0]?.textContent).toBe("zero");
     expect(leaves[1]?.textContent).toBe("first");
     expect(leaves[2]?.textContent).toBe(" second ");
-    expect(leaves[3]?.textContent).toBe(" third");
+    expect(leaves[3]?.textContent).toBe(" third ");
 });
 
 test("Should find all leaf's parents", () => {

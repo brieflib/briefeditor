@@ -9,7 +9,10 @@ export function isCursorAtEndOfBlock(contentEditable: HTMLElement, cursorPositio
         return false;
     }
 
-    const block = getSelectedBlock(contentEditable)[0];
+    // The block is read from the cursor handed in rather than from the live selection: a command asks this
+    // in the middle of its own work, where the selection still stands where the writer left it and the
+    // cursor has already moved on to what the command has written.
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
     if (!block) {
         return false;
     }

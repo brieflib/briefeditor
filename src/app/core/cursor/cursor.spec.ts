@@ -1,5 +1,6 @@
 import {createWrapper, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
+import {getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
 
 jest.mock("../shared/range-util", () => ({
@@ -51,6 +52,25 @@ describe("Cursor location", () => {
         const isAtEnd = isCursorAtEndOfBlock(wrapper);
 
         expect(isAtEnd).toBe(false);
+    });
+
+    // A command asks this in the middle of its own work, where the live selection still stands on the line
+    // the writer left it on and the cursor handed in stands on another.
+    test("Cursor is at the end of the block it is handed in on rather than of the selected one", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+            <p class="end">first</p>
+        `);
+
+        const selected = new Range();
+        selected.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        selected.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(selected);
+
+        const container = getFirstChild(wrapper, ".end");
+        const cursorPosition = getCursorPositionFrom(container, "first".length, container, "first".length);
+
+        expect(isCursorAtEndOfBlock(wrapper, cursorPosition)).toBe(true);
     });
 
     test("Cursor is at the end of the li", () => {

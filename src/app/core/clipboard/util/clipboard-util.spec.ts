@@ -343,17 +343,16 @@ describe("Sanitize input", () => {
                 </li>
             </ul>
             <h1>third</h1>
-            <p>fourth</p>
             <ol>
-                <li>st</li>
+                <li>fourthst</li>
             </ol>
             <ul>
                 <li>second</li>
             </ul>            
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("p")?.firstChild);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
         expect(cursorPosition.startOffset).toBe("fourth".length);
         expect(cursorPosition.endOffset).toBe("fourth".length);
     });
@@ -524,13 +523,12 @@ describe("Sanitize input", () => {
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <h1>zero</h1>
-            <p>first</p>
+            <h1>zerofirst</h1>
             <p>second</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("p")?.firstChild);
         expect(cursorPosition.startOffset).toBe("second".length);
         expect(cursorPosition.endOffset).toBe("second".length);
     });
@@ -708,14 +706,12 @@ describe("Sanitize input", () => {
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <h1>ze</h1>
-            <p>first</p>
-            <p>second</p>
-            <h1>ro</h1>
+            <h1>zefirst</h1>
+            <h1>secondro</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[1]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("h1")[1]?.firstChild);
         expect(cursorPosition.startOffset).toBe("second".length);
         expect(cursorPosition.endOffset).toBe("second".length);
     });
@@ -734,14 +730,12 @@ describe("Sanitize input", () => {
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze</p>
-            <p>first</p>
-            <p>second</p>
-            <p>ro</p>
+            <p>zefirst</p>
+            <p>secondro</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[2]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("p")[2]?.firstChild);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
         expect(cursorPosition.startOffset).toBe("second".length);
         expect(cursorPosition.endOffset).toBe("second".length);
     });
@@ -760,12 +754,11 @@ describe("Sanitize input", () => {
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <p>zero</p>
-            <p>first</p>
+            <p>zerofirst</p>
             <p>second</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[2]?.firstChild);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
         expect(cursorPosition.startOffset).toBe("second".length);
     });
 
@@ -784,8 +777,7 @@ describe("Sanitize input", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>first</p>
-            <p>second</p>
-            <p>zero</p>
+            <p>secondzero</p>
         `);
 
         expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
@@ -835,6 +827,211 @@ describe("Sanitize input", () => {
             <h1>second</h1>
             <h1>ro</h1>
         `);
+    });
+
+    // The paragraphs a run opens and closes with are words of the line they are dropped in. A paragraph
+    // standing between them has no line of the target to join and keeps one of its own.
+    test("Should keep the line of a paragraph standing between the two a run opens and closes with", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p><p>third</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zefirst</p>
+            <p>second</p>
+            <p>thirdro</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[2]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("third".length);
+    });
+
+    test("Should join the paragraphs a run opens and closes with to the halves of the line around a heading", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><h1>second</h1><p>third</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zefirst</p>
+            <h1>second</h1>
+            <p>thirdro</p>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("third".length);
+    });
+
+    test("Should keep the line of a heading opening a run and join the paragraph closing it", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze</p>
+            <h1>first</h1>
+            <p>secondro</p>
+        `);
+    });
+
+    test("Should keep the line of a heading closing a run and join the paragraph opening it", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p>first</p><h1>second</h1>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zefirst</p>
+            <h1>second</h1>
+            <p>ro</p>
+        `);
+    });
+
+    // A paragraph pasted at either end of a line has nothing to join there, so it keeps the line and the
+    // tag it came with rather than opening one written in the tag of the line it was dropped on.
+    test("Should keep the line of a paragraph closing a run pasted at the end of a heading", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>zerofirst</h1>
+            <p>second</p>
+        `);
+    });
+
+    test("Should keep the line of a paragraph opening a run pasted at the start of a heading", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>first</p>
+            <h1>secondzero</h1>
+        `);
+    });
+
+    // A paragraph standing for an empty line is nothing to join a line with, so it keeps a line of its own.
+    test("Should keep the line of an empty paragraph opening a run", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p><br></p><p>first</p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze</p>
+            <p><br></p>
+            <p>firstro</p>
+        `);
+    });
+
+    test("Should join the paragraphs a run opens and closes with to the halves of the item they divide", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+                <li>first</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>second</p><h1>third</h1><p>fourth</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zesecond</li>
+            </ul>
+            <h1>third</h1>
+            <ul>
+                <li>fourthro</li>
+                <li>first</li>
+            </ul>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("fourth".length);
+    });
+
+    // The list standing in the middle of the run is placed beside the one it was dropped in, and the two
+    // are joined into a single wrapper - the paragraph closing the run still finds the item that took over
+    // the rest of the line.
+    test("Should join a pasted list standing between the paragraphs a run opens and closes with", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><ul><li>second</li></ul><p>third</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zefirst</li>
+                <li>second</li>
+                <li>thirdro</li>
+            </ul>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("third".length);
     });
 
     // A block on its own keeps the line it is pasted into: words copied from a page arrive wrapped in a
@@ -1248,12 +1445,11 @@ describe("Sanitize input", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>first</p>
-            <p>second</p>
-            <h1>zero</h1>
+            <h1>secondzero</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h1")?.firstChild);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("h1")?.firstChild);
         expect(cursorPosition.startOffset).toBe("second".length);
         expect(cursorPosition.endOffset).toBe("second".length);
     });
@@ -1440,8 +1636,7 @@ describe("Paste a table", () => {
         expectHtml(wrapper.innerHTML, `
             <p>fou</p>
             <h1>fifth</h1>` + table + `
-            <p>sixth</p>
-            <p>rth</p>
+            <p>sixthrth</p>
         `);
     });
 

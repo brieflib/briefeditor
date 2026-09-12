@@ -10,10 +10,24 @@ import {
 import {removeAndNormalize} from "@/core/normalize/normalize";
 import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
-import {getLastText, getRootElement, imageSelector, insertBetweenBlocks, isEmptyBlock} from "@/core/shared/element-util";
+import {
+    getFirstText,
+    getLastText,
+    getRootElement,
+    imageSelector,
+    insertBetweenBlocks,
+    isEmptyBlock
+} from "@/core/shared/element-util";
+import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
+import {newLine} from "@/core/keyboard/util/keyboard-util";
 import {maybeInsertLists} from "@/core/list/list";
 import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {getCellCursorPosition, normalizeTable} from "@/core/command/util/table-util";
+
+interface EdgeParagraphs {
+    lead: string;
+    tail: string;
+}
 
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
     if (!isCollapsed(cursorPosition)) {
@@ -32,6 +46,14 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     // root would rebuild every row onto the table element itself, so the cell stands in as the root and
     // the split stays inside it.
     const firstRoot = cell ?? getFirstSelectedRoot(contentEditable, cursorPosition);
+
+    // The paragraphs a run opens and closes with are words of the line the cursor is on rather than lines
+    // of their own, so they are taken out of the run before anything is placed and written into that line.
+    // What is left of the run goes on being placed the way it always is.
+    const edges = takeEdgeParagraphs(contentEditable, pastedContent, cursorPosition);
+    if (edges) {
+        return pasteAroundBlocks(contentEditable, pastedContent, edges, cursorPosition);
+    }
 
     // A table pasted into a list splits it instead of joining it, so the check comes before the list root
     // one. A cell never reaches it: the table tags are already unwrapped out of the pasted markup there.
@@ -308,6 +330,96 @@ function getLoneBlock(pastedContent: HTMLElement): HTMLElement | null {
     return block;
 }
 
+// A paragraph is the tag a page wraps plain words in, so a run opening or closing with one carries words
+// meant for the line they are dropped in, not lines of their own. Such an edge is taken out of the run and
+// handed back as the markup it held. Only the two edges go: a paragraph standing between other elements has
+// no line of the target to join and keeps one of its own. An edge is taken only where there is text on its
+// side of the cursor to join - at either end of a line, and on an empty one, the paragraph continues nothing
+// and keeps the line and the tag it came with. A paragraph standing for an empty line is nothing to join
+// with either. A run holding a single line is left alone: a lone block already merges into the cursor's line.
+function takeEdgeParagraphs(contentEditable: HTMLElement, pastedContent: HTMLElement,
+                            cursorPosition: CursorPosition): EdgeParagraphs | null {
+    const lines = Array.from(pastedContent.children)
+        .filter(child => isSchemaContain(child, [Display.FirstLevel, Display.Table]));
+    if (lines.length < 2 || isBlank(pastedContent)) {
+        return null;
+    }
+
+    // Both ends are read before either is taken: taking the first one would leave the last one standing
+    // somewhere else.
+    const first = pastedContent.firstElementChild;
+    const last = pastedContent.lastElementChild;
+    const lead = isCursorAtStartOfBlock(contentEditable, cursorPosition) ? "" : takeParagraph(first);
+    const tail = isCursorAtEndOfBlock(contentEditable, cursorPosition) ? "" : takeParagraph(last);
+    if (!lead && !tail) {
+        return null;
+    }
+
+    return {lead: lead, tail: tail};
+}
+
+// The markup a paragraph holds, taken out of the run. Anything else is left standing where it is.
+function takeParagraph(element: Element | null): string {
+    if (!element || element.nodeName !== "P" || isBlank(element)) {
+        return "";
+    }
+
+    const htmlString = element.innerHTML;
+    element.remove();
+
+    return htmlString;
+}
+
+// The run is written in three goes. The paragraph taken off its front is inline markup now, so it is pasted
+// the way any inline markup is - into the line the cursor is on. The line is then divided, which gives the
+// paragraph taken off the back a line to open: the one holding what was written after the cursor. What is
+// left of the run goes between the two, the way a pasted run always goes between blocks. With no paragraph
+// taken off the back there is nothing to divide the line for, and the run divides it itself.
+function pasteAroundBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement, edges: EdgeParagraphs,
+                           cursorPosition: CursorPosition): CursorPosition {
+    if (edges.lead) {
+        cursorPosition = pasteHtml(contentEditable, edges.lead, cursorPosition);
+    }
+
+    if (!edges.tail) {
+        return pasteBetweenBlocks(contentEditable, getFirstSelectedRoot(contentEditable, cursorPosition),
+            pastedContent.innerHTML, cursorPosition);
+    }
+
+    // A cursor standing at the start of a line has the line the tail opens already; anywhere else the line
+    // is divided for it. A lead is only ever written where words stand on both sides of the cursor, so a
+    // line divided here always has content on either side of the break.
+    if (!isCursorAtStartOfBlock(contentEditable, cursorPosition)) {
+        // Read before the divide: a block keeps standing as the half written before the cursor, and the
+        // half is rebuilt from there - the divide can leave it holding tags around nothing. An item is
+        // rebuilt with the list it stands in and is gone from here, its markup written anew already.
+        const divided = getCursorLine(contentEditable, cursorPosition);
+        cursorPosition = newLine(contentEditable, cursorPosition);
+        if (divided.isConnected) {
+            cursorPosition = removeAndNormalize(contentEditable, divided, [], cursorPosition);
+        }
+    }
+
+    // The leaf that line opens on, read before the run is placed and kept while it is: placing it rebuilds
+    // the markup around the line, and a leaf is the one thing a rebuild keeps, so it is what the line is
+    // found by once the run stands there.
+    const leaf = getFirstText(getCursorLine(contentEditable, cursorPosition));
+
+    if (pastedContent.firstElementChild) {
+        pasteBetweenBlocks(contentEditable, getFirstSelectedRoot(contentEditable, cursorPosition),
+            pastedContent.innerHTML, cursorPosition);
+    }
+
+    return pasteHtml(contentEditable, edges.tail, getCursorPositionFrom(leaf, 0, leaf, 0));
+}
+
+// The line the cursor stands on - the block or the item holding it. A cursor left in a cell stands in no
+// block of its own, and there the table it is in stands for the line.
+function getCursorLine(contentEditable: HTMLElement, cursorPosition: CursorPosition): HTMLElement {
+    return getSelectedBlock(contentEditable, cursorPosition)[0] ??
+        getRootElement(contentEditable, cursorPosition.endContainer);
+}
+
 // Whether more than one block was pasted. A list wrapper is a first level element too, but one never reaches
 // this: a pasted list is placed between blocks above.
 function hasSeveralBlocks(pastedContent: HTMLElement) {
@@ -319,7 +431,7 @@ function hasSeveralBlocks(pastedContent: HTMLElement) {
 // Whether the paste holds nothing but whitespace or a single br, whatever block or formatting it was wrapped
 // in. Something blank has to be there: tags holding nothing at all are no paste. trim takes a no-break space
 // for whitespace too, so a copied nbsp is a blank as well.
-function isBlank(pastedContent: HTMLElement) {
+function isBlank(pastedContent: Element) {
     const text = pastedContent.textContent ?? "";
     const breaks = pastedContent.querySelectorAll("br").length;
 
