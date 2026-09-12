@@ -25,6 +25,7 @@ import {convertList, normalizeLists, parseList} from "@/core/list/type/list-clas
 import {appendBeforeAndDelete} from "@/core/list/util/list-util";
 import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {getCellCursorPosition, normalizeTable} from "@/core/command/util/table-util";
+import {conformLines, hoistBlocks, lineTag, tableSelector} from "@/core/clipboard/util/paste-conform-util";
 
 interface EdgeBlocks {
     lead: string;
@@ -34,6 +35,11 @@ interface EdgeBlocks {
 /**
  * Pastes HTML at (or replacing) the cursor position, reshaping the markup so it merges
  * into the surrounding content the way the editor's own lines and lists do.
+ *
+ * @remarks
+ * The line the cursor is on dictates the tag: a pasted line (a paragraph, a heading, a
+ * blockquote) only carries words for it, and is rewritten in its shape before anything is
+ * placed. A list or a table keeps its own shape and stands beside the line instead.
  *
  * @param contentEditable - The editable root the cursor lives in.
  * @param htmlString - Raw HTML to paste.
@@ -47,7 +53,8 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
 
     // Read after the delete, since the surviving cursor is what says where the markup lands.
     const cell = getCursorCell(contentEditable, cursorPosition);
-    const pastedContent = cleanPastedContent(htmlString, cell, cursorPosition);
+    const line = getSelectedBlock(contentEditable, cursorPosition)[0];
+    const pastedContent = cleanPastedContent(htmlString, cell, line, cursorPosition);
     htmlString = pastedContent.innerHTML;
     if (!htmlString) {
         return cursorPosition;
@@ -57,10 +64,9 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     // stands in as the root instead so the split stays inside it.
     const firstRoot = cell ?? getFirstSelectedRoot(contentEditable, cursorPosition);
 
-    // A paragraph (or a block of the cursor line's own kind) opening or closing the run is
-    // words for that line rather than a line of its own, so it's merged in before the rest
-    // of the run is placed the usual way.
-    const edges = takeEdgeBlocks(contentEditable, pastedContent, cursorPosition);
+    // A line opening or closing the run is words for the cursor's line rather than a line of
+    // its own, so it's merged in before the rest of the run is placed the usual way.
+    const edges = takeEdgeBlocks(contentEditable, pastedContent, line, cursorPosition);
     if (edges) {
         return pasteAroundBlocks(contentEditable, pastedContent, edges, cursorPosition);
     }
@@ -83,21 +89,19 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     // open. Several brs are lines of their own, handled elsewhere.
     const blank = isBlank(pastedContent);
     if (blank) {
-        const line = cell ?? getSelectedBlock(contentEditable, cursorPosition)[0];
-        if (!line || isEmptyBlock(line)) {
+        const target = cell ?? line;
+        if (!target || isEmptyBlock(target)) {
             return cursorPosition;
         }
         htmlString = " ";
     } else {
-        // A lone paragraph, or a lone block matching the cursor line's tag, carries only
-        // words for that line (a copy carries the block it was taken from), so just its
-        // inner markup is merged in and the target keeps its own tag. Any other lone block
-        // opens a line of its own and is placed between blocks instead, since the rebuild
-        // would otherwise fold a same-tag block into the target's line. Inside a list only a
-        // paragraph merges this way; every other block divides the list.
+        // A lone line carries only words for the cursor's line, so just its inner markup is
+        // merged in and the target keeps its own tag. Conforming writes every line in that
+        // tag; only an empty line skips it, keeping the pasted tags. There a paragraph is
+        // still words filling the line, while any other block takes the line's place and is
+        // placed between blocks instead, since the rebuild would otherwise fold it in.
         const loneBlock = getLoneBlock(pastedContent);
-        const line = getSelectedBlock(contentEditable, cursorPosition)[0];
-        if (loneBlock && (isSchemaContain(loneBlock, [Display.Paragraph]) || loneBlock.nodeName === line?.nodeName)) {
+        if (loneBlock && (loneBlock.nodeName === "P" || (line && loneBlock.nodeName === lineTag(line)))) {
             htmlString = loneBlock.innerHTML;
         } else if (loneBlock) {
             return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
@@ -175,8 +179,12 @@ export function getSelectedHtml(cursorPosition: CursorPosition): string {
 }
 
 
-/** Normalizes raw pasted HTML into a body the rest of the paste pipeline can read. */
-function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | null, cursorPosition: CursorPosition) {
+/**
+ * Normalizes raw pasted HTML into a body the rest of the paste pipeline can read: a flat
+ * sequence of lines written in the cursor line's tag, lists and tables.
+ */
+function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | null, line: HTMLElement | undefined,
+                            cursorPosition: CursorPosition) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlString, 'text/html');
 
@@ -201,9 +209,10 @@ function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | nul
         return doc.body;
     }
 
-    hoistTables(doc.body);
+    hoistBlocks(doc.body);
     doc.body.querySelectorAll(tableSelector).forEach(table => normalizeTable(table as HTMLTableElement));
     rewriteLists(doc.body, cursorPosition);
+    conformLines(doc.body, line);
 
     return doc.body;
 }
@@ -236,32 +245,6 @@ function rewriteLists(parent: Element, cursorPosition: CursorPosition) {
             // A bare li with no wrapper: markup pasted from outside the editor.
             rewriteLists(child, cursorPosition);
         }
-    }
-}
-
-const tableSelector = getOfType([Display.Table]).join(",");
-
-/**
- * Splits every pasted table out of the blocks (or list items) holding it, since a table can
- * never nest in a block. Each ancestor is cloned around the table so the markup on either
- * side lands in a block of its own; an empty side is left for normalization to discard.
- */
-function hoistTables(root: HTMLElement) {
-    root.querySelectorAll(tableSelector).forEach(table => hoistTable(root, table));
-}
-
-function hoistTable(root: HTMLElement, table: Element) {
-    let parent = table.parentElement;
-    while (parent && parent !== root) {
-        const tail = parent.cloneNode(false) as HTMLElement;
-        while (table.nextSibling) {
-            tail.appendChild(table.nextSibling);
-        }
-
-        parent.after(table);
-        table.after(tail);
-
-        parent = table.parentElement;
     }
 }
 
@@ -323,9 +306,8 @@ function getLoneBlock(pastedContent: HTMLElement): HTMLElement | null {
 }
 
 /**
- * Pulls a paragraph, or a block matching the cursor line's own tag, off either end of a
- * multi-line paste so it can merge into the cursor's line instead of opening a line of its
- * own (a copy carries the block it was taken from, e.g. a heading stays a heading).
+ * Pulls a line off either end of a multi-line paste so it can merge into the cursor's line
+ * instead of opening a line of its own.
  *
  * @remarks
  * Only the two edges of the run are considered; a block standing between other elements
@@ -333,18 +315,16 @@ function getLoneBlock(pastedContent: HTMLElement): HTMLElement | null {
  * join - not on an empty line, and not for an edge block that's itself empty. A run holding
  * just one line is left alone, since a lone block already merges into the cursor's line.
  */
-function takeEdgeBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement,
+function takeEdgeBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement, line: HTMLElement | undefined,
                         cursorPosition: CursorPosition): EdgeBlocks | null {
     const lines = Array.from(pastedContent.children)
         .filter(child => isSchemaContain(child, [Display.FirstLevel, Display.Table]));
-    if (lines.length < 2 || isBlank(pastedContent)) {
+    if (!line || lines.length < 2 || isBlank(pastedContent)) {
         return null;
     }
 
     // Both ends are read before either is taken: taking the first one would leave the last one standing
-    // somewhere else. Both join the same line - the lead its first half, the tail its second - so both are
-    // measured against the tag it is written in. Inside a list that line is an item, which no block is.
-    const line = getSelectedBlock(contentEditable, cursorPosition)[0];
+    // somewhere else. Both join the same line - the lead its first half, the tail its second.
     const first = pastedContent.firstElementChild;
     const last = pastedContent.lastElementChild;
     const lead = isCursorAtStartOfBlock(contentEditable, cursorPosition) ? "" : takeEdgeBlock(first, line);
@@ -357,14 +337,12 @@ function takeEdgeBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement
 }
 
 /**
- * Removes and returns the inner markup of an edge block, if it's a paragraph or matches the
- * cursor line's tag. Returns `""` (leaving the block in place) for anything else, including
- * an empty line or a block holding nothing.
+ * Removes and returns the inner markup of an edge block, if it's a line written in the
+ * cursor line's tag (every pasted line is, once conformed). Returns `""` (leaving the block
+ * in place) for anything else, including an empty line or a block holding nothing.
  */
-function takeEdgeBlock(element: Element | null, line: HTMLElement | undefined): string {
-    if (!element || !isSchemaContain(element, [Display.FirstLevel]) ||
-        !(isSchemaContain(element, [Display.Paragraph]) || element.nodeName === line?.nodeName) ||
-        isBlank(element) || isEmptyBlock(element)) {
+function takeEdgeBlock(element: Element | null, line: HTMLElement): string {
+    if (!element || element.nodeName !== lineTag(line) || isBlank(element) || isEmptyBlock(element)) {
         return "";
     }
 

@@ -9,7 +9,7 @@ export enum Display {
     Table = "Table",
     TableSection = "TableSection",
     Cell = "Cell",
-    Paragraph = "Paragraph",
+    Line = "Line",
 }
 
 const schema: Map<string, Display[]> = new Map<string, Display[]>();
@@ -21,14 +21,16 @@ schema.set("LI", [Display.List]);
 schema.set("UL", [Display.FirstLevel, Display.ListWrapper, Display.Collapse]);
 schema.set("OL", [Display.FirstLevel, Display.ListWrapper, Display.Collapse]);
 
-schema.set("P", [Display.FirstLevel, Display.Paragraph]);
-schema.set("H1", [Display.FirstLevel]);
-schema.set("H2", [Display.FirstLevel]);
-schema.set("H3", [Display.FirstLevel]);
-schema.set("H4", [Display.FirstLevel]);
-schema.set("H5", [Display.FirstLevel]);
-schema.set("H6", [Display.FirstLevel]);
-schema.set("BLOCKQUOTE", [Display.FirstLevel]);
+// A line is a block that holds words of a single line: a paste rewrites one into the shape of the line
+// it is dropped on, unlike a list or a table.
+schema.set("P", [Display.FirstLevel, Display.Line]);
+schema.set("H1", [Display.FirstLevel, Display.Line]);
+schema.set("H2", [Display.FirstLevel, Display.Line]);
+schema.set("H3", [Display.FirstLevel, Display.Line]);
+schema.set("H4", [Display.FirstLevel, Display.Line]);
+schema.set("H5", [Display.FirstLevel, Display.Line]);
+schema.set("H6", [Display.FirstLevel, Display.Line]);
+schema.set("BLOCKQUOTE", [Display.FirstLevel, Display.Line]);
 
 // Cells carry a display of their own and none of the block ones: they must not read as blocks, so that a
 // cursor inside one is not mistaken for a cursor in a first level element.
