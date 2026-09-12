@@ -22,7 +22,7 @@ import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor
 import {newLine} from "@/core/keyboard/util/keyboard-util";
 import {maybeInsertLists} from "@/core/list/list";
 import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
-import {appendBeforeAndDelete, getPreviousListWrapper} from "@/core/list/util/list-util";
+import {appendBeforeAndDelete} from "@/core/list/util/list-util";
 import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {getCellCursorPosition, normalizeTable} from "@/core/command/util/table-util";
 
@@ -197,34 +197,51 @@ function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | nul
 
     replaceDivs(doc.body);
 
-    // wrapListItems only gives orphaned items a wrapper, and the unwrap drops both.
+    // The unwrap drops every list tag, an item standing outside a wrapper with the rest, so there is no list
+    // left to read.
     if (cell) {
         removeImages(doc.body);
         unwrapBlocks(doc.body);
         return doc.body;
     }
 
-    wrapListItems(doc.body);
     hoistTables(doc.body);
     doc.body.querySelectorAll(tableSelector).forEach(table => normalizeTable(table as HTMLTableElement));
-
-    // A copy carries the shape the selection was made in, not the shape of a list: a selection running from a
-    // nested item into the item below it comes as a wrapper opening on an item that holds nothing but the
-    // nested list. The rebuild reads a wrapper opening on a wrapper as a duplicate and drops it from every
-    // line under it, which leaves the lines written after the nested list as items with no wrapper at all.
-    // So every pasted run is read the way the editor reads its own lists and written back from its lines
-    // before it is placed: the item holding no line goes, and the lines that follow it are levelled to follow
-    // from one another. The cursor is the editor's and stands in none of the pasted lines, so it comes back
-    // untouched. The first wrapper of each run is read before any run is rewritten, since a rewrite takes the
-    // whole run out and puts a new one in its place.
-    const runs = Array.from(doc.body.children).filter(child =>
-        isSchemaContain(child, [Display.ListWrapper]) && !getPreviousListWrapper(child));
-    for (const first of runs) {
-        const normalized = normalizeLists(parseList(first as HTMLElement), cursorPosition);
-        appendBeforeAndDelete(first as HTMLElement, convertList(normalized.lists));
-    }
+    rewriteLists(doc.body, cursorPosition);
 
     return doc.body;
+}
+
+// A copy carries the shape the selection was made in, not the shape of a list: a selection running from a
+// nested item into the item below it comes as a wrapper opening on an item that holds nothing but the nested
+// list. The rebuild reads a wrapper opening on a wrapper as a duplicate and drops it from every line under
+// it, which leaves the lines written after the nested list as items with no wrapper at all. So every pasted
+// run is read the way the editor reads its own lists and written back from its lines before it is placed:
+// the item holding no line goes, and the lines that follow it are levelled to follow from one another. An
+// item pasted with no wrapper around it - content copied inside the editor keeps its wrapper, so one comes
+// from outside - is a line of the run it stands in and is read with it, which is what gives it the wrapper
+// the rest of the paste expects to find; parseList says what it is read as. The cursor is the editor's and
+// stands in none of the pasted lines, so it comes back untouched.
+//
+// The pasted tree is walked once. A run is read where its first line is met, and the rewrite takes the
+// whole run out and puts a new one in its place, so the lines after the first are gone by the time the walk
+// reaches them. A run inside a wrapper is a nested list and is read with the run holding it, so only what is
+// no line of a run is walked into: a block the parser left an orphaned item in.
+function rewriteLists(parent: Element, cursorPosition: CursorPosition) {
+    // The children are taken before any run is rewritten.
+    for (const child of Array.from(parent.children)) {
+        if (!child.isConnected) {
+            continue;
+        }
+
+        if (isSchemaContain(child, [Display.ListWrapper, Display.List])) {
+            const normalized = normalizeLists(parseList(child as HTMLElement), cursorPosition);
+            appendBeforeAndDelete(child as HTMLElement, convertList(normalized.lists));
+        } else {
+            // If li without wrapper is pasted. The case of copying from an external editor.
+            rewriteLists(child, cursorPosition);
+        }
+    }
 }
 
 const tableSelector = getOfType([Display.Table]).join(",");
@@ -284,45 +301,6 @@ function unwrapBlocks(root: ParentNode) {
     while (block) {
         block.replaceWith(...block.childNodes);
         block = root.querySelector(cellUnwrapSelector);
-    }
-}
-
-function wrapListItems(root: ParentNode) {
-    const parents = new Set<HTMLElement>();
-    root.querySelectorAll("li").forEach(item => {
-        const parent = item.parentElement;
-        if (parent && !isSchemaContain(parent, [Display.ListWrapper])) {
-            parents.add(parent);
-        }
-    });
-
-    parents.forEach(parent => wrapChildListItems(parent));
-}
-
-// An orphaned item has no wrapper of its own to be read from, so it is given the one the parse needs before
-// the run is read. Content copied inside the editor keeps its wrapper, so anything orphaned here comes from
-// outside and has no tag to inherit. Where the wrapper goes is all this decides - what stands inside what is
-// left to the read below, which puts a list wrapper found between items where a nested list belongs.
-function wrapChildListItems(parent: HTMLElement) {
-    let listWrapper: HTMLElement | null = null;
-
-    // Snapshot the children so moving them into the wrapper does not disturb the walk.
-    for (const child of Array.from(parent.children)) {
-        if (isSchemaContain(child, [Display.List])) {
-            if (!listWrapper) {
-                listWrapper = document.createElement("UL");
-                child.before(listWrapper);
-            }
-            listWrapper.appendChild(child);
-            continue;
-        }
-
-        if (listWrapper && isSchemaContain(child, [Display.ListWrapper])) {
-            listWrapper.appendChild(child);
-            continue;
-        }
-
-        listWrapper = null;
     }
 }
 

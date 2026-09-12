@@ -14,12 +14,23 @@ export class ListClass {
     listContent!: DocumentFragment;
 }
 
+// A run is read wrapper by wrapper, each on the level of the run. An item standing in the run outside any
+// wrapper - pasted markup can hold one, the editor never writes one - has no wrapper to take its type from
+// and is read as an unordered line on that level. A wrapper standing after such an item is the list the item
+// holds, the way a wrapper found between the items of a wrapper is, and is read a level under it; one
+// standing before any item holds no line's list and is a wrapper of the run.
 export function parseList(rootWrapper: HTMLElement): ListClass[] {
     const result: ListClass[] = [];
 
+    let afterItem = false;
     let current: Element | null = getFirstListWrapper(rootWrapper);
-    while (current && isSchemaContain(current, [Display.ListWrapper])) {
-        parseListWrapper(current as HTMLElement, toListWrapper(current), 0, result);
+    while (current && isSchemaContain(current, [Display.ListWrapper, Display.List])) {
+        if (isList(current)) {
+            parseListItem(current, ListWrapper.UL, 0, result);
+            afterItem = true;
+        } else {
+            parseListWrapper(current as HTMLElement, toListWrapper(current), afterItem ? 1 : 0, result);
+        }
         current = getNextListWrapper(current);
     }
 
@@ -229,20 +240,23 @@ function findCursorInNextNonEmpty(lists: ListClass[], startIndex: number): Curso
 function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[]) {
     for (const child of Array.from(wrapper.children)) {
         if (isList(child)) {
-            const fragment = getChildFragment(child);
-
-            const listClass = new ListClass();
-            listClass.nestedLevel = level;
-            listClass.listWrapper = wrapperType;
-            listClass.listContent = fragment;
-            result.push(listClass);
-
-            for (const liChild of Array.from(child.children)) {
-                if (isSchemaContain(liChild, [Display.ListWrapper])) {
-                    parseListWrapper(liChild as HTMLElement, toListWrapper(liChild), level + 1, result);
-                }
-            }
+            parseListItem(child, wrapperType, level, result);
         } else if (isSchemaContain(child, [Display.ListWrapper])) {
+            parseListWrapper(child as HTMLElement, toListWrapper(child), level + 1, result);
+        }
+    }
+}
+
+// The line the item holds, followed by the lists nested in it, each a level under.
+function parseListItem(item: Element, wrapperType: ListWrapper, level: number, result: ListClass[]) {
+    const listClass = new ListClass();
+    listClass.nestedLevel = level;
+    listClass.listWrapper = wrapperType;
+    listClass.listContent = getChildFragment(item);
+    result.push(listClass);
+
+    for (const child of Array.from(item.children)) {
+        if (isSchemaContain(child, [Display.ListWrapper])) {
             parseListWrapper(child as HTMLElement, toListWrapper(child), level + 1, result);
         }
     }

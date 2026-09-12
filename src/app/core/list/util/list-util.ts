@@ -86,7 +86,8 @@ export function isListEmpty(list: Element) {
 // A list is written as a run of wrappers standing side by side, so the wrapper the run opens on is found by
 // walking to the end of it and back. Anything written between two wrappers keeps them apart and ends the run
 // there - but the whitespace an author leaves between tags is not writing, and the wrappers on either side
-// of it are still lines of one list.
+// of it are still lines of one list. An item standing outside any wrapper is a line of the run beside it as
+// well: the editor never writes one, but pasted markup can hold one, and it is read with the run it stands in.
 export function getNextListWrapper(wrapper: Element): Element | null {
     return getSiblingListWrapper(wrapper, node => node.nextSibling);
 }
@@ -101,14 +102,15 @@ function getSiblingListWrapper(wrapper: Element, sibling: (node: ChildNode) => C
         node = sibling(node);
     }
 
-    return node && isSchemaContain(node, [Display.ListWrapper]) ? node as Element : null;
+    return node && isSchemaContain(node, [Display.ListWrapper, Display.List]) ? node as Element : null;
 }
 
-// A root that is no wrapper stands in no run, whatever lists stand beside it: a paragraph written next to a
-// list is a line of its own, and walking from it into the list would read the paragraph as a line of the
-// list - a paste dropped in the paragraph would then be written into the list and the paragraph lost.
+// A root that is neither a wrapper nor an item stands in no run, whatever lists stand beside it: a paragraph
+// written next to a list is a line of its own, and walking from it into the list would read the paragraph as
+// a line of the list - a paste dropped in the paragraph would then be written into the list and the
+// paragraph lost.
 export function getFirstListWrapper(rootWrapper: HTMLElement) {
-    if (!isSchemaContain(rootWrapper, [Display.ListWrapper])) {
+    if (!isSchemaContain(rootWrapper, [Display.ListWrapper, Display.List])) {
         return rootWrapper;
     }
 
