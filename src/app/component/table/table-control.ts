@@ -35,13 +35,12 @@ class TableControl extends HTMLElement {
         this.button.addEventListener("click", callback);
     }
 
-    // A fade cut short reports itself as a cancel instead, so this only runs once the control
-    // has actually gone, which is where the state behind it stops being worth keeping.
+    /** Fires once the control has actually faded out (a fade cut short fires "cancel" instead). */
     set onFadeEnd(callback: () => void) {
         this.button.addEventListener("animationend", callback);
     }
 
-    // Insert row: "+" at the table's left edge, highlight along the horizontal border at y.
+    /** Shows "+" at the table's left edge, with a highlight along the horizontal border at `y`. */
     showRowInsert(tableRect: DOMRect, y: number) {
         this.icon("plus");
         this.place(this.button, tableRect.left, y);
@@ -50,7 +49,7 @@ class TableControl extends HTMLElement {
         this.open();
     }
 
-    // Insert column: "+" at the table's top edge, highlight along the vertical border at x.
+    /** Shows "+" at the table's top edge, with a highlight along the vertical border at `x`. */
     showColumnInsert(tableRect: DOMRect, x: number) {
         this.icon("plus");
         this.place(this.button, x, tableRect.top);
@@ -59,7 +58,7 @@ class TableControl extends HTMLElement {
         this.open();
     }
 
-    // Delete: "-" at the table edge, centered on the selected row/column (no border highlight).
+    /** Shows "-" centered on the selected row/column, with no border highlight. */
     showDelete(x: number, y: number) {
         this.icon("minus");
         this.place(this.button, x, y);
@@ -67,7 +66,7 @@ class TableControl extends HTMLElement {
         this.open();
     }
 
-    // Hands the control over to the fade in the stylesheet: it holds where it is, then goes.
+    /** Hands the control to the stylesheet's fade animation: it holds in place, then disappears. */
     fade() {
         this.wrapper.removeAttribute("fade");
         this.wrapper.removeAttribute("open");
@@ -85,8 +84,7 @@ class TableControl extends HTMLElement {
         this.wrapper.setAttribute("open", "");
     }
 
-    // Reading the layout commits the attribute just dropped, so that putting it back counts as a
-    // new fade rather than one already part way through from wherever the control was last shown.
+    /** Forces a layout flush so re-adding the fade attribute restarts the animation from scratch. */
     private restart() {
         void this.wrapper.offsetWidth;
     }

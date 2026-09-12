@@ -11,10 +11,12 @@ import {
 } from "@/core/history/util/history-util";
 import {getCursorPosition, setCursorPosition} from "@/core/shared/type/cursor-position";
 
-// A stack item is a slice of time rather than a single command: everything done within this many milliseconds
-// of the item's first command belongs to it. The window is anchored to that first command instead of moving
-// with each new one, so an item covers at most this much editing - a window that restarted on every keystroke
-// would never close while someone is typing, and the whole paragraph would come back on one undo.
+/**
+ * How many milliseconds after an undo entry's first command later commands still join it,
+ * rather than opening an entry of their own. Anchored to that first command rather than
+ * sliding with each new one, so an entry covers at most this much editing - a sliding
+ * window would never close while someone kept typing, undoing a whole paragraph at once.
+ */
 export const GROUP_INTERVAL = 300;
 
 export class History {
@@ -28,7 +30,7 @@ export class History {
     private carrierOnly = false;
     private carrierMutations: Mutation[] = [];
     private carrierCursorBefore: CursorPath | null = null;
-    // When the entry on top of the undo stack was opened, or null once that entry takes no more commands.
+    /** When the top undo entry was opened, or null once it stops accepting more commands. */
     private groupStart: number | null = null;
     private readonly changeListeners: (() => void)[] = [];
 
@@ -51,8 +53,8 @@ export class History {
         revertMutations(entry.mutations);
         this.restoreCursor(entry.cursorBefore);
         this.redoStack.push(entry);
-        // The entry the stack is left on belongs to editing that is over, and the one redo would put back is
-        // not being edited either. The next command starts an item of its own in both cases.
+        // Neither the entry left on top nor the one just moved to redo is being actively
+        // edited, so the next command should always start an entry of its own.
         this.groupStart = null;
         this.notifyChange();
     }
@@ -78,8 +80,7 @@ export class History {
         return this.redoStack.length > 0;
     }
 
-    // Listeners are appended rather than replaced: the undo and the redo icon each subscribe, and a setter
-    // that assigned would leave whichever registered first without notifications.
+    // Appended rather than replaced, since both the undo and redo icon subscribe.
     onChange(listener: () => void) {
         this.changeListeners.push(listener);
     }
@@ -98,15 +99,13 @@ export class History {
         this.observer.observe(this.contentEditable, OBSERVER_OPTIONS);
     }
 
-    // The command is about to drop its carrier. Whatever it had already changed by now is a real edit that
-    // the carrier merely tags along with; with nothing changed yet, the carrier is all this command does.
+    /** Called just before the command drops its carrier. No mutations yet means the carrier is all this command does. */
     private carrier() {
         this.records.push(...this.observer.takeRecords());
         this.carrierOnly = this.records.length === 0;
     }
 
-    // Leaving a carrier behind splits an element around the caret and adds an empty text node - a command
-    // that only does that changes the node tree without changing anything on screen.
+    /** Whether the command did nothing but leave a carrier (splitting an element around the caret with an empty text node) - a change to the tree, not the screen. */
     private isCarrierOnly() {
         const carrier = Carrier.getCarrier();
         if (carrier) {
@@ -127,7 +126,7 @@ export class History {
         const mutations = buildMutations(this.records);
         const cursorAfter = captureCursorPath(this.contentEditable, getCursorPosition());
         this.records = [];
-        // The document moved on either way, so a pending redo would replay onto nodes that are gone.
+        // The document moved on, so a pending redo would replay onto nodes that are gone.
         this.redoStack.length = 0;
 
         if (this.isCarrierOnly()) {
@@ -142,10 +141,11 @@ export class History {
         this.notifyChange();
     }
 
-    // A command that lands inside the window joins the entry that opened it rather than adding one of its own,
-    // the same way a carrier joins the entry before it: the mutations run on after the ones already there, and
-    // the cursor the entry redoes to moves with them while the cursor it undoes to stays where the first command
-    // of the group started. The window is left anchored where it was opened, so the group closes on time.
+    /**
+     * Appends `mutations` to the undo stack, joining the top entry if it's still within
+     * {@link GROUP_INTERVAL} of when it opened (its `cursorBefore` stays put; `cursorAfter`
+     * moves forward), otherwise opening a new entry.
+     */
     private record(mutations: Mutation[], cursorAfter: CursorPath | null) {
         const now = Date.now();
         const previous = this.undoStack[this.undoStack.length - 1];
@@ -163,12 +163,12 @@ export class History {
         this.groupStart = now;
     }
 
-    // Carrier mutations cost no undo step, but they cannot be thrown away: collapsing the block rebuilds it
-    // from clones, so an entry recorded either side of them would revert onto nodes that have left the
-    // document. They join the entry before them where there is one, and otherwise wait for the edit the caret
-    // is waiting to make - which is what the carrier is there for - so the two are undone as the single step
-    // they look like. Held mutations therefore only exist while the undo stack is empty, where there is no
-    // earlier entry for them to strand.
+    /**
+     * Folds carrier-only mutations into the entry before them so they undo as a single step
+     * with the edit the carrier exists to enable, rather than costing an undo step of their
+     * own. With no earlier entry to join, they're held in `carrierMutations` until the
+     * command the carrier is waiting for is recorded.
+     */
     private holdCarrier(mutations: Mutation[], cursorAfter: CursorPath | null) {
         const previous = this.undoStack[this.undoStack.length - 1];
         if (previous) {

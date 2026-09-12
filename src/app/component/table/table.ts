@@ -29,8 +29,8 @@ export default class Table {
         this.row = this.createControl((pending) => this.applyRow(pending));
         this.column = this.createControl((pending) => this.applyColumn(pending));
 
-        // Pointer events rather than mouse events, so that the mouse ones a touch has the browser
-        // emulate afterwards go unheard: they would reopen a control the touch path just faded.
+        // Pointer events, not mouse events, so the emulated mouse events a touch triggers
+        // afterwards don't reopen a control the touch path just faded.
         this.contentEditable.addEventListener("pointermove", (event) => this.onHover(event));
         this.contentEditable.addEventListener("pointerleave", (event) => this.onHoverLeave(event));
         this.contentEditable.addEventListener("pointerdown", (event) => this.onPress(event), {passive: true});
@@ -60,8 +60,7 @@ export default class Table {
         this.update(event.target, event.clientX, event.clientY);
     }
 
-    // A touch has no hover to show the control through, so the press itself shows it and the
-    // control then times itself out, staying clickable long enough to travel to and press.
+    /** A touch has no hover, so the press itself shows the control, which then fades on its own. */
     private onPress(event: PointerEvent) {
         if (event.pointerType === "mouse") {
             return;
@@ -75,7 +74,6 @@ export default class Table {
     private update(target: EventTarget | null, x: number, y: number) {
         const cell = (target as HTMLElement | null)?.closest("td, th") as HTMLTableCellElement | null;
         const table = cell?.closest("table") as HTMLTableElement | null;
-        // A table the editor is no longer holding is a table no longer in the page.
         if (!cell || !table || !table.isConnected) {
             this.keepOrReset(this.row, x, y);
             this.keepOrReset(this.column, x, y);
@@ -95,7 +93,7 @@ export default class Table {
         }
     }
 
-    // Near a horizontal border -> insert control; in the middle of the cell -> delete control.
+    /** Near a horizontal border shows the insert control; in the middle of the cell, delete. */
     private updateRow(x: number, y: number, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
         const top = Math.abs(y - rect.top);
         const bottom = Math.abs(y - rect.bottom);
@@ -119,8 +117,8 @@ export default class Table {
     }
 
     private showRowDelete(x: number, y: number, cell: HTMLTableCellElement, table: HTMLTableElement, tableRect: DOMRect, rect: DOMRect) {
-        // Body rows are deletable while more than one row is left; a header row only when it is the
-        // last one, where deleting it removes the whole table.
+        // A body row is deletable while more than one row remains; a header row only when
+        // it's the last row left, where deleting it removes the whole table.
         const deletable = cell.closest("thead") ? table.rows.length === 1 : table.rows.length > 1;
         if (!deletable) {
             this.keepOrReset(this.row, x, y);
@@ -132,7 +130,7 @@ export default class Table {
         this.row.control.showDelete(tableRect.left, middle);
     }
 
-    // Near a vertical border -> insert control; in the middle of the cell -> delete control.
+    /** Near a vertical border shows the insert control; in the middle of the cell, delete. */
     private updateColumn(x: number, cell: HTMLTableCellElement, tableRect: DOMRect, rect: DOMRect) {
         const left = Math.abs(x - rect.left);
         const right = Math.abs(x - rect.right);
@@ -167,8 +165,7 @@ export default class Table {
         this.resetAll();
     }
 
-    // Moving off a control's spot keeps it alive while the cursor is close to its button,
-    // so the user can travel from the cell to the margin control and click it.
+    /** Keeps a control alive while the cursor is near its button, so it can be reached and clicked. */
     private keepOrReset(state: ControlState, x: number, y: number) {
         if (state.pending && Math.hypot(x - state.x, y - state.y) <= KEEP_ALIVE) {
             return;

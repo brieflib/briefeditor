@@ -26,7 +26,7 @@ class PlusIndentIcon extends HTMLElement implements Icon {
         this.button = shadowRoot.getElementById("button") as HTMLElement;
     }
 
-    // A cell is not a first level element and holds no list of its own, so there is nothing in one to indent.
+    /** A cell is not a first level element and holds no list of its own, so there is nothing in one to indent. */
     setEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition, tags: string[]) {
         this.button.setAttribute("disabled", "true");
 

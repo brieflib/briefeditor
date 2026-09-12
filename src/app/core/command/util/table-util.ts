@@ -3,9 +3,11 @@ import {atEnd, atStart, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {insertBetweenBlocks} from "@/core/shared/element-util";
 
-// The row and the column behind the deleted one slide into its place, so the cursor stays where the
-// deleted cell was. Deleting the last row or column leaves nothing to slide in, and the cursor keeps to
-// the new last one instead.
+/**
+ * The cell at `rowIndex`/`columnIndex`, clamped to the table's bounds. Clamping is what lets
+ * the cursor land on the row/column that slides into a deleted one's place, or the new last
+ * one when the deleted row/column was the last.
+ */
 export function getCell(table: HTMLTableElement, rowIndex: number, columnIndex: number) {
     const row = table.rows[Math.min(rowIndex, table.rows.length - 1)];
 
@@ -16,8 +18,10 @@ export function getCellCursorPosition(cell: HTMLTableCellElement | undefined | n
     return cell ? atStart(cell) : cursorPosition;
 }
 
-// The first row is a header, the way every table in the editor is built. The cells are left empty: a
-// cursor takes the cell itself when it holds nothing, so there is no br to stand in for the content.
+/**
+ * Builds a table with a header row (every table in the editor opens with one). Cells are
+ * left empty rather than given a placeholder br, since an empty cell already takes the cursor.
+ */
 export function createTable(rows: number, columns: number) {
     const table = document.createElement("table");
     appendRow(table.createTHead(), columns, "th");
@@ -32,10 +36,11 @@ export function createTable(rows: number, columns: number) {
     return table;
 }
 
-// Every table in the editor opens with a header row, so one arriving without a thead - built from cells
-// copied out of a body, or written by another app - is given an empty header of its own. Cells copied out
-// of a header bring their section along and keep the header they already have. A row the copy left short
-// is filled up to the width of the table, which the column commands read off the cell indexes.
+/**
+ * Brings a pasted table in line with the editor's shape: gives it an empty header row if it
+ * arrived without one (e.g. copied from a body, or from another app), and pads every row out
+ * to the table's full width, since the column commands read off cell indexes.
+ */
 export function normalizeTable(table: HTMLTableElement) {
     const columns = getColumnCount(table);
 
@@ -74,9 +79,11 @@ export function isTableEmpty(table: HTMLTableElement) {
     return !table.querySelector("th, td");
 }
 
-// A table with no cells left has nothing to edit, so the last delete takes the table with it. No cell is
-// left for the cursor then, and it falls back to the end of the block before the table, the way deleting
-// any other block carries it backwards, and to the one after it only when the table opened the editor.
+/**
+ * Removes a table left with no cells and returns the cursor position to fall back to: the
+ * end of the block before it (as removing any block does), or the start of the block after
+ * it only when the table opened the editor.
+ */
 export function removeTable(table: HTMLTableElement, cursorPosition: CursorPosition): CursorPosition {
     const previous = table.previousElementSibling;
     const next = table.nextElementSibling;

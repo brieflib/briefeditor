@@ -41,9 +41,14 @@ function firstChildOrNextNode(findTill: HTMLElement, node: Node): Node | null {
     return getNextNode(findTill, node);
 }
 
-// An empty block holds no text of its own, so the cursor is anchored on the block itself. Climbing from its
-// parent then skips the block's own tag and leaves the toolbar reading the cursor as being in nothing at all.
-// A leaf anchors the cursor next to itself rather than inside it, so its own tag stays out of the tags.
+/**
+ * The tag names of every ancestor between `node` and `findTill`.
+ *
+ * @remarks
+ * An empty block anchors the cursor on the block itself; climbing from its parent would
+ * skip the block's own tag, so a leaf is included as its own starting point instead of
+ * climbing from inside it.
+ */
 export function getParentTags(findTill: HTMLElement, node: Node) {
     const parents = [];
     let parent = isCursorInside(findTill, node) ? node as HTMLElement : node.parentElement;

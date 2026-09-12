@@ -207,27 +207,30 @@ export function ensureParagraph(contentEditable: HTMLElement, cursorPosition: Cu
     return cursorPosition;
 }
 
-// An image is the one thing that can be in a block without any text of its own, so it is asked for by name.
+/** Selects an image - the one thing a block can hold without any text of its own. */
 export const imageSelector = getOfType([Display.Image]).join(",");
 
-// A block that holds nothing but the br standing in for its line.
+/** Whether a block holds nothing but the br standing in for its line. */
 export function isEmptyBlock(block: Element) {
     return !block.textContent && !block.querySelector(imageSelector);
 }
 
-// A node is not a first level element and cannot be nested in one, so it never goes at the cursor
-// itself. It goes before or after the first level element holding the cursor, and only a cursor in the
-// middle of one splits it in two for the node to sit between the halves. A block that holds nothing but
-// the br standing in for its line has nothing to divide and nothing worth keeping beside the node: the
-// node takes its place, so an inserted table or image lands on the empty line the cursor is on instead
-// of pushing an empty line ahead of itself. Both flags are read from the cursor before anything moves,
-// so they must be the first thing done.
+/**
+ * Inserts a node (e.g. a table or image) between blocks rather than at the cursor itself,
+ * since it isn't a first-level element and can't nest in one.
+ *
+ * @remarks
+ * The block holding the cursor is split in two around the node, unless the cursor is at an
+ * edge (no split needed) or the block is empty - an empty block has nothing worth keeping
+ * beside the node, so the node takes its place instead of pushing an empty line ahead of it.
+ * Both edge flags are read up front, before anything moves.
+ */
 export function insertBetweenBlocks(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition, node: Node) {
     const isAtStart = isCursorAtStartOfBlock(contentEditable, cursorPosition);
     const isAtEnd = isCursorAtEndOfBlock(contentEditable, cursorPosition);
 
     if (isSchemaContain(getFirstListWrapper(root), [Display.ListWrapper])) {
-        // An empty item goes the same way without a branch of its own: the split drops the item it leaves
+        // An empty item needs no branch of its own: the split drops the item it leaves
         // empty, so the node takes the place of an empty line inside a list too.
         insertIntoList(contentEditable, root, cursorPosition, node, isAtStart, isAtEnd);
     } else if (isSchemaContain(root, [Display.FirstLevel]) && isEmptyBlock(root)) {
@@ -235,8 +238,8 @@ export function insertBetweenBlocks(contentEditable: HTMLElement, root: HTMLElem
     } else if (isAtStart) {
         root.before(node);
     } else {
-        // The split leaves the second half right after the root, so the node still goes after the root
-        // to end up between the two halves.
+        // The split leaves the second half right after the root, so the node still goes
+        // after the root to end up between the two halves.
         if (!isAtEnd) {
             newLine(contentEditable, cursorPosition);
         }
@@ -246,15 +249,14 @@ export function insertBetweenBlocks(contentEditable: HTMLElement, root: HTMLElem
 
 function insertIntoList(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition,
                         node: Node, isAtStart: boolean, isAtEnd: boolean) {
-    // Read before the split: it inserts the second half after the item the cursor is in, which leaves
-    // that item's own position untouched but carries the cursor over to the new one.
+    // Read before the split: it inserts the second half right after the current item,
+    // leaving that item's own position untouched while carrying the cursor to the new one.
     const index = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
     let splitIndex = index;
     if (!isAtStart) {
         if (!isAtEnd) {
-            // Dividing an item rebuilds the list it stands in, which leaves the root read above gone. The
-            // cursor keeps to the half of the line written before it, so the list that took its place is
-            // read back from there.
+            // Dividing an item rebuilds its list, leaving the root read above gone; the
+            // cursor stays with the half written before it, so the new list is read from there.
             newLine(contentEditable, cursorPosition);
             root = getRootElement(contentEditable, cursorPosition.startContainer);
         }

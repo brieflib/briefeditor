@@ -90,9 +90,14 @@ export function applyAttributes(element: HTMLElement, attributes?: Attributes) {
     }
 }
 
-// Each block is rebuilt from its leaves, so a cursor anchored on a block element is left pointing at a node
-// the rebuild threw away. Anchoring it on a leaf up front keeps it valid through every replacement, which is
-// what the re-read of the selected blocks below relies on, and gives the caller a position it can restore.
+/**
+ * Replaces the tag of every block the selection touches (or a whole list wrapper when
+ * `replaceTo` names one), returning a cursor position the caller can restore.
+ *
+ * @remarks
+ * Each block is rebuilt from its leaves, which would strand a cursor anchored on the block
+ * element itself; anchoring it on a leaf first keeps it valid through every replacement.
+ */
 export function changeBlock(contentEditable: HTMLElement, replaceTo: string[],
                             cursorPosition: CursorPosition = getCursorPosition()): CursorPosition {
     const isList = replaceTo.length === 1 && isSchemaContainNodeName(replaceTo[0], [Display.ListWrapper]);
@@ -109,9 +114,8 @@ export function changeBlock(contentEditable: HTMLElement, replaceTo: string[],
         const replaceFrom = getOfType(displays).filter(item => !replaceTo.includes(item));
         replaceTags(contentEditable, block, replaceFrom, replaceTo, isList);
     }
-    // A list built out of blocks stands beside whatever list was already written there. Parsing the run and
-    // rebuilding it is what joins the two: convertList opens one wrapper for each type a run of items is
-    // written in, so two lists of one type come back as one. Anything else is merged as it always was.
+    // A list built out of blocks stands beside any list already there; maybeInsertLists joins
+    // the two into one wrapper wherever the type matches.
     if (isList) {
         maybeInsertLists(contentEditable, cursorPosition);
     } else {

@@ -34,8 +34,8 @@ class TableDropdown extends HTMLElement {
         this.panel = shadowRoot.querySelector(".be-table-dropdown") as HTMLElement;
         this.grid = shadowRoot.querySelector(".be-table-dropdown-grid") as HTMLTableElement;
 
-        // The dropdown lives in the icon's shadow root, so event.target is retargeted at document level.
-        // Bound to touchstart as well: iOS does not bubble clicks from plain elements up to document.
+        // Shadow DOM retargets event.target at document level, so composedPath is used instead.
+        // Bound to touchstart too, since iOS doesn't bubble clicks from plain elements to document.
         this.onDocumentPress = (event: Event) => {
             const path = event.composedPath();
             if (path.includes(this) || (this.target !== undefined && path.includes(this.target))) {
@@ -44,9 +44,8 @@ class TableDropdown extends HTMLElement {
             this.close();
         };
 
-        // The grid is made of plain cells, and pressing one places the cursor there, which takes it out
-        // of the editor the table is about to be inserted into. The icon's own button keeps the cursor
-        // where it is because a button takes the focus instead, so only the panel needs this.
+        // Pressing a plain grid cell would move the cursor out of the editor; a button doesn't
+        // have this problem, so only the panel needs the focus kept off it.
         this.panel.addEventListener("mousedown", (event: MouseEvent) => {
             event.preventDefault();
         });
@@ -68,8 +67,8 @@ class TableDropdown extends HTMLElement {
             this.select(this.cellFromTarget(event.target));
         });
 
-        // Touch: a tap has no hover, so the finger itself previews the size by dragging over
-        // the grid. Touch events keep targeting where the touch started, hence the hit test.
+        // A tap has no hover, so dragging the finger over the grid previews the size instead.
+        // Touch events keep targeting where the touch started, hence the hit test below.
         this.grid.addEventListener("touchstart", (event: TouchEvent) => {
             this.highlight(this.cellFromTouch(event));
         });
@@ -83,9 +82,8 @@ class TableDropdown extends HTMLElement {
         });
     }
 
+    /** Opens the dropdown for `target`, canceling any pending close from a previous mouseleave. */
     open(target: HTMLElement, contentEditable: HTMLElement) {
-        // Closing while the pointer is over the panel leaves a mouseleave, and so a pending
-        // close, queued behind us: drop it, or it would shut the dropdown we are opening.
         this.clearCloseTimer();
         this.reset();
         this.move(target);

@@ -28,9 +28,11 @@ class TableIcon extends HTMLElement implements Icon {
         this.tableDropdown = shadowRoot.querySelector("be-table-dropdown") as TableDropdown;
     }
 
-    // A table cannot be nested in a table, so a cursor inside one leaves nothing to insert. The dropdown is
-    // shut along with the button: a cursor moved into a table by the keyboard leaves no click for the
-    // dropdown to close itself on.
+    /**
+     * A table cannot be nested in a table, so a cursor inside one leaves nothing to insert.
+     * The dropdown is shut along with the button, since a cursor moved into a table by the
+     * keyboard leaves no click for the dropdown to close itself on.
+     */
     setEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition, tags: string[]) {
         this.button.setAttribute("disabled", "true");
 

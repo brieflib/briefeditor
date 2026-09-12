@@ -14,11 +14,14 @@ export class ListClass {
     listContent!: DocumentFragment;
 }
 
-// A run is read wrapper by wrapper, each on the level of the run. An item standing in the run outside any
-// wrapper - pasted markup can hold one, the editor never writes one - has no wrapper to take its type from
-// and is read as an unordered line on that level. A wrapper standing after such an item is the list the item
-// holds, the way a wrapper found between the items of a wrapper is, and is read a level under it; one
-// standing before any item holds no line's list and is a wrapper of the run.
+/**
+ * Flattens a list run into a `ListClass` per line, in document order.
+ *
+ * @remarks
+ * An item standing outside any wrapper (pasted markup can hold one; the editor never writes
+ * one) has no wrapper to take its type from and is read as an unordered line at that level.
+ * A wrapper found right after such an item is read as its nested list, one level under it.
+ */
 export function parseList(rootWrapper: HTMLElement): ListClass[] {
     const result: ListClass[] = [];
 
@@ -37,6 +40,7 @@ export function parseList(rootWrapper: HTMLElement): ListClass[] {
     return result;
 }
 
+/** Rebuilds a flat `ListClass[]` (the inverse of {@link parseList}) into nested list markup. */
 export function convertList(lists: ListClass[]): DocumentFragment {
     const fragment = new DocumentFragment();
     const list = lists[0];
@@ -86,9 +90,8 @@ export function convertList(lists: ListClass[]): DocumentFragment {
             }
             currentLi = currentLi?.parentElement;
 
-            // The wrapper the climb lands in was opened for the lines written above it. A line written in the
-            // other type is not one of them: it closes that wrapper and opens one of its own beside it, the
-            // way a line changing type on the level it already stands on does.
+            // A line in the other type doesn't belong to the wrapper the climb landed in, so
+            // it closes that wrapper and opens one of its own beside it.
             if (currentLi && currentLi.nodeName !== nextList.listWrapper) {
                 const nextWrapper = document.createElement(nextList.listWrapper);
                 currentLi.parentElement?.appendChild(nextWrapper);
@@ -157,10 +160,14 @@ export interface NormalizeListsResult {
     cursorPosition: CursorPosition;
 }
 
-// A line the writer left open stands in the list the way a written one does, so the rebuild keeps it. What it
-// drops on its own is an item holding no content at all: a wrapper the parse walked through, or one an edit
-// emptied of everything it had. The item a modification takes the place of is named by the caller, which is
-// the one blank line that goes.
+/**
+ * Renumbers nesting levels after a list is edited and drops items with no content - an
+ * empty wrapper the parse walked through, or an item an edit emptied out. `dropped` names
+ * an item to drop explicitly (e.g. the one line a modification replaces).
+ *
+ * @returns The cleaned-up list plus the cursor position, redirected if it was orphaned by a
+ * dropped item.
+ */
 export function normalizeLists(lists: ListClass[], cursorPosition: CursorPosition, dropped?: ListClass): NormalizeListsResult {
     const result: ListClass[] = [];
     const levelMap = new Map<number, number>();
@@ -205,15 +212,12 @@ export function normalizeLists(lists: ListClass[], cursorPosition: CursorPositio
     return {lists: result, cursorPosition: updatedCursorPosition};
 }
 
-// An item holds the line it was written as, and a nested list is the content of its own items rather than of
-// the item holding it, so it is left out of the content the parse reads. What is left of an item standing for
-// no line at all is nothing.
+/** Whether a `ListClass` line holds no content (nested lists don't count, per `listContent`). */
 function isWithoutContent(list: ListClass): boolean {
     return !list.listContent.textContent && !list.listContent.firstElementChild;
 }
 
-// A blank line is an item with nothing written on it, which is the br standing in for the line it holds. An
-// image stands for content the way text does and keeps the item from reading as a blank line.
+/** Whether a `ListClass` line is blank (its br has nothing written on it). An image counts as content. */
 export function isListClassEmpty(list: ListClass | undefined): boolean {
     if (!list) {
         return false;
@@ -247,7 +251,7 @@ function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level:
     }
 }
 
-// The line the item holds, followed by the lists nested in it, each a level under.
+/** Reads an item's own line, then walks into any lists nested in it, each a level deeper. */
 function parseListItem(item: Element, wrapperType: ListWrapper, level: number, result: ListClass[]) {
     const listClass = new ListClass();
     listClass.nestedLevel = level;

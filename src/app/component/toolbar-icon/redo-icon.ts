@@ -37,8 +37,10 @@ class RedoIcon extends HTMLElement implements Icon {
         this.button.addEventListener("click", () => this.history?.redo());
     }
 
-    // The selection sweep alone would leave the icon stale: an edit that keeps the cursor where it is raises no
-    // selectionchange, and the stack still moved.
+    /**
+     * The selection sweep alone would leave the icon stale, since an edit that keeps the
+     * cursor where it is raises no selectionchange even though the stack moved.
+     */
     setHistory(history: History) {
         this.history = history;
 

@@ -39,7 +39,7 @@ class UnorderedListIcon extends HTMLElement implements Icon {
         }
     }
 
-    // A cell is not a first level element, so there is no block for a list to be made of.
+    /** A cell is not a first level element, so there is no block for a list to be made of. */
     setEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition, tags: string[]) {
         this.button.setAttribute("disabled", "true");
 

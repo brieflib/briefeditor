@@ -12,14 +12,15 @@ export interface Mutation {
     readonly attributeName: string | null;
     readonly oldValue: string | null;
     newValue: string | null;
-    // childList: original node references, so undo/redo preserve node identity for
-    // cursors and selections that still point at them.
+    /** Original node references (for childList mutations), preserving identity for cursors/selections. */
     readonly addedNodes: Node[];
     readonly removedNodes: Node[];
-    // Commands assemble added subtrees while detached (see replaceElement in normalize.ts),
-    // where the MutationObserver records nothing. addedLayouts snapshots each added
-    // subtree's node arrangement at command end so redo can re-place descendants that an
-    // undo pulled back out through the recorded removals.
+    /**
+     * Snapshots each added subtree's node arrangement at command end, since commands can
+     * assemble subtrees while detached (see `replaceElement` in normalize.ts), where the
+     * MutationObserver records nothing. Lets redo re-place descendants that undo pulled out
+     * via the recorded removals.
+     */
     readonly addedLayouts: NodeLayout[];
 }
 
@@ -29,8 +30,7 @@ export interface NodeLayout {
 }
 
 export interface HistoryEntry {
-    // A carrier-only command appends its mutations here instead of opening an entry of its own, so both
-    // the list and the cursor it redoes to move on with it.
+    /** A carrier-only command appends here rather than opening its own entry, riding along on redo. */
     readonly mutations: Mutation[];
     readonly cursorBefore: CursorPath | null;
     cursorAfter: CursorPath | null;

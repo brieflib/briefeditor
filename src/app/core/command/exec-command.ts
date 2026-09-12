@@ -36,21 +36,24 @@ import {
     restoreCursorPosition
 } from "@/core/cursor/util/cursor-util";
 
+/**
+ * Applies an editor command and returns the resulting cursor position, wrapping the work
+ * in `CommandEvent.Start`/`End` so history can record it as a single undo step.
+ */
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
     let cursorPosition = getCursorPosition();
 
-    // A click is the one command whose cursor the editor does not own. The browser places it only once the
-    // event is over, and a click that drops a selection places it nowhere until then, so the cursor this
-    // command starts from is still the whole selection. Writing that back hands the selection straight back
-    // and the click never clears it. The one click that does own its cursor is the one dropping a carrier: it
-    // rebuilds the block the browser was aiming at and suppresses the click's default action along with the
-    // placement, so it has to name the spot in the rebuilt block itself. Read before the carrier is dropped.
+    // A click is the one command the browser places itself, only once the event is over, so
+    // writing this cursor back now would just hand back the old selection. The exception is a
+    // click dropping a carrier: it rebuilds the block itself and suppresses the browser's
+    // placement, so it must name the cursor in the rebuilt block on its own. Read before the
+    // carrier is dropped.
     const isCursorPlacedByBrowser = command.action === Action.Click && !Carrier.isCarrierExist();
 
-    // Read before anything moves. Every command below rebuilds the blocks it touches, and a cursor read as
-    // a pair of nodes does not survive that, so it is read as a place in the text as well - the offset it
-    // stands at inside its own block, which the rebuild cannot invalidate.
+    // Read before anything moves: every command below rebuilds the blocks it touches, so the
+    // cursor is anchored as a text offset (which the rebuild can't invalidate) rather than a
+    // node pair.
     const cursorAnchor = getCursorAnchor(contentEditable, cursorPosition);
 
     switch (command.action)  {
@@ -115,34 +118,33 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         applyAttributesCommand(contentEditable, command);
     }
 
-    // The cursor is written back from the anchor rather than from the nodes the command carried through the
-    // rebuild once text was written or those nodes are gone. A node that survived a write is no proof the
-    // offset on it still means what it did: a text leaf keeps its identity while the text around it is
-    // written into other nodes, so a position that still names something in the document can name the wrong
-    // place in it.
+    // Restore from the anchor rather than the nodes the command carried through the rebuild:
+    // a node surviving a write is no proof its offset still means what it did, since a text
+    // leaf can keep its identity while the text around it moves into other nodes.
     if (isCursorRestorable(command)) {
         cursorPosition = restoreCursorPosition(contentEditable, cursorAnchor, cursorPosition);
     }
 
-    // Every command runs before the cursor is written back, so this is the one place the editor is left with a
-    // document again whichever way the last block was taken out of it.
+    // Runs after every command, so the editor is guaranteed a paragraph however the last block left it.
     cursorPosition = ensureParagraph(contentEditable, cursorPosition);
 
     if (!isCursorPlacedByBrowser) {
         setCursorPosition(contentEditable, cursorPosition, command);
-        // The command is issued from the toolbar, which takes the focus, so it has to come back. Where it
-        // belongs on screen is already settled by the cursor above, so the focus is not to scroll anywhere.
+        // Toolbar commands take focus away from the editor, so it must be reclaimed; the
+        // cursor above already settles where it belongs on screen.
         contentEditable.focus({preventScroll: true});
     }
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
     return cursorPosition;
 }
 
-// The commands that place the cursor themselves, which the anchor read before them cannot speak for. A
-// table edit names the cell the cursor belongs in, one that in the case of an inserted row or column holds
-// no text for an offset to find. An image is inserted once the file is read, long after this returns. A
-// click is placed by the browser. Enter divides a line without writing any text, so the offset the cursor
-// stood at is unchanged while the place it belongs is not.
+/**
+ * Whether the cursor anchor read before the command can be restored afterward. False for
+ * commands that place the cursor themselves: table edits (which name a cell directly - an
+ * inserted row/column has no text for an offset to find), image insertion (happens later,
+ * once the file is read), clicks (placed by the browser), and Enter (splits a line without
+ * writing text, so the old offset no longer points to the right place).
+ */
 function isCursorRestorable(command: Command) {
     switch (command.action) {
         case Action.Click:
@@ -181,18 +183,17 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
             const paragraph = document.createElement("p");
             paragraph.appendChild(img);
 
-            // The cursor is read again once the file is: a table it has moved into by then refuses the
-            // image the same way the toolbar refuses it, since a cell has no line to give an image.
+            // Re-read the cursor once the file has loaded: if it has since moved into a
+            // table, refuse the image there too, since a cell has no line to give it.
             const cursorPosition = getCursorPosition();
             if (isRangeIn(contentEditable, cursorPosition) && !isCursorInTable(contentEditable, cursorPosition)) {
-                // The file is read once the command that asked for it is over, so the insert has to open a
-                // recording window of its own - without one history never sees the image and cannot undo it.
+                // The file loads after the command that asked for it ends, so this needs
+                // its own recording window - otherwise history never sees the image.
                 contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
                 const root = getFirstSelectedRoot(contentEditable, cursorPosition);
                 insertBetweenBlocks(contentEditable, root, cursorPosition, paragraph);
-                // An empty block is taken the place of rather than kept beside the image, and the cursor
-                // anchored on it goes with it. It moves to the end of the line the image is on, past the
-                // image itself, which is where typing goes on.
+                // An empty block is replaced rather than kept beside the image; move the
+                // cursor to the end of the line, past the image, where typing continues.
                 setCursorPosition(contentEditable, cursorPosition.startContainer.isConnected
                     ? cursorPosition
                     : getCursorPositionFrom(paragraph, paragraph.childNodes.length,
@@ -290,11 +291,12 @@ function applyListCommand(contentEditable: HTMLElement, command: Command): Curso
     return changeBlock(contentEditable, tags);
 }
 
-// Dropping the carrier collapses its root element again, which rebuilds every element under it from a clone.
-// The caller's cursor position is remapped onto the rebuilt nodes, otherwise it keeps pointing at a text node
-// the collapse threw away and restoring it would leave the editor without a selection. For the same reason the
-// click target is detached by the time the browser applies the click's default action: it no longer sees an
-// editable element and follows the clicked link instead, so that default action is suppressed as well.
+/**
+ * Removes an active carrier, if any, collapsing its root back into a rebuilt clone and
+ * remapping `cursorPosition` onto the rebuilt nodes (otherwise it would point at a text node
+ * the collapse discarded). The click's default action is suppressed too, since by then its
+ * target is detached and the browser would otherwise follow the clicked link instead.
+ */
 function removeCarrier(contentEditable: HTMLElement, cursorPosition: CursorPosition, event?: MouseEvent): CursorPosition {
     const carrier = Carrier.getCarrier();
     if (!carrier) {
@@ -309,9 +311,11 @@ function removeCarrier(contentEditable: HTMLElement, cursorPosition: CursorPosit
     return removeAndNormalize(contentEditable, rootElement, [], cloneRange(cursorPosition));
 }
 
-// The size picker takes the focus out of the editor, so the cursor the table is placed at is the one the
-// editor was left with. A cursor inside a cell has no first level element to place the table next to, and
-// a table cannot be nested in one, so the insert is dropped instead.
+/**
+ * Inserts a table at `cursorPosition` (the position the editor was left with, since the
+ * size picker takes focus away). Dropped if the cursor is already inside a cell - a table
+ * can't nest there.
+ */
 function applyInsertTableCommand(contentEditable: HTMLElement, command: Command, cursorPosition: CursorPosition): CursorPosition {
     const size = command.size;
     if (!size || !isRangeIn(contentEditable, cursorPosition)) {
@@ -326,9 +330,12 @@ function applyInsertTableCommand(contentEditable: HTMLElement, command: Command,
     return insertTable(contentEditable, cursorPosition, size.rows, size.columns);
 }
 
-// A table is edited from the margin controls, which take the focus out of the editor and leave a cursor
-// that points into a row or a column the edit is about to replace or throw away. Each of these commands
-// therefore names the cell the cursor belongs in once it is done, and the caller restores it there.
+/**
+ * Inserts a row next to `command.table`'s cell. Table edits come from margin controls that
+ * take focus away, leaving a cursor pointing into a row/column about to change, so this
+ * (and the other table-edit commands below) names the cell the cursor should end up in and
+ * leaves the caller to restore it there.
+ */
 function applyInsertRowCommand(command: Command, cursorPosition: CursorPosition): CursorPosition {
     const target = command.table;
     if (!target) {

@@ -88,21 +88,21 @@ export function extractContents(cursorPosition: CursorPosition): DocumentFragmen
     return cursorPosition.range.extractContents();
 }
 
-// Everything written after the cursor, lifted out of the container. Both sides are written back from the
-// leaves they hold, each leaf carrying the tags standing over it, so a tag open at the cursor is closed on
-// the one side and opened again on the other. The container keeps what was written before the cursor and
-// what follows is handed back. The container is an element on the page or the fragment an item's content
-// was parsed into; either one holds the leaves the split reads.
+/**
+ * Splits `container` at the cursor, leaving what precedes it in place and returning what
+ * follows as a fragment. Each side is rebuilt from its leaves with the tags that stood over
+ * them, so a tag open at the cursor is closed on one side and reopened on the other.
+ */
 export function splitAtCursor(container: HTMLElement | DocumentFragment, cursorPosition: CursorPosition): DocumentFragment {
     const leafNodes = getLeafNodes(container);
-    // The cursor has to name a leaf for the split to have a place to fall.
+    // The cursor must name a leaf for the split to have a place to fall.
     const splitIndex = getSplitIndex(container, leafNodes, anchorCursorOnLeaf(cursorPosition));
     if (splitIndex < 0) {
         return new DocumentFragment();
     }
 
-    // Both sides are read before either is written back: collapsing one moves its leaves out of the
-    // container the other is still standing in.
+    // Read both sides before writing either back: collapsing one moves its leaves out of the
+    // container the other side is still standing in.
     const head = collapseToFragment(container, leafNodes.slice(0, splitIndex));
     const tail = collapseToFragment(container, leafNodes.slice(splitIndex));
     container.replaceChildren(head);
@@ -110,11 +110,12 @@ export function splitAtCursor(container: HTMLElement | DocumentFragment, cursorP
     return tail;
 }
 
-// The leaf the tail opens on. The cursor standing in the middle of a leaf divides it, the writer's own node
-// keeping what was written before the cursor and a node of its own taking what follows, so the two sides
-// never share one. Resting at either end of a leaf it divides the leaves where it stands, and a leaf holding
-// no text of its own to stand in - the br standing in for a line - goes whole to the side the cursor leaves
-// it on. A cursor outside the container names no leaf here and there is nothing to divide.
+/**
+ * The index in `leafNodes` where the split falls. A cursor in the middle of a text leaf
+ * splits that node in two; at either end it just falls between leaves. A leaf with no text
+ * of its own (e.g. a line's br) goes whole to whichever side the cursor is on. Returns -1
+ * if the cursor lies outside `container`.
+ */
 function getSplitIndex(container: Node, leafNodes: Node[], cursorPosition: CursorPosition): number {
     const index = leafNodes.indexOf(cursorPosition.startContainer);
     const leafNode = leafNodes[index];
@@ -139,10 +140,11 @@ function getSplitIndex(container: Node, leafNodes: Node[], cursorPosition: Curso
     return index + 1;
 }
 
-// The cursor names no leaf of its own: it stands on the block itself, which holds no text for it to stand
-// in, or on a text node a deletion emptied in place, which is no longer a leaf at all. Both name a place in
-// the text all the same, and the leaves can be counted up to it. A cursor outside the container names no
-// place here and there is nothing to divide.
+/**
+ * Fallback for a cursor naming no leaf directly - e.g. anchored on an empty block, or on a
+ * text node a deletion emptied in place. Both still name a place in the text, found here by
+ * counting characters up to it. Returns -1 if the cursor lies outside `container`.
+ */
 function getSplitIndexAtOffset(container: Node, leafNodes: Node[], cursorPosition: CursorPosition): number {
     if (!container.contains(cursorPosition.startContainer)) {
         return -1;
@@ -171,8 +173,7 @@ function getSplitIndexAtOffset(container: Node, leafNodes: Node[], cursorPositio
     return leafNodes.length;
 }
 
-// The leaves of one side, written back as the markup they were written in. The collapse hands them back
-// inside a wrapper of its own, the way it does for every rebuild, and only what it holds is wanted here.
+/** Rebuilds a run of leaves back into the markup they were written in. */
 function collapseToFragment(container: Node, leafNodes: Node[]): DocumentFragment {
     const leaves = leafNodes.map(leafNode => setLeafParents(container, leafNode));
     const collapsed = collapseLeaves(leaves).firstChild;
@@ -264,10 +265,12 @@ function scrollToViewport(contentEditable: HTMLElement, cursorPosition: CursorPo
     element.scrollIntoView({ behavior: 'auto', block: 'start' });
 }
 
-// The element the cursor sits in. An empty block holds no text of its own, so the cursor is anchored on the
-// block itself - climbing to its parent from there lands on the editor, and an editor taller than the viewport
-// is never in view, so scrolling it into one carries the whole document back to its first element. A container
-// left detached by an edit has no place on screen to scroll to either.
+/**
+ * The element the cursor sits in, or `null` when there's nowhere sensible to scroll to: the
+ * editor itself (an empty block anchors the cursor on the block, not a text node, so climbing
+ * to its parent can reach the editor - scrolling that in would jump to the document's start)
+ * or an element an edit has left detached.
+ */
 function getCursorElement(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
     const container = cursorPosition.startContainer;
     const element = container.nodeType === Node.ELEMENT_NODE

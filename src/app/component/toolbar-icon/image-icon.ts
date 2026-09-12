@@ -28,7 +28,7 @@ class ImageIcon extends HTMLElement implements Icon {
         this.input = shadowRoot.querySelector(".be-image-input") as HTMLInputElement;
     }
 
-    // An image is dropped into a first level block, which a cell is not.
+    /** An image is dropped into a first level block, which a cell is not. */
     setEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition, tags: string[]) {
         this.button.setAttribute("disabled", "true");
 

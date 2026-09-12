@@ -21,8 +21,10 @@ export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     return leafNodes;
 }
 
-// A cell holds no br to stand in for empty content, so an empty one is its own leaf: there is nothing
-// else left to rebuild it from and the collapse would drop it out of the table.
+/**
+ * An empty cell holds no br to stand in for content, so it's treated as its own leaf -
+ * otherwise the collapse would have nothing to rebuild it from and drop it from the table.
+ */
 function isEmptyCell(element: Node) {
     return isSchemaContain(element, [Display.Cell]) && !element.textContent;
 }
@@ -215,12 +217,16 @@ export function removeConsecutiveDuplicates(leaf: Leaf): Leaf {
     return leaf;
 }
 
-// Only leaves keep their identity through a collapse - every parent is cloned - so a cursor anchored on an
-// element does not survive one. An empty block is where the browser leaves it there: the block has no text
-// of its own to hold the cursor. Anchor such an endpoint on the leaf its offset points at, which for an
-// empty block is the br standing in for its content - the very node the browser anchors on once the block
-// is typed into. This is a job no character offset can do: a br holds no text, so there is no offset that
-// names it. An element with no leaves at all has nothing to move onto and is left alone.
+/**
+ * Re-anchors a cursor endpoint resting on an element (rather than a leaf) onto the leaf its
+ * offset points at - typically the br of an empty block, the very node the browser anchors
+ * on once that block is typed into.
+ *
+ * @remarks
+ * Only leaves keep their identity through a collapse (every parent is cloned), so an
+ * element-anchored cursor wouldn't survive one, and no character offset can name a br
+ * directly since it holds no text. An element with no leaves at all is left untouched.
+ */
 export function anchorCursorOnLeaf(cursor: CursorPosition): CursorPosition {
     const start = anchorContainerOnLeaf(cursor.startContainer, cursor.startOffset);
     const end = anchorContainerOnLeaf(cursor.endContainer, cursor.endOffset);
@@ -299,7 +305,7 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
     const previousText = asText(containerChild.lastChild);
     const insertText = asText(insertNode);
 
-    // The two text leaves combine into one node, which is the whole of what the insert had to give.
+    // Two text leaves combine into one node - the whole of what the insert had to give.
     if (previousText && insertText) {
         mergeText(previousText, insertText);
         return;
@@ -311,8 +317,7 @@ function insertAfterLastChild(container: DocumentFragment, insertElement: Docume
     }
 }
 
-// A cell is kept even when it is empty, so the table it was rebuilt into carries content of its own even
-// though it holds no text: without this it is thrown away again on the way back up.
+/** Whether an empty cell is kept in the fragment, so its table isn't thrown away for holding no text. */
 function holdsCell(fragment: DocumentFragment) {
     return !!fragment.querySelector("th, td");
 }
@@ -325,11 +330,13 @@ function holdsCarrier(insertElement: DocumentFragment) {
     return Carrier.isCarrierExist() && insertElement.contains(Carrier.getCarrier());
 }
 
-// When both leaves carry text, appending in place would rewrite the reused original leaf while it is
-// detached - a change the history MutationObserver cannot see, so the leaf's pre-merge text would be lost
-// on undo. Swap in a fresh node instead, leaving the original pristine so its content survives in the
-// childList records. When either side is empty the append only touches an empty node, so keep it in place:
-// the carrier is such a node, and it is the one leaf a cursor is restored onto by name.
+/**
+ * Merges two adjacent text leaves. When both carry text, a fresh node replaces the original
+ * rather than appending in place - appending while detached is a change the history
+ * MutationObserver can't see, which would lose the leaf's pre-merge text on undo. When one
+ * side is empty the append only touches an empty node and is safe to do in place, which
+ * matters for the carrier: it's such a node, and the one leaf a cursor is restored onto by name.
+ */
 function mergeText(previousText: Text, insertText: Text) {
     if (previousText.length > 0 && insertText.length > 0) {
         previousText.replaceWith(document.createTextNode(previousText.data + insertText.data));
@@ -353,8 +360,8 @@ function clearElementHTML(node: Node | undefined) {
         return;
     }
 
-    // An empty cell is a leaf, and a leaf keeps its identity through the rebuild so that a cursor sitting
-    // on it is still connected afterwards. A cell with content is only ever a parent here and is cloned.
+    // An empty cell is a leaf and keeps its identity through the rebuild, so a cursor sitting
+    // on it stays connected; a non-empty cell is only ever a parent here and is cloned below.
     if (node.nodeType === Node.TEXT_NODE || isSchemaContain(node, [Display.SelfClose]) || isEmptyCell(node)) {
         return node;
     }

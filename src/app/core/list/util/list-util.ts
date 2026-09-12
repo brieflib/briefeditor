@@ -65,10 +65,11 @@ export function getDirectChildren(li: Element, display: Display[]) {
     return listWrappers;
 }
 
-// The line an item was written as. A nested list is the content of its own items, not of the item holding
-// it, so it is left out of the line the item stands for - which is the content parseList reads into a
-// ListClass. Everything that weighs an item, or writes onto its line, asks for the line here rather than
-// stripping the wrappers again on its own.
+/**
+ * The line an item was written as, with any nested list wrappers stripped out - the same
+ * content {@link parseList} reads into a `ListClass`. Anything that inspects or writes onto
+ * an item's line should go through this rather than stripping wrappers on its own.
+ */
 export function getLine(block: Element): HTMLElement {
     const line = block.cloneNode(true) as HTMLElement;
     getDirectChildren(line, [Display.ListWrapper]).forEach(listWrapper => listWrapper.remove());
@@ -76,22 +77,23 @@ export function getLine(block: Element): HTMLElement {
     return line;
 }
 
-// An image stands for content the way text does and keeps the item from counting as empty.
+/** Whether a list item's line is empty. An image counts as content, the same as text does. */
 export function isListEmpty(list: Element) {
     const line = getLine(list);
 
     return !line.textContent && !line.querySelector(imageSelector);
 }
 
-// A list is written as a run of wrappers standing side by side, so the wrapper the run opens on is found by
-// walking to the end of it and back. Anything written between two wrappers keeps them apart and ends the run
-// there - but the whitespace an author leaves between tags is not writing, and the wrappers on either side
-// of it are still lines of one list. An item standing outside any wrapper is a line of the run beside it as
-// well: the editor never writes one, but pasted markup can hold one, and it is read with the run it stands in.
+/**
+ * The next list wrapper or item in the same run, skipping over insignificant whitespace
+ * text nodes. An item standing outside any wrapper (pasted markup can hold one) still
+ * counts as part of the run.
+ */
 export function getNextListWrapper(wrapper: Element): Element | null {
     return getSiblingListWrapper(wrapper, node => node.nextSibling);
 }
 
+/** The previous list wrapper or item in the same run. See {@link getNextListWrapper}. */
 export function getPreviousListWrapper(wrapper: Element): Element | null {
     return getSiblingListWrapper(wrapper, node => node.previousSibling);
 }
@@ -105,10 +107,11 @@ function getSiblingListWrapper(wrapper: Element, sibling: (node: ChildNode) => C
     return node && isSchemaContain(node, [Display.ListWrapper, Display.List]) ? node as Element : null;
 }
 
-// A root that is neither a wrapper nor an item stands in no run, whatever lists stand beside it: a paragraph
-// written next to a list is a line of its own, and walking from it into the list would read the paragraph as
-// a line of the list - a paste dropped in the paragraph would then be written into the list and the
-// paragraph lost.
+/**
+ * The wrapper (or item) that opens the run `rootWrapper` belongs to. Returns `rootWrapper`
+ * unchanged if it's neither a wrapper nor an item, since a root outside the run (e.g. a
+ * paragraph standing next to a list) must not be read as one of its lines.
+ */
 export function getFirstListWrapper(rootWrapper: HTMLElement) {
     if (!isSchemaContain(rootWrapper, [Display.ListWrapper, Display.List])) {
         return rootWrapper;

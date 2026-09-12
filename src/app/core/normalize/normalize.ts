@@ -58,8 +58,7 @@ export function normalize(contentEditable: HTMLElement, ...cursorPosition: Curso
 
 export function removeTags(contentEditable: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
     cursorPosition = anchorBeforeSelfClose(cursorPosition);
-    // Read before the extract: it lifts the selected text out of the nodes the cursor names, leaving the
-    // offsets it holds pointing past the end of what is left of them.
+    // Read before the extract, since extracting shifts the offsets the cursor position holds.
     const cursorAnchor = getCursorAnchor(contentEditable, cursorPosition);
     const documentFragment: DocumentFragment = extractContents(cursorPosition);
     const removeTagFrom = document.createElement("DELETED");
@@ -88,9 +87,14 @@ export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPo
     return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition, cursorAnchor);
 }
 
-// The rebuild replaces every element it touches, so the cursor is read as a place in the text before it and
-// put back from there afterwards. A rebuild writes no text of its own - it only rewrites the markup standing
-// over it - so the offsets it was read at name the same places once it is done.
+/**
+ * Rebuilds the markup around `removeTagFrom`, dropping any of `tags` found among its leaves'
+ * ancestors, and remaps the cursor across the rebuild.
+ *
+ * @remarks
+ * The rebuild replaces every element it touches but writes no text of its own, so the cursor
+ * is read as a position in the text beforehand and restored from the same text afterwards.
+ */
 export function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[],
                                    cursorPosition: CursorPosition,
                                    cursorAnchor = getCursorAnchor(contentEditable, cursorPosition)) {
@@ -129,7 +133,7 @@ export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorP
         return;
     }
 
-    // Fill array with previous ul, ol and li
+    // Collect the previous ul/ol/li siblings.
     let previousListWrapper = firstRoot.previousElementSibling;
     while (previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper, Display.List])) {
         rootElements.unshift(previousListWrapper as HTMLElement);
@@ -154,10 +158,11 @@ export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorP
     removeAndNormalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
 }
 
-// A self-close leaf holds nothing, so a collapsed cursor anchored on the br standing in for an empty block
-// has no position of its own to insert at: the tag would be built inside the br, where the serializer never
-// shows it and getLeafNodes never descends. It belongs where the br sits instead. The br is left alone - it
-// is still the block's placeholder while the inserted tag carries no text of its own.
+/**
+ * Moves a collapsed cursor off a self-close leaf (e.g. the `br` of an empty block) to just
+ * before it, since a tag built inside that br would never be seen by the serializer or by
+ * `getLeafNodes`. The br itself is left in place as the block's placeholder.
+ */
 function anchorBeforeSelfClose(cursorPosition: CursorPosition): CursorPosition {
     const container = cursorPosition.startContainer;
     if (!isCollapsed(cursorPosition) || !isSchemaContain(container, [Display.SelfClose]) ||
@@ -180,9 +185,10 @@ function buildElementsToReplace(replaceTo: string[]) {
     return elementsToReplace;
 }
 
-// The range here is scratch space for naming the spot the rebuilt content goes back into, and nothing reads
-// it afterwards. It is the replace's own, so a caller's cursor - which in the browser is the live selection
-// itself - is not moved about by the rebuild.
+/**
+ * Replaces `replaceableElement` with the rebuilt content in `container`, using a private
+ * `Range` as scratch space so the caller's own cursor (the live selection) is left untouched.
+ */
 function replaceElement(container: DocumentFragment, replaceableElement: HTMLElement) {
     if (!replaceableElement.parentNode) {
         return;
