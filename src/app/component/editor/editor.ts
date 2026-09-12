@@ -1,7 +1,7 @@
 import "@/component/editor/asset/editor.css"
 import Toolbar from "@/component/toolbar/toolbar";
 import {Settings} from "@/brief-editor";
-import {cleanElementWhitespace, pasteParagraph} from "@/core/shared/element-util";
+import {cleanElementWhitespace} from "@/core/shared/element-util";
 import {History} from "@/core/history/history";
 import Table from "@/component/table/table";
 import {TableCursor} from "@/core/cursor/table-cursor";
@@ -38,7 +38,6 @@ class Editor extends HTMLElement {
         if (!hasToolbar) {
             document.getElementById("be-toolbar")?.remove();
         }
-        pasteParagraph(contentEditable);
         contentEditable.focus();
 
         // Registered first so that its keydown listener corrects the cursor before the editor acts on it.
@@ -66,15 +65,24 @@ class Editor extends HTMLElement {
     }
 
     private addKeyboardEvent(contentEditable: HTMLElement) {
-        contentEditable.addEventListener("keydown", (event) => execCommand(contentEditable, {action: Action.Keyboard, event}));
+        contentEditable.addEventListener("keydown", (event) => execCommand(contentEditable, {
+            action: Action.Keyboard,
+            event
+        }));
     }
 
     private addClickEvent(contentEditable: HTMLElement) {
-        contentEditable.addEventListener("click", (event) => execCommand(contentEditable, {action: Action.Click, event}));
+        contentEditable.addEventListener("click", (event) => execCommand(contentEditable, {
+            action: Action.Click,
+            event
+        }));
     }
 
     private addClipboardEvent(contentEditable: HTMLElement) {
-        contentEditable.addEventListener("paste", (event) => execCommand(contentEditable, {action: Action.Clipboard, event}));
+        contentEditable.addEventListener("paste", (event) => execCommand(contentEditable, {
+            action: Action.Clipboard,
+            event
+        }));
         contentEditable.addEventListener("copy", (event) => handleCopyEvent(event));
         contentEditable.addEventListener("cut", (event) => execCommand(contentEditable, {action: Action.Cut, event}));
     }

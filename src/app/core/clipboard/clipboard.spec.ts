@@ -1,6 +1,8 @@
 import {handleCutEvent, handleDragEvent, handleDragOverEvent} from "@/core/clipboard/clipboard";
 import {getRange} from "@/core/shared/range-util";
 import {createWrapper, expectHtml} from "@/core/shared/test-util";
+import {ensureParagraph} from "@/core/shared/element-util";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -62,14 +64,15 @@ describe("Cut", () => {
         return event as ClipboardEvent;
     }
 
-    test("Should leave an empty paragraph when the blocks the cut emptied are left behind", () => {
+    test("Should leave an empty paragraph when cut empties whole document", () => {
         const wrapper = createWrapper(`<p>zero</p><p>first</p>`);
         const range = new Range();
         range.setStart(wrapper.firstChild?.firstChild as Node, 0);
         range.setEnd(wrapper.lastChild?.firstChild as Node, "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = handleCutEvent(wrapper, cutEvent());
+        let cursorPosition = handleCutEvent(wrapper, cutEvent());
+        cursorPosition = ensureParagraph(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<p><br></p>`);
         expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));

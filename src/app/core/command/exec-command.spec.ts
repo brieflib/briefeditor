@@ -1505,7 +1505,8 @@ describe("Keyboard command that empties the document", () => {
 
         expectHtml(wrapper.innerHTML, `<p>a</p>`);
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
-        expect(cursorPosition.startOffset).toBe("a".length);
+        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endOffset).toBe("a".length);
     });
 
     test("Should type into the paragraph the deleted document was given back", () => {

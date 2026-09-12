@@ -178,50 +178,33 @@ export function cleanElementWhitespace(element: HTMLElement) {
     });
 }
 
-export function pasteParagraph(contentEditable: HTMLElement) {
-    if (!contentEditable.firstChild) {
-        const p = document.createElement("p");
-        p.innerHTML = "<br>";
-        contentEditable.appendChild(p);
-    }
-}
-
-// The editable element is a first level tag itself, so with every block deleted the cursor is left on the root
-// and the editor takes the root for the block it is editing. The br that stands in for an emptied block, or the
-// character typed over the selection, is then written straight into the root, outside of any paragraph, and the
-// document is left with no line to hold the next one. Such a leftover is wrapped in the paragraph it belongs in
-// and the cursor follows it there. Only a text or a self closing tag counts as one: an element opening the
-// document is markup its author put there, and it is left where it is.
-export function ensureParagraph(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
-    const stray = contentEditable.firstChild;
-    if (stray && stray.nodeType !== Node.TEXT_NODE && !isSchemaContain(stray, [Display.SelfClose])) {
-        return cursorPosition;
-    }
-
+function pasteParagraph(contentEditable: HTMLElement, element?: Node) {
     const paragraph = document.createElement("p");
-    paragraph.appendChild(stray ?? document.createElement("br"));
-    contentEditable.prepend(paragraph);
-
-    if (paragraph.contains(cursorPosition.startContainer)) {
-        return cursorPosition;
-    }
-
-    const firstText = getFirstText(paragraph);
-    return getCursorPositionFrom(firstText, 0, firstText, 0);
+    const elementToPaste = element ?? document.createElement("br");
+    paragraph.appendChild(elementToPaste);
+    contentEditable.appendChild(paragraph);
+    return getCursorPositionFrom(elementToPaste, 0, elementToPaste, elementToPaste.textContent?.length ?? 0);
 }
 
-export function clone(node: Node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-        return node;
+export function ensureParagraph(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    const firstChild = contentEditable.firstChild;
+    if (!firstChild) {
+        return pasteParagraph(contentEditable);
     }
 
-    const cloned = document.createElement(node.nodeName);
+    if (!firstChild.textContent?.length &&
+        isSchemaContain(firstChild, [Display.FirstLevel, Display.Image]) &&
+        !hasSelfCloseDescendant(firstChild)) {
+        contentEditable.replaceChildren();
+        return pasteParagraph(contentEditable, firstChild);
+    }
 
-    node.childNodes.forEach(child => {
-        cloned.appendChild(child);
-    });
+    if (firstChild.nodeType === Node.TEXT_NODE) {
+        contentEditable.replaceChildren();
+        return pasteParagraph(contentEditable, firstChild as Text);
+    }
 
-    return cloned;
+    return cursorPosition;
 }
 
 // An image is the one thing that can be in a block without any text of its own, so it is asked for by name.

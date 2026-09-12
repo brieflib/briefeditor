@@ -21,13 +21,17 @@ describe("BriefEditor API", () => {
             </div>
         `);
 
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, "span"), "".length);
+        range.setEnd(getFirstChild(wrapper, "span"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
         const briefEditor = new BriefEditor({
             hasToolbar: false
         });
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setStart(getFirstChild(wrapper, "span"), "".length);
+        range.setEnd(getFirstChild(wrapper, "span"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         briefEditor.toggleTag("EM", {class: "zero"});
@@ -48,15 +52,16 @@ describe("BriefEditor API", () => {
             </div>
         `);
 
-        const briefEditor = new BriefEditor({
-            hasToolbar: false
-        });
-
         (getRange as jest.Mock).mockImplementation(() => {
             const range = new Range();
             range.setStart(wrapper.querySelector("em")?.firstChild ?? wrapper.querySelector("em") as Node, "".length);
             range.setEnd(wrapper.querySelector("em")?.firstChild ?? wrapper.querySelector("em") as Node, "".length);
             return range;
+        });
+
+
+        const briefEditor = new BriefEditor({
+            hasToolbar: false
         });
 
         briefEditor.toggleTag("P", {class: "zero"});
@@ -77,13 +82,17 @@ describe("BriefEditor API", () => {
             </div>
         `);
 
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, "em"), "".length);
+        range.setEnd(getFirstChild(wrapper, "em"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
         const briefEditor = new BriefEditor({
             hasToolbar: false
         });
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setStart(getFirstChild(wrapper, "em"), "".length);
+        range.setEnd(getFirstChild(wrapper, "em"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
         briefEditor.toggleTag("A", {class: "zero", href: "zero"});
@@ -106,15 +115,15 @@ describe("BriefEditor API", () => {
             </div>
         `);
 
-        const briefEditor = new BriefEditor({
-            hasToolbar: false
-        });
-
         (getRange as jest.Mock).mockImplementation(() => {
             const range = new Range();
             range.setStart(wrapper.querySelector("em")?.firstChild ?? wrapper.querySelector("em") as Node, "".length);
             range.setEnd(wrapper.querySelector("em")?.firstChild ?? wrapper.querySelector("em") as Node, "".length);
             return range;
+        });
+
+        const briefEditor = new BriefEditor({
+            hasToolbar: false
         });
 
         briefEditor.toggleTag("ol", {class: "zero"});
@@ -137,14 +146,17 @@ describe("BriefEditor API", () => {
             </div>
         `);
 
+        (getRange as jest.Mock).mockImplementation(() => {
+            const range = new Range();
+            range.setStart(getFirstChild(wrapper, "em"), "".length);
+            range.setEnd(getFirstChild(wrapper, "em"), "zero".length);
+            (getRange as jest.Mock).mockReturnValue(range);
+            return range;
+        });
+
         const briefEditor = new BriefEditor({
             hasToolbar: false
         });
-
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
 
         briefEditor.changeAttribute("em", {class: "zero"});
 

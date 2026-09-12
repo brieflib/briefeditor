@@ -43,17 +43,7 @@ export function handleCutEvent(contentEditable: HTMLElement, event: ClipboardEve
     writeSelectionToClipboard(event, cursorPosition);
 
     cursorPosition = deleteContents(cursorPosition);
-    // A cut can take the whole document out, and what it leaves behind is nothing to normalize: a block is
-    // rebuilt from its leaves and an emptied one has none, so it comes back without the br every empty block
-    // in the editor carries. The root of the cut is looked up in an editor that has none either, and that
-    // search climbs out of it into the page around. The emptied editor is handed a paragraph back instead,
-    // and the cursor, which the cut leaves on the root, goes in it.
-    if (!contentEditable.textContent && !hasSelfCloseDescendant(contentEditable)) {
-        contentEditable.replaceChildren();
-        cursorPosition = ensureParagraph(contentEditable, cursorPosition);
-        setCursorPosition(contentEditable, cursorPosition);
-        return cursorPosition;
-    }
+    cursorPosition = ensureParagraph(contentEditable, cursorPosition);
 
     const firstRoot = getFirstSelectedRoot(contentEditable, cursorPosition);
     cursorPosition = removeAndNormalize(contentEditable, firstRoot, [], cursorPosition);
