@@ -104,7 +104,14 @@ function getSiblingListWrapper(wrapper: Element, sibling: (node: ChildNode) => C
     return node && isSchemaContain(node, [Display.ListWrapper]) ? node as Element : null;
 }
 
+// A root that is no wrapper stands in no run, whatever lists stand beside it: a paragraph written next to a
+// list is a line of its own, and walking from it into the list would read the paragraph as a line of the
+// list - a paste dropped in the paragraph would then be written into the list and the paragraph lost.
 export function getFirstListWrapper(rootWrapper: HTMLElement) {
+    if (!isSchemaContain(rootWrapper, [Display.ListWrapper])) {
+        return rootWrapper;
+    }
+
     let firstWrapper: Element = rootWrapper;
     let next = getNextListWrapper(firstWrapper);
     while (next) {

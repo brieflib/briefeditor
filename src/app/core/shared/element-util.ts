@@ -228,7 +228,7 @@ export function clone(node: Node) {
 export const imageSelector = getOfType([Display.Image]).join(",");
 
 // A block that holds nothing but the br standing in for its line.
-export function isEmptyBlock(block: HTMLElement) {
+export function isEmptyBlock(block: Element) {
     return !block.textContent && !block.querySelector(imageSelector);
 }
 

@@ -9,6 +9,7 @@ export enum Display {
     Table = "Table",
     TableSection = "TableSection",
     Cell = "Cell",
+    Paragraph = "Paragraph",
 }
 
 const schema: Map<string, Display[]> = new Map<string, Display[]>();
@@ -20,7 +21,7 @@ schema.set("LI", [Display.List]);
 schema.set("UL", [Display.FirstLevel, Display.ListWrapper, Display.Collapse]);
 schema.set("OL", [Display.FirstLevel, Display.ListWrapper, Display.Collapse]);
 
-schema.set("P", [Display.FirstLevel]);
+schema.set("P", [Display.FirstLevel, Display.Paragraph]);
 schema.set("H1", [Display.FirstLevel]);
 schema.set("H2", [Display.FirstLevel]);
 schema.set("H3", [Display.FirstLevel]);

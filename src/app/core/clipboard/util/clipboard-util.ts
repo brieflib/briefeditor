@@ -21,10 +21,12 @@ import {
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
 import {maybeInsertLists} from "@/core/list/list";
+import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
+import {appendBeforeAndDelete, getPreviousListWrapper} from "@/core/list/util/list-util";
 import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {getCellCursorPosition, normalizeTable} from "@/core/command/util/table-util";
 
-interface EdgeParagraphs {
+interface EdgeBlocks {
     lead: string;
     tail: string;
 }
@@ -36,7 +38,7 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
 
     // Read after the delete: it is the surviving cursor that says where the markup lands.
     const cell = getCursorCell(contentEditable, cursorPosition);
-    const pastedContent = cleanPastedContent(htmlString, cell);
+    const pastedContent = cleanPastedContent(htmlString, cell, cursorPosition);
     htmlString = pastedContent.innerHTML;
     if (!htmlString) {
         return cursorPosition;
@@ -47,10 +49,10 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     // the split stays inside it.
     const firstRoot = cell ?? getFirstSelectedRoot(contentEditable, cursorPosition);
 
-    // The paragraphs a run opens and closes with are words of the line the cursor is on rather than lines
-    // of their own, so they are taken out of the run before anything is placed and written into that line.
-    // What is left of the run goes on being placed the way it always is.
-    const edges = takeEdgeParagraphs(contentEditable, pastedContent, cursorPosition);
+    // The paragraphs a run opens and closes with - or the blocks of the kind the cursor's line is written in -
+    // are words of that line rather than lines of their own, so they are taken out of the run before anything
+    // is placed and written into that line. What is left of the run goes on being placed the way it always is.
+    const edges = takeEdgeBlocks(contentEditable, pastedContent, cursorPosition);
     if (edges) {
         return pasteAroundBlocks(contentEditable, pastedContent, edges, cursorPosition);
     }
@@ -84,13 +86,24 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
         }
         htmlString = " ";
     } else {
-        // A block on its own is dropped into the line the cursor is on - a block or an item - so the tag it was
-        // written in has no line of its own to name. The rebuild keeps the innermost block standing over a
-        // leaf, which would set the pasted words in a line of the pasted tag between the two halves of the
-        // target, so only what stood inside the block goes in and the target keeps its tag.
+        // A paragraph on its own is dropped into the line the cursor is on - a block or an item - so the tag
+        // it was written in has no line of its own to name: it is what a page wraps plain words in, and the
+        // words go on the line they are dropped on, whatever tag that line is written in. The rebuild keeps
+        // the innermost block standing over a leaf, which would set the pasted words in a line of the pasted
+        // tag between the two halves of the target, so only what stood inside the paragraph goes in and the
+        // target keeps its tag. A block of the kind the cursor's line is written in goes the same way: a copy
+        // carries the block it was taken from, so words copied out of a heading come back as a heading, and
+        // dropped in a heading they are words of it. Any other block carries a line of its own and opens one,
+        // which is the run of blocks path: placed between blocks, since a lone block of the tag it was
+        // dropped into is read by the rebuild as a repeat of that tag and folded into the target's line. An
+        // item is the line inside a list, and no lone block is one, so there every block but a paragraph
+        // divides the list.
         const loneBlock = getLoneBlock(pastedContent);
-        if (loneBlock) {
+        const line = getSelectedBlock(contentEditable, cursorPosition)[0];
+        if (loneBlock && (isSchemaContain(loneBlock, [Display.Paragraph]) || loneBlock.nodeName === line?.nodeName)) {
             htmlString = loneBlock.innerHTML;
+        } else if (loneBlock) {
+            return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
         }
     }
 
@@ -101,7 +114,7 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
     // A run of blocks pasted into a block of the same kind is read by the rebuild as a repeat of the tag it was
     // dropped into and thrown away, which leaves every line collapsed into the one line of the target. The run
     // is placed between blocks instead, the way a pasted list or table is, so each block keeps a line of its
-    // own. A block on its own is left to the path below, where it merges into the line the cursor is on.
+    // own. Only a lone paragraph reaches the path below, standing by then for the words it held.
     if (!blank && hasSeveralBlocks(pastedContent)) {
         return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
     }
@@ -138,29 +151,24 @@ export function getSelectedHtml(cursorPosition: CursorPosition): string {
     const container = document.createElement("div");
     container.appendChild(cloneContents(cursorPosition));
 
-    // range.cloneContents() drops an inline ancestor that fully contains the
-    // selection (e.g. selecting text inside an <a> or <strong>, as a double-click
-    // does). Re-wrap the fragment in shallow clones of those ancestors so copied
-    // markup keeps its link/formatting, href attributes preserved literally.
+    // range.cloneContents() drops every ancestor that fully contains the selection - the strong or the
+    // link a double-click selects inside, the heading a word was selected in, the item and the wrapper a
+    // selection held inside one item stands in. The fragment is re-wrapped in shallow clones of those
+    // ancestors so the copy carries the tags the selection was made in: words copied out of a heading come
+    // as a heading, words copied out of an item come as a list, and the paste makes of that what it makes of
+    // any pasted block or list. The shallow clone keeps the source tag, which is the only place where UL and
+    // OL can still be told apart, and keeps href attributes literally. The rows and the table around
+    // selected cells go the same way, and without them the cells do not survive the parse the paste puts
+    // them through: the tags of a cell outside a table are thrown away. A cell is the one ancestor not put
+    // back: a selection held inside one is words, and only a selection crossing a cell carries a table. The
+    // climb stops on its own at the editable element, which the schema does not name.
     let ancestor: Node | null = cursorPosition.range.commonAncestorContainer;
     if (ancestor.nodeType !== Node.ELEMENT_NODE) {
         ancestor = ancestor.parentElement;
     }
-    // A list wrapper is dropped the same way when the selection spans its items, so
-    // re-wrap it too. The shallow clone keeps the source tag, which is the only place
-    // where UL and OL can still be told apart. The rows and the table around selected
-    // cells go the same way, and without them the cells do not survive the parse the
-    // paste puts them through: the tags of a cell outside a table are thrown away.
-    // A selection held inside a single cell stops at the cell, which is not re-wrapped,
-    // so copied words stay words and only a selection crossing a cell carries a table.
-    // An item goes by the same rule, and it is the ancestor a selection stops at
-    // whenever it runs from the line an item was written as into the list nested under
-    // it - the item is what stands between that line and the wrapper holding it, so
-    // without it the line is copied as loose words and the wrapper is never reached.
-    const isCrossingItems = isSelectionCrossingItems(cursorPosition);
     while (ancestor instanceof HTMLElement &&
-        (isInlineFormatting(ancestor) || isSchemaContain(ancestor, [Display.ListWrapper, Display.TableSection, Display.Table]) ||
-            (isCrossingItems && isSchemaContain(ancestor, [Display.List])))) {
+        isSchemaContain(ancestor, [Display.Link, Display.Collapse, Display.FirstLevel, Display.List,
+            Display.TableSection, Display.Table])) {
         const wrapper = ancestor.cloneNode(false) as HTMLElement;
         wrapper.append(...container.childNodes);
         container.appendChild(wrapper);
@@ -170,31 +178,8 @@ export function getSelectedHtml(cursorPosition: CursorPosition): string {
     return container.innerHTML;
 }
 
-// Whether the selection runs from one item into another - the line an item was written as and the list
-// nested under it being two items of their own. A selection held inside one item carries no list with it.
-function isSelectionCrossingItems(cursorPosition: CursorPosition): boolean {
-    const startItem = getClosestItem(cursorPosition.startContainer);
 
-    return !!startItem && startItem !== getClosestItem(cursorPosition.endContainer);
-}
-
-// The item a node was written in, read by walking the tags standing over it rather than by asking for one
-// by name: a tag name is spelled the way the schema spells it, and not every engine matches that spelling.
-function getClosestItem(node: Node): Element | null {
-    let element = node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement;
-    while (element && !isSchemaContain(element, [Display.List])) {
-        element = element.parentElement;
-    }
-
-    return element;
-}
-
-function isInlineFormatting(element: HTMLElement): boolean {
-    return isSchemaContain(element, [Display.Link, Display.Collapse]) &&
-        !isSchemaContain(element, [Display.FirstLevel]);
-}
-
-function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | null) {
+function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | null, cursorPosition: CursorPosition) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlString, 'text/html');
 
@@ -210,6 +195,8 @@ function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | nul
         node.remove();
     });
 
+    replaceDivs(doc.body);
+
     // wrapListItems only gives orphaned items a wrapper, and the unwrap drops both.
     if (cell) {
         removeImages(doc.body);
@@ -220,6 +207,22 @@ function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | nul
     wrapListItems(doc.body);
     hoistTables(doc.body);
     doc.body.querySelectorAll(tableSelector).forEach(table => normalizeTable(table as HTMLTableElement));
+
+    // A copy carries the shape the selection was made in, not the shape of a list: a selection running from a
+    // nested item into the item below it comes as a wrapper opening on an item that holds nothing but the
+    // nested list. The rebuild reads a wrapper opening on a wrapper as a duplicate and drops it from every
+    // line under it, which leaves the lines written after the nested list as items with no wrapper at all.
+    // So every pasted run is read the way the editor reads its own lists and written back from its lines
+    // before it is placed: the item holding no line goes, and the lines that follow it are levelled to follow
+    // from one another. The cursor is the editor's and stands in none of the pasted lines, so it comes back
+    // untouched. The first wrapper of each run is read before any run is rewritten, since a rewrite takes the
+    // whole run out and puts a new one in its place.
+    const runs = Array.from(doc.body.children).filter(child =>
+        isSchemaContain(child, [Display.ListWrapper]) && !getPreviousListWrapper(child));
+    for (const first of runs) {
+        const normalized = normalizeLists(parseList(first as HTMLElement), cursorPosition);
+        appendBeforeAndDelete(first as HTMLElement, convertList(normalized.lists));
+    }
 
     return doc.body;
 }
@@ -255,6 +258,21 @@ function hoistTable(root: HTMLElement, table: Element) {
 // a cell, so a pasted one must not arrive as one.
 const cellUnwrapSelector = getOfType([Display.FirstLevel, Display.List, Display.Table,
     Display.TableSection, Display.Cell]).join(",");
+
+// The editor knows no div of its own - it writes every line it opens as a paragraph - so a pasted one is
+// read as the paragraph it stands for, and the words it holds go on the line they are dropped on the way any
+// pasted paragraph's do. It is renamed before anything else reads the markup, which is also what lets one
+// dropped in a cell be unwrapped with the other blocks: the tags a cell unwraps are the ones the schema
+// names, and a div is not among them. The attributes stay behind with the tag, as the rebuild leaves none.
+function replaceDivs(root: ParentNode) {
+    // The list is taken before any of it is replaced, so a div nested in another is still in it and is
+    // replaced in the paragraph its parent became.
+    root.querySelectorAll("div").forEach(div => {
+        const paragraph = document.createElement("P");
+        paragraph.append(...div.childNodes);
+        div.replaceWith(paragraph);
+    });
+}
 
 function removeImages(root: ParentNode) {
     root.querySelectorAll(imageSelector).forEach(image => image.remove());
@@ -331,14 +349,17 @@ function getLoneBlock(pastedContent: HTMLElement): HTMLElement | null {
 }
 
 // A paragraph is the tag a page wraps plain words in, so a run opening or closing with one carries words
-// meant for the line they are dropped in, not lines of their own. Such an edge is taken out of the run and
-// handed back as the markup it held. Only the two edges go: a paragraph standing between other elements has
-// no line of the target to join and keeps one of its own. An edge is taken only where there is text on its
-// side of the cursor to join - at either end of a line, and on an empty one, the paragraph continues nothing
-// and keeps the line and the tag it came with. A paragraph standing for an empty line is nothing to join
-// with either. A run holding a single line is left alone: a lone block already merges into the cursor's line.
-function takeEdgeParagraphs(contentEditable: HTMLElement, pastedContent: HTMLElement,
-                            cursorPosition: CursorPosition): EdgeParagraphs | null {
+// meant for the line they are dropped in, not lines of their own. A block of the kind that line is written
+// in carries words of it the same way: a copy carries the block it was taken from, and a heading copied with
+// the paragraph below it and dropped in a heading opens with words of that heading. Such an edge is taken
+// out of the run and handed back as the markup it held. Only the two edges go: a block standing between
+// other elements has no line of the target to join and keeps one of its own. An edge is taken only where
+// there is text on its side of the cursor to join - at either end of a line, and on an empty one, the block
+// continues nothing and keeps the line and the tag it came with. A block standing for an empty line is
+// nothing to join with either. A run holding a single line is left alone: a lone block already merges into
+// the cursor's line.
+function takeEdgeBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement,
+                        cursorPosition: CursorPosition): EdgeBlocks | null {
     const lines = Array.from(pastedContent.children)
         .filter(child => isSchemaContain(child, [Display.FirstLevel, Display.Table]));
     if (lines.length < 2 || isBlank(pastedContent)) {
@@ -346,11 +367,13 @@ function takeEdgeParagraphs(contentEditable: HTMLElement, pastedContent: HTMLEle
     }
 
     // Both ends are read before either is taken: taking the first one would leave the last one standing
-    // somewhere else.
+    // somewhere else. Both join the same line - the lead its first half, the tail its second - so both are
+    // measured against the tag it is written in. Inside a list that line is an item, which no block is.
+    const line = getSelectedBlock(contentEditable, cursorPosition)[0];
     const first = pastedContent.firstElementChild;
     const last = pastedContent.lastElementChild;
-    const lead = isCursorAtStartOfBlock(contentEditable, cursorPosition) ? "" : takeParagraph(first);
-    const tail = isCursorAtEndOfBlock(contentEditable, cursorPosition) ? "" : takeParagraph(last);
+    const lead = isCursorAtStartOfBlock(contentEditable, cursorPosition) ? "" : takeEdgeBlock(first, line);
+    const tail = isCursorAtEndOfBlock(contentEditable, cursorPosition) ? "" : takeEdgeBlock(last, line);
     if (!lead && !tail) {
         return null;
     }
@@ -358,9 +381,13 @@ function takeEdgeParagraphs(contentEditable: HTMLElement, pastedContent: HTMLEle
     return {lead: lead, tail: tail};
 }
 
-// The markup a paragraph holds, taken out of the run. Anything else is left standing where it is.
-function takeParagraph(element: Element | null): string {
-    if (!element || element.nodeName !== "P" || isBlank(element)) {
+// The markup a paragraph, or a block of the line's own kind, holds, taken out of the run. Anything else is
+// left standing where it is, and so is a block holding nothing to join a line with: one standing for an
+// empty line, and one holding nothing at all - tags around nothing are no words to continue a line with.
+function takeEdgeBlock(element: Element | null, line: HTMLElement | undefined): string {
+    if (!element || !isSchemaContain(element, [Display.FirstLevel]) ||
+        !(isSchemaContain(element, [Display.Paragraph]) || element.nodeName === line?.nodeName) ||
+        isBlank(element) || isEmptyBlock(element)) {
         return "";
     }
 
@@ -370,12 +397,12 @@ function takeParagraph(element: Element | null): string {
     return htmlString;
 }
 
-// The run is written in three goes. The paragraph taken off its front is inline markup now, so it is pasted
-// the way any inline markup is - into the line the cursor is on. The line is then divided, which gives the
-// paragraph taken off the back a line to open: the one holding what was written after the cursor. What is
-// left of the run goes between the two, the way a pasted run always goes between blocks. With no paragraph
-// taken off the back there is nothing to divide the line for, and the run divides it itself.
-function pasteAroundBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement, edges: EdgeParagraphs,
+// The run is written in three goes. The block taken off its front is inline markup now, so it is pasted the
+// way any inline markup is - into the line the cursor is on. The line is then divided, which gives the block
+// taken off the back a line to open: the one holding what was written after the cursor. What is left of the
+// run goes between the two, the way a pasted run always goes between blocks. With no block taken off the
+// back there is nothing to divide the line for, and the run divides it itself.
+function pasteAroundBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement, edges: EdgeBlocks,
                            cursorPosition: CursorPosition): CursorPosition {
     if (edges.lead) {
         cursorPosition = pasteHtml(contentEditable, edges.lead, cursorPosition);

@@ -1,4 +1,4 @@
-import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {getSelectedHtml, pasteHtml} from "@/core/clipboard/util/clipboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
@@ -206,7 +206,9 @@ describe("Sanitize input", () => {
         `);
     });
 
-    test("Should paste a lone heading into the list item it was dropped in", () => {
+    // A heading carries a line of its own wherever it is dropped, so it divides the list it lands in the way
+    // a pasted table or list does, rather than joining the item the cursor rests on.
+    test("Should divide the list a lone heading is dropped in", () => {
         const wrapper = createWrapper(`
             <ul>
                 <li class="start">zero
@@ -228,11 +230,13 @@ describe("Sanitize input", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>zerothird
-                    <ol>
-                        <li>first</li>
-                    </ol>
-                </li>
+                <li>zero</li>
+            </ul>
+            <h1>third</h1>
+            <ol>
+                <li>first</li>
+            </ol>
+            <ul>
                 <li>second</li>
             </ul>
         `);
@@ -261,7 +265,7 @@ describe("Sanitize input", () => {
         expect(cursorPosition.endOffset).toBe("zero".length);
     });
 
-    test("Should paste a lone heading into the middle of a paragraph keeping the paragraph", () => {
+    test("Should keep the line of a lone heading pasted into the middle of a paragraph", () => {
         const wrapper = createWrapper(`
             <p class="start">first</p>
         `);
@@ -275,7 +279,345 @@ describe("Sanitize input", () => {
         pasteHtml(wrapper, `<h2>zero</h2>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <p>fizerorst</p>
+            <p>fi</p>
+            <h2>zero</h2>
+            <p>rst</p>
+        `);
+    });
+
+    test("Should keep the line of a lone blockquote pasted into the middle of a paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<blockquote>zero</blockquote>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>fi</p>
+            <blockquote>zero</blockquote>
+            <p>rst</p>
+        `);
+    });
+
+    // A copy carries the block it was taken from, so words copied out of a heading come back as one; dropped
+    // in a heading they are words of it, the way a lone paragraph is words of any line.
+    test("Should paste a lone heading into a heading of its own kind as words of it", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<h1>first</h1>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>zefirstro</h1>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h1")?.firstChild);
+        expect(cursorPosition.startOffset).toBe("zefirst".length);
+    });
+
+    test("Should keep the line of a lone heading pasted into a heading of another kind", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<h2>first</h2>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>ze</h1>
+            <h2>first</h2>
+            <h1>ro</h1>
+        `);
+    });
+
+    // Copied words come wrapped in the block they were taken from, and a paragraph's words are words of
+    // whatever line they are dropped on.
+    test("Should paste a lone paragraph into the middle of a list item as words of it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p>first</p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zefirstro</li>
+            </ul>
+        `);
+    });
+
+    test("Should paste what was copied out of a heading into a paragraph as a heading", () => {
+        const wrapper = createWrapper(`
+            <h1 class="source">Editor Reference Guide</h1>
+            <p class="start">zero</p>
+        `);
+
+        const copyRange = new Range();
+        copyRange.setStart(getFirstChild(wrapper, ".source"), "Editor ".length);
+        copyRange.setEnd(getFirstChild(wrapper, ".source"), "Editor Reference".length);
+        (getRange as jest.Mock).mockReturnValue(copyRange);
+        const copied = getSelectedHtml(getCursorPosition());
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+        pasteHtml(wrapper, copied, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h1 class="source">Editor Reference Guide</h1>
+            <p>ze</p>
+            <h1>Reference</h1>
+            <p>ro</p>
+        `);
+    });
+
+    test("Should paste what was copied out of a heading into a heading as words of it", () => {
+        const wrapper = createWrapper(`
+            <h1 class="source">Editor Reference Guide</h1>
+            <h1 class="start">zero</h1>
+        `);
+
+        const copyRange = new Range();
+        copyRange.setStart(getFirstChild(wrapper, ".source"), "Editor ".length);
+        copyRange.setEnd(getFirstChild(wrapper, ".source"), "Editor Reference".length);
+        (getRange as jest.Mock).mockReturnValue(copyRange);
+        const copied = getSelectedHtml(getCursorPosition());
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+        pasteHtml(wrapper, copied, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h1 class="source">Editor Reference Guide</h1>
+            <h1>zeReferencero</h1>
+        `);
+    });
+
+    test("Should paste what was copied out of a paragraph into a heading as words of it", () => {
+        const wrapper = createWrapper(`
+            <p class="source">Editor Reference Guide</p>
+            <h1 class="start">zero</h1>
+        `);
+
+        const copyRange = new Range();
+        copyRange.setStart(getFirstChild(wrapper, ".source"), "Editor ".length);
+        copyRange.setEnd(getFirstChild(wrapper, ".source"), "Editor Reference".length);
+        (getRange as jest.Mock).mockReturnValue(copyRange);
+        const copied = getSelectedHtml(getCursorPosition());
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+        pasteHtml(wrapper, copied, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="source">Editor Reference Guide</p>
+            <h1>zeReferencero</h1>
+        `);
+    });
+
+    test("Should paste what was copied out of a paragraph into an empty heading keeping the heading", () => {
+        const wrapper = createWrapper(`
+            <p class="source">Editor Reference Guide</p>
+            <h1><br></h1>
+        `);
+
+        const copyRange = new Range();
+        copyRange.setStart(getFirstChild(wrapper, ".source"), "Editor ".length);
+        copyRange.setEnd(getFirstChild(wrapper, ".source"), "Editor Reference".length);
+        (getRange as jest.Mock).mockReturnValue(copyRange);
+        const copied = getSelectedHtml(getCursorPosition());
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+        pasteHtml(wrapper, copied, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="source">Editor Reference Guide</p>
+            <h1>Reference</h1>
+        `);
+    });
+
+    test("Should paste what was copied out of an item into a paragraph as a list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="source">first</li>
+            </ul>
+            <p class="start">zero</p>
+        `);
+
+        const copyRange = new Range();
+        copyRange.setStart(getFirstChild(wrapper, ".source"), "f".length);
+        copyRange.setEnd(getFirstChild(wrapper, ".source"), "fir".length);
+        (getRange as jest.Mock).mockReturnValue(copyRange);
+        const copied = getSelectedHtml(getCursorPosition());
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+        pasteHtml(wrapper, copied, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="source">first</li>
+            </ul>
+            <p>ze</p>
+            <ul>
+                <li>ir</li>
+            </ul>
+            <p>ro</p>
+        `);
+    });
+
+    test("Should paste a lone heading after the paragraph the cursor ends in", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<h1>first</h1>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <h1>first</h1>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h1")?.firstChild);
+        expect(cursorPosition.startOffset).toBe("first".length);
+    });
+
+    test("Should paste a lone heading before the paragraph the cursor starts in", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>first</h1>
+            <p>zero</p>
+        `);
+    });
+
+    test("Should take the place of the empty paragraph a lone heading is pasted into", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>first</h1>
+        `);
+    });
+
+    test("Should divide the list a lone heading is dropped in the middle of an item of", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+                <li>first</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<h1>second</h1>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>ze</li>
+            </ul>
+            <h1>second</h1>
+            <ul>
+                <li>ro</li>
+                <li>first</li>
+            </ul>
+        `);
+    });
+
+    // The editor writes its lines as paragraphs and knows no div, so a pasted one arrives as the paragraph
+    // it stands for and its words go on the line they are dropped on.
+    test("Should keep the line when a lone div is pasted into a paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<div>first</div>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zefirstro</p>
+        `);
+    });
+
+    test("Should keep the lines of the blocks a pasted div holds", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<div><h1>first</h1><p>second</p></div>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze</p>
+            <h1>first</h1>
+            <p>secondro</p>
         `);
     });
 
@@ -417,21 +759,78 @@ describe("Sanitize input", () => {
         expect(html).toBe(`<ul><li class="start">first<ul><li class="end">second</li></ul></li></ul>`);
     });
 
-    test("Should copy what is written inside a single item as words", () => {
+    // The copy carries the tags the selection was made in, so words copied out of an item come as a list.
+    test("Should keep the item and its wrapper of words copied inside a single item", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li class="start">first</li>
+                <li>first</li>
             </ul>
         `);
 
         const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "f".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
+        range.setStart(getFirstChild(wrapper, "li"), "f".length);
+        range.setEnd(getFirstChild(wrapper, "li"), "fir".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        // A selection held inside one item carries no list with it, the way one held inside a cell
-        // carries no table.
-        expect(getSelectedHtml(getCursorPosition())).toBe("ir");
+        expect(getSelectedHtml(getCursorPosition())).toBe("<ul><li>ir</li></ul>");
+    });
+
+    test("Should keep the heading of words copied inside a heading", () => {
+        const wrapper = createWrapper(`
+            <h1>Editor Reference Guide</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, "h1"), "Editor ".length);
+        range.setEnd(getFirstChild(wrapper, "h1"), "Editor Reference".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        expect(getSelectedHtml(getCursorPosition())).toBe("<h1>Reference</h1>");
+    });
+
+    test("Should keep the paragraph of words copied inside a paragraph", () => {
+        const wrapper = createWrapper(`
+            <p>zero first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, "p"), "zero ".length);
+        range.setEnd(getFirstChild(wrapper, "p"), "zero fir".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        expect(getSelectedHtml(getCursorPosition())).toBe("<p>fir</p>");
+    });
+
+    test("Should keep the heading and the formatting of words copied across a tag inside a heading", () => {
+        const wrapper = createWrapper(`
+            <h1>Editor <strong>Reference</strong> Guide</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, "h1"), "Edi".length);
+        range.setEnd(getLastChild(wrapper, "h1"), " Gu".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        expect(getSelectedHtml(getCursorPosition())).toBe("<h1>tor <strong>Reference</strong> Gu</h1>");
+    });
+
+    test("Should keep every item and wrapper of words copied inside a nested item", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li class="start">first</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        expect(getSelectedHtml(getCursorPosition())).toBe(`<ol><li><ol><li class="start">rst</li></ol></li></ol>`);
     });
 
     test("Should keep the table of copied body cells", () => {
@@ -673,6 +1072,218 @@ describe("Sanitize input", () => {
         expect(cursorPosition.endOffset).toBe("second".length);
     });
 
+    // A paragraph written beside a list is a line of its own: a list dropped in it goes between its halves,
+    // not into the list next door, and the paragraph's words are not lost to it.
+    test("Should paste a list into the middle of a paragraph standing after a list", () => {
+        const wrapper = createWrapper(`
+            <ul><li>first</li></ul>
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ul><li>second</li></ul>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul><li>first</li></ul>
+            <p>ze</p>
+            <ul><li>second</li></ul>
+            <p>ro</p>
+        `);
+    });
+
+    test("Should paste a list into the middle of a paragraph standing before a list", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+            <ul><li>first</li></ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ul><li>second</li></ul>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze</p>
+            <ul><li>second</li></ul>
+            <p>ro</p>
+            <ul><li>first</li></ul>
+        `);
+    });
+
+    // A copy carries the shape the selection was made in: a selection running from a nested item into the
+    // item below it opens on an item holding nothing but the nested list. The list is read back from its
+    // lines before it is placed, which drops that item and levels the lines that follow from one another.
+    test("Should paste a list copied from a nested item into the item below it as its lines", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<ol><li><ol><li>first</li></ol></li><li>second</li></ol>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <ol>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+    });
+
+    test("Should paste what was copied from a nested item into the item below it as a list of its lines", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li class="from">first</li>
+                    </ol>
+                </li>
+                <li class="to">second</li>
+            </ol>
+            <p class="start">third</p>
+        `);
+
+        const copyRange = new Range();
+        copyRange.setStart(getFirstChild(wrapper, ".from"), "".length);
+        copyRange.setEnd(getFirstChild(wrapper, ".to"), "second".length);
+        (getRange as jest.Mock).mockReturnValue(copyRange);
+        const copied = getSelectedHtml(getCursorPosition());
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "third".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+        pasteHtml(wrapper, copied, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li class="from">first</li>
+                    </ol>
+                </li>
+                <li class="to">second</li>
+            </ol>
+            <p>third</p>
+            <ol>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+    });
+
+    test("Should take the place of the empty paragraph a list copied from a nested item is pasted into", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ol><li><ol><li>first</li></ol></li><li>second</li></ol>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+    });
+
+    test("Should divide the item a list copied from a nested item is pasted into", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ol><li><ol><li>first</li></ol></li><li>second</li></ol>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>ze</li>
+            </ul>
+            <ol>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+            <ul>
+                <li>ro</li>
+            </ul>
+        `);
+    });
+
+    test("Should keep the nesting below the item a copied list opens on", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ol><li><ol><li>first<ol><li>second</li></ol></li></ol></li></ol>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <ol>
+                <li>first
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+    });
+
+    test("Should read every pasted run of lists back on its own", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ul><li>first</li></ul><p>second</p><ol><li><ol><li>third</li></ol></li><li>fourth</li></ol>`,
+            getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <ul>
+                <li>first</li>
+            </ul>
+            <p>second</p>
+            <ol>
+                <li>third</li>
+                <li>fourth</li>
+            </ol>
+        `);
+    });
+
     test("Should keep list wrapper of copied list items", () => {
         const wrapper = createWrapper(`
             <ol>
@@ -806,9 +1417,9 @@ describe("Sanitize input", () => {
         expect(cursorPosition.startOffset).toBe("second".length);
     });
 
-    // The rule is about blocks, not about the paragraph tag: two headings of the kind they are pasted into
-    // are read as repeats of it by the rebuild the same way two paragraphs are.
-    test("Should paste multiple headings to the middle of a heading of their own kind", () => {
+    // A block of the kind the line is written in is words of that line the way a paragraph is, so headings
+    // pasted into a heading of their own kind join its halves the way paragraphs do.
+    test("Should join multiple headings pasted into the middle of a heading of their own kind to its halves", () => {
         const wrapper = createWrapper(`
             <h1 class="start">zero</h1>
         `);
@@ -822,10 +1433,140 @@ describe("Sanitize input", () => {
         pasteHtml(wrapper, `<h1>first</h1><h1>second</h1>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <h1>ze</h1>
+            <h1>zefirst</h1>
+            <h1>secondro</h1>
+        `);
+    });
+
+    test("Should join a heading opening a run pasted into a heading of its own kind and the paragraph closing it", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>zefirst</h1>
+            <h1>secondro</h1>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+    });
+
+    test("Should join a heading closing a run pasted into a heading of its own kind", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p>first</p><blockquote>second</blockquote><h1>third</h1>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>zefirst</h1>
+            <blockquote>second</blockquote>
+            <h1>thirdro</h1>
+        `);
+    });
+
+    test("Should keep the line of a heading opening a run pasted into a heading of another kind", () => {
+        const wrapper = createWrapper(`
+            <h2 class="start">zero</h2>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h2>ze</h2>
             <h1>first</h1>
+            <h2>secondro</h2>
+        `);
+    });
+
+    test("Should join a blockquote opening a run pasted into a blockquote", () => {
+        const wrapper = createWrapper(`
+            <blockquote class="start">zero</blockquote>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<blockquote>first</blockquote><h1>second</h1>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <blockquote>zefirst</blockquote>
             <h1>second</h1>
-            <h1>ro</h1>
+            <blockquote>ro</blockquote>
+        `);
+    });
+
+    // An item is the line inside a list, and no block is one, so there only a paragraph joins the line.
+    test("Should keep the line of a heading opening a run pasted into a list item", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>ze</li>
+            </ul>
+            <h1>first</h1>
+            <ul>
+                <li>secondro</li>
+            </ul>
+        `);
+    });
+
+    test("Should paste what was copied from a heading into the paragraph below it into a heading as its words", () => {
+        const wrapper = createWrapper(`
+            <h1 class="from">zero</h1>
+            <p class="to">first</p>
+            <h1 class="start">second</h1>
+        `);
+
+        const copyRange = new Range();
+        copyRange.setStart(getFirstChild(wrapper, ".from"), "ze".length);
+        copyRange.setEnd(getFirstChild(wrapper, ".to"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(copyRange);
+        const copied = getSelectedHtml(getCursorPosition());
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "se".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+        pasteHtml(wrapper, copied, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h1 class="from">zero</h1>
+            <p class="to">first</p>
+            <h1>sero</h1>
+            <h1>ficond</h1>
         `);
     });
 
@@ -1640,6 +2381,8 @@ describe("Paste a table", () => {
         `);
     });
 
+    // The blocks the table is lifted out of are divs, which arrive as the paragraphs they stand for, so the
+    // words on either side of it join the line it was dropped in.
     test("Should lift the table out of the block holding it", () => {
         const wrapper = createWrapper(`
             <p class="start">fourth</p>
@@ -1654,10 +2397,8 @@ describe("Paste a table", () => {
         pasteHtml(wrapper, `<div>fifth` + table + `sixth</div>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <p>fou</p>
-            <div>fifth</div>` + table + `
-            <div>sixth</div>
-            <p>rth</p>
+            <p>foufifth</p>` + table + `
+            <p>sixthrth</p>
         `);
     });
 
@@ -1830,6 +2571,23 @@ describe("Paste into a table cell", () => {
 
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr><td>foo<strong>first</strong> second</td><td>bar</td></tr></tbody></table>
+        `);
+    });
+
+    test("Should paste only the words of a pasted div", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">zero</td></tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<div>first</div>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td>zefirstro</td></tr></tbody></table>
         `);
     });
 

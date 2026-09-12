@@ -5,6 +5,8 @@ import {
     countListWrapperParents,
     getFirstListWrapper,
     getListsOrderNumbers,
+    getNextListWrapper,
+    getPreviousListWrapper,
     isListEmpty
 } from "@/core/list/util/list-util";
 import {getFirstText} from "@/core/shared/element-util";
@@ -196,17 +198,23 @@ export function minusIndent(contentEditable: HTMLElement): CursorPosition {
     return cursorPosition;
 }
 
+// The list read and written back is the one the cursor is in, or - with the cursor on a block that is no
+// list - the one standing beside that block: a selection deleted from a block into the list below it leaves
+// the cursor on the block and the list holding what the delete left of its items, which is what has to be
+// read back into lines that follow from one another.
 export function maybeInsertLists(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
     const firstRoot = getFirstSelectedRoot(contentEditable, cursorPosition);
-    const firstListWrapper = getFirstListWrapper(firstRoot);
-    if (!isSchemaContain(firstListWrapper, [Display.ListWrapper])) {
+    const listRoot = isSchemaContain(firstRoot, [Display.ListWrapper])
+        ? firstRoot
+        : (getNextListWrapper(firstRoot) ?? getPreviousListWrapper(firstRoot)) as HTMLElement | null;
+    if (!listRoot) {
         return cursorPosition;
     }
 
-    const lists = parseList(firstRoot);
+    const lists = parseList(listRoot);
     const normalized = normalizeLists(lists, cursorPosition);
     const listWrappers = convertList(normalized.lists);
-    appendBeforeAndDelete(firstRoot, listWrappers);
+    appendBeforeAndDelete(listRoot, listWrappers);
 
     return normalized.cursorPosition;
 }
