@@ -1,10 +1,11 @@
 import "@/component/editor/asset/editor.css"
 import Toolbar from "@/component/toolbar/toolbar";
 import {Settings} from "@/brief-editor";
-import {cleanElementWhitespace} from "@/core/shared/element-util";
+import {cleanElementWhitespace, wrapImages} from "@/core/shared/element-util";
 import {History} from "@/core/history/history";
 import Table from "@/component/table/table";
 import {TableCursor} from "@/core/cursor/table-cursor";
+import {ImageCursor} from "@/core/cursor/image-cursor";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {handleCopyEvent, handleDragEvent, handleDragOverEvent} from "@/core/clipboard/clipboard";
@@ -28,6 +29,8 @@ class Editor extends HTMLElement {
             new Toolbar(contentEditable, this, history);
         }
         cleanElementWhitespace(contentEditable);
+        // The initial markup can carry an image inline or in an unmarked paragraph; both become image blocks.
+        wrapImages(contentEditable);
     }
 
     private initContentEditable(contentEditable: HTMLElement, hasToolbar?: boolean) {
@@ -42,6 +45,7 @@ class Editor extends HTMLElement {
 
         // Registered first so that its keydown listener corrects the cursor before the editor acts on it.
         this.addTableCursor(contentEditable);
+        this.addImageCursor(contentEditable);
         this.addKeyboardEvent(contentEditable);
         this.addClickEvent(contentEditable);
         this.addClipboardEvent(contentEditable);
@@ -62,6 +66,10 @@ class Editor extends HTMLElement {
 
     private addTableCursor(contentEditable: HTMLElement) {
         new TableCursor(contentEditable);
+    }
+
+    private addImageCursor(contentEditable: HTMLElement) {
+        new ImageCursor(contentEditable);
     }
 
     private addKeyboardEvent(contentEditable: HTMLElement) {

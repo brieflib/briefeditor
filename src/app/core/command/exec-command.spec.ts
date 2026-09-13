@@ -827,8 +827,15 @@ describe("Image command", () => {
         }
     }
 
+    function selection() {
+        const range = window.getSelection()?.getRangeAt(0) as Range;
+
+        return {container: range.startContainer, offset: range.startOffset};
+    }
+
     // An empty block holds nothing but the br standing in for its line, which is the line the image is
     // dropped on: the image takes the block's place rather than being left with an empty line beside it.
+    // The cursor never rests in the image block, so a paragraph is opened after it for the cursor.
     test("Should insert an image in an empty paragraph", async () => {
         const wrapper = createWrapper(`<p class="start"><br></p>`);
 
@@ -842,9 +849,11 @@ describe("Image command", () => {
 
         const img = wrapper.querySelector("img") as HTMLElement;
         expect(img.parentElement?.nodeName).toBe("P");
+        expect(img.parentElement?.className).toBe("be-image");
         expect(img.nextSibling).toBe(null);
-        expect(wrapper.querySelectorAll("p").length).toBe(1);
-        expect(wrapper.querySelector("br")).toBe(null);
+        expect(wrapper.querySelectorAll("p").length).toBe(2);
+        expect(wrapper.querySelector("br")?.parentElement).toBe(wrapper.lastElementChild);
+        expect(selection().container).toBe(wrapper.querySelector("br"));
     });
 
     test("Should keep the paragraph the image is dropped at the end of", async () => {
@@ -859,9 +868,47 @@ describe("Image command", () => {
         await waitForImage(wrapper);
 
         const paragraphs = wrapper.querySelectorAll("p");
-        expect(paragraphs.length).toBe(2);
+        expect(paragraphs.length).toBe(3);
         expect(paragraphs[0]?.textContent).toBe("zero");
         expect(paragraphs[1]?.firstChild?.nodeName).toBe("IMG");
+        expect(paragraphs[2]?.innerHTML).toBe("<br>");
+        expect(selection().container).toBe(paragraphs[2]?.firstChild);
+    });
+
+    test("Should leave the cursor at the start of the line after an image dropped mid-line", async () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        await waitForImage(wrapper);
+
+        const paragraphs = wrapper.querySelectorAll("p");
+        expect(paragraphs.length).toBe(3);
+        expect(paragraphs[0]?.textContent).toBe("ze");
+        expect(paragraphs[1]?.className).toBe("be-image");
+        expect(paragraphs[2]?.textContent).toBe("ro");
+        expect(selection().container).toBe(paragraphs[2]?.firstChild);
+        expect(selection().offset).toBe(0);
+    });
+
+    // An image block is never the block the cursor rests in, whatever a command leaves it on.
+    test("Should move the cursor a command left in an image block to the line after it", () => {
+        const wrapper = createWrapper(`<p class="be-image"><img src="image.png"></p><p class="after">zero</p>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".be-image") as Node, 0);
+        range.setEnd(wrapper.querySelector(".be-image") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = execCommand(wrapper, {action: Action.Click, event: new MouseEvent("click")});
+
+        expectHtml(wrapper.innerHTML, `<p class="be-image"><img src="image.png"></p><p class="after">zero</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".after"));
+        expect(cursorPosition.startOffset).toBe(0);
     });
 });
 

@@ -16,8 +16,10 @@ import {
     getLastText,
     getNextNode, getNextNotEmptyNode,
     getPreviousNode,
+    getRootElement,
     hasSelfCloseDescendant,
-    imageSelector
+    imageSelector,
+    isImageBlock
 } from "@/core/shared/element-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
@@ -53,6 +55,11 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
         return cursorPosition;
     }
 
+    // An image block has no line to merge into: it's what the backspace removes.
+    if (removeImageBlock(contentEditable, previousNode)) {
+        return cursorPosition;
+    }
+
     // An empty item above is the line the merge lands on, not an item to merge into - the
     // regular merge would otherwise trade the current item's wrapper for the empty one's.
     const previousBlock = getElement(contentEditable, getLastText(previousNode), [Display.FirstLevel, Display.List]);
@@ -83,6 +90,18 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
     return cursorPosition;
 }
 
+/** Removes the image block `node` stands in, if any; the cursor's own line is left as it is. */
+function removeImageBlock(contentEditable: HTMLElement, node: Node) {
+    const root = getRootElement(contentEditable, node);
+    if (!isImageBlock(root)) {
+        return false;
+    }
+
+    root.remove();
+
+    return true;
+}
+
 function isMergedIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: CursorPosition, previousBlock: HTMLElement | null) {
     if (!previousBlock || !isSchemaContain(previousBlock, [Display.List]) || !isListEmpty(previousBlock)) {
         return false;
@@ -107,6 +126,11 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
         nextNode = getNextNode(contentEditable, nextNode);
     }
     if (!nextNode) {
+        return cursorPosition;
+    }
+
+    // An image block has no line to pull up: it's what the delete removes.
+    if (removeImageBlock(contentEditable, nextNode)) {
         return cursorPosition;
     }
 

@@ -1,5 +1,5 @@
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
-import {imageSelector, isEmptyBlock} from "@/core/shared/element-util";
+import {imageSelector, isEmptyBlock, isImageBlock} from "@/core/shared/element-util";
 
 export const tableSelector = getOfType([Display.Table]).join(",");
 
@@ -52,7 +52,7 @@ export function conformLines(body: HTMLElement, line: HTMLElement | undefined) {
  *
  * A line or a list stays inside the item or cell holding it: an item nests a list, and a cell holds
  * whatever the table normalization makes of it. A table is lifted out of an item all the same, since
- * a table never nests in a list.
+ * a table never nests in a list. An image block arrives lifted already, by `wrapImages`.
  */
 export function hoistBlocks(root: HTMLElement) {
     root.querySelectorAll(blockSelector).forEach(block => hoist(root, block));
@@ -112,10 +112,13 @@ function wrapInlineRuns(body: HTMLElement, tag: string) {
     wrap();
 }
 
-/** Writes every line in the target's tag. Attributes go with the tag, the way a div's do. */
+/**
+ * Writes every line in the target's tag. Attributes go with the tag, the way a div's do. An image
+ * block is no line of words and keeps its own tag.
+ */
 function renameLines(body: HTMLElement, tag: string) {
     for (const child of Array.from(body.children)) {
-        if (isSchemaContain(child, [Display.Line]) && child.nodeName !== tag) {
+        if (isSchemaContain(child, [Display.Line]) && child.nodeName !== tag && !isImageBlock(child)) {
             const block = document.createElement(tag);
             block.append(...child.childNodes);
             child.replaceWith(block);
@@ -150,10 +153,10 @@ function foldLines(body: HTMLElement) {
     };
 
     for (const child of Array.from(body.childNodes)) {
-        if (isSchemaContain(child, [Display.Line])) {
+        if (isSchemaContain(child, [Display.Line]) && !isImageBlock(child)) {
             run.push(child as Element);
         } else if (isContent(child)) {
-            // A list or a table divides the run; the whitespace between blocks doesn't.
+            // A list, a table or an image block divides the run; the whitespace between blocks doesn't.
             fold();
         }
     }

@@ -20,6 +20,7 @@ describe("Line tag", () => {
 });
 
 describe("Hoist blocks", () => {
+
     test("Should lift the paragraphs out of a blockquote dropping the whitespace around them", () => {
         const body = parse(`<blockquote>\n<p>zero</p>\n<p>first</p>\n</blockquote>`);
 
@@ -86,6 +87,23 @@ describe("Hoist blocks", () => {
 });
 
 describe("Conform lines", () => {
+    test("Should keep an image block a paragraph whatever the target's tag", () => {
+        const body = parse(`<p>zero</p><p class="be-image"><img src="image.png"></p>`);
+
+        conformLines(body, line(`<h1>target</h1>`));
+
+        expectHtml(body.innerHTML, `<h1>zero</h1><p class="be-image"><img src="image.png"></p>`);
+    });
+
+    test("Should divide the lines folded for an item at an image block", () => {
+        const body = parse(`<p>zero</p><p>first</p><p class="be-image"><img src="image.png"></p><p>second</p><p>third</p>`);
+
+        conformLines(body, line(`<li>target</li>`));
+
+        expectHtml(body.innerHTML,
+            `<p>zero<br>first</p><p class="be-image"><img src="image.png"></p><p>second<br>third</p>`);
+    });
+
     test("Should write every line in the tag of a heading", () => {
         const body = parse(`<p>zero</p><h2>first</h2><blockquote>second</blockquote>`);
 

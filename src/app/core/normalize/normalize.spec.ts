@@ -21,6 +21,17 @@ beforeEach(() => {
 });
 
 describe("Should normalize tags", () => {
+    test("Should keep the image block class alone among the attributes", () => {
+        testNormalize(`
+            <p class="be-image other" style="margin: 0" id="picture"><img src="image.png"></p>
+            <p class="other" style="margin: 0">zero</p>
+        `,
+            `
+            <p class="be-image"><img src="image.png"></p>
+            <p>zero</p>
+        `);
+    });
+
     test("Should sort tags by priority", () => {
         testNormalize(`
             <strong>zero</strong>

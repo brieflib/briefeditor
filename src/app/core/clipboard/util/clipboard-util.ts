@@ -16,13 +16,15 @@ import {
     getRootElement,
     imageSelector,
     insertBetweenBlocks,
-    isEmptyBlock
+    isEmptyBlock,
+    isImageBlock,
+    wrapImages
 } from "@/core/shared/element-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {deleteSelection, newLine} from "@/core/keyboard/util/keyboard-util";
 import {maybeInsertLists, normalizeList, spliceListsAtCursor} from "@/core/list/list";
 import {getFirstListWrapper} from "@/core/list/util/list-util";
-import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
+import {escapeImageBlock, getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {getCellCursorPosition, normalizeTable} from "@/core/command/util/table-util";
 import {conformLines, hoistBlocks, lineTag, tableSelector} from "@/core/clipboard/util/paste-conform-util";
 
@@ -38,7 +40,9 @@ interface EdgeBlocks {
  * @remarks
  * The line the cursor is on dictates the tag: a pasted line (a paragraph, a heading, a
  * blockquote) only carries words for it, and is rewritten in its shape before anything is
- * placed. A list or a table keeps its own shape and stands beside the line instead.
+ * placed. A list, a table or an image block keeps its own shape and stands beside the line
+ * instead. The cursor never rests in an image block, so a paste ending on one leaves it on
+ * the line after.
  *
  * @param contentEditable - The editable root the cursor lives in.
  * @param htmlString - Raw HTML to paste.
@@ -46,6 +50,10 @@ interface EdgeBlocks {
  * @returns The cursor position after the paste.
  */
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
+    return escapeImageBlock(contentEditable, pasteContent(contentEditable, htmlString, cursorPosition));
+}
+
+function pasteContent(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
     if (!isCollapsed(cursorPosition)) {
         cursorPosition = deleteSelection(contentEditable, cursorPosition);
     }
@@ -72,7 +80,9 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
 
     // A table pasted into a list splits it rather than joining it, so this check comes
     // before the list-root one. A cell never reaches it: tables are unwrapped out already.
-    if (hasTable(pastedContent)) {
+    // An image block goes the same way, and must be caught before the lone-block check
+    // below reads it as a paragraph of words for the line.
+    if (hasTable(pastedContent) || hasImageBlock(pastedContent)) {
         return pasteBetweenBlocks(contentEditable, firstRoot, htmlString, cursorPosition);
     }
 
@@ -211,6 +221,10 @@ function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | nul
         return doc.body;
     }
 
+    // A cell has no line to give an image, so one pasted in a cell is dropped; every other
+    // image gets a block of its own, lifted out of whatever held it along with the blocks.
+    removeImages(doc.body, cellSelector);
+    wrapImages(doc.body);
     hoistBlocks(doc.body);
     doc.body.querySelectorAll(tableSelector).forEach(table => normalizeTable(table as HTMLTableElement));
     rewriteLists(doc.body, cursorPosition);
@@ -249,6 +263,9 @@ function rewriteLists(parent: Element, cursorPosition: CursorPosition) {
     }
 }
 
+// Lower case, since the selector engine reads an upper-case tag in a descendant selector literally.
+const cellSelector = getOfType([Display.Cell]).map(tag => tag.toLowerCase()).join(",");
+
 // A cell holds a single line, so a pasted block only survives as its children; a nested
 // table is unwrapped the same way, since the editor never nests a table in a cell.
 const cellUnwrapSelector = getOfType([Display.FirstLevel, Display.List, Display.Table,
@@ -285,8 +302,12 @@ function removeEmptyTags(root: ParentNode) {
     }
 }
 
-function removeImages(root: ParentNode) {
-    root.querySelectorAll(imageSelector).forEach(image => image.remove());
+/** Removes every image under `root`, or only those inside a `within` match when given. */
+function removeImages(root: ParentNode, within?: string) {
+    const selector = within
+        ? within.split(",").map(scope => `${scope} ${imageSelector}`).join(",")
+        : imageSelector;
+    root.querySelectorAll(selector).forEach(image => image.remove());
 }
 
 function unwrapBlocks(root: ParentNode) {
@@ -363,10 +384,12 @@ function takeEdgeBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement
 /**
  * Removes and returns the inner markup of an edge block, if it's a line written in the
  * cursor line's tag (every pasted line is, once conformed). Returns `""` (leaving the block
- * in place) for anything else, including an empty line or a block holding nothing.
+ * in place) for anything else, including an empty line, a block holding nothing or an image
+ * block, which is written as a paragraph but carries no words for the line.
  */
 function takeEdgeBlock(element: Element | null, line: HTMLElement): string {
-    if (!element || element.nodeName !== lineTag(line) || isBlank(element) || isEmptyBlock(element)) {
+    if (!element || element.nodeName !== lineTag(line) || isImageBlock(element) || isBlank(element) ||
+        isEmptyBlock(element)) {
         return "";
     }
 
@@ -384,7 +407,7 @@ function takeEdgeBlock(element: Element | null, line: HTMLElement): string {
 function pasteAroundBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement, edges: EdgeBlocks,
                            cursorPosition: CursorPosition): CursorPosition {
     if (edges.lead) {
-        cursorPosition = pasteHtml(contentEditable, edges.lead, cursorPosition);
+        cursorPosition = pasteContent(contentEditable, edges.lead, cursorPosition);
     }
 
     if (!edges.tail) {
@@ -414,7 +437,7 @@ function pasteAroundBlocks(contentEditable: HTMLElement, pastedContent: HTMLElem
             pastedContent.innerHTML, cursorPosition);
     }
 
-    return pasteHtml(contentEditable, edges.tail, getCursorPositionFrom(leaf, 0, leaf, 0));
+    return pasteContent(contentEditable, edges.tail, getCursorPositionFrom(leaf, 0, leaf, 0));
 }
 
 /**
@@ -453,6 +476,11 @@ function isBlank(pastedContent: Element) {
 /** Whether a table was pasted; hoisting already leaves every table as a top-level child. */
 function hasTable(pastedContent: HTMLElement) {
     return Array.from(pastedContent.children).some(child => isSchemaContain(child, [Display.Table]));
+}
+
+/** Whether an image block was pasted; wrapping leaves every one a top-level child, like a table. */
+function hasImageBlock(pastedContent: HTMLElement) {
+    return Array.from(pastedContent.children).some(child => isImageBlock(child));
 }
 
 /**

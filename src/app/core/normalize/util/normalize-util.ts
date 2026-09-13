@@ -2,7 +2,7 @@ import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
-import {hasSelfCloseDescendant} from "@/core/shared/element-util";
+import {hasSelfCloseDescendant, imageBlockClass, isImageBlock} from "@/core/shared/element-util";
 import {Carrier} from "@/core/carrier/carrier";
 
 export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
@@ -372,11 +372,17 @@ function clearElementHTML(node: Node | undefined) {
     return cloned;
 }
 
+/** Drops every attribute but a link's href and the image block class (kept alone, any other class goes). */
 function removeAttributes(element: HTMLElement) {
+    const isImage = isImageBlock(element);
     for (const name of element.getAttributeNames()) {
         if (name === "href") {
             continue;
         }
         element.removeAttribute(name);
+    }
+
+    if (isImage) {
+        element.className = imageBlockClass;
     }
 }

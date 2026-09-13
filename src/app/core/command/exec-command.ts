@@ -14,11 +14,17 @@ import {
     selectElement
 } from "@/core/selection/selection";
 import {changeListWrapper, minusIndent, plusIndent} from "@/core/list/list";
-import {ensureParagraph, getElementByTagName, insertBetweenBlocks} from "@/core/shared/element-util";
+import {
+    createImageBlock,
+    ensureParagraph,
+    getElementByTagName,
+    insertBetweenBlocks
+} from "@/core/shared/element-util";
 import {
     cloneRange,
     CursorPosition,
-    getCursorPosition, getCursorPositionFrom,
+    getCursorPosition,
+    getCursorPositionFrom,
     isCollapsed,
     isRangeIn,
     setCursorPosition
@@ -31,6 +37,8 @@ import {Carrier} from "@/core/carrier/carrier";
 import {removeAndNormalize} from "@/core/normalize/normalize";
 import {getCell, getCellCursorPosition, insertTable, isTableEmpty, removeTable} from "@/core/command/util/table-util";
 import {
+    atStart,
+    escapeImageBlock,
     getCursorAnchor,
     isCursorInTable,
     restoreCursorPosition
@@ -127,6 +135,8 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
 
     // Runs after every command, so the editor is guaranteed a paragraph however the last block left it.
     cursorPosition = ensureParagraph(contentEditable, cursorPosition);
+    // Same for an image block: whatever a command left the cursor on, it never rests in one.
+    cursorPosition = escapeImageBlock(contentEditable, cursorPosition);
 
     if (!isCursorPlacedByBrowser) {
         setCursorPosition(contentEditable, cursorPosition, command);
@@ -177,11 +187,9 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
         const reader = new FileReader();
 
         reader.onload = (event) => {
-            const imgTag = "img";
-            const img = document.createElement(imgTag);
+            const img = document.createElement("img");
             img.src = event.target?.result as string;
-            const paragraph = document.createElement("p");
-            paragraph.appendChild(img);
+            const paragraph = createImageBlock(img);
 
             // Re-read the cursor once the file has loaded: if it has since moved into a
             // table, refuse the image there too, since a cell has no line to give it.
@@ -192,12 +200,9 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
                 contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
                 const root = getFirstSelectedRoot(contentEditable, cursorPosition);
                 insertBetweenBlocks(contentEditable, root, cursorPosition, paragraph);
-                // An empty block is replaced rather than kept beside the image; move the
-                // cursor to the end of the line, past the image, where typing continues.
-                setCursorPosition(contentEditable, cursorPosition.startContainer.isConnected
-                    ? cursorPosition
-                    : getCursorPositionFrom(paragraph, paragraph.childNodes.length,
-                        paragraph, paragraph.childNodes.length));
+                // The cursor never rests in the image block: it goes to the line after it,
+                // which is opened for it when the image closes the document.
+                setCursorPosition(contentEditable, escapeImageBlock(contentEditable, atStart(paragraph)));
                 contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
             }
         };

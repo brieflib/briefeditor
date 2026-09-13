@@ -114,6 +114,9 @@ describe("Sanitize input", () => {
 
         expect(wrapper.querySelectorAll("img").length).toBe(1);
         expect(wrapper.textContent).toBe("firstsecond third");
+        expectHtml(wrapper.innerHTML, `
+            <p>firstsecond</p><p class="be-image"><img src="${image}"></p><p> third</p>
+        `);
     });
 
     test("Should insert html outside of formating elements (em)", () => {
@@ -2707,6 +2710,146 @@ describe("Paste lines into the line the cursor is on", () => {
             <p>first</p>
             <p>second</p>
         `);
+    });
+});
+
+describe("Paste an image", () => {
+    const imageBlock = `<p class="be-image"><img src="${image}"></p>`;
+
+    function select(wrapper: HTMLElement, selector: string, offset: number) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), offset);
+        range.setEnd(getFirstChild(wrapper, selector), offset);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        return getCursorPosition();
+    }
+
+    test("Should wrap a bare image into a block of its own, dividing the paragraph", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        let cursorPosition = select(wrapper, ".start", "ze".length);
+
+        cursorPosition = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<p>ze</p>${imageBlock}<p>ro</p>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.lastChild?.firstChild);
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should open a paragraph after an image pasted at the end of the document for the cursor", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        let cursorPosition = select(wrapper, ".start", "zero".length);
+
+        cursorPosition = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<p>zero</p>${imageBlock}<p><br></p>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+    });
+
+    test("Should not merge a lone image block into the paragraph, though both are paragraphs", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        let cursorPosition = select(wrapper, ".start", "".length);
+
+        cursorPosition = pasteHtml(wrapper, imageBlock, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `${imageBlock}<p>zero</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p:last-child"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should take the place of the empty paragraph the cursor is in", () => {
+        const wrapper = createWrapper(`<p class="start"><br></p>`);
+        let cursorPosition = select(wrapper, ".start", "".length);
+
+        cursorPosition = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `${imageBlock}<p><br></p>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+    });
+
+    test("Should merge the words around an inline image into the line and lift the image out", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        let cursorPosition = select(wrapper, ".start", "ze".length);
+
+        cursorPosition = pasteHtml(wrapper, `<p>first<img src="${image}">second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<p>zefirst</p>${imageBlock}<p>secondro</p>`);
+        expect(cursorPosition.startContainer?.textContent).toBe("secondro");
+        expect(cursorPosition.startOffset).toBe("second".length);
+    });
+
+    test("Should not take an image block as the edge line to merge into the paragraph", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        let cursorPosition = select(wrapper, ".start", "ze".length);
+
+        cursorPosition = pasteHtml(wrapper, `${imageBlock}<p>first</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<p>ze</p>${imageBlock}<p>firstro</p>`);
+        expect(cursorPosition.startContainer?.textContent).toBe("firstro");
+        expect(cursorPosition.startOffset).toBe("first".length);
+    });
+
+    test("Should keep the image block a paragraph when pasted onto a heading", () => {
+        const wrapper = createWrapper(`<h1 class="start">zero</h1>`);
+        let cursorPosition = select(wrapper, ".start", "zero".length);
+
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><img src="${image}"><p>second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<h1>zerofirst</h1>${imageBlock}<h1>second</h1>`);
+        expect(cursorPosition.startContainer?.textContent).toBe("second");
+    });
+
+    test("Should divide the list the cursor is in around an image block", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">first</li><li>second</li></ul>`);
+        let cursorPosition = select(wrapper, ".start", "fi".length);
+
+        cursorPosition = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>fi</li></ul>${imageBlock}<ul><li>rst</li><li>second</li></ul>`);
+        expect(cursorPosition.startContainer?.textContent).toBe("rst");
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should divide the list around an image pasted with words on either side", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li></ul>`);
+        let cursorPosition = select(wrapper, ".start", "ze".length);
+
+        cursorPosition = pasteHtml(wrapper, `<p>first<img src="${image}">second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zefirst</li></ul>${imageBlock}<ul><li>secondro</li></ul>`);
+        expect(cursorPosition.startContainer?.textContent).toBe("secondro");
+        expect(cursorPosition.startOffset).toBe("second".length);
+    });
+
+    test("Should lift an image out of a pasted item, dividing the pasted list", () => {
+        const wrapper = createWrapper(`<p class="start"><br></p>`);
+        let cursorPosition = select(wrapper, ".start", "".length);
+
+        cursorPosition = pasteHtml(wrapper, `<ul><li>zero<img src="${image}">first</li></ul>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul>${imageBlock}<ul><li>first</li></ul>`);
+        expect(cursorPosition.startContainer?.textContent).toBe("first");
+    });
+
+    test("Should drop an image pasted inside a table cell", () => {
+        const wrapper = createWrapper(`<p class="start"><br></p>`);
+        const cursorPosition = select(wrapper, ".start", "".length);
+
+        pasteHtml(wrapper, `<table><tbody><tr><td>zero<img src="${image}"></td></tr></tbody></table>`, cursorPosition);
+
+        expect(wrapper.querySelector("img")).toBeNull();
+        expect(wrapper.querySelector("td")?.textContent).toBe("zero");
+    });
+
+    test("Should keep the class of a copied image block through the rebuild", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p>first</p>`);
+        let cursorPosition = select(wrapper, ".start", "zero".length);
+
+        cursorPosition = pasteHtml(wrapper, `<p class="be-image other" style="margin: 0"><img src="${image}"></p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<p>zero</p>${imageBlock}<p>first</p>`);
+        expect(cursorPosition.startContainer?.textContent).toBe("first");
+        expect(cursorPosition.startOffset).toBe(0);
     });
 });
 

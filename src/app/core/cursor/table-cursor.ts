@@ -1,23 +1,22 @@
 import {
+    applyCursor,
     atEnd,
     atStart,
     getStrandedTable,
     getFirstCell,
     getLastCell,
+    getSiblingTarget,
+    isArrowKey,
     isCursorAtEndOfCell,
     isCursorAtStartOfCell,
+    isPlainClick,
     getCursorOffsetInElement,
     getCursorPositionFromPoint,
     getCursorCell
 } from "@/core/cursor/util/cursor-util";
 import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {
-    CursorPosition,
-    getCursorPosition,
-    isCollapsed,
-    setCursorPosition
-} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPosition, isCollapsed} from "@/core/shared/type/cursor-position";
 
 /**
  * Keeps the cursor out of the empty slot Chrome parks it in before or after a table - a
@@ -50,7 +49,7 @@ export class TableCursor {
     onMouseDown(event: MouseEvent, resolved?: CursorPosition | null): CursorPosition | null {
         // A shifted click extends the selection instead of placing the cursor, so the hit
         // test below only runs once the click is known to be a plain one.
-        if (event.button !== 0 || event.shiftKey) {
+        if (!isPlainClick(event)) {
             return null;
         }
 
@@ -72,7 +71,7 @@ export class TableCursor {
         // A prevented click no longer focuses the editor, and focusing would drop the selection.
         this.contentEditable.focus();
 
-        return this.apply(stranded.isBefore ? atStart(cell) : atEnd(cell));
+        return applyCursor(this.contentEditable, stranded.isBefore ? atStart(cell) : atEnd(cell));
     }
 
     /**
@@ -81,7 +80,7 @@ export class TableCursor {
      * afterwards would still paint one frame with the cursor in the slot.
      */
     onKeyDown(event: KeyboardEvent): CursorPosition | null {
-        if (!isEscapeKey(event)) {
+        if (!isArrowKey(event, ["ArrowLeft", "ArrowRight"])) {
             return null;
         }
 
@@ -97,14 +96,14 @@ export class TableCursor {
         const table = this.getEscapedTable(cursorPosition, isBefore);
         if (table) {
             event.preventDefault();
-            const target = this.getSiblingTarget(table, isBefore);
-            return target ? this.apply(target) : null;
+            const target = getSiblingTarget(table, isBefore);
+            return target ? applyCursor(this.contentEditable, target) : null;
         }
 
         const entered = this.getEnteredTarget(cursorPosition, isBefore);
         if (entered) {
             event.preventDefault();
-            return this.apply(entered);
+            return applyCursor(this.contentEditable, entered);
         }
 
         return null;
@@ -160,26 +159,4 @@ export class TableCursor {
         return isBefore ? atEnd(cell) : atStart(cell);
     }
 
-    private getSiblingTarget(table: HTMLTableElement, isBefore: boolean) {
-        const sibling = isBefore ? table.previousElementSibling : table.nextElementSibling;
-        if (!sibling || !isSchemaContain(sibling, [Display.FirstLevel, Display.List, Display.Table])) {
-            return null;
-        }
-
-        return isBefore ? atEnd(sibling) : atStart(sibling);
-    }
-
-    private apply(target: CursorPosition) {
-        setCursorPosition(this.contentEditable, target);
-
-        return target;
-    }
-}
-
-function isEscapeKey(event: KeyboardEvent) {
-    if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) {
-        return false;
-    }
-
-    return event.key === "ArrowLeft" || event.key === "ArrowRight";
 }

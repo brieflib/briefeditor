@@ -1,10 +1,18 @@
 import {
     CursorPosition,
     getCursorPositionFrom,
-    isCollapsed
+    isCollapsed,
+    setCursorPosition
 } from "@/core/shared/type/cursor-position";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getElement, getFirstText, getLastText, getNextNode, getRootElement} from "@/core/shared/element-util";
+import {
+    getElement,
+    getFirstText,
+    getLastText,
+    getNextNode,
+    getRootElement,
+    isImageBlock
+} from "@/core/shared/element-util";
 import {Carrier} from "@/core/carrier/carrier";
 
 export interface NodeOffset {
@@ -115,6 +123,108 @@ export function atEnd(element: Node) {
     const offset = lastText.textContent.length;
 
     return getCursorPositionFrom(lastText, offset, lastText, offset);
+}
+
+/** Whether a key press is an unmodified arrow among `keys` - a plain cursor move a guard may take over. */
+export function isArrowKey(event: KeyboardEvent, keys: string[]) {
+    if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) {
+        return false;
+    }
+
+    return keys.includes(event.key);
+}
+
+/** Whether a click places the cursor: a shifted or non-primary click extends or ignores the selection instead. */
+export function isPlainClick(event: MouseEvent) {
+    return event.button === 0 && !event.shiftKey;
+}
+
+/** The edge of the block beside `element` the cursor lands on when carried past it, or `null` if there is none. */
+export function getSiblingTarget(element: Element, isBefore: boolean) {
+    const sibling = isBefore ? element.previousElementSibling : element.nextElementSibling;
+    if (!sibling || !isSchemaContain(sibling, [Display.FirstLevel, Display.List, Display.Table])) {
+        return null;
+    }
+
+    return isBefore ? atEnd(sibling) : atStart(sibling);
+}
+
+export function applyCursor(contentEditable: HTMLElement, target: CursorPosition) {
+    setCursorPosition(contentEditable, target);
+
+    return target;
+}
+
+/**
+ * Moves a collapsed cursor left in an image block to the start of the block after it - an
+ * image block never holds the cursor. A paragraph is opened after the image when nothing
+ * follows it, so the cursor always has a line to go to.
+ */
+export function escapeImageBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    if (!isCollapsed(cursorPosition) || !contentEditable.contains(cursorPosition.startContainer)) {
+        return cursorPosition;
+    }
+
+    const root = getRootElement(contentEditable, cursorPosition.startContainer);
+    if (!isImageBlock(root)) {
+        return cursorPosition;
+    }
+
+    if (!root.nextSibling) {
+        const paragraph = document.createElement("p");
+        paragraph.appendChild(document.createElement("br"));
+        root.after(paragraph);
+    }
+
+    return atStart(root.nextSibling as Node);
+}
+
+/**
+ * Whether a vertical move would carry the cursor out of its root: the cursor stands in the
+ * block holding the root's first (or last) leaf, on that block's first (or last) visual line.
+ *
+ * @remarks
+ * The line is read from the caret's client rect against the block's. A caret resting on an
+ * element (the br of an empty block) has no rect of its own, so the element's is used; a
+ * block without layout (no rects at all) is read as a single line.
+ */
+export function isOnEdgeLine(root: HTMLElement, block: HTMLElement, cursorPosition: CursorPosition, isBefore: boolean) {
+    const edgeLeaf = isBefore ? getFirstText(root) : getLastText(root);
+    if (!block.contains(edgeLeaf)) {
+        return false;
+    }
+
+    // The block is read first: one without layout has no lines to tell apart.
+    const blockRect = block.getBoundingClientRect();
+    if (!blockRect.height) {
+        return true;
+    }
+
+    const caretRect = getCaretRect(cursorPosition);
+    if (!caretRect) {
+        return true;
+    }
+
+    const lineHeight = parseFloat(getComputedStyle(block).lineHeight) || caretRect.height;
+
+    return isBefore
+        ? caretRect.top - blockRect.top < lineHeight
+        : blockRect.bottom - caretRect.bottom < lineHeight;
+}
+
+function getCaretRect(cursorPosition: CursorPosition): DOMRect | null {
+    const rect = cursorPosition.range.getClientRects()[0];
+    if (rect && rect.height) {
+        return rect;
+    }
+
+    const container = cursorPosition.startContainer;
+    const element = container.nodeType === Node.ELEMENT_NODE
+        ? container as Element
+        : container.parentElement;
+    const elementRect = element?.getBoundingClientRect();
+
+    return elementRect && elementRect.height ? elementRect : null;
 }
 
 export function getFirstCell(table: HTMLTableElement) {

@@ -1354,3 +1354,56 @@ describe("Enter in an empty list item", () => {
         `);
     });
 });
+
+describe("Deleting next to an image block", () => {
+    const imageBlock = `<p class="be-image"><img src="image.png"></p>`;
+
+    function select(wrapper: HTMLElement, selector: string, offset: number) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), offset);
+        range.setEnd(getFirstChild(wrapper, selector), offset);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    test("Backspace at the start of the line after an image block removes the image", () => {
+        const wrapper = createWrapper(`<p>zero</p>${imageBlock}<p class="start">first</p>`);
+        select(wrapper, ".start", "".length);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p class="start">first</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Delete at the end of the line before an image block removes the image", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>${imageBlock}<p>first</p>`);
+        select(wrapper, ".start", "zero".length);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
+
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p><p>first</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("zero".length);
+    });
+
+    test("Backspace at the start of an item after an image block removes the image and keeps the list", () => {
+        const wrapper = createWrapper(`<p>zero</p>${imageBlock}<ul><li class="start">first</li><li>second</li></ul>`);
+        select(wrapper, ".start", "".length);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+
+        expectHtml(wrapper.innerHTML, `<p>zero</p><ul><li class="start">first</li><li>second</li></ul>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+    });
+
+    test("Delete at the end of an empty line before an image block removes the image and keeps the line", () => {
+        const wrapper = createWrapper(`<p class="start"><br></p>${imageBlock}<p>first</p>`);
+        select(wrapper, ".start", "".length);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
+
+        expectHtml(wrapper.innerHTML, `<p class="start"><br></p><p>first</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+    });
+});

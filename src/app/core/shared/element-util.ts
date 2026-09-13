@@ -215,6 +215,79 @@ export function isEmptyBlock(block: Element) {
     return !block.textContent && !block.querySelector(imageSelector);
 }
 
+/** The class marking a paragraph that holds an image and nothing else - a block the cursor never enters. */
+export const imageBlockClass = "be-image";
+
+export function isImageBlock(node: Node | null | undefined): boolean {
+    return !!node && node.nodeType === Node.ELEMENT_NODE && (node as Element).classList.contains(imageBlockClass);
+}
+
+/** A paragraph of its own for `image`, marked as an image block. */
+export function createImageBlock(image: Node): HTMLElement {
+    const block = document.createElement("p");
+    block.classList.add(imageBlockClass);
+    block.appendChild(image);
+
+    return block;
+}
+
+/**
+ * Gives every image under `root` an image block of its own, standing among `root`'s blocks. A
+ * line already holding nothing but the image is replaced by the block rather than nesting it;
+ * anywhere else the block takes the image's place and is lifted out of whatever held it, each
+ * ancestor being split around it.
+ */
+export function wrapImages(root: ParentNode) {
+    root.querySelectorAll(imageSelector).forEach(image => {
+        const parent = image.parentElement;
+        if (isImageBlock(parent)) {
+            return;
+        }
+
+        const replaced = parent && isSchemaContain(parent, [Display.Line]) && holdsOnly(parent, image)
+            ? parent : image;
+        // The block takes its place before the image moves into it.
+        const block = createImageBlock(document.createTextNode(""));
+        replaced.replaceWith(block);
+        block.replaceChildren(image);
+        liftBlock(root, block);
+    });
+}
+
+/** Whether `element` holds `child` and nothing else but whitespace. */
+function holdsOnly(element: Element, child: Element) {
+    return Array.from(element.childNodes).every(node =>
+        node === child || (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()));
+}
+
+/** Splits every ancestor below `root` around `block`, dropping a half left holding nothing. */
+function liftBlock(root: ParentNode, block: Element) {
+    let parent = block.parentElement;
+    while (parent && parent !== root) {
+        const tail = parent.cloneNode(false) as HTMLElement;
+        while (block.nextSibling) {
+            tail.appendChild(block.nextSibling);
+        }
+
+        parent.after(block);
+        block.after(tail);
+
+        dropHollow(tail);
+        dropHollow(parent);
+
+        parent = block.parentElement;
+    }
+}
+
+const hollowContentSelector = ["BR", imageSelector, ...getOfType([Display.FirstLevel, Display.Table])].join(",");
+
+/** Removes a split half holding nothing but whitespace or empty formatting. */
+function dropHollow(element: HTMLElement) {
+    if (!element.textContent?.trim() && !element.querySelector(hollowContentSelector)) {
+        element.remove();
+    }
+}
+
 /**
  * Inserts a node (e.g. a table or image) between blocks rather than at the cursor itself,
  * since it isn't a first-level element and can't nest in one.
