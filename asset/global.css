@@ -212,6 +212,7 @@ q:before, q:after) {
     display: block;
     margin-left: auto;
     margin-right: auto;
+    cursor: default;
 }
 
 .be-editor .be-image-small :where(img) {
@@ -219,7 +220,7 @@ q:before, q:after) {
 }
 
 .be-editor .be-image-medium :where(img) {
-    max-width: 65%;
+    max-width: 60%;
 }
 
 .be-editor .be-image-large :where(img) {
