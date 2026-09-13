@@ -221,7 +221,7 @@ q:before, q:after) {
     bottom: -.25em;
 }
 
-.be-editor sub, sup {
+.be-editor sub, .be-editor sup {
     letter-spacing: 0.05em;
     font-size: 70%;
     line-height: 0;
