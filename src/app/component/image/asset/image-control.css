@@ -1,7 +1,4 @@
 :host {
-    --color-active: oklch(72.3% .219 149.579);
-    --color-background: #eceff4;
-
     display: block;
     position: fixed;
     z-index: 1000;
@@ -31,41 +28,11 @@
 }
 
 .be-image-control-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     position: absolute;
     top: .75em;
     right: .75em;
-
-
-    padding: .3em;
-    cursor: pointer;
     pointer-events: auto;
-
-    background: var(--color-background);
-    border: none;
-    border-radius: .4em;
-    /* A button has a font-size of its own; the wrapper's is what the em sizes above must follow. */
-    font: inherit;
-    user-select: none;
-    opacity: 95%;
-}
-
-.be-image-control-button svg {
-    width: 1.1rem;
-    height: 1.1rem;
-}
-
-.be-image-control-button .icon-svg {
-    fill: none;
-    stroke: #444444;
-    stroke-width: 2.5;
-    stroke-linecap: round;
-}
-
-.be-image-control-button:hover .icon-svg {
-    stroke: var(--color-active);
+    background: #F9FCF8;
 }
 
 .be-image-control-sizes {

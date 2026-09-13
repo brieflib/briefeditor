@@ -1,9 +1,10 @@
-import TableControl from "@/component/table/table-control";
+import TableControl, {Axis} from "@/component/table/table-control";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 
 const THRESHOLD = 8;
-const KEEP_ALIVE = 24;
+/* Covers the way to the button, which stands off the table's edge (see table-control.css). */
+const KEEP_ALIVE = 40;
 
 interface Pending {
     mode: "insert" | "delete";
@@ -26,8 +27,8 @@ export default class Table {
     constructor(contentEditable: HTMLElement) {
         this.contentEditable = contentEditable;
 
-        this.row = this.createControl((pending) => this.applyRow(pending));
-        this.column = this.createControl((pending) => this.applyColumn(pending));
+        this.row = this.createControl("row", (pending) => this.applyRow(pending));
+        this.column = this.createControl("column", (pending) => this.applyColumn(pending));
 
         // Pointer events, not mouse events, so the emulated mouse events a touch triggers
         // afterwards don't reopen a control the touch path just faded.
@@ -37,8 +38,9 @@ export default class Table {
         document.querySelector("#be-content")?.addEventListener("scroll", () => this.resetAll());
     }
 
-    private createControl(apply: (pending: Pending) => void): ControlState {
+    private createControl(axis: Axis, apply: (pending: Pending) => void): ControlState {
         const control = new TableControl();
+        control.axis = axis;
         const state: ControlState = {control, pending: null, x: 0, y: 0};
         control.onSelect = () => {
             if (state.pending) {

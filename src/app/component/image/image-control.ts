@@ -1,5 +1,7 @@
 // @ts-expect-error inline is not supported by lint
 import imageControlCss from "@/component/image/asset/image-control.css?inline=true";
+// @ts-expect-error inline is not supported by lint
+import controlButtonCss from "@/component/shared/asset/control-button.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 
 /**
@@ -12,10 +14,10 @@ class ImageControl extends HTMLElement {
 
     constructor() {
         super();
-        const shadowRoot = initShadowRoot(this, imageControlCss);
+        const shadowRoot = initShadowRoot(this, controlButtonCss, imageControlCss);
         shadowRoot.innerHTML = `
           <span class="be-image-control-wrapper">
-            <button type="button" class="be-image-control-button">
+            <button type="button" class="be-control-button be-image-control-button">
               <svg viewBox="0 0 18 18">
                 <path class="icon-svg" d="M4,4L14,14M14,4L4,14" />
               </svg>

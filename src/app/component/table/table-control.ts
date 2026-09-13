@@ -1,8 +1,13 @@
 // @ts-expect-error inline is not supported by lint
 import tableControlCss from "@/component/table/asset/table-control.css?inline=true";
+// @ts-expect-error inline is not supported by lint
+import controlButtonCss from "@/component/shared/asset/control-button.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 
-const HIGHLIGHT = 1;
+const HIGHLIGHT = 2;
+
+/** The table edge a control sits on: row controls on the left edge, column controls on the top. */
+export type Axis = "row" | "column";
 
 class TableControl extends HTMLElement {
     private readonly wrapper: HTMLElement;
@@ -11,16 +16,16 @@ class TableControl extends HTMLElement {
 
     constructor() {
         super();
-        const shadowRoot = initShadowRoot(this, tableControlCss);
+        const shadowRoot = initShadowRoot(this, controlButtonCss, tableControlCss);
         shadowRoot.innerHTML = `
           <span class="be-table-control-wrapper">
             <span class="be-table-control-highlight"></span>
-            <button type="button" class="be-table-control-button" data-icon="plus">
+            <button type="button" class="be-control-button be-table-control-button" data-icon="plus">
               <svg class="plus" viewBox="0 0 18 18">
-                <path class="icon-svg" d="M8.25,8.25V3.75H9.75V8.25H14.25V9.75H9.75V14.25H8.25V9.75H3.75V8.25H8.25Z" />
+                <path class="icon-svg" d="M9,4V14M4,9H14" />
               </svg>
               <svg class="minus" viewBox="0 0 18 18">
-                <path class="icon-svg" d="M3.75,8.25H14.25V9.75H3.75Z" />
+                <path class="icon-svg" d="M4,9H14" />
               </svg>
             </button>
           </span>
@@ -29,6 +34,11 @@ class TableControl extends HTMLElement {
         this.wrapper = shadowRoot.querySelector(".be-table-control-wrapper") as HTMLElement;
         this.button = shadowRoot.querySelector(".be-table-control-button") as HTMLElement;
         this.highlight = shadowRoot.querySelector(".be-table-control-highlight") as HTMLElement;
+    }
+
+    /** Tells the stylesheet which way to push the button away from the table. */
+    set axis(axis: Axis) {
+        this.button.setAttribute("data-axis", axis);
     }
 
     set onSelect(callback: () => void) {

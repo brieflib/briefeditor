@@ -4,6 +4,7 @@ import ImageBlock from "@/component/image/image-block";
 
 jest.mock("@/component/image/asset/image-block.css", () => "");
 jest.mock("@/component/image/asset/image-control.css?inline=true", () => "");
+jest.mock("@/component/shared/asset/control-button.css?inline=true", () => "");
 jest.mock("../../core/shared/range-util", () => ({
         getRange: jest.fn()
     })
