@@ -311,6 +311,84 @@ describe("Typing and deleting characters", () => {
         expect(cursorPosition.startOffset).toBe("a".length);
     });
 
+    test("Type a character in an empty list item with the caret on the item", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br></li>
+                <li>next</li>
+            </ul>
+        `);
+        selectText(wrapper.querySelector(".start") as HTMLElement, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "a"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start">a</li>
+                <li>next</li>
+            </ul>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("a".length);
+    });
+
+    test("Type a character in an empty list item holding a nested list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br>
+                    <ul>
+                        <li>child</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        selectText(wrapper.querySelector(".start") as HTMLElement, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "a"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start">a
+                    <ul>
+                        <li>child</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("a".length);
+    });
+
+    test("Type a character in an empty list item keeps the placeholder of an empty nested item", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br>
+                    <ul>
+                        <li><br></li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        selectText(wrapper.querySelector(".start") as HTMLElement, 0, 0);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key: "a"});
+        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start">a
+                    <ul>
+                        <li><br></li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("a".length);
+    });
+
     test("Press backspace in the middle of text", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>

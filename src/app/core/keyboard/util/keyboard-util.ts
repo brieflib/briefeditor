@@ -354,29 +354,52 @@ export function insertCharacter(contentEditable: HTMLElement, cursorPosition: Cu
         cursorPosition = deleteContents(cursorPosition);
     }
 
+    // Read before writing: the line's placeholder br has to go once it holds text, whichever
+    // node the cursor was on (the item, the br, or a text node emptied in place). A nested
+    // list is its own items' content, not the block's, so it doesn't make the line non-empty.
+    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+    const wasEmpty = !!block && isListEmpty(block);
+
+    const text = insertText(cursorPosition, key);
+    if (block && wasEmpty) {
+        removeLinePlaceholders(block);
+    }
+
+    return getCursorPositionFrom(text.node, text.offset, text.node, text.offset);
+}
+
+/** Writes `key` at the cursor and names the text node and offset right after it. */
+function insertText(cursorPosition: CursorPosition, key: string): {node: Text, offset: number} {
     const container = cursorPosition.startContainer;
     if (container.nodeType === Node.TEXT_NODE) {
         const text = container as Text;
         text.insertData(cursorPosition.startOffset, key);
-        const offset = cursorPosition.startOffset + key.length;
-        return getCursorPositionFrom(text, offset, text, offset);
+        return {node: text, offset: cursorPosition.startOffset + key.length};
     }
 
     const textNode = document.createTextNode(key);
     if (isSchemaContain(container, [Display.SelfClose])) {
         (container as Element).before(textNode);
         (container as Element).remove();
-        return getCursorPositionFrom(textNode, key.length, textNode, key.length);
+    } else {
+        insertNode(cursorPosition, textNode);
     }
 
-    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
-    const wasEmpty = block ? !block.textContent : false;
-    insertNode(cursorPosition, textNode);
-    if (block && wasEmpty) {
-        block.querySelectorAll("br").forEach(br => br.remove());
-    }
+    return {node: textNode, offset: key.length};
+}
 
-    return getCursorPositionFrom(textNode, key.length, textNode, key.length);
+/**
+ * Removes the placeholder br(s) of `block`'s line once text has been written into it. A br
+ * left after the text would read as a line break and pull the cursor onto the line below.
+ * The brs of nested list items are theirs, not the line's, so they stay.
+ */
+function removeLinePlaceholders(block: HTMLElement) {
+    const nestedListWrappers = getDirectChildren(block, [Display.ListWrapper]);
+    block.querySelectorAll("br").forEach(br => {
+        if (!nestedListWrappers.some(listWrapper => listWrapper.contains(br))) {
+            br.remove();
+        }
+    });
 }
 
 export function deletePreviousCharacter(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {

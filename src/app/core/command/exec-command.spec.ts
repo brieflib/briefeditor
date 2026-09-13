@@ -817,6 +817,64 @@ describe("Keyboard command that empties a list item", () => {
         expect(cursorPosition.startContainer.parentElement).toBe(wrapper.querySelector(".start"));
         expect(cursorPosition.startOffset).toBe(0);
     });
+
+    // The typed text ends right before the nested list; a placeholder br left behind it would
+    // resolve the cursor onto the nested item instead.
+    test("Should keep the cursor on the text typed into an empty item holding a nested list", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><br><ul><li>child</li></ul></li></ul>`);
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".start") as HTMLElement, 0);
+        range.setEnd(wrapper.querySelector(".start") as HTMLElement, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = keyboard(wrapper, "a");
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">a<ul><li>child</li></ul></li></ul>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("a".length);
+    });
+
+    // Backspace leaves the cursor on the text node it emptied, beside the placeholder it
+    // added; typing there must take the placeholder away again.
+    test("Should drop the placeholder when typing into an item backspace emptied", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">a<ul><li>child</li></ul></li></ul>`);
+        const text = getFirstChild(wrapper, ".start");
+        const range = new Range();
+        range.setStart(text, "a".length);
+        range.setEnd(text, "a".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = keyboard(wrapper, "Backspace");
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br><ul><li>child</li></ul></li></ul>`);
+
+        range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
+        range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
+        cursorPosition = keyboard(wrapper, "c");
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">c<ul><li>child</li></ul></li></ul>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("c".length);
+    });
+
+    test("Should drop the placeholder when typing into a paragraph backspace emptied", () => {
+        const wrapper = createWrapper(`<p class="start">a</p><p>next</p>`);
+        const text = getFirstChild(wrapper, ".start");
+        const range = new Range();
+        range.setStart(text, "a".length);
+        range.setEnd(text, "a".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = keyboard(wrapper, "Backspace");
+        expectHtml(wrapper.innerHTML, `<p class="start"><br></p><p>next</p>`);
+
+        range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
+        range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
+        cursorPosition = keyboard(wrapper, "c");
+
+        expectHtml(wrapper.innerHTML, `<p class="start">c</p><p>next</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("c".length);
+    });
 });
 
 describe("Image command", () => {
