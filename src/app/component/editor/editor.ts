@@ -4,6 +4,7 @@ import {Settings} from "@/brief-editor";
 import {cleanElementWhitespace, wrapImages} from "@/core/shared/element-util";
 import {History} from "@/core/history/history";
 import Table from "@/component/table/table";
+import ImageBlock from "@/component/image/image-block";
 import {TableCursor} from "@/core/cursor/table-cursor";
 import {ImageCursor} from "@/core/cursor/image-cursor";
 import execCommand from "@/core/command/exec-command";
@@ -52,6 +53,7 @@ class Editor extends HTMLElement {
         this.addDragEvent(contentEditable);
         const history = this.addHistory(contentEditable);
         this.addTable(contentEditable);
+        this.addImageBlock(contentEditable);
 
         return history;
     }
@@ -62,6 +64,10 @@ class Editor extends HTMLElement {
 
     private addTable(contentEditable: HTMLElement) {
         new Table(contentEditable);
+    }
+
+    private addImageBlock(contentEditable: HTMLElement) {
+        new ImageBlock(contentEditable);
     }
 
     private addTableCursor(contentEditable: HTMLElement) {

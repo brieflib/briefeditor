@@ -1,0 +1,6 @@
+/* The control sits outside the editor, so the hovered image reaches it through the document:
+   the cross shows while the pointer is over an image block (and, from the control's own
+   stylesheet, while it is over the cross). */
+body:has(.be-editor .be-image > img:hover) be-image-control {
+    --be-image-control-visibility: visible;
+}

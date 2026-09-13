@@ -4,6 +4,7 @@ import {
     changeBlock,
     isElementsEqualToTags,
     isListWrapper,
+    removeBlock,
     tag
 } from "@/core/command/util/command-util";
 import {
@@ -18,7 +19,9 @@ import {
     createImageBlock,
     ensureParagraph,
     getElementByTagName,
-    insertBetweenBlocks
+    getRootElement,
+    insertBetweenBlocks,
+    isImageBlock
 } from "@/core/shared/element-util";
 import {
     cloneRange,
@@ -35,7 +38,7 @@ import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
 import {Carrier} from "@/core/carrier/carrier";
 import {removeAndNormalize} from "@/core/normalize/normalize";
-import {getCell, getCellCursorPosition, insertTable, isTableEmpty, removeTable} from "@/core/command/util/table-util";
+import {getCell, getCellCursorPosition, insertTable, isTableEmpty} from "@/core/command/util/table-util";
 import {
     atStart,
     escapeImageBlock,
@@ -117,6 +120,9 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         case Action.DeleteColumn:
             cursorPosition = applyDeleteColumnCommand(command, cursorPosition);
             break;
+        case Action.DeleteImage:
+            cursorPosition = applyDeleteImageCommand(contentEditable, command, cursorPosition);
+            break;
         case Action.Click:
             cursorPosition = removeCarrier(contentEditable, cursorPosition, command.event as MouseEvent);
             break;
@@ -164,6 +170,7 @@ function isCursorRestorable(command: Command) {
         case Action.InsertColumn:
         case Action.DeleteRow:
         case Action.DeleteColumn:
+        case Action.DeleteImage:
             return false;
         case Action.Keyboard:
             return (command.event as KeyboardEvent).key !== "Enter";
@@ -424,7 +431,7 @@ function applyDeleteRowCommand(command: Command, cursorPosition: CursorPosition)
     }
 
     if (isTableEmpty(table)) {
-        return removeTable(table, cursorPosition);
+        return removeBlock(table, cursorPosition);
     }
 
     return getCellCursorPosition(getCell(table, rowIndex, columnIndex), cursorPosition);
@@ -449,8 +456,23 @@ function applyDeleteColumnCommand(command: Command, cursorPosition: CursorPositi
     }
 
     if (isTableEmpty(table)) {
-        return removeTable(table, cursorPosition);
+        return removeBlock(table, cursorPosition);
     }
 
     return getCellCursorPosition(getCell(table, rowIndex, columnIndex), cursorPosition);
+}
+
+/** Removes the image block the command's image stands in; anything else is left as it is. */
+function applyDeleteImageCommand(contentEditable: HTMLElement, command: Command, cursorPosition: CursorPosition): CursorPosition {
+    const image = command.image;
+    if (!image || !contentEditable.contains(image)) {
+        return cursorPosition;
+    }
+
+    const block = getRootElement(contentEditable, image);
+    if (!isImageBlock(block)) {
+        return cursorPosition;
+    }
+
+    return removeBlock(block, cursorPosition);
 }

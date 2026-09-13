@@ -18,6 +18,7 @@ export enum Action {
     InsertColumn = "InsertColumn",
     DeleteRow = "DeleteRow",
     DeleteColumn = "DeleteColumn",
+    DeleteImage = "DeleteImage",
 }
 
 export interface Attributes {
@@ -42,5 +43,6 @@ export interface Command {
     attributes?: Attributes | undefined,
     event?: KeyboardEvent | ClipboardEvent | MouseEvent,
     table?: TableTarget,
-    size?: TableSize
+    size?: TableSize,
+    image?: HTMLImageElement
 }

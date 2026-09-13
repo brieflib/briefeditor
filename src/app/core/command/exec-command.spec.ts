@@ -1589,3 +1589,76 @@ describe("Keyboard command that empties the document", () => {
         (getRange as jest.Mock).mockReturnValue(range);
     }
 });
+
+describe("Delete image command", () => {
+    function select(wrapper: HTMLElement, selector: string) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), "".length);
+        range.setEnd(getFirstChild(wrapper, selector), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    function image(wrapper: HTMLElement) {
+        return wrapper.querySelector("img") as HTMLImageElement;
+    }
+
+    test("Should remove the image block and land the cursor at the end of the block before", () => {
+        const wrapper = createWrapper(`
+            <p class="text">text</p>
+            <p class="be-image"><img src="image.png"></p>
+            <p class="after">after</p>
+        `);
+        select(wrapper, ".after");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
+
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p><p class="after">after</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".text"));
+        expect(cursorPosition.startOffset).toBe("text".length);
+    });
+
+    test("Should land the cursor at the start of the block after when the image opened the editor", () => {
+        const wrapper = createWrapper(`
+            <p class="be-image"><img src="image.png"></p>
+            <p class="after">after</p>
+        `);
+        select(wrapper, ".after");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
+
+        expectHtml(wrapper.innerHTML, `<p class="after">after</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".after"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should leave an empty paragraph when the image was the only block", () => {
+        const wrapper = createWrapper(`<p class="be-image"><img src="image.png"></p>`);
+        const range = new Range();
+        range.setStart(wrapper, 0);
+        range.setEnd(wrapper, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
+
+        expectHtml(wrapper.innerHTML, `<p><br></p>`);
+    });
+
+    test("Should ignore an image outside an image block", () => {
+        const wrapper = createWrapper(`<p class="text">text<img src="image.png"></p>`);
+        select(wrapper, ".text");
+
+        execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
+
+        expectHtml(wrapper.innerHTML, `<p class="text">text<img src="image.png"></p>`);
+    });
+
+    test("Should ignore an image outside the editor", () => {
+        const wrapper = createWrapper(`<p class="text">text</p>`);
+        select(wrapper, ".text");
+        const outside = document.createElement("img");
+
+        execCommand(wrapper, {action: Action.DeleteImage, image: outside});
+
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+    });
+});

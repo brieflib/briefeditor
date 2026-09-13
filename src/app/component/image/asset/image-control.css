@@ -1,0 +1,51 @@
+:host {
+    --color-active: oklch(72.3% .219 149.579);
+
+    display: block;
+    position: fixed;
+    z-index: 1000;
+    /* The control lies over the image only to place the cross: the image beneath keeps its events. */
+    pointer-events: none;
+}
+
+.be-image-control-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: .75em;
+    right: .75em;
+
+    width: 2.625em;
+    height: 2.625em;
+    padding: 0;
+    cursor: pointer;
+    pointer-events: auto;
+
+    background: none;
+    border: none;
+    user-select: none;
+
+    /* Hidden unless the document says the image is hovered (see image-block.css), or the cross itself is. */
+    visibility: var(--be-image-control-visibility, hidden);
+}
+
+:host(:hover) .be-image-control-button {
+    visibility: visible;
+}
+
+.be-image-control-button svg {
+    width: 2.625em;
+    height: 2.625em;
+}
+
+.be-image-control-button .icon-svg {
+    fill: none;
+    stroke: #000;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.be-image-control-button:hover .icon-svg {
+    stroke: var(--color-active);
+}

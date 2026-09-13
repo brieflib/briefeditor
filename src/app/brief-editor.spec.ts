@@ -7,6 +7,8 @@ jest.mock("@/component/editor/asset/editor.css", () => "");
 jest.mock("@/component/toolbar-icon/asset/toolbar-icon.css?inline=true", () => "");
 jest.mock("@/component/popup/asset/table-dropdown.css?inline=true", () => "");
 jest.mock("@/component/table/asset/table-control.css?inline=true", () => "");
+jest.mock("@/component/image/asset/image-control.css?inline=true", () => "");
+jest.mock("@/component/image/asset/image-block.css", () => "");
 jest.mock("@/component/popup/asset/tooltip.css?inline=true", () => "");
 jest.mock("./core/shared/range-util", () => ({
         getRange: jest.fn()

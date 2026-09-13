@@ -1,5 +1,5 @@
 import {CursorPosition} from "@/core/shared/type/cursor-position";
-import {atEnd, atStart, getFirstCell} from "@/core/cursor/util/cursor-util";
+import {atStart, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {insertBetweenBlocks} from "@/core/shared/element-util";
 
@@ -77,21 +77,4 @@ function appendRow(section: HTMLTableSectionElement, columns: number, cellName: 
 
 export function isTableEmpty(table: HTMLTableElement) {
     return !table.querySelector("th, td");
-}
-
-/**
- * Removes a table left with no cells and returns the cursor position to fall back to: the
- * end of the block before it (as removing any block does), or the start of the block after
- * it only when the table opened the editor.
- */
-export function removeTable(table: HTMLTableElement, cursorPosition: CursorPosition): CursorPosition {
-    const previous = table.previousElementSibling;
-    const next = table.nextElementSibling;
-    table.remove();
-
-    if (previous) {
-        return atEnd(previous);
-    }
-
-    return next ? atStart(next) : cursorPosition;
 }

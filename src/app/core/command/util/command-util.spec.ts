@@ -1,7 +1,8 @@
-import {changeBlock, tag} from "@/core/command/util/command-util";
+import {changeBlock, removeBlock, tag} from "@/core/command/util/command-util";
 import {getRange} from "@/core/shared/range-util";
 import {Action} from "@/core/command/type/command";
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -743,5 +744,42 @@ describe("Wrap in tag with attributes", () => {
                 <a href="https://www.briefeditor.io">first</a>
             </p>
         `);
+    });
+});
+
+describe("Remove block", () => {
+    function cursorIn(wrapper: HTMLElement, selector: string) {
+        const text = getFirstChild(wrapper, selector);
+        return getCursorPositionFrom(text, 0, text, 0);
+    }
+
+    test("Should land at the end of the block before", () => {
+        const wrapper = createWrapper(`<p class="before">before</p><p class="target">target</p><p class="after">after</p>`);
+
+        const cursorPosition = removeBlock(wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".after"));
+
+        expectHtml(wrapper.innerHTML, `<p class="before">before</p><p class="after">after</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".before"));
+        expect(cursorPosition.startOffset).toBe("before".length);
+    });
+
+    test("Should land at the start of the block after when there is none before", () => {
+        const wrapper = createWrapper(`<p class="target">target</p><p class="after">after</p>`);
+
+        const cursorPosition = removeBlock(wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".after"));
+
+        expectHtml(wrapper.innerHTML, `<p class="after">after</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".after"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should hand back the given cursor when the block stood alone", () => {
+        const wrapper = createWrapper(`<p class="target">target</p>`);
+        const given = getCursorPositionFrom(wrapper, 0, wrapper, 0);
+
+        const cursorPosition = removeBlock(wrapper.querySelector(".target") as Element, given);
+
+        expectHtml(wrapper.innerHTML, ``);
+        expect(cursorPosition).toBe(given);
     });
 });
