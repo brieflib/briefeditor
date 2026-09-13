@@ -206,11 +206,24 @@ q:before, q:after) {
     margin-bottom: .75em;
 }
 
+/* An image without a size class is medium (see .be-image-medium). */
 .be-editor :where(img) {
-    max-width: 80%;
+    max-width: 55%;
     display: block;
     margin-left: auto;
     margin-right: auto;
+}
+
+.be-editor .be-image-small :where(img) {
+    max-width: 40%;
+}
+
+.be-editor .be-image-medium :where(img) {
+    max-width: 65%;
+}
+
+.be-editor .be-image-large :where(img) {
+    max-width: 100%;
 }
 
 .be-editor sup {

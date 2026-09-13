@@ -32,13 +32,19 @@ function setup(html: string) {
     image.getBoundingClientRect = () => rect(100, 50, 200, 150);
 
     const control = document.body.querySelector("be-image-control") as HTMLElement;
+    const shadow = control.shadowRoot as ShadowRoot;
     return {
         wrapper,
         image,
         scroll,
         control,
-        button: (control.shadowRoot as ShadowRoot).querySelector(".be-image-control-button") as HTMLElement
+        button: shadow.querySelector(".be-image-control-button") as HTMLElement,
+        sizes: Array.from(shadow.querySelectorAll(".be-image-control-size")) as HTMLElement[]
     };
+}
+
+function active(sizes: HTMLElement[]) {
+    return sizes.filter((size) => size.classList.contains("active")).map((size) => size.textContent);
 }
 
 /** jsdom has no PointerEvent: a plain event is enough, the controller only reads the target. */
@@ -124,5 +130,50 @@ describe("Image block control", () => {
 
         expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
         expect(control.hidden).toBe(true);
+    });
+});
+
+describe("Image block sizes", () => {
+    test("Should offer a button per size class", () => {
+        const {sizes} = setup(IMAGE);
+
+        expect(sizes.map((size) => size.textContent)).toEqual(["SMALL", "MEDIUM", "LARGE"]);
+        expect(sizes.map((size) => size.dataset.class)).toEqual(["be-image-small", "be-image-medium", "be-image-large"]);
+    });
+
+    test("Should mark the default size for an image block without one", () => {
+        const {image, sizes} = setup(IMAGE);
+
+        image.dispatchEvent(pointer("pointermove"));
+
+        expect(active(sizes)).toEqual(["MEDIUM"]);
+    });
+
+    test("Should mark the size the hovered image block carries", () => {
+        const {image, sizes} = setup(`<p class="be-image be-image-medium"><img src="image.png"></p>`);
+
+        image.dispatchEvent(pointer("pointermove"));
+
+        expect(active(sizes)).toEqual(["MEDIUM"]);
+    });
+
+    test("Should switch the block to the pressed size", () => {
+        const {wrapper, image, sizes} = setup(`<p class="be-image be-image-medium"><img src="image.png"></p>`);
+        image.dispatchEvent(pointer("pointermove"));
+
+        (sizes[2] as HTMLElement).click();
+
+        expectHtml(wrapper.innerHTML, `<p class="be-image be-image-large"><img src="image.png"></p>`);
+        expect(active(sizes)).toEqual(["LARGE"]);
+    });
+
+    test("Should keep the size when its button is pressed again", () => {
+        const {wrapper, image, sizes} = setup(`<p class="be-image be-image-large"><img src="image.png"></p>`);
+        image.dispatchEvent(pointer("pointermove"));
+
+        (sizes[2] as HTMLElement).click();
+
+        expectHtml(wrapper.innerHTML, `<p class="be-image be-image-large"><img src="image.png"></p>`);
+        expect(active(sizes)).toEqual(["LARGE"]);
     });
 });

@@ -32,6 +32,17 @@ export default class ImageBlock {
             }
             this.reset();
         };
+        // A size takes the place of any other, so the block carries one at most.
+        control.onSize = (className) => {
+            if (this.pending) {
+                execCommand(this.contentEditable, {
+                    action: Action.ModifyClass,
+                    element: getRootElement(this.contentEditable, this.pending),
+                    classes: {add: [className], remove: control.sizeClasses.filter((name) => name !== className)}
+                });
+            }
+            this.align();
+        };
         document.body.appendChild(control);
         return control;
     }
@@ -54,6 +65,7 @@ export default class ImageBlock {
             return;
         }
         this.control.cover(this.pending.getBoundingClientRect());
+        this.control.setActive(getRootElement(this.contentEditable, this.pending).classList);
     }
 
     private reset() {

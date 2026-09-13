@@ -1,11 +1,33 @@
 :host {
     --color-active: oklch(72.3% .219 149.579);
+    --color-background: color-mix(in oklab, white 70%, transparent);
 
     display: block;
     position: fixed;
     z-index: 1000;
     /* The control lies over the image only to place the cross: the image beneath keeps its events. */
     pointer-events: none;
+    /* The host is sized to the image, so the wrapper below can scale the controls to it. */
+    container-type: size;
+}
+
+/* Every control is sized in em from here: it grows with the image's width, held back by the
+   height so a wide banner doesn't get controls taller than itself, within 6 to 24px. */
+.be-image-control-wrapper {
+    position: absolute;
+    inset: 0;
+    font-size: clamp(6px, min(5px + 2.5cqw, 10cqh), 24px);
+}
+
+/* Hidden unless the document says the image is hovered (see image-block.css), or a control itself is. */
+.be-image-control-button,
+.be-image-control-sizes {
+    visibility: var(--be-image-control-visibility, hidden);
+}
+
+:host(:hover) .be-image-control-button,
+:host(:hover) .be-image-control-sizes {
+    visibility: visible;
 }
 
 .be-image-control-button {
@@ -16,27 +38,24 @@
     top: .75em;
     right: .75em;
 
-    width: 2.625em;
-    height: 2.625em;
-    padding: 0;
+    /* The same box as a size button in its pill, so the two read as one set. */
+    width: 1.725em;
+    height: 1.725em;
+    padding: .3em;
     cursor: pointer;
     pointer-events: auto;
 
-    background: none;
+    background: var(--color-background);
     border: none;
+    border-radius: .5em;
+    /* A button has a font-size of its own; the wrapper's is what the em sizes above must follow. */
+    font: inherit;
     user-select: none;
-
-    /* Hidden unless the document says the image is hovered (see image-block.css), or the cross itself is. */
-    visibility: var(--be-image-control-visibility, hidden);
-}
-
-:host(:hover) .be-image-control-button {
-    visibility: visible;
 }
 
 .be-image-control-button svg {
-    width: 2.625em;
-    height: 2.625em;
+    width: 1.75em;
+    height: 1.75em;
 }
 
 .be-image-control-button .icon-svg {
@@ -48,4 +67,43 @@
 
 .be-image-control-button:hover .icon-svg {
     stroke: var(--color-active);
+}
+
+.be-image-control-sizes {
+    display: flex;
+    position: absolute;
+    bottom: .75em;
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 2em;
+    padding: 0 .75em;
+    pointer-events: auto;
+
+    background: var(--color-background);
+    border-radius: .5em;
+}
+
+/* The label is scaled inside so the box keeps the wrapper's em. */
+.be-image-control-size {
+    width: 3em;
+    height: 2em;
+    padding: 0;
+    cursor: pointer;
+    user-select: none;
+
+    background: none;
+    border: none;
+    font: inherit;
+    font-family: sans-serif;
+    font-weight: 700;
+    color: #000;
+}
+
+.be-image-control-size span {
+    font-size: .7em;
+}
+
+.be-image-control-size:hover,
+.be-image-control-size.active {
+    color: var(--color-active);
 }

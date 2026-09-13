@@ -218,6 +218,9 @@ export function isEmptyBlock(block: Element) {
 /** The class marking a paragraph that holds an image and nothing else - a block the cursor never enters. */
 export const imageBlockClass = "be-image";
 
+/** The classes an image block may carry besides its mark: the size styles (see global.css). */
+export const imageSizeClasses = ["be-image-small", "be-image-medium", "be-image-large"];
+
 export function isImageBlock(node: Node | null | undefined): boolean {
     return !!node && node.nodeType === Node.ELEMENT_NODE && (node as Element).classList.contains(imageBlockClass);
 }

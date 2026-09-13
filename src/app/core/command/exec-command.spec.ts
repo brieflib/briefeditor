@@ -1662,3 +1662,47 @@ describe("Delete image command", () => {
         expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
     });
 });
+
+describe("Modify class command", () => {
+    function select(wrapper: HTMLElement, selector: string) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), "".length);
+        range.setEnd(getFirstChild(wrapper, selector), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    test("Should remove, add and toggle classes in that order", () => {
+        const wrapper = createWrapper(`<p class="text">text</p><p class="be-image be-image-small"><img src="image.png"></p>`);
+        select(wrapper, ".text");
+        const element = wrapper.querySelector(".be-image") as HTMLElement;
+
+        execCommand(wrapper, {
+            action: Action.ModifyClass,
+            element,
+            classes: {remove: ["be-image-small"], add: ["be-image-large"], toggle: ["be-image-large", "other"]}
+        });
+
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p><p class="be-image other"><img src="image.png"></p>`);
+    });
+
+    test("Should toggle a class the element lacks on", () => {
+        const wrapper = createWrapper(`<p class="text">text</p><p class="be-image"><img src="image.png"></p>`);
+        select(wrapper, ".text");
+        const element = wrapper.querySelector(".be-image") as HTMLElement;
+
+        execCommand(wrapper, {action: Action.ModifyClass, element, classes: {toggle: ["be-image-medium"]}});
+
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p><p class="be-image be-image-medium"><img src="image.png"></p>`);
+    });
+
+    test("Should ignore an element outside the editor", () => {
+        const wrapper = createWrapper(`<p class="text">text</p>`);
+        select(wrapper, ".text");
+        const element = document.createElement("p");
+
+        execCommand(wrapper, {action: Action.ModifyClass, element, classes: {add: ["other"]}});
+
+        expect(element.className).toBe("");
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+    });
+});

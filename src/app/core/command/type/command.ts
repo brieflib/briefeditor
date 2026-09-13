@@ -19,6 +19,7 @@ export enum Action {
     DeleteRow = "DeleteRow",
     DeleteColumn = "DeleteColumn",
     DeleteImage = "DeleteImage",
+    ModifyClass = "ModifyClass",
 }
 
 export interface Attributes {
@@ -37,6 +38,13 @@ export interface TableSize {
     columns: number;
 }
 
+/** Class changes applied in this order: removed, added, then toggled. */
+export interface ClassChange {
+    add?: string[];
+    remove?: string[];
+    toggle?: string[];
+}
+
 export interface Command {
     action: Action,
     tag?: string,
@@ -44,5 +52,7 @@ export interface Command {
     event?: KeyboardEvent | ClipboardEvent | MouseEvent,
     table?: TableTarget,
     size?: TableSize,
-    image?: HTMLImageElement
+    image?: HTMLImageElement,
+    element?: HTMLElement,
+    classes?: ClassChange
 }

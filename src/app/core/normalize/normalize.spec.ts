@@ -32,6 +32,17 @@ describe("Should normalize tags", () => {
         `);
     });
 
+    test("Should keep the image size classes on any element", () => {
+        testNormalize(`
+            <p class="other be-image-large be-image" style="margin: 0"><img src="image.png"></p>
+            <p class="other be-image-small">zero</p>
+        `,
+            `
+            <p class="be-image be-image-large"><img src="image.png"></p>
+            <p class="be-image-small">zero</p>
+        `);
+    });
+
     test("Should sort tags by priority", () => {
         testNormalize(`
             <strong>zero</strong>

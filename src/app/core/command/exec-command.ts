@@ -123,6 +123,9 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
         case Action.DeleteImage:
             cursorPosition = applyDeleteImageCommand(contentEditable, command, cursorPosition);
             break;
+        case Action.ModifyClass:
+            applyModifyClassCommand(contentEditable, command);
+            break;
         case Action.Click:
             cursorPosition = removeCarrier(contentEditable, cursorPosition, command.event as MouseEvent);
             break;
@@ -171,6 +174,7 @@ function isCursorRestorable(command: Command) {
         case Action.DeleteRow:
         case Action.DeleteColumn:
         case Action.DeleteImage:
+        case Action.ModifyClass:
             return false;
         case Action.Keyboard:
             return (command.event as KeyboardEvent).key !== "Enter";
@@ -475,4 +479,19 @@ function applyDeleteImageCommand(contentEditable: HTMLElement, command: Command,
     }
 
     return removeBlock(block, cursorPosition);
+}
+
+/** Removes, adds and toggles the command's classes on its element, which has to stand in the editor. */
+function applyModifyClassCommand(contentEditable: HTMLElement, command: Command) {
+    const element = command.element;
+    const classes = command.classes;
+    if (!element || !classes || !contentEditable.contains(element)) {
+        return;
+    }
+
+    element.classList.remove(...classes.remove ?? []);
+    element.classList.add(...classes.add ?? []);
+    for (const name of classes.toggle ?? []) {
+        element.classList.toggle(name);
+    }
 }
