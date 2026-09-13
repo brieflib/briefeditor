@@ -6,8 +6,11 @@ import {
     isMinusIndentEnabled,
     isPlusIndentEnabled,
     minusIndent,
-    plusIndent
+    normalizeList,
+    plusIndent,
+    rebuildList
 } from "@/core/list/list";
+import {parseList} from "@/core/list/type/list-class";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {pasteHtml} from "@/core/clipboard/util/clipboard-util";
@@ -2172,6 +2175,233 @@ describe("Pasting a list into a list", () => {
                 <li>tail</li>
             </ul>
         `);
+    });
+
+    // The list nested under the cursor's item goes with the last pasted item, the way Enter
+    // at the end of the item carries it to the new one.
+    test("Should keep the nested list under the last pasted item when pasting at the end of its parent", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li class="start">zero
+                    <ol>
+                        <li>nested</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = pasteHtml(wrapper, `<ol><li>first</li><li>second</li></ol>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+                <li>second
+                    <ol>
+                        <li>nested</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("second".length);
+    });
+
+    test("Should paste the items at the level of the nested item they are pasted into", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li class="start">nested</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "nes".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "nes".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = pasteHtml(wrapper, `<ol><li>first</li></ol>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>nes</li>
+                        <li>first</li>
+                        <li>ted</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("first".length);
+    });
+
+    test("Should open a wrapper of the other type inside the parent of the nested item pasted into", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li class="start">nested</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "nes".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "nes".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ul><li>first</li></ul>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>nes</li>
+                    </ol>
+                    <ul>
+                        <li>first</li>
+                    </ul>
+                    <ol>
+                        <li>ted</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+    });
+
+    test("Should stack the nesting of the pasted list on the level of the nested item pasted into", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ul>
+                        <li class="start">nested</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "nested".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "nested".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ul>
+                        <li>nested</li>
+                        <li>first
+                            <ul>
+                                <li>second</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+    });
+
+    test("Should replace the empty nested item a list is pasted into", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ul>
+                        <li><br></li>
+                    </ul>
+                </li>
+                <li>tail</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<ul><li>first</li></ul>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ul>
+                        <li>first</li>
+                    </ul>
+                </li>
+                <li>tail</li>
+            </ul>
+        `);
+    });
+});
+
+describe("Normalize list", () => {
+    test("Should read a run back clean of its bare items and empty wrappers", () => {
+        const wrapper = createWrapper(`
+            <ul><li class="start">zero</li></ul><li>first</li><ul><li>second</li></ul><ul></ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        normalizeList(wrapper.querySelector("ul") as HTMLElement, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+    });
+
+    test("Should drop the line named as dropped and carry the cursor to the line after it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li><br></li>
+                <li>second</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        // Read before parseList moves the br, which would carry the live range onto the item.
+        const cursorPosition = getCursorPosition();
+        const root = wrapper.querySelector("ul") as HTMLElement;
+        const lists = parseList(root);
+        const rebuiltCursorPosition = rebuildList(root, lists, cursorPosition, lists[1]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li>second</li>
+            </ul>
+        `);
+
+        expect(rebuiltCursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(rebuiltCursorPosition.startOffset).toBe(0);
     });
 });
 

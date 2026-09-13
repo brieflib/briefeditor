@@ -1162,6 +1162,66 @@ describe("Typing and deleting characters", () => {
         expect(preventDefault).not.toHaveBeenCalled();
     });
 });
+// A browser leaves the caret in an empty item on the item itself rather than on its br; both must read
+// the same, so every case here runs with the caret in either place.
+describe("Editing over a selection ending on an empty nested item", () => {
+    const html = `
+        <h3 class="start">Ordered List</h3>
+        <ol>
+            <li>First ordered item
+                <ol>
+                    <li class="empty"><br></li>
+                </ol>
+            </li>
+        </ol>
+    `;
+
+    function selectTo(wrapper: HTMLElement, startOffset: number, caretOnItem: boolean) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), startOffset);
+        range.setEnd(caretOnItem ? wrapper.querySelector(".empty") as Node : wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    for (const caretOnItem of [false, true]) {
+        const caret = caretOnItem ? "caret on the item" : "caret on the br";
+
+        test(`Should type over the selection without leaving a break behind (${caret})`, () => {
+            const wrapper = createWrapper(html);
+            selectTo(wrapper, "".length, caretOnItem);
+
+            const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "z"}));
+
+            expectHtml(wrapper.innerHTML, `<h3>z</h3>`);
+            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h3")?.firstChild);
+            expect(cursorPosition.startOffset).toBe("z".length);
+            // The cursor must be one the selection can be set to, or the edit is never committed.
+            expect(() => new Range().setStart(cursorPosition.startContainer, cursorPosition.startOffset)).not.toThrow();
+        });
+
+        test(`Should keep the heading's words when typing over a selection starting inside it (${caret})`, () => {
+            const wrapper = createWrapper(html);
+            selectTo(wrapper, "Ord".length, caretOnItem);
+
+            const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "z"}));
+
+            expectHtml(wrapper.innerHTML, `<h3>Ordz</h3>`);
+            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h3")?.firstChild);
+            expect(cursorPosition.startOffset).toBe("Ordz".length);
+        });
+
+        test(`Should leave an empty heading after backspace over the selection (${caret})`, () => {
+            const wrapper = createWrapper(html);
+            selectTo(wrapper, "".length, caretOnItem);
+
+            const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+
+            expectHtml(wrapper.innerHTML, `<h3><br></h3>`);
+            expect(cursorPosition.startContainer.isConnected).toBe(true);
+        });
+    }
+});
+
 describe("Enter in an empty list item", () => {
     test("Enter in an empty item at the first level leaves the list", () => {
         const wrapper = createWrapper(`

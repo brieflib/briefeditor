@@ -2,12 +2,12 @@ import {
     cloneContents,
     createContextualFragment,
     CursorPosition,
-    deleteContents, getCursorPositionFrom, getCursorPositionFromElement,
+    getCursorPositionFrom, getCursorPositionFromElement,
     insertNode,
     isCollapsed,
     splitAtCursor
 } from "@/core/shared/type/cursor-position";
-import {removeAndNormalize} from "@/core/normalize/normalize";
+import {mergeLists, removeAndNormalize} from "@/core/normalize/normalize";
 import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 import {
@@ -19,10 +19,9 @@ import {
     isEmptyBlock
 } from "@/core/shared/element-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
-import {newLine} from "@/core/keyboard/util/keyboard-util";
-import {maybeInsertLists} from "@/core/list/list";
-import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
-import {appendBeforeAndDelete} from "@/core/list/util/list-util";
+import {deleteSelection, newLine} from "@/core/keyboard/util/keyboard-util";
+import {maybeInsertLists, normalizeList, spliceListsAtCursor} from "@/core/list/list";
+import {getFirstListWrapper} from "@/core/list/util/list-util";
 import {getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
 import {getCellCursorPosition, normalizeTable} from "@/core/command/util/table-util";
 import {conformLines, hoistBlocks, lineTag, tableSelector} from "@/core/clipboard/util/paste-conform-util";
@@ -48,7 +47,7 @@ interface EdgeBlocks {
  */
 export function pasteHtml(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
     if (!isCollapsed(cursorPosition)) {
-        cursorPosition = deleteContents(cursorPosition);
+        cursorPosition = deleteSelection(contentEditable, cursorPosition);
     }
 
     // Read after the delete, since the surviving cursor is what says where the markup lands.
@@ -242,8 +241,7 @@ function rewriteLists(parent: Element, cursorPosition: CursorPosition) {
         }
 
         if (isSchemaContain(child, [Display.ListWrapper, Display.List])) {
-            const normalized = normalizeLists(parseList(child as HTMLElement), cursorPosition);
-            appendBeforeAndDelete(child as HTMLElement, convertList(normalized.lists));
+            normalizeList(child as HTMLElement, cursorPosition);
         } else {
             // A bare li with no wrapper: markup pasted from outside the editor.
             rewriteLists(child, cursorPosition);
@@ -302,6 +300,13 @@ function unwrapBlocks(root: ParentNode) {
 
 function hasListWrapper(pastedContent: HTMLElement | DocumentFragment) {
     return Array.from(pastedContent.children).some(child => isSchemaContain(child, [Display.ListWrapper]));
+}
+
+/** Whether the paste holds nothing but list wrappers (and the whitespace between them). */
+function holdsOnlyLists(pastedContent: DocumentFragment) {
+    return Array.from(pastedContent.childNodes).every(child =>
+        isSchemaContain(child, [Display.ListWrapper]) ||
+        (child.nodeType === Node.TEXT_NODE && !child.textContent?.trim()));
 }
 
 /**
@@ -465,6 +470,16 @@ function pasteBetweenBlocks(contentEditable: HTMLElement, firstRoot: HTMLElement
     const pastedCursorPosition = table
         ? getCellCursorPosition(getFirstCell(table), cursorPosition)
         : getCursorPositionFromElement(getLastText(fragmentToInsert));
+
+    // A run of lists pasted into a list is spliced into it line by line rather than standing
+    // between its halves: the split can't hold a tail opening at a nested level, so it would
+    // flatten every line nested below the cursor's. The rebuild of the joined run sanitizes
+    // the pasted lines and remaps the cursor the way the DELETED tag does below.
+    if (isList && holdsOnlyLists(fragmentToInsert) && isSchemaContain(getFirstListWrapper(firstRoot), [Display.ListWrapper])) {
+        spliceListsAtCursor(contentEditable, firstRoot, cursorPosition, fragmentToInsert.firstElementChild as HTMLElement);
+
+        return mergeLists(contentEditable, pastedCursorPosition);
+    }
 
     // Wrap the pasted markup in a DELETED tag so removeAndNormalize rebuilds it in
     // place and remaps the cursor for us.

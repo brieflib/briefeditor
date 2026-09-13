@@ -6,9 +6,9 @@ import {
     getCursorPositionFrom
 } from "@/core/shared/type/cursor-position";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
-import {getFirstListWrapper, getListsOrderNumbers} from "@/core/list/util/list-util";
+import {getFirstListWrapper} from "@/core/list/util/list-util";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
-import {splitListAround} from "@/core/list/list";
+import {readSplitPoint, splitListAround} from "@/core/list/list";
 
 export function getChildFragment(child: Element) {
     const fragment = new DocumentFragment();
@@ -232,7 +232,7 @@ export function insertBetweenBlocks(contentEditable: HTMLElement, root: HTMLElem
     if (isSchemaContain(getFirstListWrapper(root), [Display.ListWrapper])) {
         // An empty item needs no branch of its own: the split drops the item it leaves
         // empty, so the node takes the place of an empty line inside a list too.
-        insertIntoList(contentEditable, root, cursorPosition, node, isAtStart, isAtEnd);
+        insertIntoList(contentEditable, root, cursorPosition, node);
     } else if (isSchemaContain(root, [Display.FirstLevel]) && isEmptyBlock(root)) {
         root.replaceWith(node);
     } else if (isAtStart) {
@@ -247,21 +247,8 @@ export function insertBetweenBlocks(contentEditable: HTMLElement, root: HTMLElem
     }
 }
 
-function insertIntoList(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition,
-                        node: Node, isAtStart: boolean, isAtEnd: boolean) {
-    // Read before the split: it inserts the second half right after the current item,
-    // leaving that item's own position untouched while carrying the cursor to the new one.
-    const index = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
-    let splitIndex = index;
-    if (!isAtStart) {
-        if (!isAtEnd) {
-            // Dividing an item rebuilds its list, leaving the root read above gone; the
-            // cursor stays with the half written before it, so the new list is read from there.
-            newLine(contentEditable, cursorPosition);
-            root = getRootElement(contentEditable, cursorPosition.startContainer);
-        }
-        splitIndex = index + 1;
-    }
+function insertIntoList(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition, node: Node) {
+    const splitPoint = readSplitPoint(contentEditable, root, cursorPosition);
 
-    splitListAround(root, cursorPosition, node, splitIndex);
+    splitListAround(splitPoint.root, cursorPosition, node, splitPoint.splitIndex);
 }

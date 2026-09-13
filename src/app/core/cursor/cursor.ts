@@ -43,6 +43,6 @@ export function isCursorIntersectBlocks(contentEditable: HTMLElement, cursorPosi
         return false;
     }
 
-    return getSelectedBlock(contentEditable).length > 1;
+    return getSelectedBlock(contentEditable, cursorPosition).length > 1;
 }
 

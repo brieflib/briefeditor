@@ -1168,6 +1168,133 @@ describe("Sanitize input", () => {
         `);
     });
 
+    // The selection runs from the heading into the first item, so the copy is a heading and a list; the
+    // heading's words join the item, and the list nested under it stays nested under the pasted item.
+    test("Should keep the nested list when what was copied from a heading into an item is pasted at the end of it", () => {
+        const wrapper = createWrapper(`
+            <h3 class="from">Ordered List</h3>
+            <ol>
+                <li class="start">first
+                    <ol>
+                        <li>Third ordered item</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const copyRange = new Range();
+        copyRange.setStart(getFirstChild(wrapper, ".from"), "".length);
+        copyRange.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(copyRange);
+        const copied = getSelectedHtml(getCursorPosition());
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+        const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h3 class="from">Ordered List</h3>
+            <ol>
+                <li>firstOrdered List</li>
+                <li>first
+                    <ol>
+                        <li>Third ordered item</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("first".length);
+    });
+
+    test("Should keep the nested list when what was copied from a heading into an item is pasted into a nested item", () => {
+        const wrapper = createWrapper(`
+            <h3 class="from">Ordered List</h3>
+            <ol>
+                <li class="to">first
+                    <ol>
+                        <li class="start">Third ordered item</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const copyRange = new Range();
+        copyRange.setStart(getFirstChild(wrapper, ".from"), "".length);
+        copyRange.setEnd(getFirstChild(wrapper, ".to"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(copyRange);
+        const copied = getSelectedHtml(getCursorPosition());
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "Third".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "Third".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+        pasteHtml(wrapper, copied, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <h3 class="from">Ordered List</h3>
+            <ol>
+                <li>first
+                    <ol>
+                        <li>ThirdOrdered List</li>
+                        <li>first</li>
+                        <li> ordered item</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+    });
+
+    // A paste takes the selection out the way Delete does before placing anything: the emptied blocks it
+    // ran through are gone, not left standing as a list with no lines.
+    describe("Paste over a selection ending on an empty nested item", () => {
+        const html = `<h3 class="from">Ordered List</h3><ol><li class="first">First ordered item<ol><li class="empty"><br></li></ol></li></ol>`;
+
+        function selectFromHeading(wrapper: HTMLElement) {
+            const range = new Range();
+            range.setStart(getFirstChild(wrapper, ".from"), "".length);
+            range.setEnd(wrapper.querySelector(".empty") as Node, 0);
+            (getRange as jest.Mock).mockReturnValue(range);
+        }
+
+        test("Should replace the selection with a pasted paragraph", () => {
+            const wrapper = createWrapper(html);
+            selectFromHeading(wrapper);
+
+            pasteHtml(wrapper, `<p>zero</p>`, getCursorPosition());
+
+            expectHtml(wrapper.innerHTML, `<p>zero</p>`);
+        });
+
+        test("Should write pasted words into the heading the selection started in", () => {
+            const wrapper = createWrapper(html);
+            selectFromHeading(wrapper);
+
+            const cursorPosition = pasteHtml(wrapper, `zero`, getCursorPosition());
+
+            expectHtml(wrapper.innerHTML, `<h3>zero</h3>`);
+            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h3")?.firstChild);
+            expect(cursorPosition.startOffset).toBe("zero".length);
+        });
+
+        test("Should replace the selection with what was copied from the heading into the first item", () => {
+            const wrapper = createWrapper(html);
+            const copyRange = new Range();
+            copyRange.setStart(getFirstChild(wrapper, ".from"), "".length);
+            copyRange.setEnd(getFirstChild(wrapper, ".first"), "First".length);
+            (getRange as jest.Mock).mockReturnValue(copyRange);
+            const copied = getSelectedHtml(getCursorPosition());
+
+            selectFromHeading(wrapper);
+            pasteHtml(wrapper, copied, getCursorPosition());
+
+            expectHtml(wrapper.innerHTML, `<h3>Ordered List</h3><ol><li>First</li></ol>`);
+        });
+    });
+
     test("Should take the place of the empty paragraph a list copied from a nested item is pasted into", () => {
         const wrapper = createWrapper(`
             <p><br></p>

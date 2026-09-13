@@ -1,6 +1,5 @@
 import {
     CursorPosition,
-    deleteContents,
     getCursorPosition,
     isCollapsed,
     setCursorPosition
@@ -9,6 +8,7 @@ import {getSelectedHtml, pasteHtml} from "@/core/clipboard/util/clipboard-util";
 import {ensureParagraph} from "@/core/shared/element-util";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {removeAndNormalize} from "@/core/normalize/normalize";
+import {deleteSelection} from "@/core/keyboard/util/keyboard-util";
 
 export function handleClipboardEvent(contentEditable: HTMLElement, event: ClipboardEvent): CursorPosition {
     let cursorPosition = getCursorPosition();
@@ -42,7 +42,7 @@ export function handleCutEvent(contentEditable: HTMLElement, event: ClipboardEve
     event.preventDefault();
     writeSelectionToClipboard(event, cursorPosition);
 
-    cursorPosition = deleteContents(cursorPosition);
+    cursorPosition = deleteSelection(contentEditable, cursorPosition);
     cursorPosition = ensureParagraph(contentEditable, cursorPosition);
 
     const firstRoot = getFirstSelectedRoot(contentEditable, cursorPosition);

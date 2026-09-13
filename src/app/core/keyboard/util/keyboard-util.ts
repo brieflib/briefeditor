@@ -16,9 +16,10 @@ import {
     getLastText,
     getNextNode, getNextNotEmptyNode,
     getPreviousNode,
-    hasSelfCloseDescendant
+    hasSelfCloseDescendant,
+    imageSelector
 } from "@/core/shared/element-util";
-import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
+import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {normalize} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
@@ -159,7 +160,15 @@ function isEmptyItemMergedInto(contentEditable: HTMLElement, cursorPosition: Cur
     return isSchemaContain(nextBlock, [Display.List]);
 }
 
+/**
+ * Deletes a selection spanning blocks: the end block's remainder is moved into the start block
+ * (after `pressedKey`, if a character was typed over the selection) and the lists around them
+ * are renormalized.
+ */
 export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = ""): CursorPosition {
+    // A caret the browser leaves on an empty item (rather than its br) wouldn't be read as
+    // standing in that item, nor survive the rebuild below; on the br it does both.
+    cursorPosition = anchorCursorOnLeaf(cursorPosition);
     const firstBlock = getSelectedBlock(contentEditable, cursorPosition)[0];
     const wasEmpty = !!firstBlock && isListEmpty(firstBlock);
     let cursorPositionAfterDelete = deleteContents(cursorPosition);
@@ -216,7 +225,13 @@ function appendToStartOfFirstBlock(contentEditable: HTMLElement, cursorPosition:
         if (isKeyPrintable(pressedKey)) {
             const textNode = document.createTextNode(pressedKey);
             getFirstText(firstBlock).after(textNode);
+            // Reading the fragment empties the last block either way, so an emptied item is
+            // dropped by the list rebuild; its placeholder br is only worth carrying over when
+            // the first block has no line of its own left - after text it would be a stray break.
             const fragment = getChildFragment(lastBlock);
+            if (isPlaceholderFragment(fragment) && firstBlock.textContent) {
+                return lastBlock;
+            }
             const nestedListWrapper = getDirectChildren(firstBlock, [Display.ListWrapper])[0];
             if (nestedListWrapper) {
                 nestedListWrapper.before(fragment);
@@ -227,6 +242,33 @@ function appendToStartOfFirstBlock(contentEditable: HTMLElement, cursorPosition:
     }
 
     return lastBlock;
+}
+
+/** Whether a block's content is nothing but the br standing in for its line. */
+function isPlaceholderFragment(fragment: DocumentFragment): boolean {
+    return !fragment.textContent && !fragment.querySelector(imageSelector);
+}
+
+/**
+ * Removes a selection the way Delete/Backspace do: one spanning blocks merges its end block
+ * into its start block and renormalizes the lists around them; one inside a block just drops
+ * the text, giving the block back its br if nothing is left.
+ */
+export function deleteSelection(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    if (isCursorIntersectBlocks(contentEditable, cursorPosition)) {
+        return mergeBlocks(contentEditable, cursorPosition);
+    }
+
+    // A selection held in one text node leaves nothing broken behind once its characters are
+    // gone, unless it was the block's whole line - then the block needs its br back.
+    const isTextOnly = cursorPosition.startContainer === cursorPosition.endContainer &&
+        cursorPosition.startContainer.nodeType === Node.TEXT_NODE;
+    cursorPosition = deleteContents(cursorPosition);
+    if (!isTextOnly || !cursorPosition.startContainer.textContent) {
+        cursorPosition = addBrForEmptyBlockAndNormalize(contentEditable, cursorPosition);
+    }
+
+    return cursorPosition;
 }
 
 function isKeyPrintable(key: string) {

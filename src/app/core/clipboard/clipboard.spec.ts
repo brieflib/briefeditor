@@ -78,6 +78,35 @@ describe("Cut", () => {
         expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
     });
 
+    // A cut takes the selection out the way Delete does: the halves of the two lines it ran between are
+    // joined into one line, not left as a line each.
+    test("Should join the lines a cut ran between", () => {
+        const wrapper = createWrapper(`<p>zero</p><p>first</p>`);
+        const range = new Range();
+        range.setStart(wrapper.firstChild?.firstChild as Node, "ze".length);
+        range.setEnd(wrapper.lastChild?.firstChild as Node, "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = handleCutEvent(wrapper, cutEvent());
+
+        expectHtml(wrapper.innerHTML, `<p>zerst</p>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
+        expect(cursorPosition.startOffset).toBe("ze".length);
+    });
+
+    test("Should leave an empty heading when a cut runs from it into an empty nested item", () => {
+        const wrapper = createWrapper(`<h3>Ordered List</h3><ol><li>First ordered item<ol><li class="empty"><br></li></ol></li></ol>`);
+        const range = new Range();
+        range.setStart(wrapper.firstChild?.firstChild as Node, 0);
+        range.setEnd(wrapper.querySelector(".empty") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = handleCutEvent(wrapper, cutEvent());
+
+        expectHtml(wrapper.innerHTML, `<h3><br></h3>`);
+        expect(cursorPosition.startContainer.isConnected).toBe(true);
+    });
+
     test("Should leave an empty paragraph when the whole document is cut", () => {
         const wrapper = createWrapper(`<p>zero</p><p>first</p>`);
         const range = new Range();

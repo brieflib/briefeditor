@@ -6,7 +6,7 @@ import {
     mergeBlocks,
     mergeNextBlock,
     mergePreviousBlock, insertBreak,
-    addBrForEmptyBlockAndNormalize,
+    deleteSelection,
     deleteNextCharacter,
     deletePreviousCharacter,
     insertCharacter,
@@ -88,12 +88,7 @@ export function handleKeyboardEvent(contentEditable: HTMLElement, event: Keyboar
     if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
         if (!isCollapsed(cursorPosition)) {
-            const isTextOnly = cursorPosition.startContainer === cursorPosition.endContainer &&
-                cursorPosition.startContainer.nodeType === Node.TEXT_NODE;
-            cursorPosition = deleteContents(cursorPosition);
-            if (!isTextOnly || !cursorPosition.startContainer.textContent) {
-                cursorPosition = addBrForEmptyBlockAndNormalize(contentEditable, cursorPosition);
-            }
+            cursorPosition = deleteSelection(contentEditable, cursorPosition);
         } else {
             cursorPosition = event.key === "Backspace"
                 ? deletePreviousCharacter(contentEditable, cursorPosition)

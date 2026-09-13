@@ -9,7 +9,8 @@ import {
     getPreviousListWrapper,
     isListEmpty
 } from "@/core/list/util/list-util";
-import {getFirstText} from "@/core/shared/element-util";
+import {getFirstText, getRootElement} from "@/core/shared/element-util";
+import {newLine} from "@/core/keyboard/util/keyboard-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {
@@ -223,12 +224,26 @@ export function maybeInsertLists(contentEditable: HTMLElement, cursorPosition: C
         return cursorPosition;
     }
 
-    const lists = parseList(listRoot);
-    const normalized = normalizeLists(lists, cursorPosition);
-    const listWrappers = convertList(normalized.lists);
-    appendBeforeAndDelete(listRoot, listWrappers);
+    return normalizeList(listRoot, cursorPosition);
+}
+
+/**
+ * Writes `lists` back in place of `root`'s run after an edit: renumbers levels, drops emptied
+ * lines (`dropped` names one to drop explicitly) and rebuilds the markup.
+ *
+ * @returns The cursor, redirected if its line was dropped.
+ */
+export function rebuildList(root: HTMLElement, lists: ListClass[], cursorPosition: CursorPosition,
+                            dropped?: ListClass): CursorPosition {
+    const normalized = normalizeLists(lists, cursorPosition, dropped);
+    appendBeforeAndDelete(root, convertList(normalized.lists));
 
     return normalized.cursorPosition;
+}
+
+/** Reads `root`'s run and rebuilds it as is - the normalization pass on its own. */
+export function normalizeList(root: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
+    return rebuildList(root, parseList(root), cursorPosition);
 }
 
 /**
@@ -257,10 +272,7 @@ export function changeListWrapper(contentEditable: HTMLElement, tagName: string)
         }
     }
 
-    const normalized = normalizeLists(lists, cursorPosition);
-    appendBeforeAndDelete(root, convertList(normalized.lists));
-
-    return normalized.cursorPosition;
+    return rebuildList(root, lists, cursorPosition);
 }
 
 /** Backspace at the start of an item: merges it into the empty item above it (if any). */
@@ -307,10 +319,7 @@ function mergeIntoEmptyItem(contentEditable: HTMLElement, cursorPosition: Cursor
 
     // A cursor on the empty item's br is the one node the rebuild discards; normalizeLists
     // carries it over to the item that took its line.
-    const normalized = normalizeLists(lists, cursorPosition, isListClassEmpty(empty) ? empty : undefined);
-    appendBeforeAndDelete(root, convertList(normalized.lists));
-
-    return normalized.cursorPosition;
+    return rebuildList(root, lists, cursorPosition, isListClassEmpty(empty) ? empty : undefined);
 }
 
 /**
@@ -330,10 +339,7 @@ export function removeEmptyItem(contentEditable: HTMLElement, cursorPosition: Cu
         lists.splice(orderNumber, 1);
     }
 
-    const normalized = normalizeLists(lists, cursorPosition);
-    appendBeforeAndDelete(root, convertList(normalized.lists));
-
-    return normalized.cursorPosition;
+    return rebuildList(root, lists, cursorPosition);
 }
 
 /**
@@ -366,13 +372,12 @@ export function splitItem(contentEditable: HTMLElement, cursorPosition: CursorPo
     // all, which the rebuild would read as a dropped line - give it back its br.
     keepLine(current);
 
-    const normalized = normalizeLists(lists, cursorPosition);
-    appendBeforeAndDelete(root, convertList(normalized.lists));
+    const rebuiltCursorPosition = rebuildList(root, lists, cursorPosition);
 
     // Writing continues at the start of the item that took over the broken line; a blank
     // line opened above leaves the writer where they already were.
     if (isBefore || !firstNode) {
-        return normalized.cursorPosition;
+        return rebuiltCursorPosition;
     }
 
     const firstText = getFirstText(firstNode);
@@ -511,4 +516,61 @@ export function splitListAround(root: HTMLElement, cursorPosition: CursorPositio
         isListClassEmpty(splitAt) ? splitAt : undefined).lists));
 
     appendBeforeAndDelete(root, fragment);
+}
+
+export interface SplitPoint {
+    /** The wrapper the cursor's run is read from; rebuilt anew when the cursor's line was divided. */
+    root: HTMLElement;
+    /** The order number of the cursor's line. */
+    index: number;
+    /** The order number the run is opened at: the cursor's line or the one after it. */
+    splitIndex: number;
+}
+
+/**
+ * Finds where a run of items is opened for something placed at the cursor. A cursor mid-line
+ * divides the line first, so the opening always falls between two lines; a cursor at the start
+ * of a line opens the run before it, anywhere else after it.
+ */
+export function readSplitPoint(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition): SplitPoint {
+    const isAtStart = isCursorAtStartOfBlock(contentEditable, cursorPosition);
+    const isAtEnd = isCursorAtEndOfBlock(contentEditable, cursorPosition);
+
+    // Read before the split: it inserts the second half right after the current item,
+    // leaving that item's own position untouched while carrying the cursor to the new one.
+    const index = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
+    if (isAtStart) {
+        return {root, index, splitIndex: index};
+    }
+
+    if (!isAtEnd) {
+        // Dividing an item rebuilds its list, leaving the root read above gone; the cursor
+        // stays with the half written before it, so the new list is read from there.
+        newLine(contentEditable, cursorPosition);
+        root = getRootElement(contentEditable, cursorPosition.startContainer);
+    }
+
+    return {root, index, splitIndex: index + 1};
+}
+
+/**
+ * Splices the lines of `pastedWrapper`'s run into the list at the cursor, at the cursor line's
+ * level, so nesting on either side of the paste survives: a line nested below the cursor's
+ * ends up under the last pasted line, the way Enter carries it to the new item. A cursor
+ * mid-line is divided first; an empty cursor line is replaced rather than kept.
+ */
+export function spliceListsAtCursor(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition,
+                                    pastedWrapper: HTMLElement): CursorPosition {
+    const splitPoint = readSplitPoint(contentEditable, root, cursorPosition);
+    const lists = parseList(splitPoint.root);
+    const splitAt = lists[splitPoint.splitIndex];
+    // The cursor's own line sets the level, not the line at the split - that one can be a
+    // nested child of it, or missing when the cursor closes the run.
+    const level = lists[splitPoint.index]?.nestedLevel ?? 0;
+
+    const pasted = parseList(pastedWrapper);
+    shiftOrderNumbers(pasted, pasted.map((_, i) => i), level);
+    lists.splice(splitPoint.splitIndex, 0, ...pasted);
+
+    return rebuildList(splitPoint.root, lists, cursorPosition, isListClassEmpty(splitAt) ? splitAt : undefined);
 }

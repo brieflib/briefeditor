@@ -84,6 +84,26 @@ describe("History undo/redo", () => {
         expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
     });
 
+    // Typing over this selection used to throw while the cursor was set, which broke off the edit before the
+    // history saw it - so neither undo nor redo had anything to work with.
+    test("Should undo and redo a character typed over a selection ending on an empty nested item", () => {
+        const wrapper = createWrapper(`<h3 class="start">Ordered List</h3><ol><li>First ordered item<ol><li class="empty"><br></li></ol></li></ol>`);
+        const history = new History(wrapper);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(wrapper.querySelector(".empty") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+        command(wrapper, {action: Action.Keyboard, event: keydownEvent("z")});
+        expectHtml(wrapper.innerHTML, `<h3>z</h3>`);
+
+        history.undo();
+        expectHtml(wrapper.innerHTML, `<h3 class="start">Ordered List</h3><ol><li>First ordered item<ol><li class="empty"><br></li></ol></li></ol>`);
+
+        history.redo();
+        expectHtml(wrapper.innerHTML, `<h3>z</h3>`);
+    });
+
     test("Should undo a first level command", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         const history = new History(wrapper);

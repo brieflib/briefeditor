@@ -21,6 +21,7 @@ import {
     isCursorPositionEqual
 } from "@/core/shared/type/cursor-position";
 import {getFirstSelectedRoot, getSelectedRoot} from "@/core/selection/selection";
+import {getNextListWrapper, getPreviousListWrapper} from "@/core/list/util/list-util";
 import {applyAttributes} from "@/core/command/util/command-util";
 import {Attributes} from "@/core/command/type/command";
 
@@ -125,37 +126,45 @@ export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLEl
     replaceElement(collapseLeaves(leaves), rootElement);
 }
 
-export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+/**
+ * Rebuilds the whole list run the cursor is in as one root, joining its wrappers and
+ * sanitizing every line the way {@link removeAndNormalize} does.
+ *
+ * @returns The cursor remapped across the rebuild; unchanged if the cursor is in no run.
+ */
+export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): CursorPosition {
     const rootElements = getSelectedRoot(contentEditable, cursorPosition);
 
     const firstRoot = rootElements[0];
     if (!firstRoot) {
-        return;
+        return cursorPosition;
     }
 
-    // Collect the previous ul/ol/li siblings.
-    let previousListWrapper = firstRoot.previousElementSibling;
-    while (previousListWrapper && isSchemaContain(previousListWrapper, [Display.ListWrapper, Display.List])) {
+    // Collect the previous ul/ol/li siblings. The run ends at any text written between
+    // two lists, the same as everywhere else a run is walked.
+    let previousListWrapper = getPreviousListWrapper(firstRoot);
+    while (previousListWrapper) {
         rootElements.unshift(previousListWrapper as HTMLElement);
-        previousListWrapper = previousListWrapper.previousElementSibling;
+        previousListWrapper = getPreviousListWrapper(previousListWrapper);
     }
 
     // Fill array with next ul, ol and li
     const lastRoot = rootElements[rootElements.length - 1];
     if (!lastRoot) {
-        return;
+        return cursorPosition;
     }
-    let nextListWrapper = lastRoot.nextElementSibling;
-    while (nextListWrapper && isSchemaContain(nextListWrapper, [Display.ListWrapper, Display.List])) {
+    let nextListWrapper = getNextListWrapper(lastRoot);
+    while (nextListWrapper) {
         rootElements.push(nextListWrapper as HTMLElement);
-        nextListWrapper = nextListWrapper.nextElementSibling;
+        nextListWrapper = getNextListWrapper(nextListWrapper);
     }
 
     // Wrap all elements in tag and normalize
     const wrapper = document.createElement("DELETED");
     firstRoot.before(wrapper);
     wrapper.append(...rootElements);
-    removeAndNormalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
+
+    return removeAndNormalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
 }
 
 /**
