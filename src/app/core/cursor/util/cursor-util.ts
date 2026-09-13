@@ -1,8 +1,7 @@
 import {
     CursorPosition,
     getCursorPositionFrom,
-    isCollapsed,
-    setCursorPosition
+    isCollapsed
 } from "@/core/shared/type/cursor-position";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
@@ -125,20 +124,6 @@ export function atEnd(element: Node) {
     return getCursorPositionFrom(lastText, offset, lastText, offset);
 }
 
-/** Whether a key press is an unmodified arrow among `keys` - a plain cursor move a guard may take over. */
-export function isArrowKey(event: KeyboardEvent, keys: string[]) {
-    if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) {
-        return false;
-    }
-
-    return keys.includes(event.key);
-}
-
-/** Whether a click places the cursor: a shifted or non-primary click extends or ignores the selection instead. */
-export function isPlainClick(event: MouseEvent) {
-    return event.button === 0 && !event.shiftKey;
-}
-
 /** The edge of the block beside `element` the cursor lands on when carried past it, or `null` if there is none. */
 export function getSiblingTarget(element: Element, isBefore: boolean) {
     const sibling = isBefore ? element.previousElementSibling : element.nextElementSibling;
@@ -147,12 +132,6 @@ export function getSiblingTarget(element: Element, isBefore: boolean) {
     }
 
     return isBefore ? atEnd(sibling) : atStart(sibling);
-}
-
-export function applyCursor(contentEditable: HTMLElement, target: CursorPosition) {
-    setCursorPosition(contentEditable, target);
-
-    return target;
 }
 
 /**

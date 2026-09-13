@@ -1,22 +1,18 @@
 import {
-    applyCursor,
     atEnd,
     atStart,
     getStrandedTable,
     getFirstCell,
     getLastCell,
     getSiblingTarget,
-    isArrowKey,
     isCursorAtEndOfCell,
     isCursorAtStartOfCell,
-    isPlainClick,
-    getCursorOffsetInElement,
-    getCursorPositionFromPoint,
     getCursorCell
 } from "@/core/cursor/util/cursor-util";
+import {BlockCursor} from "@/core/cursor/util/block-cursor";
 import {getRootElement} from "@/core/shared/element-util";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {CursorPosition, getCursorPosition, isCollapsed} from "@/core/shared/type/cursor-position";
+import {CursorPosition} from "@/core/shared/type/cursor-position";
 
 /**
  * Keeps the cursor out of the empty slot Chrome parks it in before or after a table - a
@@ -24,39 +20,14 @@ import {CursorPosition, getCursorPosition, isCollapsed} from "@/core/shared/type
  *
  * @remarks
  * Only three actions lead there: a horizontal move out of an edge cell, a horizontal move
- * into a neighbouring table, and a click in the table's margin. Each is intercepted before
- * the browser acts on it, so the cursor never reaches the slot and never needs correcting.
+ * into a neighbouring table, and a click in the table's margin.
  */
-export class TableCursor {
-    private readonly contentEditable: HTMLElement;
+export class TableCursor extends BlockCursor {
+    protected readonly keys = ["ArrowLeft", "ArrowRight"];
 
-    constructor(contentEditable: HTMLElement) {
-        this.contentEditable = contentEditable;
-
-        // Capture wins when the event targets a descendant; registering before the editor's
-        // own keydown listener covers the case where the editor itself is the target. A
-        // default action only runs once the whole dispatch is over, so preventDefault here
-        // still stops it either way.
-        contentEditable.addEventListener("keydown", (event) => this.onKeyDown(event), true);
-        contentEditable.addEventListener("mousedown", (event) => this.onMouseDown(event), true);
-    }
-
-    /**
-     * Redirects a click that would otherwise land in the table's dead slot into the nearest
-     * edge cell. Unlike a key, a click can't be intercepted after the fact since the browser
-     * places the cursor itself - so this asks where it would land before it does.
-     */
-    onMouseDown(event: MouseEvent, resolved?: CursorPosition | null): CursorPosition | null {
-        // A shifted click extends the selection instead of placing the cursor, so the hit
-        // test below only runs once the click is known to be a plain one.
-        if (!isPlainClick(event)) {
-            return null;
-        }
-
-        const cursorPosition = resolved === undefined
-            ? getCursorPositionFromPoint(event.clientX, event.clientY)
-            : resolved;
-        const stranded = cursorPosition && getStrandedTable(cursorPosition);
+    /** A click in the table's dead slot goes into the nearest edge cell. */
+    protected getClickTarget(event: MouseEvent, cursorPosition: CursorPosition): CursorPosition | null {
+        const stranded = getStrandedTable(cursorPosition);
         if (!stranded) {
             return null;
         }
@@ -67,46 +38,29 @@ export class TableCursor {
             return null;
         }
 
-        event.preventDefault();
-        // A prevented click no longer focuses the editor, and focusing would drop the selection.
-        this.contentEditable.focus();
-
-        return applyCursor(this.contentEditable, stranded.isBefore ? atStart(cell) : atEnd(cell));
+        return stranded.isBefore ? atStart(cell) : atEnd(cell);
     }
 
     /**
-     * Redirects an arrow-key move that would carry the cursor into (or out of) the table's
-     * dead slot. Done before the browser moves the cursor itself, since correcting it
-     * afterwards would still paint one frame with the cursor in the slot.
+     * Both a move out of an edge cell and a move into the table from a neighbouring block land
+     * in the slot, so the browser's own move is unwanted at either edge.
      */
-    onKeyDown(event: KeyboardEvent): CursorPosition | null {
-        if (!isArrowKey(event, ["ArrowLeft", "ArrowRight"])) {
+    protected getEnteredBlock(key: string, cursorPosition: CursorPosition, isBefore: boolean): HTMLElement | null {
+        return this.getEscapedTable(cursorPosition, isBefore) ?? this.getEnteredTable(cursorPosition, isBefore);
+    }
+
+    /** Leaving the table lands on the block beside it; entering one lands in its edge cell. */
+    protected getMoveTarget(table: HTMLElement, cursorPosition: CursorPosition, isBefore: boolean): CursorPosition | null {
+        if (table.contains(cursorPosition.startContainer)) {
+            return getSiblingTarget(table, isBefore);
+        }
+
+        const cell = isBefore ? getLastCell(table as HTMLTableElement) : getFirstCell(table as HTMLTableElement);
+        if (!cell) {
             return null;
         }
 
-        const cursorPosition = getCursorPosition();
-        if (!isCollapsed(cursorPosition)) {
-            return null;
-        }
-
-        const isBefore = event.key === "ArrowLeft";
-
-        // Both a move out of an edge cell and a move into the table from a neighbouring block
-        // land in the slot, so the browser's own move is unwanted at either edge.
-        const table = this.getEscapedTable(cursorPosition, isBefore);
-        if (table) {
-            event.preventDefault();
-            const target = getSiblingTarget(table, isBefore);
-            return target ? applyCursor(this.contentEditable, target) : null;
-        }
-
-        const entered = this.getEnteredTarget(cursorPosition, isBefore);
-        if (entered) {
-            event.preventDefault();
-            return applyCursor(this.contentEditable, entered);
-        }
-
-        return null;
+        return isBefore ? atEnd(cell) : atStart(cell);
     }
 
     /** The table the cursor is about to be carried out of, or `null` if the browser's own move is fine. */
@@ -130,33 +84,14 @@ export class TableCursor {
         return isAtEdge ? table : null;
     }
 
-    /** The edge cell of a neighbouring table the cursor is about to be carried into. */
-    private getEnteredTarget(cursorPosition: CursorPosition, isBefore: boolean) {
-        // getRootElement stops at the editor's own child, so its parent doubles as the containment test.
-        const root = getRootElement(this.contentEditable, cursorPosition.startContainer);
-        if (root.parentElement !== this.contentEditable || isSchemaContain(root, [Display.Table])) {
+    /** The neighbouring table the cursor is about to be carried into. */
+    private getEnteredTable(cursorPosition: CursorPosition, isBefore: boolean) {
+        const neighbour = this.getNeighbour(cursorPosition, isBefore);
+        if (!neighbour || isSchemaContain(neighbour.root, [Display.Table]) ||
+            !isSchemaContain(neighbour.sibling, [Display.Table])) {
             return null;
         }
 
-        const sibling = isBefore ? root.previousElementSibling : root.nextElementSibling;
-        if (!isSchemaContain(sibling, [Display.Table])) {
-            return null;
-        }
-
-        // Measured against the whole root element so a list's inner blocks are stepped
-        // through first, and only its very edge carries the cursor into the table.
-        const offset = getCursorOffsetInElement(root, cursorPosition);
-        if (offset !== (isBefore ? 0 : root.textContent.length)) {
-            return null;
-        }
-
-        const table = sibling as HTMLTableElement;
-        const cell = isBefore ? getLastCell(table) : getFirstCell(table);
-        if (!cell) {
-            return null;
-        }
-
-        return isBefore ? atEnd(cell) : atStart(cell);
+        return this.isAtRootEdge(neighbour.root, cursorPosition, isBefore) ? neighbour.sibling as HTMLElement : null;
     }
-
 }
