@@ -248,7 +248,6 @@ export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: 
     selection.removeAllRanges();
     selection.addRange(range);
 
-
     scrollToViewport(contentEditable, cursorPosition, command);
 }
 
