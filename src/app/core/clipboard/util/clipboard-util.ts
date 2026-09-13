@@ -199,12 +199,15 @@ function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | nul
         node.remove();
     });
 
+    removeEmptyTags(doc.body);
     replaceDivs(doc.body);
 
     // Unwrapping drops every list tag, including an item left standing outside its wrapper,
     // so there's no list left to read.
     if (cell) {
         removeImages(doc.body);
+        // Dropping an image can leave the formatting around it holding nothing.
+        removeEmptyTags(doc.body);
         unwrapBlocks(doc.body);
         return doc.body;
     }
@@ -266,6 +269,22 @@ function replaceDivs(root: ParentNode) {
         paragraph.append(...div.childNodes);
         div.replaceWith(paragraph);
     });
+}
+
+/**
+ * Removes every element holding nothing, so empty markup never reads as content. A br or an
+ * image holds nothing by nature, and an empty cell is a cell of its table, so both are kept.
+ * Whitespace is left alone: formatted whitespace is the blank paste it's read as.
+ */
+function removeEmptyTags(root: ParentNode) {
+    // Document order lists a parent before its descendants, so walking it backwards empties a
+    // parent before it's looked at and removes it in the same pass.
+    const elements = Array.from(root.querySelectorAll("*")).reverse();
+    for (const element of elements) {
+        if (!element.hasChildNodes() && !isSchemaContain(element, [Display.SelfClose, Display.Cell])) {
+            element.remove();
+        }
+    }
 }
 
 function removeImages(root: ParentNode) {

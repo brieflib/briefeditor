@@ -2086,8 +2086,98 @@ describe("Sanitize input", () => {
 
         pasteHtml(wrapper, `<b></b>`, getCursorPosition());
 
+        // The paste is empty once the tag is dropped, so it returns before anything is rebuilt
+        // and the markup is left exactly as it was, the marker class included.
         expectHtml(wrapper.innerHTML, `
-            <p>zero</p>
+            <p class="start">zero</p>
+        `);
+    });
+
+    // An empty tag isn't content the block's br is replaced by: the paste holds nothing once the tag is
+    // dropped, so the block is left as it was.
+    test("Should leave an empty paragraph alone when formatting holding nothing is pasted into it", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<b></b>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p><br></p>
+        `);
+    });
+
+    test("Should leave an empty paragraph alone when a paragraph holding nothing is pasted into it", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p></p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p><br></p>
+        `);
+    });
+
+    test("Should leave an empty paragraph alone when nested formatting holding nothing is pasted into it", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p><b><i></i></b></p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p><br></p>
+        `);
+    });
+
+    test("Should drop formatting holding nothing standing among pasted lines", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p>a</p><b></b><p>b</p>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <p>a</p><p>b</p>
+        `);
+    });
+
+    // An empty cell is a cell of its table, not an empty tag to drop.
+    test("Should keep the empty cells of a pasted table", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<table><tbody><tr><td>a</td><td></td></tr></tbody></table>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>a</td><td></td></tr></tbody></table>
         `);
     });
 
@@ -2960,6 +3050,30 @@ describe("Paste into a table cell", () => {
 
         // The paste is empty once the image is dropped, so it returns before anything is
         // rebuilt and the markup is left exactly as it was, the marker class included.
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
+        `);
+
+        const cell = wrapper.querySelector("td");
+        expect(cursorPosition.startContainer).toBe(cell?.firstChild);
+        expect(cursorPosition.startOffset).toBe("fo".length);
+        expect(cursorPosition.endOffset).toBe("fo".length);
+    });
+
+    // Dropping the image leaves its formatting holding nothing, which goes the same way as the image.
+    test("Should paste nothing when the pasted content is an image inside formatting", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fo".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fo".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<b><img src="${image}"></b>`, cursorPosition);
+
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
         `);
