@@ -1299,6 +1299,26 @@ describe("Typing and deleting characters", () => {
         `);
         expect(preventDefault).not.toHaveBeenCalled();
     });
+
+    test.each(["Home", "End", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "F1", "Tab", "Escape"])(
+        "%s over a selection across blocks does not change the dom and is not prevented", (key) => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p><p class="end">first</p>
+        `);
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const keyboardEvent = new KeyboardEvent("keydown", {key});
+        const preventDefault = jest.spyOn(keyboardEvent, "preventDefault");
+        handleKeyboardEvent(wrapper, keyboardEvent);
+
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zero</p><p class="end">first</p>
+        `);
+        expect(preventDefault).not.toHaveBeenCalled();
+    });
 });
 // A browser leaves the caret in an empty item on the item itself rather than on its br; both must read
 // the same, so every case here runs with the caret in either place.

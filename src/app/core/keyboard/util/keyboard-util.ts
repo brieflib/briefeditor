@@ -251,16 +251,17 @@ function removePlaceholder(block: HTMLElement, cursorPosition: CursorPosition): 
     return getCursorPositionFrom(firstText, 0, firstText, 0);
 }
 
+/**
+ * A key the editor leaves to the browser: a shortcut, or any key that writes nothing - navigation
+ * (Home, End, arrows, Page Up/Down), function keys, modifiers, Escape, Insert and so on. Only Enter,
+ * Backspace, Delete and printable keys edit, so the check is a whitelist rather than a list of keys.
+ */
 export function isSpecialKey(event: KeyboardEvent) {
     if (event.ctrlKey || event.altKey || event.metaKey) {
         return true;
     }
 
-    return [
-        "Control", "Alt", "Meta", "Escape", "Insert", "Shift",
-        "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
-        "CapsLock", "NumLock", "ScrollLock", "Pause"
-    ].includes(event.key);
+    return !["Enter", "Backspace", "Delete"].includes(event.key) && !isPrintableKey(event);
 }
 
 function appendToStartOfFirstBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition, pressedKey = "", firstBlock?: HTMLElement) {
