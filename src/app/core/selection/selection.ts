@@ -6,9 +6,10 @@ import {
     SelectionType
 } from "@/core/selection/util/selection-util";
 import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export function getSelectedSharedTags(findTill: HTMLElement, cursorPosition = getCursorPosition()) {
-    const leafNodes = getSelectedLeaves(findTill);
+    let leafNodes = getSelectedLeaves(findTill);
 
     if (leafNodes.length > 1 && cursorPosition.endOffset === 0) {
         leafNodes.pop();
@@ -16,6 +17,13 @@ export function getSelectedSharedTags(findTill: HTMLElement, cursorPosition = ge
 
     if (leafNodes.length > 1 && cursorPosition.startContainer.textContent?.length === cursorPosition.startOffset) {
         leafNodes.shift();
+    }
+
+    // An image or an empty line among the selected words is skipped by the tag command, so it must
+    // not hide the tags the words share; on its own it still names the block the cursor is in.
+    const words = leafNodes.filter(leaf => !isSchemaContain(leaf, [Display.SelfClose]));
+    if (words.length > 0) {
+        leafNodes = words;
     }
 
     const shared: string[][] = [];

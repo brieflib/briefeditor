@@ -132,6 +132,73 @@ describe("Shared tags", () => {
 
         expect(shared).toStrictEqual(["H1"]);
     });
+
+    // The tag command skips an image block and an empty line, so neither hides the tags the words share.
+    test("Should ignore an image between the selected words", () => {
+        const wrapper = createWrapper(`
+            <p><strong class="start">zero</strong></p>
+            <p class="be-image"><img src="image.png"></p>
+            <p><strong class="end">first</strong></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const shared = getSelectedSharedTags(wrapper);
+
+        expect(shared).toStrictEqual(["STRONG", "P"]);
+    });
+
+    test("Should ignore an empty line between the selected words", () => {
+        const wrapper = createWrapper(`
+            <p><strong class="start">zero</strong></p>
+            <p><br></p>
+            <p><strong class="end">first</strong></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const shared = getSelectedSharedTags(wrapper);
+
+        expect(shared).toStrictEqual(["STRONG", "P"]);
+    });
+
+    test("Should ignore an image the selection ends on", () => {
+        const wrapper = createWrapper(`
+            <p><strong class="start">zero</strong></p>
+            <p class="be-image"><img src="image.png"></p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(wrapper.querySelector(".be-image") as Node, 1);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const shared = getSelectedSharedTags(wrapper);
+
+        expect(shared).toStrictEqual(["STRONG", "P"]);
+    });
+
+    test("Should find parents of an image selected on its own", () => {
+        const wrapper = createWrapper(`
+            <p><strong>zero</strong></p>
+            <p class="be-image"><img src="image.png"></p>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".be-image") as Node, 0);
+        range.setEnd(wrapper.querySelector(".be-image") as Node, 1);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const shared = getSelectedSharedTags(wrapper);
+
+        expect(shared).toStrictEqual(["P"]);
+    });
 });
 
 test("Should find first level elements arranged by selection", () => {
