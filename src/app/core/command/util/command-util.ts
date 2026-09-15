@@ -1,8 +1,8 @@
 import {appendTag, mergeLists, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {getElement, getFirstText, getLastText} from "@/core/shared/element-util";
+import {getElement, getFirstText, getLastText, isImageBlock} from "@/core/shared/element-util";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {getSelectedBlock, getSelectedListWrapper} from "@/core/selection/selection";
+import {getSelectedBlock, getSelectedInlineContainer, getSelectedListWrapper} from "@/core/selection/selection";
 import {Action, Attributes} from "@/core/command/type/command";
 import {
     CursorPosition,
@@ -30,24 +30,36 @@ export function removeBlock(block: Element, cursorPosition: CursorPosition): Cur
     return next ? atStart(next) : cursorPosition;
 }
 
+/**
+ * Wraps the selection in `tag` or unwraps it, one block, item or cell at a time - a cell is
+ * handled on its own the way a paragraph is, since extracting a range across cells would
+ * clone the cells it cuts through. An image block holds nothing inline to tag and is skipped.
+ */
 export function tag(contentEditable: HTMLElement, tag: string, action: Action, attributes?: Attributes): CursorPosition {
     const cursorPosition = getCursorPosition();
     Carrier.setCursorCollapsed(isCollapsed(cursorPosition));
     let resultCursorPosition = cursorPosition;
 
-    const startFirstLevel = getElement(contentEditable, cursorPosition.startContainer as HTMLElement, [Display.FirstLevel, Display.List]);
-    const endFirstLevel = getElement(contentEditable, cursorPosition.endContainer as HTMLElement, [Display.FirstLevel, Display.List]);
+    const containers = [Display.FirstLevel, Display.List, Display.Cell];
+    const startContainer = getElement(contentEditable, cursorPosition.startContainer as HTMLElement, containers);
+    const endContainer = getElement(contentEditable, cursorPosition.endContainer as HTMLElement, containers);
 
-    if (startFirstLevel === endFirstLevel) {
+    if (startContainer === endContainer) {
+        if (isImageBlock(startContainer)) {
+            return cursorPosition;
+        }
+
         return tagAction(contentEditable, cursorPosition, tag, action, attributes);
     }
 
-    const length = getSelectedBlock(contentEditable).length;
+    const length = getSelectedInlineContainer(contentEditable).length;
     for (let i = 0; i < length; i++) {
-        const elements = getSelectedBlock(contentEditable, resultCursorPosition);
+        const elements = getSelectedInlineContainer(contentEditable, resultCursorPosition);
 
+        // An empty cell has no br to anchor a tag on, and the rebuild keeps it as it is, so a
+        // tag written into it would be left there; an element without text has nothing to tag anyway.
         const element = elements[i];
-        if (!element) {
+        if (!element || isImageBlock(element) || !element.textContent) {
             continue;
         }
 

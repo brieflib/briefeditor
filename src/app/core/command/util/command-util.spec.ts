@@ -105,6 +105,29 @@ describe("Unwrap tag", () => {
             </ul>
         `);
     });
+
+    test("Should unwrap strong from different cells", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr>
+                <td><strong class="start">zero</strong></td>
+                <td><strong class="end">first</strong></td>
+            </tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "STRONG", Action.Unwrap);
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr>
+                <td>zero</td>
+                <td>first</td>
+            </tr></tbody></table>
+        `);
+    });
 });
 
 describe("Wrap in tag", () => {
@@ -247,6 +270,115 @@ describe("Wrap in tag", () => {
                 <li>ze<strong>ro</strong></li>
             </ul>
             <p><strong>fi</strong>rst</p>
+        `);
+    });
+
+    // A range extracted across cells clones the cells it cuts through, so each cell is wrapped on its own.
+    test("Should wrap the selected text of each cell on its own", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr>
+                <td class="start">zero</td>
+                <td>first</td>
+                <td class="end">second</td>
+            </tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "STRONG", Action.Wrap);
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr>
+                <td>ze<strong>ro</strong></td>
+                <td><strong>first</strong></td>
+                <td><strong>se</strong>cond</td>
+            </tr></tbody></table>
+        `);
+    });
+
+    test("Should wrap cells across a header and a body row", () => {
+        const wrapper = createWrapper(`
+            <table>
+                <thead><tr><th class="start">zero</th></tr></thead>
+                <tbody><tr><td class="end">first</td></tr></tbody>
+            </table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "STRONG", Action.Wrap);
+
+        expectHtml(wrapper.innerHTML, `
+            <table>
+                <thead><tr><th><strong>zero</strong></th></tr></thead>
+                <tbody><tr><td><strong>first</strong></td></tr></tbody>
+            </table>
+        `);
+    });
+
+    test("Should leave an empty cell between wrapped cells alone", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr>
+                <td class="start">zero</td>
+                <td></td>
+                <td class="end">first</td>
+            </tr></tbody></table>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "STRONG", Action.Wrap);
+
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr>
+                <td><strong>zero</strong></td>
+                <td></td>
+                <td><strong>first</strong></td>
+            </tr></tbody></table>
+        `);
+    });
+
+    // A selected image is a range around the img inside its block; there is nothing inline to tag there.
+    test("Should not wrap an image block", () => {
+        const wrapper = createWrapper(`<p class="be-image"><img src="image.png"></p>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".be-image") as Node, 0);
+        range.setEnd(wrapper.querySelector(".be-image") as Node, 1);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "STRONG", Action.Wrap);
+
+        expectHtml(wrapper.innerHTML, `<p class="be-image"><img src="image.png"></p>`);
+    });
+
+    test("Should skip the image block a selection spans", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+            <p class="be-image"><img src="image.png"></p>
+            <p class="end">first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "STRONG", Action.Wrap);
+
+        expectHtml(wrapper.innerHTML, `
+            <p><strong>zero</strong></p>
+            <p class="be-image"><img src="image.png"></p>
+            <p><strong>first</strong></p>
         `);
     });
 });

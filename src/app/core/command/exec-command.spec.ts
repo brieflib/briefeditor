@@ -968,6 +968,24 @@ describe("Image command", () => {
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".after"));
         expect(cursorPosition.startOffset).toBe(0);
     });
+
+    // Clicking an image selects it as a range around the img; bold has nothing to wrap there.
+    test("Should leave a selected image block alone when a tag is applied", () => {
+        const wrapper = createWrapper(`<p class="be-image"><img src="image.png"></p><p class="after">zero</p>`);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".be-image") as Node, 0);
+        range.setEnd(wrapper.querySelector(".be-image") as Node, 1);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        expectHtml(wrapper.innerHTML, `<p class="be-image"><img src="image.png"></p><p class="after">zero</p>`);
+        // The image stays selected, the same as before the command.
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector(".be-image"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(1);
+    });
 });
 
 describe("Delete row command", () => {

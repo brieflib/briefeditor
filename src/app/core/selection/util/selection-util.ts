@@ -8,7 +8,9 @@ export enum SelectionType {
     Block = "Block",
     ParentElement = "ParentElement",
     ListWrapper = "ListWrapper",
-    Link = "Link"
+    Link = "Link",
+    /** A block, item or cell: each holds a run of inline content of its own. */
+    InlineContainer = "InlineContainer"
 }
 
 /**
@@ -119,6 +121,12 @@ export function getSelected(findTill: HTMLElement, cursorPosition: CursorPositio
                     return [];
                 }
                 block = getElement(findTill, leafNode as HTMLElement, [Display.FirstLevel, Display.List]);
+                break;
+            case SelectionType.InlineContainer:
+                if (!findTill) {
+                    return [];
+                }
+                block = getElement(findTill, leafNode as HTMLElement, [Display.FirstLevel, Display.List, Display.Cell]);
                 break;
             case SelectionType.ListWrapper:
                 if (!findTill) {

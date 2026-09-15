@@ -46,6 +46,14 @@ export function getSelectedBlock(findTill: HTMLElement, cursorPosition: CursorPo
     return getSelected(findTill, cursorPosition, SelectionType.Block);
 }
 
+/**
+ * The blocks, items and cells the cursor spans - the elements an inline tag is applied within,
+ * since a cell holds a line of its own the same as a block does.
+ */
+export function getSelectedInlineContainer(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): HTMLElement[] {
+    return getSelected(findTill, cursorPosition, SelectionType.InlineContainer);
+}
+
 export function getSelectedLink(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): HTMLElement[] {
     return getSelected(findTill, cursorPosition, SelectionType.Link);
 }
