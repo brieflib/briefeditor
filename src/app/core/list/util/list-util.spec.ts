@@ -1,5 +1,11 @@
 import {createWrapper, getLastChild} from "@/core/shared/test-util";
-import {getFirstListWrapper, getListsOrderNumbers, isListEmpty} from "@/core/list/util/list-util";
+import {
+    getFirstListWrapper,
+    getFirstOwnText,
+    getLastOwnText,
+    getListsOrderNumbers,
+    isListEmpty
+} from "@/core/list/util/list-util";
 import {getRange} from "@/core/shared/range-util";
 
 jest.mock("../../shared/range-util", () => ({
@@ -104,5 +110,47 @@ describe("First list wrapper", () => {
         const paragraph = wrapper.querySelector("p") as HTMLElement;
 
         expect(getFirstListWrapper(paragraph)).toBe(paragraph);
+    });
+});
+
+describe("Own line text", () => {
+    test("Should read the text of the item's own line, not of the list nested in it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">first<strong>bold</strong>
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+        const item = wrapper.querySelector(".start") as HTMLElement;
+
+        expect(getFirstOwnText(item)).toBe(item.firstChild);
+        expect(getLastOwnText(item)).toBe(item.querySelector("strong")?.firstChild);
+    });
+
+    test("Should read the br of an item whose own line is empty", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br>
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+        const item = wrapper.querySelector(".start") as HTMLElement;
+
+        expect(getFirstOwnText(item)).toBe(item.firstChild);
+        expect(getLastOwnText(item)).toBe(item.firstChild);
+    });
+
+    test("Should read a paragraph the same as its first and last text", () => {
+        const wrapper = createWrapper(`<p class="start"><em>zero</em>first</p>`);
+        const paragraph = wrapper.querySelector(".start") as HTMLElement;
+
+        expect(getFirstOwnText(paragraph)).toBe(paragraph.querySelector("em")?.firstChild);
+        expect(getLastOwnText(paragraph)).toBe(paragraph.lastChild);
     });
 });

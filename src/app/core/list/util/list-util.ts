@@ -77,6 +77,36 @@ export function getLine(block: Element): HTMLElement {
     return line;
 }
 
+/**
+ * The first text of the block's own line: the live counterpart of {@link getLine}, never
+ * descending into a nested list wrapper. An empty line answers with its br; a block with
+ * no line of its own answers with itself.
+ */
+export function getFirstOwnText(block: Node): HTMLElement {
+    const child = getOwnChildNodes(block)[0];
+    if (!child) {
+        return block as HTMLElement;
+    }
+
+    return child.nodeType === Node.TEXT_NODE || !child.firstChild ? child as HTMLElement : getFirstOwnText(child);
+}
+
+/** The last text of the block's own line, the same way {@link getFirstOwnText} reads the first. */
+export function getLastOwnText(block: Node): HTMLElement {
+    const ownChildNodes = getOwnChildNodes(block);
+    const child = ownChildNodes[ownChildNodes.length - 1];
+    if (!child) {
+        return block as HTMLElement;
+    }
+
+    return child.nodeType === Node.TEXT_NODE || !child.lastChild ? child as HTMLElement : getLastOwnText(child);
+}
+
+/** The child nodes of a block's own line - everything but a nested list wrapper. */
+function getOwnChildNodes(block: Node) {
+    return Array.from(block.childNodes).filter(child => !isSchemaContain(child, [Display.ListWrapper]));
+}
+
 /** Whether a list item's line is empty. An image counts as content, the same as text does. */
 export function isListEmpty(list: Element) {
     const line = getLine(list);

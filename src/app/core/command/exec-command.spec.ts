@@ -286,6 +286,155 @@ describe("Cursor position after Tag command", () => {
         expect(cursorPosition.endContainer).toBe(expectedEnd);
         expect(cursorPosition.endOffset).toBe("sec".length);
     });
+
+    // An item holding nested lists is tagged on its own line; each nested item takes its own
+    // turn, so no turn reaches the selection's end node before the last one does.
+    const mixedList = `
+        <ul>
+            <li class="start">first
+                <ol>
+                    <li>second
+                        <ul>
+                            <li>third</li>
+                        </ul>
+                    </li>
+                </ol>
+                <ol>
+                    <li class="end">fourth</li>
+                </ol>
+            </li>
+        </ul>
+    `;
+    const mixedListWrapped = `
+        <ul>
+            <li><strong>first</strong>
+                <ol>
+                    <li><strong>second</strong>
+                        <ul>
+                            <li><strong>third</strong></li>
+                        </ul>
+                    </li>
+                    <li><strong>fourth</strong></li>
+                </ol>
+            </li>
+        </ul>
+    `;
+
+    test("Should keep the cursor spanning a whole nested list after wrapping it", () => {
+        const wrapper = createWrapper(mixedList);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fourth".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        expectHtml(wrapper.innerHTML, mixedListWrapped);
+
+        const strongs = wrapper.querySelectorAll("strong");
+        expect(cursorPosition.startContainer).toBe(strongs[0]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endContainer).toBe(strongs[3]?.firstChild);
+        expect(cursorPosition.endOffset).toBe("fourth".length);
+    });
+
+    test("Should keep the cursor spanning a whole nested list after unwrapping it", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><strong>first</strong>
+                    <ol>
+                        <li><strong>second</strong>
+                            <ul>
+                                <li><strong>third</strong></li>
+                            </ul>
+                        </li>
+                        <li class="end"><strong>fourth</strong></li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start strong"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".end strong"), "fourth".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>first
+                    <ol>
+                        <li>second
+                            <ul>
+                                <li>third</li>
+                            </ul>
+                        </li>
+                        <li>fourth</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const items = wrapper.querySelectorAll("li");
+        expect(cursorPosition.startContainer).toBe(items[0]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endContainer).toBe(items[3]?.firstChild);
+        expect(cursorPosition.endOffset).toBe("fourth".length);
+    });
+
+    test("Should wrap a whole nested list selected on its elements", () => {
+        const wrapper = createWrapper(mixedList);
+
+        // A select-all leaves the ends on the list and the editor rather than on text.
+        const range = new Range();
+        range.setStart(wrapper.querySelector("ul") as Node, 0);
+        range.setEnd(wrapper, wrapper.childNodes.length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        expectHtml(wrapper.innerHTML, mixedListWrapped);
+
+        const strongs = wrapper.querySelectorAll("strong");
+        expect(cursorPosition.startContainer).toBe(strongs[0]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endContainer).toBe(strongs[3]?.firstChild);
+        expect(cursorPosition.endOffset).toBe("fourth".length);
+    });
+
+    test("Should keep the cursor spanning a selection reaching into nested items", () => {
+        const wrapper = createWrapper(mixedList);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "fou".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>fi<strong>rst</strong>
+                    <ol>
+                        <li><strong>second</strong>
+                            <ul>
+                                <li><strong>third</strong></li>
+                            </ul>
+                        </li>
+                        <li><strong>fou</strong>rth</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const strongs = wrapper.querySelectorAll("strong");
+        expect(cursorPosition.startContainer).toBe(strongs[0]?.firstChild);
+        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endContainer).toBe(strongs[3]?.firstChild);
+        expect(cursorPosition.endOffset).toBe("fou".length);
+    });
 });
 
 describe("Cursor position after FirstLevel command", () => {

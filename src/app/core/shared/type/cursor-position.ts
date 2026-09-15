@@ -74,16 +74,6 @@ export function getCursorPositionFromElement(element: Node, isRange = true): Cur
     };
 }
 
-export function setCursorPositionEndAsLastTextOfElement(cursorPosition: CursorPosition, endElement: Element) {
-    const endContainer = getLastText(endElement);
-    return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, endContainer, endContainer.textContent.length);
-}
-
-export function setCursorPositionStartAsFirstTextOfElement(cursorPosition: CursorPosition, startElement: Element) {
-    const startContainer = getFirstText(startElement);
-    return  getCursorPositionFrom(startContainer, 0, cursorPosition.endContainer, cursorPosition.endOffset);
-}
-
 export function extractContents(cursorPosition: CursorPosition): DocumentFragment {
     return cursorPosition.range.extractContents();
 }

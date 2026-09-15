@@ -381,6 +381,37 @@ describe("Wrap in tag", () => {
             <p><strong>first</strong></p>
         `);
     });
+
+    test("Should leave the empty line of an item holding a nested list alone", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br>
+                    <ol>
+                        <li>nested</li>
+                    </ol>
+                </li>
+                <li class="end">last</li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector(".start") as Node, 0);
+        range.setEnd(getFirstChild(wrapper, ".end"), "last".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "STRONG", Action.Wrap);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li><br>
+                    <ol>
+                        <li><strong>nested</strong></li>
+                    </ol>
+                </li>
+                <li><strong>last</strong></li>
+            </ul>
+        `);
+    });
 });
 
 describe("Change first level", () => {
