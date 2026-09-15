@@ -1575,9 +1575,9 @@ describe("Block command with the cursor on an empty block", () => {
     });
 });
 
-// The editable element is a first level tag of its own, so once every block is deleted the browser anchors the
-// cursor on the root and the editor takes the root for the block it is editing. Anything written then lands in
-// the root itself, outside of any paragraph, and the document has no line to hold the next one either.
+// A select-all anchors the selection on the editable element itself. It is read from the leaves it spans, so
+// the document is edited the way a selection of its text is: a character typed over it lands in the first block,
+// and a delete leaves an empty paragraph rather than a document with no line to write on.
 describe("Keyboard command that empties the document", () => {
     function selectAll(wrapper: HTMLElement) {
         const range = new Range();
@@ -1610,7 +1610,7 @@ describe("Keyboard command that empties the document", () => {
 
         expectHtml(wrapper.innerHTML, `<p>a</p>`);
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
-        expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.startOffset).toBe("a".length);
         expect(cursorPosition.endOffset).toBe("a".length);
     });
 
@@ -1762,5 +1762,49 @@ describe("Modify class command", () => {
 
         expect(element.className).toBe("");
         expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+    });
+});
+
+// A paste places the cursor itself - in the first cell of a pasted table, on the line after a pasted
+// image block - so the anchor read before the command must not be restored over it: an offset can't
+// tell the end of the line before the table or image from the start of what follows.
+describe("Cursor position after a paste command", () => {
+    function pasteEvent(html: string): ClipboardEvent {
+        const event = new Event("paste", {cancelable: true, bubbles: true});
+        Object.defineProperty(event, "clipboardData", {value: {getData: () => html} as unknown as DataTransfer});
+
+        return event as ClipboardEvent;
+    }
+
+    function selectItems(wrapper: HTMLElement) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getLastChild(wrapper, ".end"), getLastChild(wrapper, ".end").textContent?.length ?? 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    test("Should leave the cursor on the item after a pasted image block", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end">one</li><li>two</li></ul>`);
+        selectItems(wrapper);
+
+        const cursorPosition = execCommand(wrapper, {action: Action.Clipboard, event: pasteEvent(`<p>fourth</p><img src="x">`)});
+
+        expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul><p class="be-image"><img src="x"></p><ul><li>two</li></ul>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "ul:last-child li"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should leave the cursor in the first cell of a pasted table", () => {
+        const wrapper = createWrapper(`<p class="start end">fourth</p>`);
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = execCommand(wrapper, {action: Action.Clipboard,
+            event: pasteEvent(`<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody><tr><td>c</td><td>d</td></tr></tbody></table>`)});
+
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "th"));
+        expect(cursorPosition.startOffset).toBe(0);
     });
 });

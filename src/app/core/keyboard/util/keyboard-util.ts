@@ -201,6 +201,13 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
     if (firstBlock && wasEmpty) {
         cursorPositionAfterDelete = removePlaceholder(firstBlock, cursorPositionAfterDelete);
     }
+    // A selection covering whole blocks leaves the first one holding nothing, which the rebuild
+    // would drop: it stays as the empty line the selection is replaced by - the line a typed
+    // character or a paste fills - with the cursor on its br.
+    const placeholder = firstBlock && isHollow(firstBlock) ? addPlaceholder(firstBlock) : null;
+    if (placeholder) {
+        cursorPositionAfterDelete = getCursorPositionFrom(placeholder, 0, placeholder, 0);
+    }
     cursorPositionAfterDelete = maybeInsertLists(contentEditable, cursorPositionAfterDelete);
 
     if (lastBlock && lastBlock.isConnected) {
@@ -209,7 +216,21 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
     } else {
         cursorPositionAfterDelete = normalize(contentEditable, cursorPositionAfterDelete);
     }
+
+    // A br holds no text for the rebuild's offset anchor to name, so the remap would slide the
+    // cursor onto the text after it; the br itself survives the rebuild, so it's named again.
+    if (placeholder?.isConnected) {
+        return getCursorPositionFrom(placeholder, 0, placeholder, 0);
+    }
+
     return getCursorPositionFrom(cursorPositionAfterDelete.startContainer, cursorPositionAfterDelete.startOffset + pressedKey.length, cursorPositionAfterDelete.endContainer, cursorPositionAfterDelete.endOffset + pressedKey.length);
+}
+
+/** Whether a block's own line holds nothing at all - no text, no image, not even a placeholder br. */
+function isHollow(block: HTMLElement) {
+    const line = getLine(block);
+
+    return !line.textContent && !hasSelfCloseDescendant(line);
 }
 
 /**
@@ -461,9 +482,8 @@ export function addBrForEmptyBlockAndNormalize(contentEditable: HTMLElement, cur
     }
 
     // A nested list is its own items' content, not the block's, so it's excluded here too.
-    const line = getLine(block);
-    if (!line.textContent) {
-        if (!hasSelfCloseDescendant(line)) {
+    if (!getLine(block).textContent) {
+        if (isHollow(block)) {
             addPlaceholder(block);
         }
         const firstText = getFirstText(block);
@@ -482,10 +502,11 @@ function addPlaceholder(block: HTMLElement) {
     const nestedListWrapper = getDirectChildren(block, [Display.ListWrapper])[0];
     if (nestedListWrapper) {
         nestedListWrapper.before(br);
-        return;
+    } else {
+        block.appendChild(br);
     }
 
-    block.appendChild(br);
+    return br;
 }
 
 enum Direction {

@@ -330,6 +330,12 @@ function getBlockOffset(contentEditable: HTMLElement, container: Node, offset: n
         return null;
     }
 
+    // An endpoint on the editor itself stands in no block: climbing from it would leave the
+    // editor and anchor the cursor in the page around it.
+    if (container === contentEditable) {
+        return null;
+    }
+
     const block = getRootElement(contentEditable, container);
     if (block.nodeType !== Node.ELEMENT_NODE) {
         return null;

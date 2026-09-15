@@ -97,6 +97,18 @@ describe("Cursor as a place in the text", () => {
             .toEqual({node: getFirstChild(wrapper, ".start"), offset: "zero".length});
     });
 
+    // Climbing from the editable element would leave the editor and anchor the cursor in the page around it.
+    test("Should read no block for an endpoint on the editable element itself", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        document.body.appendChild(wrapper);
+
+        const cursorAnchor = anchor(wrapper, wrapper, 0, wrapper, wrapper.childNodes.length);
+
+        expect(cursorAnchor.start).toBeNull();
+        expect(cursorAnchor.end).toBeNull();
+        wrapper.remove();
+    });
+
     test("Should restore the selection onto the block rebuilt in place", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         const given = getCursorPositionFrom(getFirstChild(wrapper, ".start"), "ze".length,

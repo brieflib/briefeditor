@@ -2492,6 +2492,31 @@ describe("Paste lines into the line the cursor is on", () => {
         `);
     });
 
+    // The line pasted along with a list fills the empty item, and the list's items follow it in its list.
+    test("Should fill an empty item with the line pasted before a list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li><br></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(wrapper.querySelector("br") as Node, 0);
+        range.setEnd(wrapper.querySelector("br") as Node, 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        pasteHtml(wrapper, `<p>first</p><ul><li>second</li></ul>`, getCursorPosition());
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li>first</li>
+                <li>second</li>
+            </ul>
+        `);
+    });
+
     test("Should paste several headings into an item as its lines", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -2841,6 +2866,60 @@ describe("Paste an image", () => {
         expect(wrapper.querySelector("td")?.textContent).toBe("zero");
     });
 
+    // An empty item has no tag to give up, so the line pasted along with the image fills it rather than
+    // taking its place; the image stands beside the list, the way it does for a filled item.
+    test("Should fill an empty item with the line pasted before an image block", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><br></li></ul>`);
+        let cursorPosition = select(wrapper, ".start", "".length);
+
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><img src="${image}">`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>${imageBlock}<p><br></p>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p:last-child br"));
+    });
+
+    test("Should fill an empty item with the line pasted after an image block", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><br></li></ul>`);
+        let cursorPosition = select(wrapper, ".start", "".length);
+
+        cursorPosition = pasteHtml(wrapper, `<img src="${image}"><p>first</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul>${imageBlock}<ul><li>first</li></ul>`);
+        expect(cursorPosition.startContainer?.textContent).toBe("first");
+        expect(cursorPosition.startOffset).toBe("first".length);
+    });
+
+    // A filled item has words on one side of the cursor only, so just one edge line joins it.
+    test("Should fill an empty item with the lead line only", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><br></li></ul>`);
+        let cursorPosition = select(wrapper, ".start", "".length);
+
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><img src="${image}"><p>second</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>${imageBlock}<p>second</p>`);
+        expect(cursorPosition.startContainer?.textContent).toBe("second");
+    });
+
+    test("Should fill an empty nested item with the line pasted before an image block", () => {
+        const wrapper = createWrapper(`<ul><li>zero<ul><li class="start"><br></li></ul></li><li>second</li></ul>`);
+        let cursorPosition = select(wrapper, ".start", "".length);
+
+        cursorPosition = pasteHtml(wrapper, `<p>first</p><img src="${image}">`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero<ul><li>first</li></ul></li></ul>${imageBlock}<ul><li>second</li></ul>`);
+        expect(cursorPosition.startContainer?.textContent).toBe("second");
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should take the place of the empty item a lone image is pasted into", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><br></li></ul>`);
+        const cursorPosition = select(wrapper, ".start", "".length);
+
+        pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul>${imageBlock}<p><br></p>`);
+    });
+
     test("Should keep the class of a copied image block through the rebuild", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p>first</p>`);
         let cursorPosition = select(wrapper, ".start", "zero".length);
@@ -3141,6 +3220,64 @@ describe("Paste a table", () => {
         `);
     });
 
+    // An empty item has no tag to give up, so the line pasted along with the table fills it rather than
+    // taking its place.
+    test("Should fill an empty item with the line pasted before the table", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>fourth</li>
+                <li class="start"><br></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, `<p>fifth</p>` + table, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>fourth</li>
+                <li>fifth</li>
+            </ul>` + table);
+
+        const firstCell = wrapper.querySelector("th");
+        expect(cursorPosition.startContainer).toBe(firstCell?.firstChild);
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Should fill an empty item with the line pasted after the table", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>fourth</li>
+                <li class="start"><br></li>
+            </ul>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "".length);
+        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        let cursorPosition = getCursorPosition();
+        cursorPosition = pasteHtml(wrapper, table + `<p>fifth</p>`, cursorPosition);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>fourth</li>
+            </ul>` + table + `
+            <ul>
+                <li>fifth</li>
+            </ul>
+        `);
+
+        expect(cursorPosition.startContainer?.textContent).toBe("fifth");
+        expect(cursorPosition.startOffset).toBe("fifth".length);
+    });
+
     test("Should lift the table out of the list item holding it", () => {
         const wrapper = createWrapper(`
             <p class="start">fourth</p>
@@ -3374,5 +3511,97 @@ describe("Paste into a table cell", () => {
             `<tbody><tr><td>firstfifth</td><td>second <strong>third</strong></td></tr>` +
             `<tr><td></td><td>fourth</td></tr></tbody></table>
         `);
+    });
+});
+// Items selected whole are emptied into one item that what is pasted fills, the way a typed character fills
+// it: a pasted line becomes the item's words, and an image block or a table stands beside the list.
+describe("Paste over whole items", () => {
+    const imageBlock = `<p class="be-image"><img src="${image}"></p>`;
+    const table = `<table><thead><tr><th>zero</th><th>first</th></tr></thead>` +
+        `<tbody><tr><td>second</td><td>third</td></tr></tbody></table>`;
+
+    function selectItems(wrapper: HTMLElement) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getLastChild(wrapper, ".end"), getLastChild(wrapper, ".end").textContent?.length ?? 0);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        return getCursorPosition();
+    }
+
+    describe("Two of three items", () => {
+        const html = `<ul><li class="start">zero</li><li class="end">one</li><li>two</li></ul>`;
+
+        test("Should fill the item with the line and divide the list around the image block", () => {
+            const wrapper = createWrapper(html);
+
+            const cursorPosition = pasteHtml(wrapper, `<p>fourth</p><img src="${image}">`, selectItems(wrapper));
+
+            expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>${imageBlock}<ul><li>two</li></ul>`);
+            expect(cursorPosition.startContainer?.textContent).toBe("two");
+            expect(cursorPosition.startOffset).toBe(0);
+        });
+
+        test("Should fill the item with the line and divide the list around the table", () => {
+            const wrapper = createWrapper(html);
+
+            const cursorPosition = pasteHtml(wrapper, `<p>fourth</p>` + table, selectItems(wrapper));
+
+            expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>` + table + `<ul><li>two</li></ul>`);
+            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("th")?.firstChild);
+            expect(cursorPosition.startOffset).toBe(0);
+        });
+    });
+
+    describe("All three items", () => {
+        const html = `<ul><li class="start">zero</li><li>one</li><li class="end">two</li></ul>`;
+
+        test("Should fill the item with the line and place the image block after the list, opening a paragraph for the cursor", () => {
+            const wrapper = createWrapper(html);
+
+            const cursorPosition = pasteHtml(wrapper, `<p>fourth</p><img src="${image}">`, selectItems(wrapper));
+
+            expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>${imageBlock}<p><br></p>`);
+            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p:last-child br"));
+        });
+
+        test("Should fill the item with the line and place the table after the list, leaving the cursor in the first cell", () => {
+            const wrapper = createWrapper(html);
+
+            const cursorPosition = pasteHtml(wrapper, `<p>fourth</p>` + table, selectItems(wrapper));
+
+            expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>` + table);
+            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("th")?.firstChild);
+            expect(cursorPosition.startOffset).toBe(0);
+        });
+
+        test("Should keep the list standing before a heading, leaving the cursor on the heading", () => {
+            const wrapper = createWrapper(html + `<h1>Editor</h1>`);
+
+            const cursorPosition = pasteHtml(wrapper, `<p>fourth</p><img src="${image}">`, selectItems(wrapper));
+
+            expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>${imageBlock}<h1>Editor</h1>`);
+            expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "h1"));
+            expect(cursorPosition.startOffset).toBe(0);
+        });
+
+        test("Should keep the list standing after a heading", () => {
+            const wrapper = createWrapper(`<h1>Editor</h1>` + html);
+
+            const cursorPosition = pasteHtml(wrapper, `<p>fourth</p><img src="${image}">`, selectItems(wrapper));
+
+            expectHtml(wrapper.innerHTML, `<h1>Editor</h1><ul><li>fourth</li></ul>${imageBlock}<p><br></p>`);
+            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p:last-child br"));
+        });
+
+        test("Should fill the item with a lone line", () => {
+            const wrapper = createWrapper(html);
+
+            const cursorPosition = pasteHtml(wrapper, `<p>fourth</p>`, selectItems(wrapper));
+
+            expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>`);
+            expect(cursorPosition.startContainer?.textContent).toBe("fourth");
+            expect(cursorPosition.startOffset).toBe("fourth".length);
+        });
     });
 });

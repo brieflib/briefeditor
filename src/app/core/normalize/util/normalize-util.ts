@@ -245,6 +245,15 @@ function anchorContainerOnLeaf(container: Node, offset: number) {
 
     const leafNodes = getLeafNodes(container);
     const child = container.childNodes[offset];
+    // An offset standing before a list nested in an item is the end of the item's own line,
+    // not the start of the nested item's: the cursor belongs at the end of the leaf before it.
+    if (child && isSchemaContain(child, [Display.ListWrapper])) {
+        const lineEnd = leafNodes.filter(leaf => leaf.compareDocumentPosition(child) & Node.DOCUMENT_POSITION_FOLLOWING).pop();
+        if (lineEnd) {
+            return {container: lineEnd, offset: lineEnd.textContent?.length ?? 0};
+        }
+    }
+
     const following = child && leafNodes.find(leaf => leaf === child || child.contains(leaf));
     if (following) {
         return {container: following, offset: 0};

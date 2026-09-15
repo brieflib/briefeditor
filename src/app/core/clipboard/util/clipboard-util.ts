@@ -11,6 +11,7 @@ import {mergeLists, removeAndNormalize} from "@/core/normalize/normalize";
 import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {Display, getOfType, isSchemaContain} from "@/core/normalize/type/schema";
 import {
+    ensureParagraph,
     getFirstText,
     getLastText,
     getRootElement,
@@ -24,8 +25,8 @@ import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor
 import {deleteSelection, newLine} from "@/core/keyboard/util/keyboard-util";
 import {maybeInsertLists, normalizeList, spliceListsAtCursor} from "@/core/list/list";
 import {getFirstListWrapper} from "@/core/list/util/list-util";
-import {escapeImageBlock, getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
-import {getCellCursorPosition, normalizeTable} from "@/core/command/util/table-util";
+import {atStart, escapeImageBlock, getCursorCell, getFirstCell} from "@/core/cursor/util/cursor-util";
+import {normalizeTable} from "@/core/command/util/table-util";
 import {conformLines, hoistBlocks, lineTag, tableSelector} from "@/core/clipboard/util/paste-conform-util";
 
 interface EdgeBlocks {
@@ -54,8 +55,10 @@ export function pasteHtml(contentEditable: HTMLElement, htmlString: string, curs
 }
 
 function pasteContent(contentEditable: HTMLElement, htmlString: string, cursorPosition: CursorPosition) {
+    // A selection covering the whole document leaves nothing to paste into, so a paragraph is
+    // opened for it the way the cut does.
     if (!isCollapsed(cursorPosition)) {
-        cursorPosition = deleteSelection(contentEditable, cursorPosition);
+        cursorPosition = ensureParagraph(contentEditable, deleteSelection(contentEditable, cursorPosition));
     }
 
     // Read after the delete, since the surviving cursor is what says where the markup lands.
@@ -359,6 +362,10 @@ function getLoneBlock(pastedContent: HTMLElement): HTMLElement | null {
  * keeps its own line. An edge is taken only where there's text on its side of the cursor to
  * join - not on an empty line, and not for an edge block that's itself empty. A run holding
  * just one line is left alone, since a lone block already merges into the cursor's line.
+ *
+ * An empty item is the exception: it has no tag to give up, so one edge fills it - the lead,
+ * or failing that the tail. Only one, since the filled item has words on one side of the
+ * cursor only, leaving the other edge nothing to join.
  */
 function takeEdgeBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement, line: HTMLElement | undefined,
                         cursorPosition: CursorPosition): EdgeBlocks | null {
@@ -372,6 +379,13 @@ function takeEdgeBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement
     // somewhere else. Both join the same line - the lead its first half, the tail its second.
     const first = pastedContent.firstElementChild;
     const last = pastedContent.lastElementChild;
+    if (isEmptyItem(line)) {
+        const lead = takeEdgeBlock(first, line);
+        const tail = lead ? "" : takeEdgeBlock(last, line);
+
+        return lead || tail ? {lead: lead, tail: tail} : null;
+    }
+
     const lead = isCursorAtStartOfBlock(contentEditable, cursorPosition) ? "" : takeEdgeBlock(first, line);
     const tail = isCursorAtEndOfBlock(contentEditable, cursorPosition) ? "" : takeEdgeBlock(last, line);
     if (!lead && !tail) {
@@ -415,6 +429,19 @@ function pasteAroundBlocks(contentEditable: HTMLElement, pastedContent: HTMLElem
             pastedContent.innerHTML, cursorPosition);
     }
 
+    // An empty item is filled with the tail before the run is placed: placed first, the split
+    // would drop the item as blank. The run then goes in at the start of the filled item, where
+    // the cursor stood, and the cursor is re-anchored on the tail's text, which the rebuild keeps.
+    if (isEmptyItem(getCursorLine(contentEditable, cursorPosition))) {
+        cursorPosition = pasteContent(contentEditable, edges.tail, cursorPosition);
+        const leaf = getFirstText(getCursorLine(contentEditable, cursorPosition));
+        pasteBetweenBlocks(contentEditable, getFirstSelectedRoot(contentEditable, cursorPosition),
+            pastedContent.innerHTML, getCursorPositionFrom(leaf, 0, leaf, 0));
+
+        return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset,
+            cursorPosition.endContainer, cursorPosition.endOffset);
+    }
+
     // A cursor at the start of a line already has the line the tail should open; anywhere
     // else the line is split for it (a lead is only ever written with content on both sides
     // of the cursor, so the split always has content on either side of the break).
@@ -438,6 +465,11 @@ function pasteAroundBlocks(contentEditable: HTMLElement, pastedContent: HTMLElem
     }
 
     return pasteContent(contentEditable, edges.tail, getCursorPositionFrom(leaf, 0, leaf, 0));
+}
+
+/** Whether the line is an item holding nothing but the br standing in for its line. */
+function isEmptyItem(line: HTMLElement) {
+    return isSchemaContain(line, [Display.List]) && isEmptyBlock(line);
 }
 
 /**
@@ -494,10 +526,11 @@ function pasteBetweenBlocks(contentEditable: HTMLElement, firstRoot: HTMLElement
     // Read before the fragment is emptied into the tag below.
     const isList = hasListWrapper(fragmentToInsert);
     // A pasted table takes the cursor into its first cell, the way an inserted one does; anything else
-    // leaves it at the end of what was pasted.
-    const pastedCursorPosition = table
-        ? getCellCursorPosition(getFirstCell(table), cursorPosition)
-        : getCursorPositionFromElement(getLastText(fragmentToInsert));
+    // leaves it at the end of what was pasted. Both are read from a leaf (a text node, an image, an
+    // empty cell), the one thing the rebuild below keeps, so the cursor can be read from it again after.
+    const leaf = table ? getFirstText(getFirstCell(table) ?? table) : getLastText(fragmentToInsert);
+    const readPastedCursor = () => table ? atStart(leaf) : getCursorPositionFromElement(leaf);
+    const pastedCursorPosition = readPastedCursor();
 
     // A run of lists pasted into a list is spliced into it line by line rather than standing
     // between its halves: the split can't hold a tail opening at a nested level, so it would
@@ -516,7 +549,12 @@ function pasteBetweenBlocks(contentEditable: HTMLElement, firstRoot: HTMLElement
 
     insertBetweenBlocks(contentEditable, firstRoot, cursorPosition, deleted);
 
+    // The rebuild remaps the cursor as an offset in the DELETED tag, which holds the whole run,
+    // so a cursor meant for its last block lands in its first one. The leaf is re-read instead.
     cursorPosition = removeAndNormalize(contentEditable, deleted, ["DELETED"], pastedCursorPosition);
+    if (leaf.isConnected) {
+        cursorPosition = readPastedCursor();
+    }
 
     // A pasted list ends up standing beside the list it was dropped into; convertList reads
     // the two as one run and joins them back into a single wrapper wherever the type matches.

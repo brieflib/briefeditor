@@ -168,6 +168,7 @@ function isCursorRestorable(command: Command) {
     switch (command.action) {
         case Action.Click:
         case Action.Image:
+        case Action.Clipboard:
         case Action.InsertTable:
         case Action.InsertRow:
         case Action.InsertColumn:

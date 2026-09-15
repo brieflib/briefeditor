@@ -1,6 +1,7 @@
 import {Display, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {getElement, getNextNode, getRootElement} from "@/core/shared/element-util";
-import {CursorPosition, getCursorPosition,} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 
 export enum SelectionType {
     Root = "Root",
@@ -10,7 +11,17 @@ export enum SelectionType {
     Link = "Link"
 }
 
+/**
+ * Every leaf (text node or self-closing element) the cursor spans, in document order.
+ *
+ * @remarks
+ * An endpoint the browser left on an element rather than a leaf (the editor itself after a
+ * select-all, an item selected whole) names a leaf by its offset, so the cursor is read from
+ * that leaf: walking from the element would stop at it before reaching what it holds, or
+ * climb out of the editor when the element is the editor.
+ */
 export function getSelectedLeaves(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
+    cursorPosition = anchorCursorOnLeaf(cursorPosition);
     if (cursorPosition.startContainer === cursorPosition.endContainer) {
         return [cursorPosition.startContainer];
     }

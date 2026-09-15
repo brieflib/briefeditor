@@ -248,6 +248,66 @@ describe("Keyboard events", () => {
         expect(cursorPosition.endOffset).toBe(2);
     });
 
+    // Items selected whole are emptied into one item rather than dropped, the way a browser leaves an empty
+    // line for a selection of whole blocks; the next thing typed or pasted fills it.
+    test("Press delete when selection covers a whole list followed by a paragraph", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li>one</li><li class="end">two</li></ul><p>three</p>`);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".end"), "two".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li><br></li></ul><p>three</p>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Press delete when selection covers a whole list after a paragraph", () => {
+        const wrapper = createWrapper(`<p>three</p><ul><li class="start">zero</li><li>one</li><li class="end">two</li></ul>`);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".end"), "two".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
+
+        expectHtml(wrapper.innerHTML, `<p>three</p><ul><li><br></li></ul>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+        expect(cursorPosition.startOffset).toBe(0);
+    });
+
+    test("Press delete when selection covers two whole items of three", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end">one</li><li>two</li></ul>`);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".end"), "one".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li><br></li><li>two</li></ul>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+    });
+
+    test("Press delete when selection covers two whole paragraphs of three", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="end">one</p><p>two</p>`);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), 0);
+        range.setEnd(getFirstChild(wrapper, ".end"), "one".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
+
+        expectHtml(wrapper.innerHTML, `<p><br></p><p>two</p>`);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+    });
+
     test("After pressing delete when cursor is at the br cursor position should be at previous br", () => {
         const wrapper = createWrapper(`
             <p>zero</p><p><br></p><p><br></p><p class="start"><br></p><p>first</p>

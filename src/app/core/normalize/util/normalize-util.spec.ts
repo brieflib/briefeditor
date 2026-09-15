@@ -259,6 +259,27 @@ describe("Anchor a cursor on a leaf", () => {
         expect(anchored.startOffset).toBe("ze".length);
     });
 
+    // The browser anchors a caret arriving at the end of an item's line on the item, just before the list
+    // nested in it: that is the end of the item's own line, not the start of the nested item's.
+    test("Should move a cursor before a nested list onto the end of the line before it", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero<ul><li>first</li></ul></li></ul>`);
+        const item = wrapper.querySelector(".start") as HTMLElement;
+
+        const anchored = anchorCursorOnLeaf(cursorOn(item, 1));
+
+        expect(anchored.startContainer).toBe(item.firstChild);
+        expect(anchored.startOffset).toBe("zero".length);
+    });
+
+    test("Should move a cursor before a list opening the container onto the list's first leaf", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li></ul>`);
+
+        const anchored = anchorCursorOnLeaf(cursorOn(wrapper, 0));
+
+        expect(anchored.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(anchored.startOffset).toBe(0);
+    });
+
     // Nothing survives the rebuild to move onto, so there is nowhere better for the cursor to go.
     test("Should leave a cursor on a block with no leaves alone", () => {
         const wrapper = createWrapper(`<p class="start"></p>`);

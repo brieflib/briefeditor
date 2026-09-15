@@ -184,3 +184,36 @@ test("Should find list elements arranged by selection", () => {
 
     expect(blocks).toStrictEqual([startUl?.querySelector("li"), endUl?.querySelector("li")]);
 });
+// The browser can leave a selection's endpoints on elements rather than on their text: on the items
+// selected whole, or on the editable element itself after a select-all. Both name the same leaves.
+describe("Selected blocks of an element-anchored selection", () => {
+    function select(startContainer: Node, startOffset: number, endContainer: Node, endOffset: number) {
+        const range = new Range();
+        range.setStart(startContainer, startOffset);
+        range.setEnd(endContainer, endOffset);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    test("Should find every item of a selection anchored on the items", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li>one</li><li>two</li></ul>`);
+        const items = wrapper.querySelectorAll("li");
+        select(items[0] as Node, 0, items[1] as Node, 1);
+
+        expect(getSelectedBlock(wrapper).map(block => block.textContent)).toStrictEqual(["zero", "one"]);
+    });
+
+    test("Should find every block of a selection anchored on the editable element", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li>one</li></ul><p>two</p>`);
+        select(wrapper, 0, wrapper, wrapper.childNodes.length);
+
+        expect(getSelectedBlock(wrapper).map(block => block.textContent)).toStrictEqual(["zero", "one", "two"]);
+    });
+
+    test("Should find the empty item a caret rests on before the list nested in it", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><br><ul><li>one</li></ul></li></ul>`);
+        const item = wrapper.querySelector(".start") as Node;
+        select(item, 1, item, 1);
+
+        expect(getSelectedBlock(wrapper)).toStrictEqual([item]);
+    });
+});
