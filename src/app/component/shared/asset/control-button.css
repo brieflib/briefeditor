@@ -2,7 +2,7 @@
    stroke-drawn icon. Placement and visibility are left to each control's own stylesheet. */
 :host {
     --color-active: oklch(72.3% .219 149.579);
-    --color-background: #F5F6F7;
+    --color-background: #ECEFF4;
 }
 
 .be-control-button {

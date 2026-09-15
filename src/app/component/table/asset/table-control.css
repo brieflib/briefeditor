@@ -10,7 +10,7 @@
    shared control look (see control-button.css). */
 .be-table-control-button,
 .be-table-control-highlight {
-    --opacity-open: 1;
+    --opacity-open: 95%;
     position: fixed;
     opacity: 0;
     visibility: hidden;
@@ -50,10 +50,7 @@
 }
 
 .be-table-control-button {
-    z-index: 1000;
-    background: #ffffff;
-    border-radius: .7em;
-    transform: translate(-50%, -50%);
+    background: rgba(236, 239, 244, 0.43);
 }
 
 /* Pushed outward from the border it is centered on: row controls past the left edge,

@@ -32,7 +32,7 @@
     top: .75em;
     right: .75em;
     pointer-events: auto;
-    background: #F9FCF8;
+    border-radius: .35em;
 }
 
 .be-image-control-sizes {
@@ -47,7 +47,7 @@
 
     background: var(--color-background);
     opacity: 95%;
-    border-radius: .3em;
+    border-radius: .4em;
 }
 
 /* The label is scaled inside so the box keeps the wrapper's em. */

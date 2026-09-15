@@ -4,7 +4,7 @@ import tableControlCss from "@/component/table/asset/table-control.css?inline=tr
 import controlButtonCss from "@/component/shared/asset/control-button.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
 
-const HIGHLIGHT = 2;
+const HIGHLIGHT = 1;
 
 /** The table edge a control sits on: row controls on the left edge, column controls on the top. */
 export type Axis = "row" | "column";
@@ -21,11 +21,11 @@ class TableControl extends HTMLElement {
           <span class="be-table-control-wrapper">
             <span class="be-table-control-highlight"></span>
             <button type="button" class="be-control-button be-table-control-button" data-icon="plus">
-              <svg class="plus" viewBox="0 0 18 18">
-                <path class="icon-svg" d="M9,4V14M4,9H14" />
+              <svg  class="plus" viewBox="0 0 24 24" fill="none">
+                <path class="icon-svg" d="M6 12H18M12 6V18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <svg class="minus" viewBox="0 0 18 18">
-                <path class="icon-svg" d="M4,9H14" />
+              <svg class="minus" viewBox="0 0 24 24" fill="none">
+                <path class="icon-svg" d="M6 12L18 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
           </span>
