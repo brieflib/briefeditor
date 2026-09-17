@@ -2,7 +2,6 @@ import {handleCutEvent, handleDragEvent, handleDragOverEvent} from "@/core/clipb
 import {getRange} from "@/core/shared/range-util";
 import {createWrapper, expectHtml} from "@/core/shared/test-util";
 import {ensureParagraph} from "@/core/shared/element-util";
-import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -76,6 +75,9 @@ describe("Cut", () => {
 
         expectHtml(wrapper.innerHTML, `<p><br></p>`);
         expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("br"));
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     // A cut takes the selection out the way Delete does: the halves of the two lines it ran between are
@@ -92,6 +94,8 @@ describe("Cut", () => {
         expectHtml(wrapper.innerHTML, `<p>zerst</p>`);
         expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
         expect(cursorPosition.startOffset).toBe("ze".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should leave an empty heading when a cut runs from it into an empty nested item", () => {
@@ -104,7 +108,10 @@ describe("Cut", () => {
         const cursorPosition = handleCutEvent(wrapper, cutEvent());
 
         expectHtml(wrapper.innerHTML, `<h3><br></h3>`);
-        expect(cursorPosition.startContainer.isConnected).toBe(true);
+        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h3 br"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should leave an empty paragraph when the whole document is cut", () => {
@@ -118,6 +125,9 @@ describe("Cut", () => {
 
         expectHtml(wrapper.innerHTML, `<p><br></p>`);
         expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+        expect(cursorPosition.startOffset).toBe(0);
         expect(wrapper.isConnected).toBe(true);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 });

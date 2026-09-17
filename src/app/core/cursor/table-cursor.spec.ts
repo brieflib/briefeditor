@@ -67,6 +67,8 @@ describe("Table cursor", () => {
         expect(keyboardEvent.defaultPrevented).toBe(true);
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".last"));
         expect(cursorPosition?.startOffset).toBe("third".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".last"));
+        expect(cursorPosition?.endOffset).toBe("third".length);
     });
 
     test("Should keep the cursor in the last cell when there is no next block", () => {
@@ -99,6 +101,8 @@ describe("Table cursor", () => {
 
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".first"));
         expect(cursorPosition?.startOffset).toBe("".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".first"));
+        expect(cursorPosition?.endOffset).toBe("".length);
     });
 
     test("Should move a click into the last cell when the point resolves to the end of the table body", () => {
@@ -110,6 +114,8 @@ describe("Table cursor", () => {
 
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".last"));
         expect(cursorPosition?.startOffset).toBe("third".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".last"));
+        expect(cursorPosition?.endOffset).toBe("third".length);
     });
 
 
@@ -124,6 +130,8 @@ describe("Table cursor", () => {
         expect(keyboardEvent.defaultPrevented).toBe(true);
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".before"));
         expect(cursorPosition?.startOffset).toBe("before".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".before"));
+        expect(cursorPosition?.endOffset).toBe("before".length);
     });
 
     test("Should take over the arrow right that would leave the last cell", () => {
@@ -137,6 +145,8 @@ describe("Table cursor", () => {
         expect(keyboardEvent.defaultPrevented).toBe(true);
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".after"));
         expect(cursorPosition?.startOffset).toBe("".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".after"));
+        expect(cursorPosition?.endOffset).toBe("".length);
     });
 
     test("Should block the arrow left when there is no previous block", () => {
@@ -161,6 +171,8 @@ describe("Table cursor", () => {
         expect(keyboardEvent.defaultPrevented).toBe(true);
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".first"));
         expect(cursorPosition?.startOffset).toBe("".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".first"));
+        expect(cursorPosition?.endOffset).toBe("".length);
     });
 
     test("Should take over the arrow left that would enter the table", () => {
@@ -174,6 +186,8 @@ describe("Table cursor", () => {
         expect(keyboardEvent.defaultPrevented).toBe(true);
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".last"));
         expect(cursorPosition?.startOffset).toBe("third".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".last"));
+        expect(cursorPosition?.endOffset).toBe("third".length);
     });
 
     test("Should not enter the table from the middle of the previous block", () => {
@@ -202,6 +216,9 @@ describe("Table cursor", () => {
 
         expect(last.defaultPrevented).toBe(true);
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".first"));
+        expect(cursorPosition?.startOffset).toBe("".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".first"));
+        expect(cursorPosition?.endOffset).toBe("".length);
     });
 
     test("Should not take over an arrow left inside the first cell", () => {
@@ -280,6 +297,8 @@ describe("Table cursor", () => {
         expect(mouseEvent.defaultPrevented).toBe(true);
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".first"));
         expect(cursorPosition?.startOffset).toBe("".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".first"));
+        expect(cursorPosition?.endOffset).toBe("".length);
     });
 
     test("Should take over a click that would land after the table", () => {
@@ -292,6 +311,8 @@ describe("Table cursor", () => {
         expect(mouseEvent.defaultPrevented).toBe(true);
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".last"));
         expect(cursorPosition?.startOffset).toBe("third".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".last"));
+        expect(cursorPosition?.endOffset).toBe("third".length);
     });
 
     test("Should move a click into the table even when the cursor was already inside it", () => {
@@ -304,6 +325,8 @@ describe("Table cursor", () => {
 
         expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".first"));
         expect(cursorPosition?.startOffset).toBe("".length);
+        expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".first"));
+        expect(cursorPosition?.endOffset).toBe("".length);
     });
 
     test("Should not take over a click inside a cell", () => {
@@ -365,16 +388,20 @@ describe("Table cursor", () => {
         const caretPositionFromPoint = jest.fn();
         document.caretPositionFromPoint = caretPositionFromPoint;
 
-        tableCursor.onMouseDown(mousedownEvent(wrapper, {button: 2}));
-        tableCursor.onMouseDown(mousedownEvent(wrapper, {shiftKey: true}));
+        const secondary = tableCursor.onMouseDown(mousedownEvent(wrapper, {button: 2}));
+        const shifted = tableCursor.onMouseDown(mousedownEvent(wrapper, {shiftKey: true}));
         const skipped = caretPositionFromPoint.mock.calls.length;
 
-        tableCursor.onMouseDown(mousedownEvent(wrapper));
+        // The point resolves to no caret here, so the click is left alone once it has been looked up.
+        const plain = tableCursor.onMouseDown(mousedownEvent(wrapper));
         const resolved = caretPositionFromPoint.mock.calls.length;
         delete (document as Partial<Document>).caretPositionFromPoint;
 
         expect(skipped).toBe(0);
         expect(resolved).toBe(1);
+        expect(secondary).toBeNull();
+        expect(shifted).toBeNull();
+        expect(plain).toBeNull();
     });
 
     test("Should not take over a click of a secondary button", () => {

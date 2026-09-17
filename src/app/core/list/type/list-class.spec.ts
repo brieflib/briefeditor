@@ -103,9 +103,8 @@ describe("Convert ListClass to DOM", () => {
         `);
 
         const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
-        let lists = parseList(rootWrapper);
-        lists = normalizeLists(lists, getCursorPositionFrom(wrapper, 0, wrapper, 0, false)).lists;
-        const listWrapper = convertList(lists).firstElementChild as HTMLElement;
+        const normalized = normalizeLists(parseList(rootWrapper), getCursorPositionFrom(wrapper, 0, wrapper, 0, false));
+        const listWrapper = convertList(normalized.lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
             <ul>
                 <li>zero
@@ -118,6 +117,10 @@ describe("Convert ListClass to DOM", () => {
                 </li>
             </ul>
         `);
+        expect(normalized.cursorPosition.startContainer).toBe(wrapper);
+        expect(normalized.cursorPosition.startOffset).toBe(0);
+        expect(normalized.cursorPosition.endContainer).toBe(wrapper);
+        expect(normalized.cursorPosition.endOffset).toBe(0);
     });
 
     test("Normalize list with different nesting level", () => {
@@ -133,9 +136,8 @@ describe("Convert ListClass to DOM", () => {
         `);
 
         const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
-        let lists = parseList(rootWrapper);
-        lists = normalizeLists(lists, getCursorPositionFrom(wrapper, 0, wrapper, 0, false)).lists;
-        const listWrapper = convertList(lists).firstElementChild as HTMLElement;
+        const normalized = normalizeLists(parseList(rootWrapper), getCursorPositionFrom(wrapper, 0, wrapper, 0, false));
+        const listWrapper = convertList(normalized.lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
             <ul>
                 <li>second
@@ -145,6 +147,10 @@ describe("Convert ListClass to DOM", () => {
                 </li>
             </ul>
         `);
+        expect(normalized.cursorPosition.startContainer).toBe(wrapper);
+        expect(normalized.cursorPosition.startOffset).toBe(0);
+        expect(normalized.cursorPosition.endContainer).toBe(wrapper);
+        expect(normalized.cursorPosition.endOffset).toBe(0);
     });
 
     test("Convert nested list", () => {

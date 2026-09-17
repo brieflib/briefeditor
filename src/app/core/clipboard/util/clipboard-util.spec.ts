@@ -1,4 +1,4 @@
-import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, getText} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {getSelectedHtml, pasteHtml} from "@/core/clipboard/util/clipboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
@@ -21,11 +21,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `word`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `word`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>word</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "word"), "word".length);
     });
 
     test("Should paste into an empty list item without keeping its placeholder br", () => {
@@ -38,11 +39,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `word`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `word`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li><li>word</li></ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "word"), "word".length);
     });
 
     // The br left in the item is content the pasted items are divided around, which buries the second one
@@ -57,11 +59,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ul><li>zero</li><li>first</li></ul>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ul><li>zero</li><li>first</li></ul>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li><li>first</li></ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "first".length);
     });
 
     test("Should keep the line breaks of what is pasted into an empty paragraph", () => {
@@ -74,11 +77,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `zero<br>first`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `zero<br>first`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>zero<br>first</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "first".length);
     });
 
     test("Should insert p", () => {
@@ -92,11 +96,12 @@ describe("Sanitize input", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<p><strong style="margin: 0">second<span class="test">third</span></strong></p>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<p><strong style="margin: 0">second<span class="test">third</span></strong></p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>f<strong>second<span>third</span></strong>irst</p>
         `);
+        expectCursor(pasted, getText(wrapper, "third"), "third".length);
     });
 
     test("Should keep a pasted image outside of a table", () => {
@@ -110,13 +115,14 @@ describe("Sanitize input", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<p>second<img src="${image}"> third</p>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<p>second<img src="${image}"> third</p>`, cursorPosition);
 
         expect(wrapper.querySelectorAll("img").length).toBe(1);
         expect(wrapper.textContent).toBe("firstsecond third");
         expectHtml(wrapper.innerHTML, `
             <p>firstsecond</p><p class="be-image"><img src="${image}"></p><p> third</p>
         `);
+        expectCursor(pasted, getText(wrapper, " third"), " third".length);
     });
 
     test("Should insert html outside of formating elements (em)", () => {
@@ -130,11 +136,12 @@ describe("Sanitize input", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<strong style="margin: 0">second</strong>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<strong style="margin: 0">second</strong>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p><em>f</em><strong>second</strong><em>irst</em></p>
         `);
+        expectCursor(pasted, getText(wrapper, "second"), "second".length);
     });
 
     test("Should insert html outside of formating elements (a)", () => {
@@ -148,11 +155,12 @@ describe("Sanitize input", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<strong style="margin: 0">second</strong>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<strong style="margin: 0">second</strong>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p><em>zero</em><a><em>f</em></a><strong>second</strong><a><em>irst</em></a></p>
         `);
+        expectCursor(pasted, getText(wrapper, "second"), "second".length);
     });
 
     test("Should insert html outside of formating elements (a) after content", () => {
@@ -166,11 +174,12 @@ describe("Sanitize input", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<strong style="margin: 0">second</strong>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<strong style="margin: 0">second</strong>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p><strong>zero</strong>,<em>first</em>,<u>second</u>,<a>t</a><strong>second</strong><a>hird</a>.</p>
         `);
+        expectCursor(pasted, getFirstChild(wrapper, "a + strong"), "second".length);
     });
 
     // A heading is a line of words for the item it is dropped in, and the words standing beside it are a
@@ -193,7 +202,7 @@ describe("Sanitize input", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<h1>third</h1><strong>fourth</strong>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<h1>third</h1><strong>fourth</strong>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -205,6 +214,7 @@ describe("Sanitize input", () => {
                 <li>second</li>
             </ul>
         `);
+        expectCursor(pasted, getText(wrapper, "fourth"), "fourth".length);
     });
 
     // The item the cursor rests on dictates the shape: a heading dropped in it is words of the item, and
@@ -227,7 +237,7 @@ describe("Sanitize input", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<h1>third</h1>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<h1>third</h1>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -239,6 +249,7 @@ describe("Sanitize input", () => {
                 <li>second</li>
             </ul>
         `);
+        expectCursor(pasted, getText(wrapper, "zerothird"), "zerothird".length);
     });
 
     test("Should paste a lone paragraph into the middle of a heading keeping the heading", () => {
@@ -258,10 +269,7 @@ describe("Sanitize input", () => {
             <h1>fi<strong>zero</strong>rst</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("strong")?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("strong")?.firstChild);
-        expect(cursorPosition.startOffset).toBe("zero".length);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, wrapper.querySelector("strong")?.firstChild, "zero".length);
     });
 
     // The line the cursor is on dictates the tag: a heading dropped in a paragraph is words of it.
@@ -282,8 +290,7 @@ describe("Sanitize input", () => {
             <p>fizerorst</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.startOffset).toBe("fizero".length);
+        expectCursor(cursorPosition, wrapper.querySelector("p")?.firstChild, "fizero".length);
     });
 
     test("Should paste a lone blockquote into the middle of a paragraph as words of it", () => {
@@ -296,11 +303,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<blockquote>zero</blockquote>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<blockquote>zero</blockquote>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>fizerorst</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "fizerorst"), "fizero".length);
     });
 
     // A copy carries the block it was taken from, so words copied out of a heading come back as one; dropped
@@ -322,8 +330,7 @@ describe("Sanitize input", () => {
             <h1>zefirstro</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h1")?.firstChild);
-        expect(cursorPosition.startOffset).toBe("zefirst".length);
+        expectCursor(cursorPosition, wrapper.querySelector("h1")?.firstChild, "zefirst".length);
     });
 
     test("Should paste a lone heading into a heading of another kind as words of it", () => {
@@ -336,11 +343,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h2>first</h2>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h2>first</h2>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1>zefirstro</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zefirstro"), "zefirst".length);
     });
 
     // Copied words come wrapped in the block they were taken from, and a paragraph's words are words of
@@ -357,13 +365,14 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zefirstro</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zefirstro"), "zefirst".length);
     });
 
     test("Should paste what was copied out of a heading into a paragraph as words of it", () => {
@@ -382,12 +391,13 @@ describe("Sanitize input", () => {
         range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
-        pasteHtml(wrapper, copied, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1 class="source">Editor Reference Guide</h1>
             <p>zeReferencero</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zeReferencero"), "zeReference".length);
     });
 
     test("Should paste what was copied out of a heading into a heading as words of it", () => {
@@ -406,12 +416,13 @@ describe("Sanitize input", () => {
         range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
-        pasteHtml(wrapper, copied, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1 class="source">Editor Reference Guide</h1>
             <h1>zeReferencero</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zeReferencero"), "zeReference".length);
     });
 
     test("Should paste what was copied out of a paragraph into a heading as words of it", () => {
@@ -430,12 +441,13 @@ describe("Sanitize input", () => {
         range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
-        pasteHtml(wrapper, copied, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p class="source">Editor Reference Guide</p>
             <h1>zeReferencero</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zeReferencero"), "zeReference".length);
     });
 
     // An empty line has no words to join, so it gives its tag up: what is pasted takes its place as it came.
@@ -455,12 +467,13 @@ describe("Sanitize input", () => {
         range.setStart(wrapper.querySelector("br") as Node, 0);
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
-        pasteHtml(wrapper, copied, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p class="source">Editor Reference Guide</p>
             <p>Reference</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "Reference"), "Reference".length);
     });
 
     test("Should paste what was copied out of an item into a paragraph as a list", () => {
@@ -481,7 +494,7 @@ describe("Sanitize input", () => {
         range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
-        pasteHtml(wrapper, copied, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -493,6 +506,7 @@ describe("Sanitize input", () => {
             </ul>
             <p>ro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ir"), "ir".length);
     });
 
     // A lone line is words of the line it is dropped on at its edges too: nothing opens a line of its own.
@@ -513,8 +527,7 @@ describe("Sanitize input", () => {
             <p>zerofirst</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.startOffset).toBe("zerofirst".length);
+        expectCursor(cursorPosition, wrapper.querySelector("p")?.firstChild, "zerofirst".length);
     });
 
     test("Should paste a lone heading at the start of a paragraph as words of it", () => {
@@ -527,11 +540,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>firstzero</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "firstzero"), "first".length);
     });
 
     test("Should take the place of the empty paragraph a lone heading is pasted into", () => {
@@ -544,11 +558,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1>first</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "first".length);
     });
 
     test("Should paste a lone heading into the middle of an item as words of it", () => {
@@ -564,7 +579,7 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h1>second</h1>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h1>second</h1>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -572,6 +587,7 @@ describe("Sanitize input", () => {
                 <li>first</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zesecondro"), "zesecond".length);
     });
 
     // The editor writes its lines as paragraphs and knows no div, so a pasted one arrives as the paragraph
@@ -586,11 +602,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<div>first</div>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<div>first</div>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>zefirstro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zefirstro"), "zefirst".length);
     });
 
     // The blocks a div holds are lifted out of it and read as the lines they are.
@@ -604,12 +621,13 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<div><h1>first</h1><p>second</p></div>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<div><h1>first</h1><p>second</p></div>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>zefirst</p>
             <p>secondro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     test("Should take the place of an empty heading with a lone paragraph", () => {
@@ -622,11 +640,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>zero</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>zero</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zero"), "zero".length);
     });
 
     test("Should paste a lone paragraph wrapped in fragment markers into a heading", () => {
@@ -640,11 +659,12 @@ describe("Sanitize input", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<!--StartFragment--><p>zero</p><!--EndFragment-->`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<!--StartFragment--><p>zero</p><!--EndFragment-->`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <h1>fizerorst</h1>
         `);
+        expectCursor(pasted, getText(wrapper, "fizerorst"), "fizero".length);
     });
 
     test("Should paste a heading and a paragraph into a nested item as its lines", () => {
@@ -678,10 +698,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.lastChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[1]?.lastChild);
-        expect(cursorPosition.startOffset).toBe("fourth".length);
-        expect(cursorPosition.endOffset).toBe("fourth".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("li")[1]?.lastChild, "fourth".length);
     });
 
     test("Should serialize selection keeping literal hrefs", () => {
@@ -887,10 +904,7 @@ describe("Sanitize input", () => {
             <p>first</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.startOffset).toBe("first".length);
-        expect(cursorPosition.endOffset).toBe("first".length);
+        expectCursor(cursorPosition, wrapper.querySelector("p")?.firstChild, "first".length);
     });
 
     test("Should paste multiple paragraphs at the end of a heading as headings", () => {
@@ -911,10 +925,7 @@ describe("Sanitize input", () => {
             <h1>second</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("h1")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
-        expect(cursorPosition.endOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("h1")[1]?.firstChild, "second".length);
     });
 
     test("Should pasted list before heading", () => {
@@ -938,10 +949,7 @@ describe("Sanitize input", () => {
             <h1>zero</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
-        expect(cursorPosition.endOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("li")[1]?.firstChild, "second".length);
     });
 
     test("Should pasted list after heading", () => {
@@ -965,10 +973,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
-        expect(cursorPosition.endOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("li")[1]?.firstChild, "second".length);
     });
 
     test("Should paste lis after heading", () => {
@@ -992,10 +997,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
-        expect(cursorPosition.endOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("li")[1]?.firstChild, "second".length);
     });
 
     test("Should paste lis with nested list after heading", () => {
@@ -1023,10 +1025,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("third".length);
-        expect(cursorPosition.endOffset).toBe("third".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("li")[2]?.firstChild, "third".length);
     });
 
     test("Should paste list to the middle of heading", () => {
@@ -1051,10 +1050,7 @@ describe("Sanitize input", () => {
             <h1>ro</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
-        expect(cursorPosition.endOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("li")[1]?.firstChild, "second".length);
     });
 
     // A paragraph written beside a list is a line of its own: a list dropped in it goes between its halves,
@@ -1070,7 +1066,7 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ul><li>second</li></ul>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ul><li>second</li></ul>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>first</li></ul>
@@ -1078,6 +1074,7 @@ describe("Sanitize input", () => {
             <ul><li>second</li></ul>
             <p>ro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 
     test("Should paste a list into the middle of a paragraph standing before a list", () => {
@@ -1091,7 +1088,7 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ul><li>second</li></ul>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ul><li>second</li></ul>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>ze</p>
@@ -1099,6 +1096,7 @@ describe("Sanitize input", () => {
             <p>ro</p>
             <ul><li>first</li></ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 
     // A copy carries the shape the selection was made in: a selection running from a nested item into the
@@ -1125,8 +1123,7 @@ describe("Sanitize input", () => {
             </ol>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("li")[1]?.firstChild, "second".length);
     });
 
     test("Should paste what was copied from a nested item into the item below it as a list of its lines", () => {
@@ -1152,7 +1149,7 @@ describe("Sanitize input", () => {
         range.setStart(getFirstChild(wrapper, ".start"), "third".length);
         range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
-        pasteHtml(wrapper, copied, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -1169,6 +1166,7 @@ describe("Sanitize input", () => {
                 <li>second</li>
             </ol>
         `);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + ol > li + li"), "second".length);
     });
 
     // The selection runs from the heading into the first item, so the copy is a heading and a list; the
@@ -1209,8 +1207,7 @@ describe("Sanitize input", () => {
             </ol>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("first".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("li")[1]?.firstChild, "first".length);
     });
 
     test("Should keep the nested list when what was copied from a heading into an item is pasted into a nested item", () => {
@@ -1235,7 +1232,7 @@ describe("Sanitize input", () => {
         range.setStart(getFirstChild(wrapper, ".start"), "Third".length);
         range.setEnd(getFirstChild(wrapper, ".start"), "Third".length);
         (getRange as jest.Mock).mockReturnValue(range);
-        pasteHtml(wrapper, copied, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h3 class="from">Ordered List</h3>
@@ -1249,6 +1246,7 @@ describe("Sanitize input", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ol ol > li + li"), "first".length);
     });
 
     // A paste takes the selection out the way Delete does before placing anything: the emptied blocks it
@@ -1267,9 +1265,10 @@ describe("Sanitize input", () => {
             const wrapper = createWrapper(html);
             selectFromHeading(wrapper);
 
-            pasteHtml(wrapper, `<p>zero</p>`, getCursorPosition());
+            const cursorPosition = pasteHtml(wrapper, `<p>zero</p>`, getCursorPosition());
 
             expectHtml(wrapper.innerHTML, `<p>zero</p>`);
+            expectCursor(cursorPosition, getText(wrapper, "zero"), "zero".length);
         });
 
         test("Should write pasted words into the heading the selection started in", () => {
@@ -1279,8 +1278,7 @@ describe("Sanitize input", () => {
             const cursorPosition = pasteHtml(wrapper, `zero`, getCursorPosition());
 
             expectHtml(wrapper.innerHTML, `<h3>zero</h3>`);
-            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h3")?.firstChild);
-            expect(cursorPosition.startOffset).toBe("zero".length);
+            expectCursor(cursorPosition, wrapper.querySelector("h3")?.firstChild, "zero".length);
         });
 
         test("Should replace the selection with what was copied from the heading into the first item", () => {
@@ -1292,9 +1290,10 @@ describe("Sanitize input", () => {
             const copied = getSelectedHtml(getCursorPosition());
 
             selectFromHeading(wrapper);
-            pasteHtml(wrapper, copied, getCursorPosition());
+            const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
             expectHtml(wrapper.innerHTML, `<h3>Ordered List</h3><ol><li>First</li></ol>`);
+            expectCursor(cursorPosition, getText(wrapper, "First"), "First".length);
         });
     });
 
@@ -1308,7 +1307,7 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ol><li><ol><li>first</li></ol></li><li>second</li></ol>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ol><li><ol><li>first</li></ol></li><li>second</li></ol>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -1316,6 +1315,7 @@ describe("Sanitize input", () => {
                 <li>second</li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 
     test("Should divide the item a list copied from a nested item is pasted into", () => {
@@ -1330,7 +1330,7 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ol><li><ol><li>first</li></ol></li><li>second</li></ol>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ol><li><ol><li>first</li></ol></li><li>second</li></ol>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1344,6 +1344,7 @@ describe("Sanitize input", () => {
                 <li>ro</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 
     test("Should keep the nesting below the item a copied list opens on", () => {
@@ -1356,7 +1357,7 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ol><li><ol><li>first<ol><li>second</li></ol></li></ol></li></ol>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ol><li><ol><li>first<ol><li>second</li></ol></li></ol></li></ol>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
@@ -1368,6 +1369,7 @@ describe("Sanitize input", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 
     test("Should read every pasted run of lists back on its own", () => {
@@ -1380,7 +1382,7 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ul><li>first</li></ul><p>second</p><ol><li><ol><li>third</li></ol></li><li>fourth</li></ol>`,
+        const cursorPosition = pasteHtml(wrapper, `<ul><li>first</li></ul><p>second</p><ol><li><ol><li>third</li></ol></li><li>fourth</li></ol>`,
             getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
@@ -1394,6 +1396,7 @@ describe("Sanitize input", () => {
                 <li>fourth</li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "fourth"), "fourth".length);
     });
 
     test("Should keep list wrapper of copied list items", () => {
@@ -1433,10 +1436,7 @@ describe("Sanitize input", () => {
             <h1>secondro</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("h1")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
-        expect(cursorPosition.endOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("h1")[1]?.firstChild, "second".length);
     });
 
     test("Should paste multiple paragraphs to the middle of a paragraph", () => {
@@ -1457,10 +1457,7 @@ describe("Sanitize input", () => {
             <p>secondro</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
-        expect(cursorPosition.endOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("p")[1]?.firstChild, "second".length);
     });
 
     test("Should paste multiple paragraphs to the end of a paragraph", () => {
@@ -1481,8 +1478,7 @@ describe("Sanitize input", () => {
             <p>second</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("p")[1]?.firstChild, "second".length);
     });
 
     test("Should paste multiple paragraphs before a paragraph", () => {
@@ -1503,8 +1499,7 @@ describe("Sanitize input", () => {
             <p>secondzero</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("p")[1]?.firstChild, "second".length);
     });
 
     test("Should paste multiple paragraphs into an empty paragraph without keeping its placeholder br", () => {
@@ -1525,8 +1520,7 @@ describe("Sanitize input", () => {
             <p>second</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("p")[1]?.firstChild, "second".length);
     });
 
     // Every pasted line is words of the line it is dropped on, so headings pasted into a heading join its
@@ -1542,12 +1536,13 @@ describe("Sanitize input", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<h1>first</h1><h1>second</h1>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<h1>first</h1><h1>second</h1>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <h1>zefirst</h1>
             <h1>secondro</h1>
         `);
+        expectCursor(pasted, getText(wrapper, "secondro"), "second".length);
     });
 
     test("Should join a heading opening a run pasted into a heading of its own kind and the paragraph closing it", () => {
@@ -1568,8 +1563,7 @@ describe("Sanitize input", () => {
             <h1>secondro</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("h1")[1]?.firstChild, "second".length);
     });
 
     // A line standing between the two a run opens and closes with has no half of the target to join, so
@@ -1584,13 +1578,14 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p><blockquote>second</blockquote><h1>third</h1>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p><blockquote>second</blockquote><h1>third</h1>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1>zefirst</h1>
             <h1>second</h1>
             <h1>thirdro</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "thirdro"), "third".length);
     });
 
     test("Should join a heading opening a run pasted into a heading of another kind", () => {
@@ -1603,12 +1598,13 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h2>zefirst</h2>
             <h2>secondro</h2>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     test("Should join a blockquote and a heading pasted into a blockquote to its halves", () => {
@@ -1621,12 +1617,13 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<blockquote>first</blockquote><h1>second</h1>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<blockquote>first</blockquote><h1>second</h1>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <blockquote>zefirst</blockquote>
             <blockquote>secondro</blockquote>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     // An item holds a single line, so the lines pasted into it stay inside it, divided by breaks.
@@ -1651,8 +1648,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("li")?.lastChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelector("li")?.lastChild, "second".length);
     });
 
     test("Should paste what was copied from a heading into the paragraph below it into a heading as its words", () => {
@@ -1672,7 +1668,7 @@ describe("Sanitize input", () => {
         range.setStart(getFirstChild(wrapper, ".start"), "se".length);
         range.setEnd(getFirstChild(wrapper, ".start"), "se".length);
         (getRange as jest.Mock).mockReturnValue(range);
-        pasteHtml(wrapper, copied, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1 class="from">zero</h1>
@@ -1680,6 +1676,7 @@ describe("Sanitize input", () => {
             <h1>sero</h1>
             <h1>ficond</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ficond"), "fi".length);
     });
 
     // The paragraphs a run opens and closes with are words of the line they are dropped in. A paragraph
@@ -1703,8 +1700,7 @@ describe("Sanitize input", () => {
             <p>thirdro</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[2]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("third".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("p")[2]?.firstChild, "third".length);
     });
 
     test("Should write the heading standing between the paragraphs a run opens and closes with as a paragraph", () => {
@@ -1726,8 +1722,7 @@ describe("Sanitize input", () => {
             <p>thirdro</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("p")[2]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("third".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("p")[2]?.firstChild, "third".length);
     });
 
     test("Should join a heading opening a run and the paragraph closing it to the halves of a paragraph", () => {
@@ -1740,12 +1735,13 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>zefirst</p>
             <p>secondro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     test("Should join a paragraph opening a run and the heading closing it to the halves of a paragraph", () => {
@@ -1758,12 +1754,13 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p><h1>second</h1>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p><h1>second</h1>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>zefirst</p>
             <p>secondro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     // A paragraph pasted at either end of a line has nothing to join there, so it keeps a line of its own -
@@ -1778,12 +1775,13 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1>zerofirst</h1>
             <h1>second</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 
     test("Should write a paragraph opening a run pasted at the start of a heading as a heading", () => {
@@ -1796,12 +1794,13 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1>first</h1>
             <h1>secondzero</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondzero"), "second".length);
     });
 
     // A paragraph standing for an empty line is nothing to join a line with, so it keeps a line of its own.
@@ -1815,13 +1814,14 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p><br></p><p>first</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p><br></p><p>first</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>ze</p>
             <p><br></p>
             <p>firstro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "firstro"), "first".length);
     });
 
     test("Should paste paragraphs around a heading into the middle of an item as its lines", () => {
@@ -1847,8 +1847,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[0]?.lastChild);
-        expect(cursorPosition.startOffset).toBe("fourth".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("li")[0]?.lastChild, "fourth".length);
     });
 
     // The list standing in the middle of the run is placed beside the one it was dropped in, and the two
@@ -1877,8 +1876,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("third".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("li")[2]?.firstChild, "third".length);
     });
 
     // A block on its own keeps the line it is pasted into: words copied from a page arrive wrapped in a
@@ -1894,11 +1892,12 @@ describe("Sanitize input", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<p>first</p>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<p>first</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>zefirstro</p>
         `);
+        expectCursor(pasted, getText(wrapper, "zefirstro"), "zefirst".length);
     });
 
     // A lone br is the empty line it was copied from: dropped into a line it is the space between the words
@@ -1920,10 +1919,7 @@ describe("Sanitize input", () => {
             <p>ze ro</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.startOffset).toBe("ze ".length);
-        expect(cursorPosition.endOffset).toBe("ze ".length);
+        expectCursor(cursorPosition, wrapper.querySelector("p")?.firstChild, "ze ".length);
     });
 
     // The parser drops a space standing before anything that would open a body, which is all a copied space is.
@@ -1944,10 +1940,7 @@ describe("Sanitize input", () => {
             <p>ze ro</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.startOffset).toBe("ze ".length);
-        expect(cursorPosition.endOffset).toBe("ze ".length);
+        expectCursor(cursorPosition, wrapper.querySelector("p")?.firstChild, "ze ".length);
     });
 
     // A space read off the system clipboard comes with the charset the browser wrote in front of it.
@@ -1961,11 +1954,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<meta charset="utf-8"> `, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<meta charset="utf-8"> `, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>ze ro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ze ro"), "ze ".length);
     });
 
     // An empty line selected from the end of the line before it is copied as two blocks, and they are one
@@ -1987,8 +1981,7 @@ describe("Sanitize input", () => {
             <p>ze ro</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.startOffset).toBe("ze ".length);
+        expectCursor(cursorPosition, wrapper.querySelector("p")?.firstChild, "ze ".length);
     });
 
     test("Should paste an empty line copied with the block before it into the middle of a heading as a space", () => {
@@ -2001,11 +1994,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1>ze ro</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ze ro"), "ze ".length);
     });
 
     test("Should paste an empty line copied with the block before it into the middle of a list item as a space", () => {
@@ -2018,11 +2012,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>ze ro</li></ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ze ro"), "ze ".length);
     });
 
     test("Should leave an empty paragraph alone when an empty line copied with the block before it is pasted into it", () => {
@@ -2035,11 +2030,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p><br></p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     // An empty line copied inside the editor is a bare br, and it goes the same way.
@@ -2053,11 +2049,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<br>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<br>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>ze ro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ze ro"), "ze ".length);
     });
 
     // Formatting around a lone br is nothing to keep.
@@ -2071,11 +2068,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p><b><br></b></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p><b><br></b></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>ze ro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ze ro"), "ze ".length);
     });
 
     // A space written into an emptied block would leave one with no br to hold its line open.
@@ -2089,11 +2087,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p><br></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p><br></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p><br></p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     test("Should paste an empty paragraph into the middle of a list item as a space", () => {
@@ -2106,11 +2105,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p><br></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p><br></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>ze ro</li></ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ze ro"), "ze ".length);
     });
 
     test("Should paste an empty paragraph into the middle of a cell as a space", () => {
@@ -2123,11 +2123,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p><br></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p><br></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr><td>ze ro</td><td>first</td></tr></tbody></table>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ze ro"), "ze ".length);
     });
 
     // Whitespace goes the way a lone br does: the formatting wrapped around it is nothing to keep.
@@ -2148,8 +2149,7 @@ describe("Sanitize input", () => {
             <p>ze ro</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p")?.firstChild);
-        expect(cursorPosition.startOffset).toBe("ze ".length);
+        expectCursor(cursorPosition, wrapper.querySelector("p")?.firstChild, "ze ".length);
     });
 
     test("Should paste a formatted no-break space as a plain space", () => {
@@ -2162,11 +2162,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<b>&nbsp;</b>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<b>&nbsp;</b>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>ze ro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ze ro"), "ze ".length);
     });
 
     test("Should paste a run of formatted blanks as one space", () => {
@@ -2179,11 +2180,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<b> </b><i> </i>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<b> </b><i> </i>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>ze ro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ze ro"), "ze ".length);
     });
 
     // Text beside the whitespace is a paste of its own and keeps what wraps it.
@@ -2197,11 +2199,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<b> a</b>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<b> a</b>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>ze<b> a</b>ro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, " a"), " a".length);
     });
 
     test("Should paste nothing for formatting holding nothing", () => {
@@ -2214,13 +2217,14 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<b></b>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<b></b>`, getCursorPosition());
 
         // The paste is empty once the tag is dropped, so it returns before anything is rebuilt
         // and the markup is left exactly as it was, the marker class included.
         expectHtml(wrapper.innerHTML, `
             <p class="start">zero</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zero"), "ze".length);
     });
 
     // An empty tag isn't content the block's br is replaced by: the paste holds nothing once the tag is
@@ -2235,11 +2239,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<b></b>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<b></b>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p><br></p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     test("Should leave an empty paragraph alone when a paragraph holding nothing is pasted into it", () => {
@@ -2252,11 +2257,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p><br></p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     test("Should leave an empty paragraph alone when nested formatting holding nothing is pasted into it", () => {
@@ -2269,11 +2275,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p><b><i></i></b></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p><b><i></i></b></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p><br></p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     test("Should drop formatting holding nothing standing among pasted lines", () => {
@@ -2286,11 +2293,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>a</p><b></b><p>b</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>a</p><b></b><p>b</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>a</p><p>b</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "b"), "b".length);
     });
 
     // An empty cell is a cell of its table, not an empty tag to drop.
@@ -2304,11 +2312,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<table><tbody><tr><td>a</td><td></td></tr></tbody></table>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<table><tbody><tr><td>a</td><td></td></tr></tbody></table>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>a</td><td></td></tr></tbody></table>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should leave an empty paragraph alone when formatted whitespace is pasted into it", () => {
@@ -2321,11 +2330,12 @@ describe("Sanitize input", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<b> </b>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<b> </b>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p><br></p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     // Several brs are lines of their own: each pasted empty line keeps a line of its own between the halves.
@@ -2339,7 +2349,7 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p><br></p><p><br></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p><br></p><p><br></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>ze</p>
@@ -2347,6 +2357,7 @@ describe("Sanitize input", () => {
             <p><br></p>
             <p>ro</p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("p br")[1], 0);
     });
 
     // A br standing beside text is a break in that text, not an empty line.
@@ -2360,11 +2371,12 @@ describe("Sanitize input", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>a<br></p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>a<br></p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>zea<br>ro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "ro"), "".length);
     });
 
     test("Should paste multiple paragraphs at the start of a heading as headings", () => {
@@ -2385,10 +2397,7 @@ describe("Sanitize input", () => {
             <h1>secondzero</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[1]?.firstChild);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("h1")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
-        expect(cursorPosition.endOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("h1")[1]?.firstChild, "second".length);
     });
 });
 
@@ -2418,8 +2427,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("li")?.lastChild);
-        expect(cursorPosition.startOffset).toBe("third".length);
+        expectCursor(cursorPosition, wrapper.querySelector("li")?.lastChild, "third".length);
     });
 
     test("Should paste several paragraphs at the end of an item as its lines", () => {
@@ -2443,8 +2451,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("li")?.lastChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
+        expectCursor(cursorPosition, wrapper.querySelector("li")?.lastChild, "second".length);
     });
 
     test("Should paste several paragraphs at the start of an item as its lines", () => {
@@ -2459,13 +2466,14 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first<br>secondzero</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondzero"), "second".length);
     });
 
     // An empty item has no tag to give up, so it is filled the way any item is.
@@ -2482,7 +2490,7 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2490,6 +2498,7 @@ describe("Paste lines into the line the cursor is on", () => {
                 <li>first<br>second</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 
     // The line pasted along with a list fills the empty item, and the list's items follow it in its list.
@@ -2506,7 +2515,7 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p><ul><li>second</li></ul>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p><ul><li>second</li></ul>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2515,6 +2524,7 @@ describe("Paste lines into the line the cursor is on", () => {
                 <li>second</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 
     test("Should paste several headings into an item as its lines", () => {
@@ -2529,13 +2539,14 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h1>first</h1><h2>second</h2><blockquote>third</blockquote>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h1>first</h1><h2>second</h2><blockquote>third</blockquote>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zefirst<br>second<br>thirdro</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "thirdro"), "third".length);
     });
 
     // An empty line among the pasted ones is an empty line of the item: the breaks around it stand for it.
@@ -2551,13 +2562,14 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p><p><br></p><p>second</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p><p><br></p><p>second</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zefirst<br><br>secondro</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     // Markup copied from a page can wrap its blocks in formatting; the blocks are lifted out of it and
@@ -2574,13 +2586,14 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<b style="font-weight: normal"><p>first</p><p>second</p></b>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<b style="font-weight: normal"><p>first</p><p>second</p></b>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zefirst<br>secondro</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     test("Should paste a lone heading at the end of a heading of another kind as words of it", () => {
@@ -2593,11 +2606,12 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h2>first</h2>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h2>first</h2>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1>zerofirst</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zerofirst"), "zerofirst".length);
     });
 
     test("Should paste a lone heading at the start of a heading of another kind as words of it", () => {
@@ -2610,11 +2624,12 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h2>first</h2>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h2>first</h2>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1>firstzero</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "firstzero"), "first".length);
     });
 
     test("Should paste three paragraphs into the middle of a heading as headings", () => {
@@ -2636,8 +2651,7 @@ describe("Paste lines into the line the cursor is on", () => {
             <h1>thirdro</h1>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("h1")[2]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("third".length);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("h1")[2]?.firstChild, "third".length);
     });
 
     // A page writes a quote as paragraphs inside a blockquote; the paragraphs are lifted out of it and
@@ -2652,12 +2666,13 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<blockquote>\n<p>first</p>\n<p>second</p>\n</blockquote>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<blockquote>\n<p>first</p>\n<p>second</p>\n</blockquote>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>zefirst</p>
             <p>secondro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     // Words standing beside a block are a line of their own, written in the tag of the line they land in.
@@ -2671,12 +2686,13 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h1>first</h1>second`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h1>first</h1>second`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>zefirst</p>
             <p>secondro</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     test("Should paste lines around a list into the halves of a heading as headings", () => {
@@ -2689,7 +2705,7 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p><ul><li>second</li></ul><p>third</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p><ul><li>second</li></ul><p>third</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1>zefirst</h1>
@@ -2698,6 +2714,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
             <h1>thirdro</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "thirdro"), "third".length);
     });
 
     // An empty line has no words to join, so it gives its tag up: the pasted blocks take its place as they
@@ -2712,11 +2729,12 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <h1>first</h1>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "first".length);
     });
 
     test("Should take the place of an empty heading with several paragraphs", () => {
@@ -2729,12 +2747,13 @@ describe("Paste lines into the line the cursor is on", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>first</p>
             <p>second</p>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 });
 
@@ -2757,8 +2776,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<p>ze</p>${imageBlock}<p>ro</p>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.lastChild?.firstChild);
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.lastChild?.firstChild, 0);
     });
 
     test("Should open a paragraph after an image pasted at the end of the document for the cursor", () => {
@@ -2768,7 +2786,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<p>zero</p>${imageBlock}<p><br></p>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+        expectCursor(cursorPosition, wrapper.querySelector("br"), 0);
     });
 
     test("Should not merge a lone image block into the paragraph, though both are paragraphs", () => {
@@ -2778,8 +2796,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, imageBlock, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `${imageBlock}<p>zero</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p:last-child"));
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p:last-child"), 0);
     });
 
     test("Should take the place of the empty paragraph the cursor is in", () => {
@@ -2789,7 +2806,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `${imageBlock}<p><br></p>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
+        expectCursor(cursorPosition, wrapper.querySelector("br"), 0);
     });
 
     test("Should merge the words around an inline image into the line and lift the image out", () => {
@@ -2799,8 +2816,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<p>first<img src="${image}">second</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<p>zefirst</p>${imageBlock}<p>secondro</p>`);
-        expect(cursorPosition.startContainer?.textContent).toBe("secondro");
-        expect(cursorPosition.startOffset).toBe("second".length);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     test("Should not take an image block as the edge line to merge into the paragraph", () => {
@@ -2810,8 +2826,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `${imageBlock}<p>first</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<p>ze</p>${imageBlock}<p>firstro</p>`);
-        expect(cursorPosition.startContainer?.textContent).toBe("firstro");
-        expect(cursorPosition.startOffset).toBe("first".length);
+        expectCursor(cursorPosition, getText(wrapper, "firstro"), "first".length);
     });
 
     test("Should keep the image block a paragraph when pasted onto a heading", () => {
@@ -2821,7 +2836,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<p>first</p><img src="${image}"><p>second</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<h1>zerofirst</h1>${imageBlock}<h1>second</h1>`);
-        expect(cursorPosition.startContainer?.textContent).toBe("second");
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 
     test("Should divide the list the cursor is in around an image block", () => {
@@ -2831,8 +2846,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>fi</li></ul>${imageBlock}<ul><li>rst</li><li>second</li></ul>`);
-        expect(cursorPosition.startContainer?.textContent).toBe("rst");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, getText(wrapper, "rst"), 0);
     });
 
     test("Should divide the list around an image pasted with words on either side", () => {
@@ -2842,8 +2856,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<p>first<img src="${image}">second</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<ul><li>zefirst</li></ul>${imageBlock}<ul><li>secondro</li></ul>`);
-        expect(cursorPosition.startContainer?.textContent).toBe("secondro");
-        expect(cursorPosition.startOffset).toBe("second".length);
+        expectCursor(cursorPosition, getText(wrapper, "secondro"), "second".length);
     });
 
     test("Should lift an image out of a pasted item, dividing the pasted list", () => {
@@ -2853,17 +2866,18 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<ul><li>zero<img src="${image}">first</li></ul>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul>${imageBlock}<ul><li>first</li></ul>`);
-        expect(cursorPosition.startContainer?.textContent).toBe("first");
+        expectCursor(cursorPosition, getText(wrapper, "first"), "first".length);
     });
 
     test("Should drop an image pasted inside a table cell", () => {
         const wrapper = createWrapper(`<p class="start"><br></p>`);
         const cursorPosition = select(wrapper, ".start", "".length);
 
-        pasteHtml(wrapper, `<table><tbody><tr><td>zero<img src="${image}"></td></tr></tbody></table>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<table><tbody><tr><td>zero<img src="${image}"></td></tr></tbody></table>`, cursorPosition);
 
         expect(wrapper.querySelector("img")).toBeNull();
         expect(wrapper.querySelector("td")?.textContent).toBe("zero");
+        expectCursor(pasted, wrapper.querySelector("th"), 0);
     });
 
     // An empty item has no tag to give up, so the line pasted along with the image fills it rather than
@@ -2875,7 +2889,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<p>first</p><img src="${image}">`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>${imageBlock}<p><br></p>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p:last-child br"));
+        expectCursor(cursorPosition, wrapper.querySelector("p:last-child br"), 0);
     });
 
     test("Should fill an empty item with the line pasted after an image block", () => {
@@ -2885,8 +2899,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<img src="${image}"><p>first</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul>${imageBlock}<ul><li>first</li></ul>`);
-        expect(cursorPosition.startContainer?.textContent).toBe("first");
-        expect(cursorPosition.startOffset).toBe("first".length);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "first".length);
     });
 
     // A filled item has words on one side of the cursor only, so just one edge line joins it.
@@ -2897,7 +2910,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<p>first</p><img src="${image}"><p>second</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>${imageBlock}<p>second</p>`);
-        expect(cursorPosition.startContainer?.textContent).toBe("second");
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length);
     });
 
     test("Should fill an empty nested item with the line pasted before an image block", () => {
@@ -2907,17 +2920,17 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<p>first</p><img src="${image}">`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero<ul><li>first</li></ul></li></ul>${imageBlock}<ul><li>second</li></ul>`);
-        expect(cursorPosition.startContainer?.textContent).toBe("second");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, getText(wrapper, "second"), 0);
     });
 
     test("Should take the place of the empty item a lone image is pasted into", () => {
         const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><br></li></ul>`);
         const cursorPosition = select(wrapper, ".start", "".length);
 
-        pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul>${imageBlock}<p><br></p>`);
+        expectCursor(pasted, wrapper.querySelector("p:last-child br"), 0);
     });
 
     test("Should keep the class of a copied image block through the rebuild", () => {
@@ -2927,8 +2940,7 @@ describe("Paste an image", () => {
         cursorPosition = pasteHtml(wrapper, `<p class="be-image other" style="margin: 0"><img src="${image}"></p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `<p>zero</p>${imageBlock}<p>first</p>`);
-        expect(cursorPosition.startContainer?.textContent).toBe("first");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, getText(wrapper, "first"), 0);
     });
 });
 
@@ -2954,8 +2966,7 @@ describe("Paste a table", () => {
         `);
 
         const firstCell = wrapper.querySelector("th");
-        expect(cursorPosition.startContainer).toBe(firstCell?.firstChild);
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, firstCell?.firstChild, 0);
     });
 
     // The br standing in for the line of an empty block is what the table takes the place of, not
@@ -2976,8 +2987,7 @@ describe("Paste a table", () => {
         expectHtml(wrapper.innerHTML, table);
 
         const firstCell = wrapper.querySelector("th");
-        expect(cursorPosition.startContainer).toBe(firstCell?.firstChild);
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, firstCell?.firstChild, 0);
     });
 
     test("Should go before the paragraph the cursor starts in", () => {
@@ -2991,11 +3001,12 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, table, cursorPosition);
+        const pasted = pasteHtml(wrapper, table, cursorPosition);
 
         expectHtml(wrapper.innerHTML, table + `
             <p>fourth</p>
         `);
+        expectCursor(pasted, getText(wrapper, "zero"), "".length);
     });
 
     test("Should go after the paragraph the cursor ends in", () => {
@@ -3009,10 +3020,11 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, table, cursorPosition);
+        const pasted = pasteHtml(wrapper, table, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>fourth</p>` + table);
+        expectCursor(pasted, getText(wrapper, "zero"), "".length);
     });
 
     test("Should divide the list the cursor is in", () => {
@@ -3033,7 +3045,7 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, table, cursorPosition);
+        const pasted = pasteHtml(wrapper, table, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -3048,6 +3060,7 @@ describe("Paste a table", () => {
                 <li>sixth</li>
             </ul>
         `);
+        expectCursor(pasted, getText(wrapper, "zero"), "".length);
     });
 
     test("Should go before the list the cursor starts in", () => {
@@ -3064,7 +3077,7 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, table, cursorPosition);
+        const pasted = pasteHtml(wrapper, table, cursorPosition);
 
         expectHtml(wrapper.innerHTML, table + `
             <ul>
@@ -3072,6 +3085,7 @@ describe("Paste a table", () => {
                 <li>fifth</li>
             </ul>
         `);
+        expectCursor(pasted, getText(wrapper, "zero"), "".length);
     });
 
     test("Should go after the list the cursor ends in", () => {
@@ -3088,13 +3102,14 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, table, cursorPosition);
+        const pasted = pasteHtml(wrapper, table, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>fourth</li>
                 <li>fifth</li>
             </ul>` + table);
+        expectCursor(pasted, getText(wrapper, "zero"), "".length);
     });
 
     // The lines pasted along with the table are words of the halves the table divides the line into.
@@ -3109,12 +3124,13 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<h1>fifth</h1>` + table + `<p>sixth</p>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<h1>fifth</h1>` + table + `<p>sixth</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>foufifth</p>` + table + `
             <p>sixthrth</p>
         `);
+        expectCursor(pasted, getText(wrapper, "sixthrth"), "sixth".length);
     });
 
     // The blocks the table is lifted out of are divs, which arrive as the paragraphs they stand for, so the
@@ -3130,12 +3146,13 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<div>fifth` + table + `sixth</div>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<div>fifth` + table + `sixth</div>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>foufifth</p>` + table + `
             <p>sixthrth</p>
         `);
+        expectCursor(pasted, getText(wrapper, "sixthrth"), "sixth".length);
     });
 
     test("Should give copied body cells an empty header", () => {
@@ -3149,7 +3166,7 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<table><tbody><tr><td>second</td><td>third</td></tr></tbody></table>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<table><tbody><tr><td>second</td><td>third</td></tr></tbody></table>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>fou</p>
@@ -3157,6 +3174,7 @@ describe("Paste a table", () => {
             `<tbody><tr><td>second</td><td>third</td></tr></tbody></table>
             <p>rth</p>
         `);
+        expectCursor(pasted, getText(wrapper, "second"), "".length);
     });
 
     test("Should keep the header of copied header cells", () => {
@@ -3170,13 +3188,14 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<table><thead><tr><th>zero</th><th>first</th></tr></thead></table>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<table><thead><tr><th>zero</th><th>first</th></tr></thead></table>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>fou</p>
             <table><thead><tr><th>zero</th><th>first</th></tr></thead></table>
             <p>rth</p>
         `);
+        expectCursor(pasted, getText(wrapper, "zero"), "".length);
     });
 
     test("Should fill up the rows a ragged copy left short", () => {
@@ -3189,9 +3208,8 @@ describe("Paste a table", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<table><tbody><tr><td>second</td><td>third</td></tr>` +
-            `<tr><td>fifth</td></tr></tbody></table>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<table><tbody><tr><td>second</td><td>third</td></tr>` +
+            `<tr><td>fifth</td></tr></tbody></table>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p>fou</p>
@@ -3200,6 +3218,7 @@ describe("Paste a table", () => {
             `<tr><td>fifth</td><td></td></tr></tbody></table>
             <p>rth</p>
         `);
+        expectCursor(pasted, getText(wrapper, "second"), "".length);
     });
 
     test("Should drop the blocks the lifted table leaves empty", () => {
@@ -3213,11 +3232,12 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<div><p>` + table + `</p></div>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<div><p>` + table + `</p></div>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>fou</p>` + table + `<p>rth</p>
         `);
+        expectCursor(pasted, getText(wrapper, "zero"), "".length);
     });
 
     // An empty item has no tag to give up, so the line pasted along with the table fills it rather than
@@ -3245,8 +3265,7 @@ describe("Paste a table", () => {
             </ul>` + table);
 
         const firstCell = wrapper.querySelector("th");
-        expect(cursorPosition.startContainer).toBe(firstCell?.firstChild);
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, firstCell?.firstChild, 0);
     });
 
     test("Should fill an empty item with the line pasted after the table", () => {
@@ -3274,8 +3293,7 @@ describe("Paste a table", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer?.textContent).toBe("fifth");
-        expect(cursorPosition.startOffset).toBe("fifth".length);
+        expectCursor(cursorPosition, getText(wrapper, "fifth"), "fifth".length);
     });
 
     test("Should lift the table out of the list item holding it", () => {
@@ -3289,7 +3307,7 @@ describe("Paste a table", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<ul><li>fifth</li><li>` + table + `</li><li>sixth</li></ul>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<ul><li>fifth</li><li>` + table + `</li><li>sixth</li></ul>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <p>fourth</p>
@@ -3300,6 +3318,7 @@ describe("Paste a table", () => {
                 <li>sixth</li>
             </ul>
         `);
+        expectCursor(pasted, getText(wrapper, "zero"), "".length);
     });
 });
 
@@ -3322,10 +3341,7 @@ describe("Paste into a table cell", () => {
         `);
 
         const cell = wrapper.querySelector("td");
-        expect(cursorPosition.startContainer).toBe(cell?.firstChild);
-        expect(cursorPosition.endContainer).toBe(cell?.firstChild);
-        expect(cursorPosition.startOffset).toBe("fofirstsecond".length);
-        expect(cursorPosition.endOffset).toBe("fofirstsecond".length);
+        expectCursor(cursorPosition, cell?.firstChild, "fofirstsecond".length);
     });
 
     test("Should paste only the children of the pasted heading into a header cell", () => {
@@ -3346,8 +3362,7 @@ describe("Paste into a table cell", () => {
         `);
 
         const cell = wrapper.querySelector("th");
-        expect(cursorPosition.startContainer).toBe(cell?.firstChild);
-        expect(cursorPosition.startOffset).toBe("second".length);
+        expectCursor(cursorPosition, cell?.firstChild, "second".length);
     });
 
     test("Should keep the inline markup of the pasted content", () => {
@@ -3361,11 +3376,12 @@ describe("Paste into a table cell", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<p><strong>first</strong> second</p>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<p><strong>first</strong> second</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr><td>foo<strong>first</strong> second</td><td>bar</td></tr></tbody></table>
         `);
+        expectCursor(pasted, getText(wrapper, " second"), " second".length);
     });
 
     test("Should paste only the words of a pasted div", () => {
@@ -3378,11 +3394,12 @@ describe("Paste into a table cell", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<div>first</div>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<div>first</div>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr><td>zefirstro</td></tr></tbody></table>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zefirstro"), "zefirst".length);
     });
 
     test("Should paste only the children of the pasted list", () => {
@@ -3396,12 +3413,13 @@ describe("Paste into a table cell", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr><td>foofirstsecond</td><td>bar</td></tr></tbody></table>
         `);
         expect(wrapper.querySelectorAll("ul, li").length).toBe(0);
+        expectCursor(pasted, getText(wrapper, "foofirstsecond"), "foofirstsecond".length);
     });
 
     test("Should paste only the children of a pasted table", () => {
@@ -3415,12 +3433,13 @@ describe("Paste into a table cell", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<table><tbody><tr><td>first</td><td>second</td></tr></tbody></table>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<table><tbody><tr><td>first</td><td>second</td></tr></tbody></table>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr><td>foofirstsecond</td><td>bar</td></tr></tbody></table>
         `);
         expect(wrapper.querySelectorAll("table").length).toBe(1);
+        expectCursor(pasted, getText(wrapper, "foofirstsecond"), "foofirstsecond".length);
     });
 
     test("Should drop a pasted image and keep the words around it", () => {
@@ -3434,12 +3453,13 @@ describe("Paste into a table cell", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<p>first<img src="${image}"> second</p>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<p>first<img src="${image}"> second</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr><td>foofirst second</td><td>bar</td></tr></tbody></table>
         `);
         expect(wrapper.querySelectorAll("img").length).toBe(0);
+        expectCursor(pasted, getText(wrapper, "foofirst second"), "foofirst second".length);
     });
 
     test("Should paste nothing when the pasted content is an image alone", () => {
@@ -3462,9 +3482,7 @@ describe("Paste into a table cell", () => {
         `);
 
         const cell = wrapper.querySelector("td");
-        expect(cursorPosition.startContainer).toBe(cell?.firstChild);
-        expect(cursorPosition.startOffset).toBe("fo".length);
-        expect(cursorPosition.endOffset).toBe("fo".length);
+        expectCursor(cursorPosition, cell?.firstChild, "fo".length);
     });
 
     // Dropping the image leaves its formatting holding nothing, which goes the same way as the image.
@@ -3486,9 +3504,7 @@ describe("Paste into a table cell", () => {
         `);
 
         const cell = wrapper.querySelector("td");
-        expect(cursorPosition.startContainer).toBe(cell?.firstChild);
-        expect(cursorPosition.startOffset).toBe("fo".length);
-        expect(cursorPosition.endOffset).toBe("fo".length);
+        expectCursor(cursorPosition, cell?.firstChild, "fo".length);
     });
 
     test("Should preserve the rest of the table", () => {
@@ -3504,13 +3520,14 @@ describe("Paste into a table cell", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = getCursorPosition();
-        pasteHtml(wrapper, `<p>fifth</p>`, cursorPosition);
+        const pasted = pasteHtml(wrapper, `<p>fifth</p>`, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
             <table><thead><tr><th>zero</th><th></th></tr></thead>` +
             `<tbody><tr><td>firstfifth</td><td>second <strong>third</strong></td></tr>` +
             `<tr><td></td><td>fourth</td></tr></tbody></table>
         `);
+        expectCursor(pasted, getText(wrapper, "firstfifth"), "firstfifth".length);
     });
 });
 // Items selected whole are emptied into one item that what is pasted fills, the way a typed character fills
@@ -3538,8 +3555,7 @@ describe("Paste over whole items", () => {
             const cursorPosition = pasteHtml(wrapper, `<p>fourth</p><img src="${image}">`, selectItems(wrapper));
 
             expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>${imageBlock}<ul><li>two</li></ul>`);
-            expect(cursorPosition.startContainer?.textContent).toBe("two");
-            expect(cursorPosition.startOffset).toBe(0);
+            expectCursor(cursorPosition, getText(wrapper, "two"), 0);
         });
 
         test("Should fill the item with the line and divide the list around the table", () => {
@@ -3548,8 +3564,7 @@ describe("Paste over whole items", () => {
             const cursorPosition = pasteHtml(wrapper, `<p>fourth</p>` + table, selectItems(wrapper));
 
             expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>` + table + `<ul><li>two</li></ul>`);
-            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("th")?.firstChild);
-            expect(cursorPosition.startOffset).toBe(0);
+            expectCursor(cursorPosition, wrapper.querySelector("th")?.firstChild, 0);
         });
     });
 
@@ -3562,7 +3577,7 @@ describe("Paste over whole items", () => {
             const cursorPosition = pasteHtml(wrapper, `<p>fourth</p><img src="${image}">`, selectItems(wrapper));
 
             expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>${imageBlock}<p><br></p>`);
-            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p:last-child br"));
+            expectCursor(cursorPosition, wrapper.querySelector("p:last-child br"), 0);
         });
 
         test("Should fill the item with the line and place the table after the list, leaving the cursor in the first cell", () => {
@@ -3571,8 +3586,7 @@ describe("Paste over whole items", () => {
             const cursorPosition = pasteHtml(wrapper, `<p>fourth</p>` + table, selectItems(wrapper));
 
             expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>` + table);
-            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("th")?.firstChild);
-            expect(cursorPosition.startOffset).toBe(0);
+            expectCursor(cursorPosition, wrapper.querySelector("th")?.firstChild, 0);
         });
 
         test("Should keep the list standing before a heading, leaving the cursor on the heading", () => {
@@ -3581,8 +3595,7 @@ describe("Paste over whole items", () => {
             const cursorPosition = pasteHtml(wrapper, `<p>fourth</p><img src="${image}">`, selectItems(wrapper));
 
             expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>${imageBlock}<h1>Editor</h1>`);
-            expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "h1"));
-            expect(cursorPosition.startOffset).toBe(0);
+            expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 0);
         });
 
         test("Should keep the list standing after a heading", () => {
@@ -3591,7 +3604,7 @@ describe("Paste over whole items", () => {
             const cursorPosition = pasteHtml(wrapper, `<p>fourth</p><img src="${image}">`, selectItems(wrapper));
 
             expectHtml(wrapper.innerHTML, `<h1>Editor</h1><ul><li>fourth</li></ul>${imageBlock}<p><br></p>`);
-            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p:last-child br"));
+            expectCursor(cursorPosition, wrapper.querySelector("p:last-child br"), 0);
         });
 
         test("Should fill the item with a lone line", () => {
@@ -3600,8 +3613,7 @@ describe("Paste over whole items", () => {
             const cursorPosition = pasteHtml(wrapper, `<p>fourth</p>`, selectItems(wrapper));
 
             expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul>`);
-            expect(cursorPosition.startContainer?.textContent).toBe("fourth");
-            expect(cursorPosition.startOffset).toBe("fourth".length);
+            expectCursor(cursorPosition, getText(wrapper, "fourth"), "fourth".length);
         });
     });
 });

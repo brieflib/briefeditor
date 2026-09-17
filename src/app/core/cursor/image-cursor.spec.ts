@@ -69,6 +69,8 @@ describe("Image cursor", () => {
             expect(keyboardEvent.defaultPrevented).toBe(true);
             expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".after"));
             expect(cursorPosition?.startOffset).toBe("".length);
+            expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.endOffset).toBe("".length);
         });
 
         test("Should carry the arrow left over the image to the end of the line before it", () => {
@@ -82,6 +84,8 @@ describe("Image cursor", () => {
             expect(keyboardEvent.defaultPrevented).toBe(true);
             expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".before"));
             expect(cursorPosition?.startOffset).toBe("before".length);
+            expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".before"));
+            expect(cursorPosition?.endOffset).toBe("before".length);
         });
 
         test("Should carry the arrow right out of the last item of a list over the image", () => {
@@ -94,6 +98,9 @@ describe("Image cursor", () => {
 
             expect(keyboardEvent.defaultPrevented).toBe(true);
             expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.startOffset).toBe("".length);
+            expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.endOffset).toBe("".length);
         });
 
         test("Should leave the arrow right alone before the end of the line", () => {
@@ -167,6 +174,8 @@ describe("Image cursor", () => {
             expect(keyboardEvent.defaultPrevented).toBe(true);
             expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".after"));
             expect(cursorPosition?.startOffset).toBe("".length);
+            expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.endOffset).toBe("".length);
         });
 
         test("Should leave the arrow down alone above the last line of the block", () => {
@@ -197,6 +206,8 @@ describe("Image cursor", () => {
             expect(keyboardEvent.defaultPrevented).toBe(true);
             expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".before"));
             expect(cursorPosition?.startOffset).toBe("before".length);
+            expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".before"));
+            expect(cursorPosition?.endOffset).toBe("before".length);
         });
 
         test("Should leave the arrow up alone below the first line of the block", () => {
@@ -234,6 +245,9 @@ describe("Image cursor", () => {
 
             expect(keyboardEvent.defaultPrevented).toBe(true);
             expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.startOffset).toBe("".length);
+            expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.endOffset).toBe("".length);
         });
 
         test("Should read an empty line as its own edge line", () => {
@@ -246,6 +260,9 @@ describe("Image cursor", () => {
 
             expect(keyboardEvent.defaultPrevented).toBe(true);
             expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.startOffset).toBe("".length);
+            expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.endOffset).toBe("".length);
         });
     });
 
@@ -261,6 +278,8 @@ describe("Image cursor", () => {
             expect(event.defaultPrevented).toBe(true);
             expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".before"));
             expect(cursorPosition?.startOffset).toBe("before".length);
+            expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".before"));
+            expect(cursorPosition?.endOffset).toBe("before".length);
         });
 
         test("Should move a click on the lower half of the image to the start of the line after it", () => {
@@ -274,6 +293,8 @@ describe("Image cursor", () => {
             expect(event.defaultPrevented).toBe(true);
             expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".after"));
             expect(cursorPosition?.startOffset).toBe("".length);
+            expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.endOffset).toBe("".length);
         });
 
         test("Should fall back to the only neighbour the image has", () => {
@@ -286,6 +307,9 @@ describe("Image cursor", () => {
 
             expect(event.defaultPrevented).toBe(true);
             expect(cursorPosition?.startContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.startOffset).toBe("".length);
+            expect(cursorPosition?.endContainer).toBe(getFirstChild(wrapper, ".after"));
+            expect(cursorPosition?.endOffset).toBe("".length);
         });
 
         test("Should leave a click outside the image alone", () => {

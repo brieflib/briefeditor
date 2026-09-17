@@ -136,6 +136,7 @@ describe("Cursor as a place in the text", () => {
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(cursorPosition.startOffset).toBe("zex".length);
         expect(cursorPosition.endOffset).toBe("zex".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
     });
 
     test("Should stand the cursor in the carrier the wrap left behind", () => {
@@ -152,6 +153,8 @@ describe("Cursor as a place in the text", () => {
 
         expect(cursorPosition.startContainer).toBe(carrier);
         expect(cursorPosition.endContainer).toBe(carrier);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Should send a caret standing where a line was written onto the line it opens", () => {
@@ -167,12 +170,16 @@ describe("Cursor as a place in the text", () => {
 
         expect(afterBreak.startContainer).toBe(getFirstChild(wrapper, ".start strong"));
         expect(afterBreak.startOffset).toBe("".length);
+        expect(afterBreak.endContainer).toBe(afterBreak.startContainer);
+        expect(afterBreak.endOffset).toBe(afterBreak.startOffset);
 
         wrapper.innerHTML = `<p class="start">zero<strong>first</strong></p>`;
         const noBreak = restoreCursorPosition(wrapper, cursorAnchor, given);
 
         expect(noBreak.startContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(noBreak.startOffset).toBe("zero".length);
+        expect(noBreak.endContainer).toBe(noBreak.startContainer);
+        expect(noBreak.endOffset).toBe(noBreak.startOffset);
     });
 
     test("Should walk on to the block that follows when the block was divided", () => {
@@ -189,6 +196,8 @@ describe("Cursor as a place in the text", () => {
 
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p + p"));
         expect(cursorPosition.startOffset).toBe("fir".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should walk on across every block the divided one was written into", () => {
@@ -203,6 +212,8 @@ describe("Cursor as a place in the text", () => {
 
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".end"));
         expect(cursorPosition.startOffset).toBe("sec".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should leave the caret after the text written over a line selected up to the start of the next block", () => {
@@ -237,6 +248,8 @@ describe("Cursor as a place in the text", () => {
 
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(cursorPosition.startOffset).toBe("zek".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should keep a caret the command left on the br of an empty item", () => {
@@ -284,6 +297,8 @@ describe("Cursor as a place in the text", () => {
 
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should hand back the given position when the block it was read in is gone", () => {

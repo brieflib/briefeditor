@@ -5,7 +5,7 @@ import {
     removeTags,
     replaceTags
 } from "@/core/normalize/normalize";
-import {createWrapper, expectHtml, getFirstChild, testNormalize} from "@/core/shared/test-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, testNormalize} from "@/core/shared/test-util";
 import {CursorPosition, getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
 import {Carrier} from "@/core/carrier/carrier";
@@ -141,17 +141,15 @@ describe("Should normalize tags", () => {
     });
 
     test("Should preserve href property", () => {
-        const wrapper = document.createElement("div");
-        const toNormalize = document.createElement("div");
-        toNormalize.innerHTML = "<strong>zero<a href=\"https://www.briefeditor.io\">first</a><a href=\"https://briefeditor.io\">second</a>third<em>fourth</em></strong>";
-        wrapper.appendChild(toNormalize);
+        const wrapper = createWrapper(`<div><strong>zero<a href="https://www.briefeditor.io">first</a><a href="https://briefeditor.io">second</a>third<em>fourth</em></strong></div>`);
 
         const range = new Range();
         range.setStart(wrapper.firstChild as HTMLElement, "".length);
         range.setEnd(wrapper.lastChild as HTMLElement, "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        normalize(wrapper, getCursorPosition());
+        const cursorPosition = normalize(wrapper, getCursorPosition());
+        expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "".length);
         expect((wrapper.firstChild as HTMLElement).innerHTML).toBe("<strong>zero</strong><a href=\"https://www.briefeditor.io\"><strong>first</strong></a><a href=\"https://briefeditor.io\"><strong>second</strong></a><strong>third<em>fourth</em></strong>");
     });
 
@@ -254,7 +252,8 @@ describe("Should normalize tags", () => {
         range.setEnd(wrapper.lastChild as HTMLElement, "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        normalize(wrapper, getCursorPosition());
+        const cursorPosition = normalize(wrapper, getCursorPosition());
+        expectCursor(cursorPosition, getFirstChild(wrapper, "div"), "".length);
 
         expectHtml(wrapper.innerHTML, `
             <div>zero</div>
@@ -293,7 +292,8 @@ describe("Should remove tags", () => {
         range.setEnd(getFirstChild(wrapper, ".start i"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        removeTags(wrapper, ["STRONG"], getCursorPosition());
+        const cursorPosition = removeTags(wrapper, ["STRONG"], getCursorPosition());
+        expectCursor(cursorPosition, getFirstChild(wrapper, "u > i"), "".length, getFirstChild(wrapper, "u > i"), "zero".length);
 
         expectHtml(wrapper.innerHTML, `
             <u>
@@ -326,7 +326,9 @@ describe("Should remove tags", () => {
         range.setEnd(getFirstChild(wrapper, ".start div"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        removeTags(wrapper, ["STRONG"], getCursorPosition());
+        const cursorPosition = removeTags(wrapper, ["STRONG"], getCursorPosition());
+        // The start stood on the boundary the div was lifted out over, so it is anchored on the text before it.
+        expectCursor(cursorPosition, getFirstChild(wrapper, "strong > u > i"), "zero".length, getLastChild(wrapper, "div > u"), "second".length);
 
         expectHtml(wrapper.innerHTML, `
             <strong>
@@ -353,7 +355,8 @@ describe("Should append tags", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        appendTag(wrapper, getCursorPosition(), "STRONG");
+        const cursorPosition = appendTag(wrapper, getCursorPosition(), "STRONG");
+        expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         expectHtml(wrapper.innerHTML, `
             <p><strong>zerofirst</strong></p>
@@ -381,6 +384,8 @@ describe("Should leave an empty element for a collapsed cursor", () => {
         expectHtml(wrapper.innerHTML, `<p><strong>bold</strong></p>`);
         expectCarrierIn(cursorPosition, "P");
         expect(cursorPosition.startContainer.previousSibling?.nodeName).toBe("STRONG");
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should leave the empty element before the tag", () => {
@@ -392,6 +397,8 @@ describe("Should leave an empty element for a collapsed cursor", () => {
         expectHtml(wrapper.innerHTML, `<p><strong>bold</strong></p>`);
         expectCarrierIn(cursorPosition, "P");
         expect(cursorPosition.startContainer.nextSibling?.nodeName).toBe("STRONG");
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should keep the tags that were not removed", () => {
@@ -431,6 +438,8 @@ describe("Should leave an empty element for a collapsed cursor", () => {
         expectCarrierIn(cursorPosition, "STRONG");
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p strong"));
         expect(cursorPosition.startOffset).toBe("".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Remove strong in an empty paragraph", () => {
@@ -446,6 +455,8 @@ describe("Should leave an empty element for a collapsed cursor", () => {
         `);
         expectCarrierIn(cursorPosition, "P");
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should collapse back to plain text when the same tag is toggled twice", () => {
@@ -458,6 +469,8 @@ describe("Should leave an empty element for a collapsed cursor", () => {
         expectHtml(wrapper.innerHTML, `<p>plain</p>`);
         expect(cursorPosition.startContainer.textContent).toBe("plain");
         expect(cursorPosition.startOffset).toBe("pl".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 });
 
@@ -486,6 +499,8 @@ function expectCarrierIn(cursorPosition: CursorPosition, parentName: string) {
     expect(cursorPosition.startContainer.textContent).toBe("");
     expect(cursorPosition.startOffset).toBe(0);
     expect(cursorPosition.startContainer.parentElement?.nodeName).toBe(parentName);
+    expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+    expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
 }
 
 describe("Should replace tags", () => {
@@ -547,7 +562,8 @@ describe("Should move first level elements out", () => {
         range.setEnd(getFirstChild(wrapper, "h1"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        removeAndNormalize(wrapper, p, [], getCursorPosition());
+        const cursorPosition = removeAndNormalize(wrapper, p, [], getCursorPosition());
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "zero".length, getFirstChild(wrapper, "h1"), "first".length);
 
         expectHtml(wrapper.innerHTML, `
              <p>zero</p>
@@ -571,7 +587,8 @@ describe("Should move first level elements out", () => {
         range.setEnd(getFirstChild(wrapper, "h1"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        removeAndNormalize(wrapper, p, [], getCursorPosition());
+        const cursorPosition = removeAndNormalize(wrapper, p, [], getCursorPosition());
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "zero".length, getFirstChild(wrapper, "h1"), "first".length);
 
         expectHtml(wrapper.innerHTML, `
              <p>zero</p>
@@ -594,7 +611,8 @@ describe("Should move first level elements out", () => {
         (getRange as jest.Mock).mockReturnValue(range);
 
         const ul = document.querySelector("UL") as HTMLElement;
-        removeAndNormalize(wrapper, ul, [], getCursorPosition());
+        const cursorPosition = removeAndNormalize(wrapper, ul, [], getCursorPosition());
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "ze".length);
 
         expectHtml(wrapper.innerHTML, `
              <ul>

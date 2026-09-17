@@ -236,6 +236,8 @@ describe("Anchor a cursor on a leaf", () => {
 
         expect(anchored.startContainer).toBe(block.childNodes[1]);
         expect(anchored.startOffset).toBe(0);
+        expect(anchored.endContainer).toBe(block.childNodes[1]);
+        expect(anchored.endOffset).toBe(0);
     });
 
     test("Should move a cursor past the last child onto the end of the last leaf", () => {
@@ -246,6 +248,8 @@ describe("Anchor a cursor on a leaf", () => {
 
         expect(anchored.startContainer).toBe(block.firstChild);
         expect(anchored.startOffset).toBe("zero".length);
+        expect(anchored.endContainer).toBe(block.firstChild);
+        expect(anchored.endOffset).toBe("zero".length);
     });
 
     test("Should leave a cursor already on a text node alone", () => {
@@ -256,7 +260,10 @@ describe("Anchor a cursor on a leaf", () => {
         const anchored = anchorCursorOnLeaf(cursorPosition);
 
         expect(anchored).toBe(cursorPosition);
+        expect(anchored.startContainer).toBe(text);
         expect(anchored.startOffset).toBe("ze".length);
+        expect(anchored.endContainer).toBe(text);
+        expect(anchored.endOffset).toBe("ze".length);
     });
 
     // The browser anchors a caret arriving at the end of an item's line on the item, just before the list
@@ -269,6 +276,8 @@ describe("Anchor a cursor on a leaf", () => {
 
         expect(anchored.startContainer).toBe(item.firstChild);
         expect(anchored.startOffset).toBe("zero".length);
+        expect(anchored.endContainer).toBe(item.firstChild);
+        expect(anchored.endOffset).toBe("zero".length);
     });
 
     test("Should move a cursor before a list opening the container onto the list's first leaf", () => {
@@ -278,6 +287,8 @@ describe("Anchor a cursor on a leaf", () => {
 
         expect(anchored.startContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(anchored.startOffset).toBe(0);
+        expect(anchored.endContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(anchored.endOffset).toBe(0);
     });
 
     // Nothing survives the rebuild to move onto, so there is nowhere better for the cursor to go.
@@ -290,6 +301,9 @@ describe("Anchor a cursor on a leaf", () => {
 
         expect(anchored).toBe(cursorPosition);
         expect(anchored.startContainer).toBe(block);
+        expect(anchored.startOffset).toBe(0);
+        expect(anchored.endContainer).toBe(block);
+        expect(anchored.endOffset).toBe(0);
     });
 });
 

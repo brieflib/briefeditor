@@ -1,4 +1,4 @@
-import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {newLine, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
@@ -1118,8 +1118,7 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startOffset).toBe(3);
-        expect(cursorPosition.endOffset).toBe(3);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "ze ".length);
     });
 
     test("Selection from start LI into nested LI with multiple LI should merge and flatten", () => {
@@ -1910,8 +1909,7 @@ describe("Insert break", () => {
             <p class="start">fir</p><p>st</p>
         `);
 
-        expect(cursorPosition.startContainer.textContent).toBe("st");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
     });
 
     test("Should insert p before start of p", () => {
@@ -1931,8 +1929,7 @@ describe("Insert break", () => {
             <p><br></p><p class="start">first</p>
         `);
 
-        expect(cursorPosition.startContainer.textContent).toBe("first");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
     });
 
     test("Should insert p after end of p", () => {
@@ -1952,8 +1949,7 @@ describe("Insert break", () => {
             <p class="start">first</p><p><br></p>
         `);
 
-        expect(cursorPosition.startContainer.textContent).toBe("");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.querySelector("p + p br"), 0);
     });
 
     test("Should divide p between inline formatting", () => {
@@ -1974,7 +1970,7 @@ describe("Insert break", () => {
             <p class="start">fir<em>s</em></p><p><em>t</em></p>
         `);
 
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p em"), "".length);
     });
 
     test("Should not leave the emptied formatting behind when the line divides at its start", () => {
@@ -1988,7 +1984,8 @@ describe("Insert break", () => {
         range.setEnd(boldText, "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        newLine(wrapper, getCursorPosition());
+        const cursorPosition = newLine(wrapper, getCursorPosition());
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p strong"), "".length);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">zero</p><p><strong>bold</strong></p>
@@ -2005,7 +2002,8 @@ describe("Insert break", () => {
         range.setEnd(getLastChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        newLine(wrapper, getCursorPosition());
+        const cursorPosition = newLine(wrapper, getCursorPosition());
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start"><em>ze</em></p><p>ro</p>
@@ -2026,7 +2024,8 @@ describe("Insert break", () => {
         range.setEnd(getLastChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        newLine(wrapper, getCursorPosition());
+        const cursorPosition = newLine(wrapper, getCursorPosition());
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">fir<br></p><p>st</p>
@@ -2055,8 +2054,7 @@ describe("Insert break", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer.textContent).toBe("st");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li + li"), "".length);
     });
 
     test("Should insert empty list item", () => {
@@ -2081,8 +2079,7 @@ describe("Insert break", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer.textContent).toBe("");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.querySelector("li + li br"), 0);
     });
 
     test("Should insert empty list item before the nested list", () => {
@@ -2115,8 +2112,7 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        expect(cursorPosition.startContainer.textContent).toBe("");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.querySelector("li + li br"), 0);
     });
 
     test("Should divide list item and move the nested list to the divided part", () => {
@@ -2149,8 +2145,7 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        expect(cursorPosition.startContainer.textContent).toBe("st");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li + li"), "".length);
     });
 
     test("Should keep the nested list when empty list item is inserted before", () => {
@@ -2183,8 +2178,7 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        expect(cursorPosition.startContainer.textContent).toBe("first");
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li + li"), "".length);
     });
 
     test("Should insert the empty item on the level of the deeply nested one it follows", () => {
@@ -2207,7 +2201,8 @@ describe("Insert break", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        newLine(wrapper, getCursorPosition());
+        const cursorPosition = newLine(wrapper, getCursorPosition());
+        expectCursor(cursorPosition, wrapper.querySelector("ul ul li + li br"), 0);
 
         expectHtml(wrapper.innerHTML, `
             <ul>

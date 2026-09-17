@@ -41,6 +41,7 @@ import {removeAndNormalize} from "@/core/normalize/normalize";
 import {getCell, getCellCursorPosition, insertTable, isTableEmpty} from "@/core/command/util/table-util";
 import {
     atStart,
+    CursorAnchor,
     escapeImageBlock,
     getCursorAnchor,
     isCursorInTable,
@@ -138,7 +139,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     // Restore from the anchor rather than the nodes the command carried through the rebuild:
     // a node surviving a write is no proof its offset still means what it did, since a text
     // leaf can keep its identity while the text around it moves into other nodes.
-    if (isCursorRestorable(command)) {
+    if (isCursorRestorable(command, cursorAnchor)) {
         cursorPosition = restoreCursorPosition(contentEditable, cursorAnchor, cursorPosition);
     }
 
@@ -161,10 +162,11 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
  * Whether the cursor anchor read before the command can be restored afterward. False for
  * commands that place the cursor themselves: table edits (which name a cell directly - an
  * inserted row/column has no text for an offset to find), image insertion (happens later,
- * once the file is read), clicks (placed by the browser), and Enter (splits a line without
- * writing text, so the old offset no longer points to the right place).
+ * once the file is read), clicks (placed by the browser), Enter (splits a line without
+ * writing text, so the old offset no longer points to the right place) and a collapsed
+ * Delete (removes the text after the caret, which the anchor would read as text before it).
  */
-function isCursorRestorable(command: Command) {
+function isCursorRestorable(command: Command, cursorAnchor: CursorAnchor) {
     switch (command.action) {
         case Action.Click:
         case Action.Image:
@@ -177,8 +179,10 @@ function isCursorRestorable(command: Command) {
         case Action.DeleteImage:
         case Action.ModifyClass:
             return false;
-        case Action.Keyboard:
-            return (command.event as KeyboardEvent).key !== "Enter";
+        case Action.Keyboard: {
+            const key = (command.event as KeyboardEvent).key;
+            return key !== "Enter" && !(key === "Delete" && cursorAnchor.length === 0);
+        }
         default:
             return true;
     }

@@ -1,7 +1,7 @@
 import {getRange} from "@/core/shared/range-util";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
-import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {CursorPosition} from "@/core/shared/type/cursor-position";
 import {Carrier} from "@/core/carrier/carrier";
 
@@ -22,7 +22,7 @@ describe("Exec command with different cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const cursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
             <p>
@@ -30,6 +30,7 @@ describe("Exec command with different cursor position", () => {
             </p>
             <p>first</p>
         `);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "p + p"), "".length);
     });
 
     test("Should change paragraph to unordered list", () => {
@@ -43,7 +44,7 @@ describe("Exec command with different cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.List, tag: "UL"});
+        const cursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -51,6 +52,7 @@ describe("Exec command with different cursor position", () => {
             </ul>
             <p class="end">first</p>
         `);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "".length);
     });
 
     test("Should change paragraphs to unordered list with a text element", () => {
@@ -66,7 +68,7 @@ describe("Exec command with different cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.List, tag: "UL"});
+        const cursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -76,6 +78,7 @@ describe("Exec command with different cursor position", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li > strong"), "".length, getFirstChild(wrapper, "li + li > strong"), "second".length);
     });
 
     test("Should change ordered list to unordered list when cursor is at start", () => {
@@ -95,7 +98,7 @@ describe("Exec command with different cursor position", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.List, tag: "UL"});
+        const cursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -109,6 +112,7 @@ describe("Exec command with different cursor position", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul ul > li"), "".length);
     });
 });
 
@@ -125,7 +129,7 @@ describe("Link command", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "f".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {
+        const cursorPosition = execCommand(wrapper, {
             action: Action.Link, tag: "A", attributes: {
                 href: "first"
             }
@@ -136,6 +140,7 @@ describe("Link command", () => {
                 <a href="first">zero <em class="start">first</em></a>
             </p>
         `);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "f".length);
     });
 });
 
@@ -693,6 +698,8 @@ describe("Cursor position after PlusIndent command", () => {
         expectHtml(wrapper.innerHTML, `<ul><li>zero<ul><li><br></li></ul></li></ul>`);
         expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ul li ul li br"));
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ul li ul li br"));
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     // The browser anchors the cursor on an empty item itself rather than on the br standing in for its line.
@@ -714,6 +721,8 @@ describe("Cursor position after PlusIndent command", () => {
         expectHtml(wrapper.innerHTML, `<ul><li>zero<ul><li><br></li></ul></li></ul>`);
         expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ul li ul li br"));
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ul li ul li br"));
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     // A selection reaching into an empty item ends on a line holding no text, which answers to the same
@@ -927,6 +936,8 @@ describe("Cursor position after MinusIndent command", () => {
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li><br></li></ul>`);
         expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("ul li")[1]?.firstChild);
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("ul li")[1]?.firstChild);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 });
 
@@ -950,6 +961,27 @@ describe("Keyboard command that empties a list item", () => {
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br></li></ul>`);
         expect(cursorPosition.startContainer.parentElement).toBe(wrapper.querySelector(".start"));
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+    });
+
+    // The anchor reads the text a command removed as text before the caret, which is where backspace
+    // takes it from; a forward delete takes it from after the caret, so the caret stays where it was.
+    test("Should keep the cursor where a delete removed the character after it", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        const text = getFirstChild(wrapper, ".start");
+        const range = new Range();
+        range.setStart(text, "ze".length);
+        range.setEnd(text, "ze".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = keyboard(wrapper, "Delete");
+
+        expectHtml(wrapper.innerHTML, `<p class="start">zeo</p>`);
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.startOffset).toBe("ze".length);
+        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
+        expect(cursorPosition.endOffset).toBe("ze".length);
     });
 
     test("Should keep the cursor in the item delete emptied", () => {
@@ -965,6 +997,8 @@ describe("Keyboard command that empties a list item", () => {
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br></li><li>first</li></ul>`);
         expect(cursorPosition.startContainer.parentElement).toBe(wrapper.querySelector(".start"));
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     // The typed text ends right before the nested list; a placeholder br left behind it would
@@ -981,6 +1015,8 @@ describe("Keyboard command that empties a list item", () => {
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">a<ul><li>child</li></ul></li></ul>`);
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
         expect(cursorPosition.startOffset).toBe("a".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     // Backspace leaves the cursor on the text node it emptied, beside the placeholder it
@@ -1051,7 +1087,9 @@ describe("Image command", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        const cursorPosition = execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        // The image lands only once its file is read, so the cursor handed back is still the empty line's.
+        expectCursor(cursorPosition, wrapper.querySelector(".start br"), 0);
         await waitForImage(wrapper);
 
         const img = wrapper.querySelector("img") as HTMLElement;
@@ -1071,7 +1109,7 @@ describe("Image command", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        const cursorPosition = execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
         await waitForImage(wrapper);
 
         const paragraphs = wrapper.querySelectorAll("p");
@@ -1080,6 +1118,7 @@ describe("Image command", () => {
         expect(paragraphs[1]?.firstChild?.nodeName).toBe("IMG");
         expect(paragraphs[2]?.innerHTML).toBe("<br>");
         expect(selection().container).toBe(paragraphs[2]?.firstChild);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
     });
 
     test("Should leave the cursor at the start of the line after an image dropped mid-line", async () => {
@@ -1090,7 +1129,7 @@ describe("Image command", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        const cursorPosition = execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
         await waitForImage(wrapper);
 
         const paragraphs = wrapper.querySelectorAll("p");
@@ -1100,6 +1139,7 @@ describe("Image command", () => {
         expect(paragraphs[2]?.textContent).toBe("ro");
         expect(selection().container).toBe(paragraphs[2]?.firstChild);
         expect(selection().offset).toBe(0);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length);
     });
 
     // An image block is never the block the cursor rests in, whatever a command leaves it on.
@@ -1116,6 +1156,8 @@ describe("Image command", () => {
         expectHtml(wrapper.innerHTML, `<p class="be-image"><img src="image.png"></p><p class="after">zero</p>`);
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".after"));
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     // Clicking an image selects it as a range around the img; bold has nothing to wrap there.
@@ -1134,6 +1176,7 @@ describe("Image command", () => {
         expect(cursorPosition.startContainer).toBe(wrapper.querySelector(".be-image"));
         expect(cursorPosition.startOffset).toBe(0);
         expect(cursorPosition.endOffset).toBe(1);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
     });
 });
 
@@ -1158,12 +1201,13 @@ describe("Delete row command", () => {
         `);
         const cell = selectCell(wrapper, ".first");
 
-        execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
 
         expectHtml(wrapper.innerHTML, `
             <table><thead><tr><th class="head">zero</th></tr></thead>
             <tbody><tr><td>second</td></tr></tbody></table>
         `);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "td"), "".length);
     });
 
     test("Should remove a section left empty by the deleted row", () => {
@@ -1173,12 +1217,13 @@ describe("Delete row command", () => {
         `);
         const cell = selectCell(wrapper, ".head");
 
-        execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
 
         expectHtml(wrapper.innerHTML, `
             <table>
             <tbody><tr><td class="first">first</td></tr><tr><td>second</td></tr></tbody></table>
         `);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".first"), "".length);
     });
 
     test("Should remove the table left without rows", () => {
@@ -1189,9 +1234,10 @@ describe("Delete row command", () => {
         const cell = wrapper.querySelector(".head") as HTMLTableCellElement;
         select(wrapper, ".text");
 
-        execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
 
         expectHtml(wrapper.innerHTML, `<p>text</p>`);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "text".length);
     });
 
     test("Should join the lists the removed table stood between", () => {
@@ -1222,9 +1268,10 @@ describe("Delete row command", () => {
         const cell = wrapper.querySelector(".head") as HTMLTableCellElement;
         select(wrapper, ".text");
 
-        execCommand(wrapper, {action: Action.DeleteColumn, table: {cell}});
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteColumn, table: {cell}});
 
         expectHtml(wrapper.innerHTML, `<p>text</p>`);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "text".length);
     });
 });
 
@@ -1376,25 +1423,27 @@ describe("Insert table command", () => {
         const wrapper = createWrapper(`<p class="start">first</p>`);
         selectAt(wrapper, ".start", "first".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 3, columns: 2}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 3, columns: 2}});
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">first</p>
             <table><thead><tr><th></th><th></th></tr></thead>
             <tbody><tr><td></td><td></td></tr><tr><td></td><td></td></tr></tbody></table>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should build a table of a single header cell", () => {
         const wrapper = createWrapper(`<p class="start">first</p>`);
         selectAt(wrapper, ".start", "first".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">first</p>
             <table><thead><tr><th></th></tr></thead></table>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should split the paragraph the cursor is in the middle of", () => {
@@ -1404,7 +1453,7 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", "fi".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
@@ -1412,6 +1461,7 @@ describe("Insert table command", () => {
             <table><thead><tr><th></th></tr></thead></table>
             <p>rst</p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should keep the paragraph whole when the cursor is at its end", () => {
@@ -1421,13 +1471,14 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", "first".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <p class="start">first</p>
             <table><thead><tr><th></th></tr></thead></table>
             <p>second</p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should keep the paragraph whole when the cursor is at its start", () => {
@@ -1437,24 +1488,26 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", "".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
             <table><thead><tr><th></th></tr></thead></table>
             <p class="start">first</p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should take the place of the empty block the cursor is in", () => {
         const wrapper = createWrapper(`<p class="start"><br></p>`);
         selectAt(wrapper, ".start", 0);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <table><thead><tr><th></th></tr></thead></table>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should leave the blocks around the empty one the table takes the place of", () => {
@@ -1465,13 +1518,14 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", 0);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
             <table><thead><tr><th></th></tr></thead></table>
             <p>second</p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     // An empty block is the line the cursor is on and nothing more, so the heading it was written as goes
@@ -1480,11 +1534,12 @@ describe("Insert table command", () => {
         const wrapper = createWrapper(`<h1 class="start"><br></h1>`);
         selectAt(wrapper, ".start", 0);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <table><thead><tr><th></th></tr></thead></table>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should drop the empty item the table splits the list at", () => {
@@ -1493,12 +1548,13 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", 0);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li></ul>
             <table><thead><tr><th></th></tr></thead></table>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should split the list the cursor is in the middle of", () => {
@@ -1507,13 +1563,14 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", "fi".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li><li>fi</li></ul>
             <table><thead><tr><th></th></tr></thead></table>
             <ul><li>rst</li><li>second</li></ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should split the list before the item the cursor opens", () => {
@@ -1522,13 +1579,14 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", "".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li></ul>
             <table><thead><tr><th></th></tr></thead></table>
             <ul><li>first</li><li>second</li></ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should split the list after the item the cursor closes", () => {
@@ -1537,13 +1595,14 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", "first".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li><li>first</li></ul>
             <table><thead><tr><th></th></tr></thead></table>
             <ul><li>second</li></ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should lift a nested item that opens the split side to a list of its own", () => {
@@ -1552,13 +1611,14 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", "".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li></ul>
             <table><thead><tr><th></th></tr></thead></table>
             <ul><li>nested</li><li>second</li></ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should keep the nesting of a side that holds a whole nested list", () => {
@@ -1567,12 +1627,13 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", "".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
 
         expectHtml(wrapper.innerHTML, `
             <table><thead><tr><th></th></tr></thead></table>
             <ul><li>zero<ul><li>nested</li></ul></li><li>second</li></ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("th"), 0);
     });
 
     test("Should drop the insert when the cursor is inside a cell", () => {
@@ -1582,12 +1643,13 @@ describe("Insert table command", () => {
         `);
         selectAt(wrapper, ".start", "ze".length);
 
-        execCommand(wrapper, {action: Action.InsertTable, size: {rows: 2, columns: 2}});
+        const cursorPosition = execCommand(wrapper, {action: Action.InsertTable, size: {rows: 2, columns: 2}});
 
         expectHtml(wrapper.innerHTML, `
             <table><thead><tr><th class="start">zero</th></tr></thead>
             <tbody><tr><td>first</td></tr></tbody></table>
         `);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length);
     });
 
     test("Should move the cursor into the first header cell", () => {
@@ -1651,26 +1713,28 @@ describe("Click command", () => {
         expectHtml(wrapper.innerHTML, `<p class="start">zero</p>`);
 
         // The selection it started from is still what it hands back, untouched.
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "zero".length);
     });
 
     test("Should place the cursor itself when the click drops a carrier", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
 
         select(wrapper, ".start", "".length, "zero".length);
-        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         select(wrapper, "strong", "ze".length, "ze".length);
-        selectCursor(execCommand(wrapper, {action: Action.Tag, tag: "STRONG"}));
+        const split = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        selectCursor(split);
         expect(Carrier.isCarrierExist()).toBe(true);
+        expectCursor(split, Carrier.getCarrier(), 0);
 
         const selection = stubSelection();
         const focus = jest.spyOn(wrapper, "focus");
         const event = new MouseEvent("click");
         const preventDefault = jest.spyOn(event, "preventDefault");
 
-        execCommand(wrapper, {action: Action.Click, event});
+        const cursorPosition = execCommand(wrapper, {action: Action.Click, event});
 
         // The rebuilt block is not the one the browser aimed at, and its default action is suppressed
         // along with the placement, so the command names the spot itself.
@@ -1680,6 +1744,7 @@ describe("Click command", () => {
         expect(focus).toHaveBeenCalled();
         expect(Carrier.isCarrierExist()).toBe(false);
         expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "ze".length);
     });
 });
 
@@ -1714,9 +1779,7 @@ describe("Block command with the cursor on an empty block", () => {
 
         expectHtml(wrapper.innerHTML, `<p>zero</p><h1><br></h1>`);
         const heading = wrapper.querySelector("h1") as HTMLElement;
-        expect(cursorPosition.startContainer).toBe(heading.firstChild);
-        expect(cursorPosition.startContainer.isConnected).toBe(true);
-        expect(cursorPosition.endContainer).toBe(heading.firstChild);
+        expectCursor(cursorPosition, heading.firstChild, 0);
     });
 
     test("Should keep the cursor in the block when an empty line becomes a list", () => {
@@ -1727,8 +1790,7 @@ describe("Block command with the cursor on an empty block", () => {
 
         expectHtml(wrapper.innerHTML, `<p>zero</p><ul><li><br></li></ul>`);
         const item = wrapper.querySelector("li") as HTMLElement;
-        expect(cursorPosition.startContainer).toBe(item.firstChild);
-        expect(cursorPosition.startContainer.isConnected).toBe(true);
+        expectCursor(cursorPosition, item.firstChild, 0);
     });
 
     // The cursor the command leaves behind is the one the next command starts from, so an empty line can be
@@ -1737,14 +1799,15 @@ describe("Block command with the cursor on an empty block", () => {
         const wrapper = createWrapper(`<p>zero</p><p class="start"><br></p>`);
         selectBlock(wrapper, ".start");
 
-        selectCursor(execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"}));
+        const heading = execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
+        selectCursor(heading);
         expectHtml(wrapper.innerHTML, `<p>zero</p><h1><br></h1>`);
+        expectCursor(heading, wrapper.querySelector("h1 br"), 0);
         const cursorPosition = execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
 
         expectHtml(wrapper.innerHTML, `<p>zero</p><p><br></p>`);
         const paragraph = wrapper.querySelectorAll("p")[1] as HTMLElement;
-        expect(cursorPosition.startContainer).toBe(paragraph.firstChild);
-        expect(cursorPosition.startContainer.isConnected).toBe(true);
+        expectCursor(cursorPosition, paragraph.firstChild, 0);
     });
 
     // The text of a block is a leaf, so it is the same node before and after - the cursor on it needs no help.
@@ -1756,8 +1819,7 @@ describe("Block command with the cursor on an empty block", () => {
         const cursorPosition = execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
 
         expectHtml(wrapper.innerHTML, `<h1>zero</h1>`);
-        expect(cursorPosition.startContainer).toBe(text);
-        expect(cursorPosition.startContainer.isConnected).toBe(true);
+        expectCursor(cursorPosition, text, 0);
     });
 });
 
@@ -1783,9 +1845,7 @@ describe("Keyboard command that empties the document", () => {
         const cursorPosition = keyboard(wrapper, "Backspace");
 
         expectHtml(wrapper.innerHTML, `<p><br></p>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.startContainer.isConnected).toBe(true);
+        expectCursor(cursorPosition, wrapper.querySelector("br"), 0);
     });
 
     test("Should type into a paragraph when a character replaces the whole document", () => {
@@ -1798,17 +1858,20 @@ describe("Keyboard command that empties the document", () => {
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
         expect(cursorPosition.startOffset).toBe("a".length);
         expect(cursorPosition.endOffset).toBe("a".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
     });
 
     test("Should type into the paragraph the deleted document was given back", () => {
         const wrapper = createWrapper(`<p>zero</p>`);
         selectAll(wrapper);
-        selectCursor(keyboard(wrapper, "Backspace"));
+        const deleted = keyboard(wrapper, "Backspace");
+        selectCursor(deleted);
+        expectCursor(deleted, wrapper.querySelector("br"), 0);
 
         const cursorPosition = keyboard(wrapper, "a");
 
         expectHtml(wrapper.innerHTML, `<p>a</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "a".length);
     });
 
     // A table is no first level element, but it is a document of its own all the same - wrapping it in a
@@ -1821,9 +1884,10 @@ describe("Keyboard command that empties the document", () => {
         range.setEnd(text, "a".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        keyboard(wrapper, "b");
+        const cursorPosition = keyboard(wrapper, "b");
 
         expectHtml(wrapper.innerHTML, `<table><tbody><tr><td class="start">ab</td></tr></tbody></table>`);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ab".length);
     });
 
     function selectCursor(cursorPosition: CursorPosition) {
@@ -1908,18 +1972,20 @@ describe("Delete image command", () => {
         range.setEnd(wrapper, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
 
         expectHtml(wrapper.innerHTML, `<p><br></p>`);
+        expectCursor(cursorPosition, wrapper.querySelector("br"), 0);
     });
 
     test("Should ignore an image outside an image block", () => {
         const wrapper = createWrapper(`<p class="text">text<img src="image.png"></p>`);
         select(wrapper, ".text");
 
-        execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
 
         expectHtml(wrapper.innerHTML, `<p class="text">text<img src="image.png"></p>`);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".text"), "".length);
     });
 
     test("Should ignore an image outside the editor", () => {
@@ -1927,9 +1993,10 @@ describe("Delete image command", () => {
         select(wrapper, ".text");
         const outside = document.createElement("img");
 
-        execCommand(wrapper, {action: Action.DeleteImage, image: outside});
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteImage, image: outside});
 
         expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".text"), "".length);
     });
 });
 
@@ -1946,13 +2013,14 @@ describe("Modify class command", () => {
         select(wrapper, ".text");
         const element = wrapper.querySelector(".be-image") as HTMLElement;
 
-        execCommand(wrapper, {
+        const cursorPosition = execCommand(wrapper, {
             action: Action.ModifyClass,
             element,
             classes: {remove: ["be-image-small"], add: ["be-image-large"], toggle: ["be-image-large", "other"]}
         });
 
         expectHtml(wrapper.innerHTML, `<p class="text">text</p><p class="be-image other"><img src="image.png"></p>`);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".text"), "".length);
     });
 
     test("Should toggle a class the element lacks on", () => {
@@ -1960,9 +2028,10 @@ describe("Modify class command", () => {
         select(wrapper, ".text");
         const element = wrapper.querySelector(".be-image") as HTMLElement;
 
-        execCommand(wrapper, {action: Action.ModifyClass, element, classes: {toggle: ["be-image-medium"]}});
+        const cursorPosition = execCommand(wrapper, {action: Action.ModifyClass, element, classes: {toggle: ["be-image-medium"]}});
 
         expectHtml(wrapper.innerHTML, `<p class="text">text</p><p class="be-image be-image-medium"><img src="image.png"></p>`);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".text"), "".length);
     });
 
     test("Should ignore an element outside the editor", () => {
@@ -1970,10 +2039,11 @@ describe("Modify class command", () => {
         select(wrapper, ".text");
         const element = document.createElement("p");
 
-        execCommand(wrapper, {action: Action.ModifyClass, element, classes: {add: ["other"]}});
+        const cursorPosition = execCommand(wrapper, {action: Action.ModifyClass, element, classes: {add: ["other"]}});
 
         expect(element.className).toBe("");
         expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".text"), "".length);
     });
 });
 
@@ -2004,6 +2074,8 @@ describe("Cursor position after a paste command", () => {
         expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul><p class="be-image"><img src="x"></p><ul><li>two</li></ul>`);
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "ul:last-child li"));
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should leave the cursor in the first cell of a pasted table", () => {
@@ -2018,5 +2090,7 @@ describe("Cursor position after a paste command", () => {
 
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "th"));
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 });

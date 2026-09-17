@@ -12,7 +12,7 @@ import {
 } from "@/core/list/list";
 import {parseList} from "@/core/list/type/list-class";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
-import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, getText} from "@/core/shared/test-util";
 import {pasteHtml} from "@/core/clipboard/util/clipboard-util";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 
@@ -238,7 +238,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -254,6 +254,7 @@ describe("Plus indent", () => {
                 <li>third</li>
             </ol>            
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should indent two direct descendent lists", () => {
@@ -270,7 +271,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -282,6 +283,7 @@ describe("Plus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should indent one direct descendent lists", () => {
@@ -298,7 +300,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -310,6 +312,7 @@ describe("Plus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should indent list with nested list", () => {
@@ -330,7 +333,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "rst".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -344,6 +347,7 @@ describe("Plus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "fi "), "fi".length, getText(wrapper, "rst"), "rst".length);
     });
 
     test("Should indent middle list", () => {
@@ -368,7 +372,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -382,6 +386,7 @@ describe("Plus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "third"), "th".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Should indent two lists with different nesting level", () => {
@@ -402,7 +407,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -418,6 +423,7 @@ describe("Plus indent", () => {
                 </li>          
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should indent an ordered list located after an unordered list", () => {
@@ -435,7 +441,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -446,6 +452,7 @@ describe("Plus indent", () => {
                 </li>          
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "first"), "first".length);
     });
 
     test("Should indent an ordered list (with child) located after an unordered list", () => {
@@ -467,7 +474,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -479,6 +486,7 @@ describe("Plus indent", () => {
                 </li>          
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "first"), "first".length);
     });
 
     test("Should indent list containing an ordered list", () => {
@@ -498,7 +506,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -512,6 +520,7 @@ describe("Plus indent", () => {
                 </li>         
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "first"), "first".length);
     });
 
     test("Should indent an ordered list after an unordered list", () => {
@@ -534,7 +543,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -552,6 +561,7 @@ describe("Plus indent", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "first"), "first".length);
     });
 
     test("Should indent last ordered list after an unordered list", () => {
@@ -570,7 +580,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -584,6 +594,7 @@ describe("Plus indent", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "se".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should indent list wrappers with different types", () => {
@@ -608,7 +619,7 @@ describe("Plus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -626,6 +637,7 @@ describe("Plus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "se".length, getText(wrapper, "third"), "third".length);
     });
 });
 
@@ -807,7 +819,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -821,6 +833,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "se".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Should minus indent middle nested list", () => {
@@ -842,7 +855,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -859,6 +872,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "third"), "th".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Should minus indent last nested list", () => {
@@ -879,7 +893,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -892,6 +906,7 @@ describe("Minus indent", () => {
                 <li>third</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "third"), "th".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Should minus indent lists with different nesting level", () => {
@@ -915,7 +930,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -928,6 +943,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "se".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Should minus indent lists with different nesting level and additional previous list", () => {
@@ -952,7 +968,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fourth".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -969,6 +985,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "third"), "th".length, getText(wrapper, "fourth"), "fourth".length);
     });
 
     test("Should minus indent for some lists with different nesting level", () => {
@@ -993,7 +1010,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1010,6 +1027,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "se".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Should minus indent first ordered list located inside unordered list", () => {
@@ -1029,7 +1047,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1043,6 +1061,7 @@ describe("Minus indent", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "first"), "first".length);
     });
 
     test("Should minus indent two ordered list inside unordered list", () => {
@@ -1062,7 +1081,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1073,6 +1092,7 @@ describe("Minus indent", () => {
                 <li>second</li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should minus indent middle ordered list inside unordered list", () => {
@@ -1095,7 +1115,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1117,6 +1137,7 @@ describe("Minus indent", () => {
                 <li>fifth</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "third"), "th".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Should minus indent nested unordered list located before ordered list", () => {
@@ -1142,7 +1163,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1160,6 +1181,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "se".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should minus indent multiple nested unordered list with different node names", () => {
@@ -1185,7 +1207,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1202,6 +1224,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "se".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Should minus indent for nested list wrappers with different types", () => {
@@ -1229,7 +1252,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fourth".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1248,6 +1271,7 @@ describe("Minus indent", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "se".length, getText(wrapper, "fourth"), "fourth".length);
     });
 
     test("Should minus indent for nested list wrappers with different types and nested levels", () => {
@@ -1280,7 +1304,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fifth".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1304,6 +1328,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "se".length, getText(wrapper, "fifth"), "fifth".length);
     });
 
     test("Should minus indent two same level different type lists", () => {
@@ -1328,7 +1353,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1345,6 +1370,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Move nested lis to same level list wrapper", () => {
@@ -1372,7 +1398,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "fourth".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -1389,6 +1415,7 @@ describe("Minus indent", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "se".length, getText(wrapper, "fourth"), "fourth".length);
     });
 
     test("Move nested li to same level list wrapper", () => {
@@ -1416,7 +1443,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -1433,6 +1460,7 @@ describe("Minus indent", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "third"), "th".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Minus indent with strong tag inside li", () => {
@@ -1454,7 +1482,7 @@ describe("Minus indent", () => {
         range.setEnd(getLastChild(wrapper, ".start"), "rst".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -1465,6 +1493,7 @@ describe("Minus indent", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, " rst"), "r".length, getText(wrapper, " rst"), "rst".length);
     });
 
     test("Minus indent for deep nested li in mixed list", () => {
@@ -1491,7 +1520,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1509,6 +1538,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "third"), "t".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Minus indent for ol inside li in mixed list", () => {
@@ -1534,7 +1564,7 @@ describe("Minus indent", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        minusIndent(wrapper);
+        const cursorPosition = minusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1550,6 +1580,7 @@ describe("Minus indent", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "third"), "t".length, getText(wrapper, "third"), "third".length);
     });
 
     test("Minus indent of empty list should keep cursor position", () => {
@@ -1611,6 +1642,9 @@ describe("Exit list", () => {
         `);
 
         expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p br"));
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should leave the list when the empty item closes it", () => {
@@ -1626,7 +1660,7 @@ describe("Exit list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        exitList(wrapper, getCursorPosition());
+        const cursorPosition = exitList(wrapper, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1634,6 +1668,7 @@ describe("Exit list", () => {
             </ul>
             <p><br></p>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     test("Should leave the list when the empty item opens it", () => {
@@ -1649,7 +1684,7 @@ describe("Exit list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        exitList(wrapper, getCursorPosition());
+        const cursorPosition = exitList(wrapper, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <p><br></p>
@@ -1657,6 +1692,7 @@ describe("Exit list", () => {
                 <li>zero</li>
             </ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     test("Should split the list around the paragraph when the empty item is in the middle", () => {
@@ -1673,7 +1709,7 @@ describe("Exit list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        exitList(wrapper, getCursorPosition());
+        const cursorPosition = exitList(wrapper, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1684,6 +1720,7 @@ describe("Exit list", () => {
                 <li>first</li>
             </ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     test("Should start the items below the paragraph at the first level", () => {
@@ -1708,7 +1745,7 @@ describe("Exit list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        exitList(wrapper, getCursorPosition());
+        const cursorPosition = exitList(wrapper, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1727,6 +1764,7 @@ describe("Exit list", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     test("Should lift a nested empty item and keep the item following it a level below", () => {
@@ -1762,6 +1800,9 @@ describe("Exit list", () => {
         `);
 
         expect(cursorPosition.startContainer).toBe(br);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should lift the list nested in the empty item along with it", () => {
@@ -1784,7 +1825,7 @@ describe("Exit list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        exitList(wrapper, getCursorPosition());
+        const cursorPosition = exitList(wrapper, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1796,6 +1837,7 @@ describe("Exit list", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("ul > li + li > br"), 0);
     });
 
     test("Should lift an empty item of the third level to the second one", () => {
@@ -1818,7 +1860,7 @@ describe("Exit list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        exitList(wrapper, getCursorPosition());
+        const cursorPosition = exitList(wrapper, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1830,6 +1872,7 @@ describe("Exit list", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("ol > li + li > br"), 0);
     });
 
     // The lifted item keeps the wrapper it was written in, so one of another type opens a wrapper of its own
@@ -1854,7 +1897,7 @@ describe("Exit list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        exitList(wrapper, getCursorPosition());
+        const cursorPosition = exitList(wrapper, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1868,6 +1911,7 @@ describe("Exit list", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, wrapper.querySelector("ul ul > li > br"), 0);
     });
 });
 
@@ -1921,7 +1965,7 @@ describe("List side events", () => {
         range.setEnd(getFirstChild(wrapper, ".start"),  "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -1933,6 +1977,7 @@ describe("List side events", () => {
                 <li><br></li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "".length, getText(wrapper, "second"), "".length);
     });
 
     test("Should remove empty list", () => {
@@ -1949,7 +1994,7 @@ describe("List side events", () => {
         range.setEnd(wrapper.querySelector(".start") as Node,  "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -1957,6 +2002,7 @@ describe("List side events", () => {
                 <li><br></li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zero"), "".length, getText(wrapper, "zero"), "".length);
     });
 
 
@@ -1981,7 +2027,7 @@ describe("Change list wrapper", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeListWrapper(wrapper, "UL");
+        const cursorPosition = changeListWrapper(wrapper, "UL");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -1996,6 +2042,7 @@ describe("Change list wrapper", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should change only selected list type", () => {
@@ -2021,7 +2068,7 @@ describe("Change list wrapper", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeListWrapper(wrapper, "UL");
+        const cursorPosition = changeListWrapper(wrapper, "UL");
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2039,6 +2086,7 @@ describe("Change list wrapper", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should keep the nested list when the list holding it changes type", () => {
@@ -2058,7 +2106,7 @@ describe("Change list wrapper", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeListWrapper(wrapper, "OL");
+        const cursorPosition = changeListWrapper(wrapper, "OL");
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -2070,6 +2118,7 @@ describe("Change list wrapper", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zero"), "ze".length, getText(wrapper, "first"), "first".length);
     });
 
     test("Should join the list to the one beside it when both are written in the type asked for", () => {
@@ -2087,7 +2136,7 @@ describe("Change list wrapper", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeListWrapper(wrapper, "OL");
+        const cursorPosition = changeListWrapper(wrapper, "OL");
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -2095,6 +2144,7 @@ describe("Change list wrapper", () => {
                 <li>first</li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "first"), "first".length);
     });
 });
 
@@ -2111,7 +2161,7 @@ describe("Pasting a list into a list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2120,6 +2170,7 @@ describe("Pasting a list into a list", () => {
                 <li>second</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Paste nesting list", () => {
@@ -2134,7 +2185,7 @@ describe("Pasting a list into a list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2146,6 +2197,7 @@ describe("Pasting a list into a list", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Pasting a list in the middle of a line divides the line around it", () => {
@@ -2161,7 +2213,7 @@ describe("Pasting a list into a list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ol><li>first</li></ol>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ol><li>first</li></ol>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2175,6 +2227,7 @@ describe("Pasting a list into a list", () => {
                 <li>tail</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "first".length, getText(wrapper, "first"), "first".length);
     });
 
     // The list nested under the cursor's item goes with the last pasted item, the way Enter
@@ -2211,6 +2264,8 @@ describe("Pasting a list into a list", () => {
 
         expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
         expect(cursorPosition.startOffset).toBe("second".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should paste the items at the level of the nested item they are pasted into", () => {
@@ -2245,6 +2300,8 @@ describe("Pasting a list into a list", () => {
 
         expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[2]?.firstChild);
         expect(cursorPosition.startOffset).toBe("first".length);
+        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
     });
 
     test("Should open a wrapper of the other type inside the parent of the nested item pasted into", () => {
@@ -2263,7 +2320,7 @@ describe("Pasting a list into a list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "nes".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ul><li>first</li></ul>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ul><li>first</li></ul>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -2280,6 +2337,7 @@ describe("Pasting a list into a list", () => {
                 </li>
             </ol>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "first".length, getText(wrapper, "first"), "first".length);
     });
 
     test("Should stack the nesting of the pasted list on the level of the nested item pasted into", () => {
@@ -2298,7 +2356,7 @@ describe("Pasting a list into a list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "nested".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2314,6 +2372,7 @@ describe("Pasting a list into a list", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should replace the empty nested item a list is pasted into", () => {
@@ -2333,7 +2392,7 @@ describe("Pasting a list into a list", () => {
         range.setEnd(wrapper.querySelector("br") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ul><li>first</li></ul>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ul><li>first</li></ul>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2345,6 +2404,7 @@ describe("Pasting a list into a list", () => {
                 <li>tail</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "first"), "first".length, getText(wrapper, "first"), "first".length);
     });
 });
 
@@ -2359,7 +2419,7 @@ describe("Normalize list", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        normalizeList(wrapper.querySelector("ul") as HTMLElement, getCursorPosition());
+        const cursorPosition = normalizeList(wrapper.querySelector("ul") as HTMLElement, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2371,6 +2431,7 @@ describe("Normalize list", () => {
                 </li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "zero"), "zero".length, getText(wrapper, "zero"), "zero".length);
     });
 
     test("Should drop the line named as dropped and carry the cursor to the line after it", () => {
@@ -2402,6 +2463,8 @@ describe("Normalize list", () => {
 
         expect(rebuiltCursorPosition.startContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
         expect(rebuiltCursorPosition.startOffset).toBe(0);
+        expect(rebuiltCursorPosition.endContainer).toBe(wrapper.querySelectorAll("li")[1]?.firstChild);
+        expect(rebuiltCursorPosition.endOffset).toBe(0);
     });
 });
 
@@ -2417,9 +2480,10 @@ describe("Lists written apart from one another", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "one".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero<ul><li>one</li></ul></li></ul>apart<ul><li>two</li></ul>`);
+        expectCursor(cursorPosition, getText(wrapper, "one"), "on".length, getText(wrapper, "one"), "one".length);
     });
 
     test("Should join only the list the paste lands in", () => {
@@ -2430,10 +2494,11 @@ describe("Lists written apart from one another", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
+        const cursorPosition = pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
 
         expectHtml(wrapper.innerHTML,
             `<ul><li>zero</li><li>first<ul><li>second</li></ul></li></ul>apart<ul><li>two</li></ul>`);
+        expectCursor(cursorPosition, getText(wrapper, "second"), "second".length, getText(wrapper, "second"), "second".length);
     });
 
     test("Should join two lists an author left only whitespace between", () => {
@@ -2452,7 +2517,7 @@ describe("Lists written apart from one another", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "one".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        plusIndent(wrapper);
+        const cursorPosition = plusIndent(wrapper);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
@@ -2464,6 +2529,7 @@ describe("Lists written apart from one another", () => {
                 <li>two</li>
             </ul>
         `);
+        expectCursor(cursorPosition, getText(wrapper, "one"), "on".length, getText(wrapper, "one"), "one".length);
     });
 });
 

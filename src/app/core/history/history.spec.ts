@@ -1,7 +1,7 @@
 import {getRange} from "@/core/shared/range-util";
 import execCommand from "@/core/command/exec-command";
 import {Action, Command} from "@/core/command/type/command";
-import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild} from "@/core/shared/test-util";
 import {GROUP_INTERVAL, History} from "@/core/history/history";
 import {Carrier} from "@/core/carrier/carrier";
 import {CursorPosition} from "@/core/shared/type/cursor-position";
@@ -63,7 +63,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
         expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
 
         history.undo();
@@ -76,7 +77,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
         history.undo();
 
         history.redo();
@@ -94,7 +96,8 @@ describe("History undo/redo", () => {
         range.setStart(getFirstChild(wrapper, ".start"), "".length);
         range.setEnd(wrapper.querySelector(".empty") as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("z")});
+        const typed = command(wrapper, {action: Action.Keyboard, event: keydownEvent("z")});
+        expectCursor(typed, getFirstChild(wrapper, "h3"), "z".length);
         expectHtml(wrapper.innerHTML, `<h3>z</h3>`);
 
         history.undo();
@@ -109,7 +112,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.FirstLevel, tag: "H1"});
+        const heading = command(wrapper, {action: Action.FirstLevel, tag: "H1"});
+        expectCursor(heading, getFirstChild(wrapper, "h1"), "".length, getFirstChild(wrapper, "h1"), "zero".length);
         expectHtml(wrapper.innerHTML, `<h1>zero</h1>`);
 
         history.undo();
@@ -122,10 +126,12 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         select(wrapper, "strong", "".length, "zero".length);
-        command(wrapper, {action: Action.FirstLevel, tag: "H1"});
+        const heading = command(wrapper, {action: Action.FirstLevel, tag: "H1"});
+        expectCursor(heading, getFirstChild(wrapper, "h1 strong"), "".length, getFirstChild(wrapper, "h1 strong"), "zero".length);
         expectHtml(wrapper.innerHTML, `<h1><strong>zero</strong></h1>`);
 
         history.undo();
@@ -140,11 +146,13 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
         history.undo();
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.FirstLevel, tag: "H1"});
+        const heading = command(wrapper, {action: Action.FirstLevel, tag: "H1"});
+        expectCursor(heading, getFirstChild(wrapper, "h1"), "".length, getFirstChild(wrapper, "h1"), "zero".length);
 
         history.redo();
 
@@ -156,7 +164,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         for (let cycle = 0; cycle < 3; cycle++) {
             history.undo();
@@ -172,7 +181,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "".length);
-        command(wrapper, {action: Action.Attribute, tag: "P", attributes: {class: "changed"}});
+        const changed = command(wrapper, {action: Action.Attribute, tag: "P", attributes: {class: "changed"}});
+        expectCursor(changed, getFirstChild(wrapper, "p"), "".length);
         expectHtml(wrapper.innerHTML, `<p class="changed">zero</p>`);
 
         history.undo();
@@ -196,7 +206,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "".length);
-        command(wrapper, {action: Action.Attribute, tag: "P"});
+        const unchanged = command(wrapper, {action: Action.Attribute, tag: "P"});
+        expectCursor(unchanged, getFirstChild(wrapper, ".start"), "".length);
 
         history.undo();
 
@@ -208,7 +219,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("Enter")});
+        const broken = command(wrapper, {action: Action.Keyboard, event: keydownEvent("Enter")});
+        expectCursor(broken, wrapper.querySelector("p + p br"), 0);
 
         history.undo();
 
@@ -220,7 +232,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        const merged = command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        expectCursor(merged, getFirstChild(wrapper, "p"), "zero".length);
         expectHtml(wrapper.innerHTML, `<p>zerofirst</p>`);
 
         history.undo();
@@ -233,7 +246,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        command(wrapper, {action: Action.Clipboard, event: pasteEvent("pasted")});
+        const pasted = command(wrapper, {action: Action.Clipboard, event: pasteEvent("pasted")});
+        expectCursor(pasted, getFirstChild(wrapper, "p"), "zeropasted".length);
         expectHtml(wrapper.innerHTML, `<p>zeropasted</p>`);
 
         history.undo();
@@ -248,7 +262,8 @@ describe("History undo/redo", () => {
         new History(wrapper);
 
         select(wrapper, ".start", "mark ".length, "mark word".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "word".length);
         expectHtml(wrapper.innerHTML, `<p>mark <strong>word</strong> as bold</p>`);
 
         wrapper.dispatchEvent(keydownEvent("z", {ctrlKey: true}));
@@ -266,7 +281,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "first".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "first".length);
         expectHtml(wrapper.innerHTML, `<p>zero</p><p><strong>first</strong></p><p>second</p>`);
 
         const firstParagraph = wrapper.firstChild;
@@ -288,7 +304,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "ze".length, "ze".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        const deleted = command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        expectCursor(deleted, getFirstChild(wrapper, ".start"), "z".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zro</p>`);
 
         history.undo();
@@ -307,7 +324,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "ze".length, "ze".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("Delete")});
+        const deleted = command(wrapper, {action: Action.Keyboard, event: keydownEvent("Delete")});
+        expectCursor(deleted, getFirstChild(wrapper, ".start"), "ze".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zeo</p>`);
 
         history.undo();
@@ -322,7 +340,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "ze".length, "ze".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        const typed = command(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        expectCursor(typed, getFirstChild(wrapper, ".start"), "zex".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zexro</p>`);
 
         history.undo();
@@ -341,7 +360,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "z".length, "zer".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        const typed = command(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        expectCursor(typed, getFirstChild(wrapper, ".start"), "zx".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zxo</p>`);
 
         history.undo();
@@ -356,7 +376,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".s", "r".length, "r".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        const deleted = command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        expectCursor(deleted, getFirstChild(wrapper, "p"), "ze".length);
         expectHtml(wrapper.innerHTML, `<p>zetail</p>`);
 
         history.undo();
@@ -369,7 +390,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "a".length, "a".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        const deleted = command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        expectCursor(deleted, getFirstChild(wrapper, ".start"), 0);
         expectHtml(wrapper.innerHTML, `<p class="start"><br></p>`);
 
         history.undo();
@@ -387,7 +409,8 @@ describe("History undo/redo", () => {
         range.setEnd(lastText, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        const deleted = command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
+        expectCursor(deleted, getFirstChild(wrapper, "p"), "a".length);
         expectHtml(wrapper.innerHTML, `<p>ab</p>`);
 
         history.undo();
@@ -400,11 +423,13 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        const first = command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectCursor(first, getFirstChild(wrapper, ".start"), "zeroa".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zeroa</p>`);
 
         select(wrapper, ".start", "zeroa".length, "zeroa".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        const second = command(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        expectCursor(second, getFirstChild(wrapper, ".start"), "zeroab".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zeroab</p>`);
 
         history.undo();
@@ -419,7 +444,8 @@ describe("History undo/redo", () => {
         new History(wrapper);
 
         select(wrapper, ".start", "ze".length, "ze".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        const typed = command(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        expectCursor(typed, getFirstChild(wrapper, ".start"), "zex".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zexro</p>`);
 
         wrapper.dispatchEvent(keydownEvent("z", {ctrlKey: true}));
@@ -442,7 +468,8 @@ describe("History undo/redo", () => {
         range.setEnd(strongText, "ro".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const unwrapped = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(unwrapped, getFirstChild(wrapper, "p"), "ze".length, getFirstChild(wrapper, "p"), "zero".length);
         expectHtml(wrapper.innerHTML, `<p>zero</p>`);
 
         history.undo();
@@ -455,7 +482,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".s", "bo".length, "bo".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const split = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(split, wrapper.querySelector("p")?.childNodes[1], 0);
         expectHtml(wrapper.innerHTML, `<p><strong>bo</strong><strong>ld</strong></p>`);
 
         history.undo();
@@ -468,11 +496,13 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
         expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
 
         select(wrapper, "strong", "ze".length, "ze".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const split = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(split, wrapper.querySelector("p")?.childNodes[1], 0);
         expectHtml(wrapper.innerHTML, `<p><strong>ze</strong><strong>ro</strong></p>`);
 
         history.undo();
@@ -486,14 +516,16 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "ze".length, "ze".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const split = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(split, wrapper.querySelector("p")?.childNodes[1], 0);
         expectHtml(wrapper.innerHTML, `<p><strong>ze</strong><strong>ro</strong></p>`);
 
         const range = new Range();
         range.setStart(wrapper.querySelector("p")?.childNodes[1] as Node, 0);
         range.setEnd(wrapper.querySelector("p")?.childNodes[1] as Node, 0);
         (getRange as jest.Mock).mockReturnValue(range);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        const typed = command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectCursor(typed, wrapper.querySelector("p")?.childNodes[1], "a".length);
         expectHtml(wrapper.innerHTML, `<p><strong>ze</strong>a<strong>ro</strong></p>`);
 
         history.undo();
@@ -511,12 +543,14 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         select(wrapper, "strong", "ze".length, "ze".length);
         selectCursor(command(wrapper, {action: Action.Tag, tag: "STRONG"}));
 
-        command(wrapper, {action: Action.Click, event: new MouseEvent("click")});
+        const clicked = command(wrapper, {action: Action.Click, event: new MouseEvent("click")});
+        expectCursor(clicked, getFirstChild(wrapper, "strong"), "ze".length);
         expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
 
         history.undo();
@@ -529,12 +563,14 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         select(wrapper, "strong", "ze".length, "ze".length);
         selectCursor(command(wrapper, {action: Action.Tag, tag: "STRONG"}));
 
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("ArrowRight")});
+        const moved = command(wrapper, {action: Action.Keyboard, event: keydownEvent("ArrowRight")});
+        expectCursor(moved, getFirstChild(wrapper, "strong"), "ze".length);
         expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
 
         history.undo();
@@ -547,7 +583,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         select(wrapper, "strong", "ze".length, "ze".length);
         selectCursor(command(wrapper, {action: Action.Tag, tag: "STRONG"}));
@@ -556,7 +593,8 @@ describe("History undo/redo", () => {
         // move. That is still only a cursor move, so it must not read as an edit.
         const event = keydownEvent("ArrowLeft", {cancelable: true});
         event.preventDefault();
-        command(wrapper, {action: Action.Keyboard, event});
+        const moved = command(wrapper, {action: Action.Keyboard, event});
+        expectCursor(moved, getFirstChild(wrapper, "strong"), "ze".length);
         expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
 
         history.undo();
@@ -569,12 +607,14 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         select(wrapper, "strong", "ze".length, "ze".length);
         selectCursor(command(wrapper, {action: Action.Tag, tag: "STRONG"}));
 
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        const typed = command(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        expectCursor(typed, wrapper.querySelector("p")?.childNodes[1], "x".length);
         expectHtml(wrapper.innerHTML, `<p><strong>ze</strong>x<strong>ro</strong></p>`);
 
         history.undo();
@@ -589,7 +629,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "ze".length, "ze".length);
-        command(wrapper, {action: Action.InsertTable, size: {rows: 2, columns: 1}});
+        const inserted = command(wrapper, {action: Action.InsertTable, size: {rows: 2, columns: 1}});
+        expectCursor(inserted, wrapper.querySelector("th"), 0);
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze</p>
             <table><thead><tr><th></th></tr></thead><tbody><tr><td></td></tr></tbody></table>
@@ -606,7 +647,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "".length);
-        command(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        const inserted = command(wrapper, {action: Action.InsertTable, size: {rows: 1, columns: 1}});
+        expectCursor(inserted, wrapper.querySelector("th"), 0);
         expectHtml(wrapper.innerHTML, `
             <ul><li>zero</li></ul>
             <table><thead><tr><th></th></tr></thead></table>
@@ -625,7 +667,8 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        const inserted = execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        expectCursor(inserted, getFirstChild(wrapper, ".start"), "zero".length);
         await waitForImage(wrapper);
 
         expect(wrapper.querySelector("img")).not.toBeNull();
@@ -650,11 +693,13 @@ describe("History grouping", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        const first = command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectCursor(first, getFirstChild(wrapper, ".start"), "zeroa".length);
 
         select(wrapper, ".start", "zeroa".length, "zeroa".length);
         jest.advanceTimersByTime(GROUP_INTERVAL - 100);
-        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        const second = execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        expectCursor(second, getFirstChild(wrapper, ".start"), "zeroab".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zeroab</p>`);
 
         history.undo();
@@ -668,10 +713,12 @@ describe("History grouping", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        const first = command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectCursor(first, getFirstChild(wrapper, ".start"), "zeroa".length);
 
         select(wrapper, ".start", "zeroa".length, "zeroa".length);
-        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        const second = execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        expectCursor(second, getFirstChild(wrapper, ".start"), "zeroab".length);
         history.undo();
 
         history.redo();
@@ -685,15 +732,18 @@ describe("History grouping", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        const first = command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectCursor(first, getFirstChild(wrapper, ".start"), "zeroa".length);
 
         select(wrapper, ".start", "zeroa".length, "zeroa".length);
         jest.advanceTimersByTime(200);
-        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        const second = execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        expectCursor(second, getFirstChild(wrapper, ".start"), "zeroab".length);
 
         select(wrapper, ".start", "zeroab".length, "zeroab".length);
         jest.advanceTimersByTime(200);
-        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("c")});
+        const third = execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("c")});
+        expectCursor(third, getFirstChild(wrapper, ".start"), "zeroabc".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zeroabc</p>`);
 
         history.undo();
@@ -708,10 +758,12 @@ describe("History grouping", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        const typed = command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectCursor(typed, getFirstChild(wrapper, ".start"), "zeroa".length);
 
         select(wrapper, ".start", "".length, "zeroa".length);
-        execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zeroa".length);
         expectHtml(wrapper.innerHTML, `<p><strong>zeroa</strong></p>`);
 
         history.undo();
@@ -725,10 +777,12 @@ describe("History grouping", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "ze".length, "ze".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        const first = command(wrapper, {action: Action.Keyboard, event: keydownEvent("x")});
+        expectCursor(first, getFirstChild(wrapper, ".start"), "zex".length);
 
         select(wrapper, ".start", "zex".length, "zex".length);
-        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("y")});
+        const second = execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("y")});
+        expectCursor(second, getFirstChild(wrapper, ".start"), "zexy".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zexyro</p>`);
 
         history.undo();
@@ -744,14 +798,17 @@ describe("History grouping", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        const first = command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectCursor(first, getFirstChild(wrapper, ".start"), "zeroa".length);
 
         select(wrapper, ".start", "zeroa".length, "zeroa".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        const second = command(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        expectCursor(second, getFirstChild(wrapper, ".start"), "zeroab".length);
         history.undo();
 
         select(wrapper, ".start", "zeroa".length, "zeroa".length);
-        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("c")});
+        const third = execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("c")});
+        expectCursor(third, getFirstChild(wrapper, ".start"), "zeroac".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zeroac</p>`);
 
         history.undo();
@@ -764,12 +821,14 @@ describe("History grouping", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        const first = command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectCursor(first, getFirstChild(wrapper, ".start"), "zeroa".length);
         history.undo();
         history.redo();
 
         select(wrapper, ".start", "zeroa".length, "zeroa".length);
-        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        const second = execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        expectCursor(second, getFirstChild(wrapper, ".start"), "zeroab".length);
         expectHtml(wrapper.innerHTML, `<p class="start">zeroab</p>`);
 
         history.undo();
@@ -784,10 +843,12 @@ describe("History grouping", () => {
         history.onChange(listener);
 
         select(wrapper, ".start", "zero".length, "zero".length);
-        command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        const first = command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
+        expectCursor(first, getFirstChild(wrapper, ".start"), "zeroa".length);
 
         select(wrapper, ".start", "zeroa".length, "zeroa".length);
-        execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        const second = execCommand(wrapper, {action: Action.Keyboard, event: keydownEvent("b")});
+        expectCursor(second, getFirstChild(wrapper, ".start"), "zeroab".length);
 
         expect(listener).toHaveBeenCalledTimes(2);
         expect(history.canUndo()).toBe(true);
@@ -816,7 +877,8 @@ describe("History stack state", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         expect(history.canUndo()).toBe(true);
         expect(history.canRedo()).toBe(false);
@@ -827,7 +889,8 @@ describe("History stack state", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         history.undo();
         expect(history.canUndo()).toBe(false);
@@ -843,12 +906,14 @@ describe("History stack state", () => {
         const history = new History(wrapper);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
         history.undo();
         expect(history.canRedo()).toBe(true);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.FirstLevel, tag: "H1"});
+        const heading = command(wrapper, {action: Action.FirstLevel, tag: "H1"});
+        expectCursor(heading, getFirstChild(wrapper, "h1"), "".length, getFirstChild(wrapper, "h1"), "zero".length);
 
         expect(history.canRedo()).toBe(false);
     });
@@ -860,7 +925,8 @@ describe("History stack state", () => {
         history.onChange(listener);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
         expect(listener).toHaveBeenCalledTimes(1);
 
         history.undo();
@@ -890,7 +956,8 @@ describe("History stack state", () => {
         history.onChange(redoListener);
 
         select(wrapper, ".start", "".length, "zero".length);
-        command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        const tagged = command(wrapper, {action: Action.Tag, tag: "STRONG"});
+        expectCursor(tagged, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         expect(undoListener).toHaveBeenCalledTimes(1);
         expect(redoListener).toHaveBeenCalledTimes(1);
