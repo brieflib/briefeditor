@@ -130,7 +130,14 @@ export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLEl
  * Rebuilds the whole list run the cursor is in as one root, joining its wrappers and
  * sanitizing every line the way {@link removeAndNormalize} does.
  *
- * @returns The cursor remapped across the rebuild; unchanged if the cursor is in no run.
+ * @returns The cursor as it stands whenever the rebuild left its leaf in place, and the remapped
+ * one otherwise; unchanged if the cursor is in no run.
+ *
+ * @remarks
+ * The run is joined into its first wrapper, so a cursor that stood in a later one is remapped by
+ * an offset read against a block that now holds every line of the run - it would name a line of
+ * the first wrapper. The rebuild reuses the leaves, so a cursor still connected is already where
+ * it belongs and is the better answer.
  */
 export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): CursorPosition {
     const rootElements = getSelectedRoot(contentEditable, cursorPosition);
@@ -164,7 +171,10 @@ export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorP
     firstRoot.before(wrapper);
     wrapper.append(...rootElements);
 
-    return removeAndNormalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
+    const mergedCursorPosition = removeAndNormalize(contentEditable, wrapper, ["DELETED"], cursorPosition);
+
+    return cursorPosition.startContainer.isConnected && cursorPosition.endContainer.isConnected
+        ? cursorPosition : mergedCursorPosition;
 }
 
 /**

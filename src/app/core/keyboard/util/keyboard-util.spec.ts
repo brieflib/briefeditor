@@ -676,10 +676,10 @@ describe("Merge next element", () => {
         cursorPosition = mergeNextBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start">zero</p>
+            <p>zero</p>
         `);
 
-        const expectedContainer = getFirstChild(wrapper, ".start");
+        const expectedContainer = getFirstChild(wrapper, "p");
         expect(cursorPosition.startContainer).toBe(expectedContainer);
         expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(4);
@@ -1858,11 +1858,11 @@ describe("Cursor position after key press", () => {
         cursorPosition = mergeNextBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="start"><br/></p>
+            <p><br/></p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".start"));
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, "p"));
         expect(cursorPosition.startOffset).toBe(0);
         expect(cursorPosition.endOffset).toBe(0);
     });
@@ -1882,11 +1882,11 @@ describe("Cursor position after key press", () => {
         cursorPosition = mergeNextBlock(wrapper, cursorPosition);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="end">first</p>
+            <p>first</p>
         `);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".end"));
-        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, ".end"));
+        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
+        expect(cursorPosition.endContainer).toBe(getLastChild(wrapper, "p"));
         expect(cursorPosition.startOffset).toBe(0);
         expect(cursorPosition.endOffset).toBe(0);
     });

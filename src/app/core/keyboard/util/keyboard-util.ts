@@ -23,7 +23,7 @@ import {
 } from "@/core/shared/element-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
-import {normalize} from "@/core/normalize/normalize";
+import {mergeLists, normalize} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     maybeInsertLists,
@@ -57,7 +57,7 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
 
     // An image block has no line to merge into: it's what the backspace removes.
     if (removeImageBlock(contentEditable, previousNode)) {
-        return cursorPosition;
+        return mergeLists(contentEditable, cursorPosition);
     }
 
     // An empty item above is the line the merge lands on, not an item to merge into - the
@@ -85,6 +85,9 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
     cursorPosition = mergeBlocks(contentEditable, cursorPosition, "");
     if (!previousNode.textContent) {
         (previousNode as Element)?.remove();
+        // This removal stands after the merge above, so the lists it left side by side are
+        // joined here rather than by the merge's own pass.
+        return mergeLists(contentEditable, cursorPosition);
     }
 
     return cursorPosition;
@@ -131,7 +134,7 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
 
     // An image block has no line to pull up: it's what the delete removes.
     if (removeImageBlock(contentEditable, nextNode)) {
-        return cursorPosition;
+        return mergeLists(contentEditable, cursorPosition);
     }
 
     // An empty item at the cursor is itself the line the next item merges onto (the
@@ -147,15 +150,15 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
     if (isRemoved && previousNode) {
         const lastText = getLastNonEmptyText(previousNode);
         const offset = lastText.textContent?.length ?? 0;
-        return getCursorPositionFrom(lastText, offset, lastText, offset);
+        return mergeLists(contentEditable, getCursorPositionFrom(lastText, offset, lastText, offset));
     }
     if (isRemoved) {
-        return getCursorPositionFrom(nextNodeFirstChild, 0, nextNodeFirstChild, 0);
+        return mergeLists(contentEditable, getCursorPositionFrom(nextNodeFirstChild, 0, nextNodeFirstChild, 0));
     }
 
     if (!nextNode.textContent && !isSchemaContain(nextNode, [Display.SelfClose])) {
         (nextNode as Element)?.remove();
-        return cursorPosition;
+        return mergeLists(contentEditable, cursorPosition);
     }
 
     cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, nextNodeFirstChild, 0);
@@ -216,6 +219,10 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
     } else {
         cursorPositionAfterDelete = normalize(contentEditable, cursorPositionAfterDelete);
     }
+    // A line removed between two lists leaves their wrappers standing side by side; the whole
+    // run is rebuilt as one so they join. Only the rebuild above drops the removed line, so this
+    // can't run any earlier.
+    cursorPositionAfterDelete = mergeLists(contentEditable, cursorPositionAfterDelete);
 
     // A br holds no text for the rebuild's offset anchor to name, so the remap would slide the
     // cursor onto the text after it; the br itself survives the rebuild, so it's named again.

@@ -916,31 +916,65 @@ describe("Remove block", () => {
         return getCursorPositionFrom(text, 0, text, 0);
     }
 
+    // The block the cursor falls back into is rebuilt, so it is named by its position here:
+    // the marker classes the fixture is written with are not attributes normalization keeps.
     test("Should land at the end of the block before", () => {
         const wrapper = createWrapper(`<p class="before">before</p><p class="target">target</p><p class="after">after</p>`);
 
-        const cursorPosition = removeBlock(wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".after"));
+        const cursorPosition = removeBlock(wrapper, wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".after"));
 
-        expectHtml(wrapper.innerHTML, `<p class="before">before</p><p class="after">after</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".before"));
+        expectHtml(wrapper.innerHTML, `<p>before</p><p class="after">after</p>`);
+        const expectedContainer = getFirstChild(wrapper, "p");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe("before".length);
+        expect(cursorPosition.endOffset).toBe("before".length);
     });
 
     test("Should land at the start of the block after when there is none before", () => {
         const wrapper = createWrapper(`<p class="target">target</p><p class="after">after</p>`);
 
-        const cursorPosition = removeBlock(wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".after"));
+        const cursorPosition = removeBlock(wrapper, wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".after"));
 
-        expectHtml(wrapper.innerHTML, `<p class="after">after</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".after"));
+        expectHtml(wrapper.innerHTML, `<p>after</p>`);
+        const expectedContainer = getFirstChild(wrapper, "p");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+
+    test("Should join the lists the removed block stood between", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="target">target</p><ul><li>first</li></ul>`);
+
+        const cursorPosition = removeBlock(wrapper, wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".target"));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+        const expectedContainer = getFirstChild(wrapper, "li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
+    });
+
+    test("Should keep lists of different types apart when the block between them goes", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="target">target</p><ol><li>first</li></ol>`);
+
+        const cursorPosition = removeBlock(wrapper, wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".target"));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul><ol><li>first</li></ol>`);
+        const expectedContainer = getFirstChild(wrapper, "li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
     });
 
     test("Should hand back the given cursor when the block stood alone", () => {
         const wrapper = createWrapper(`<p class="target">target</p>`);
         const given = getCursorPositionFrom(wrapper, 0, wrapper, 0);
 
-        const cursorPosition = removeBlock(wrapper.querySelector(".target") as Element, given);
+        const cursorPosition = removeBlock(wrapper, wrapper.querySelector(".target") as Element, given);
 
         expectHtml(wrapper.innerHTML, ``);
         expect(cursorPosition).toBe(given);

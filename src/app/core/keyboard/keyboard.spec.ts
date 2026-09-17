@@ -1529,9 +1529,12 @@ describe("Deleting next to an image block", () => {
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
 
-        expectHtml(wrapper.innerHTML, `<p>zero</p><p class="start">first</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p>first</p>`);
+        const expectedContainer = getLastChild(wrapper, "p:last-child");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Delete at the end of the line before an image block removes the image", () => {
@@ -1540,9 +1543,12 @@ describe("Deleting next to an image block", () => {
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
 
-        expectHtml(wrapper.innerHTML, `<p class="start">zero</p><p>first</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p>first</p>`);
+        const expectedContainer = getFirstChild(wrapper, "p");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
     });
 
     test("Backspace at the start of an item after an image block removes the image and keeps the list", () => {
@@ -1551,8 +1557,12 @@ describe("Deleting next to an image block", () => {
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
 
-        expectHtml(wrapper.innerHTML, `<p>zero</p><ul><li class="start">first</li><li>second</li></ul>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expectHtml(wrapper.innerHTML, `<p>zero</p><ul><li>first</li><li>second</li></ul>`);
+        const expectedContainer = getFirstChild(wrapper, "li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 
     test("Delete at the end of an empty line before an image block removes the image and keeps the line", () => {
@@ -1561,7 +1571,153 @@ describe("Deleting next to an image block", () => {
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
 
-        expectHtml(wrapper.innerHTML, `<p class="start"><br></p><p>first</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expectHtml(wrapper.innerHTML, `<p><br></p><p>first</p>`);
+        const expectedContainer = getFirstChild(wrapper, "p");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+});
+
+// A list run ends at any line written between two wrappers, so removing that line leaves the
+// wrappers standing side by side; the run has to be rebuilt as one for them to join.
+describe("Removing the line two lists stand apart from one another by", () => {
+    function select(wrapper: HTMLElement, selector: string, start: number, end = start) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), start);
+        range.setEnd(getFirstChild(wrapper, selector), end);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    test("Delete in the empty line between two lists joins them", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start"><br></p><ul><li>first</li></ul>`);
+        select(wrapper, ".start", 0);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+        const expectedContainer = getFirstChild(wrapper, "li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
+    });
+
+    test("Delete at the end of the list above the empty line joins them", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li></ul><p><br></p><ul><li>first</li></ul>`);
+        select(wrapper, ".start", "zero".length);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+        const expectedContainer = getFirstChild(wrapper, "li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
+    });
+
+    test("Backspace at the start of the list below the empty line joins them", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p><br></p><ul><li class="start">first</li></ul>`);
+        select(wrapper, ".start", 0);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+        const expectedContainer = wrapper.querySelectorAll("li")[1]?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+
+    test("Backspace at the start of a line written between two lists joins them", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start">delete it</p><ul><li>first</li></ul>`);
+        select(wrapper, ".start", 0);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zerodelete it</li><li>first</li></ul>`);
+        const expectedContainer = getFirstChild(wrapper, "li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
+    });
+
+    test("Deleting a selection covering the line written between two lists joins them", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li></ul><p class="end">delete it</p><ul><li>first</li></ul>`);
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "delete it".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+        const expectedContainer = getFirstChild(wrapper, "li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
+    });
+
+    test("Should leave lists of different types apart when the line between them goes", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start"><br></p><ol><li>first</li></ol>`);
+        select(wrapper, ".start", 0);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul><ol><li>first</li></ol>`);
+        const expectedContainer = getFirstChild(wrapper, "li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
+    });
+
+    test("Should leave the lists a line still stands between apart", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start">apart</p><ul><li>first</li></ul>`);
+        select(wrapper, ".start", "apar".length);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul><p class="start">apar</p><ul><li>first</li></ul>`);
+        const expectedContainer = getFirstChild(wrapper, ".start");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("apar".length);
+        expect(cursorPosition.endOffset).toBe("apar".length);
+    });
+
+    test("Backspace at the start of an item after an image block between two lists joins them", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="be-image"><img src="image.png"></p><ul><li class="start">first</li></ul>`);
+        select(wrapper, ".start", 0);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+        const expectedContainer = wrapper.querySelectorAll("li")[1]?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+
+    // The rebuild joins the run into the first wrapper, detaching the second; a cursor remapped by
+    // its old position among the editor's children would land in the line after the run instead.
+    test("Should keep the cursor in the joined list when a line follows the run", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p><br></p><ul><li class="start">first</li></ul><p>tail</p>`);
+        select(wrapper, ".start", 0);
+
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul><p>tail</p>`);
+        const expectedContainer = wrapper.querySelectorAll("li")[1]?.firstChild;
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
     });
 });

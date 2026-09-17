@@ -115,10 +115,10 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             cursorPosition = applyInsertColumnCommand(command, cursorPosition);
             break;
         case Action.DeleteRow:
-            cursorPosition = applyDeleteRowCommand(command, cursorPosition);
+            cursorPosition = applyDeleteRowCommand(contentEditable, command, cursorPosition);
             break;
         case Action.DeleteColumn:
-            cursorPosition = applyDeleteColumnCommand(command, cursorPosition);
+            cursorPosition = applyDeleteColumnCommand(contentEditable, command, cursorPosition);
             break;
         case Action.DeleteImage:
             cursorPosition = applyDeleteImageCommand(contentEditable, command, cursorPosition);
@@ -415,7 +415,7 @@ function applyInsertColumnCommand(command: Command, cursorPosition: CursorPositi
     return getCellCursorPosition(insertedCell, cursorPosition);
 }
 
-function applyDeleteRowCommand(command: Command, cursorPosition: CursorPosition): CursorPosition {
+function applyDeleteRowCommand(contentEditable: HTMLElement, command: Command, cursorPosition: CursorPosition): CursorPosition {
     const target = command.table;
     if (!target) {
         return cursorPosition;
@@ -436,13 +436,13 @@ function applyDeleteRowCommand(command: Command, cursorPosition: CursorPosition)
     }
 
     if (isTableEmpty(table)) {
-        return removeBlock(table, cursorPosition);
+        return removeBlock(contentEditable, table, cursorPosition);
     }
 
     return getCellCursorPosition(getCell(table, rowIndex, columnIndex), cursorPosition);
 }
 
-function applyDeleteColumnCommand(command: Command, cursorPosition: CursorPosition): CursorPosition {
+function applyDeleteColumnCommand(contentEditable: HTMLElement, command: Command, cursorPosition: CursorPosition): CursorPosition {
     const target = command.table;
     if (!target) {
         return cursorPosition;
@@ -461,7 +461,7 @@ function applyDeleteColumnCommand(command: Command, cursorPosition: CursorPositi
     }
 
     if (isTableEmpty(table)) {
-        return removeBlock(table, cursorPosition);
+        return removeBlock(contentEditable, table, cursorPosition);
     }
 
     return getCellCursorPosition(getCell(table, rowIndex, columnIndex), cursorPosition);
@@ -479,7 +479,7 @@ function applyDeleteImageCommand(contentEditable: HTMLElement, command: Command,
         return cursorPosition;
     }
 
-    return removeBlock(block, cursorPosition);
+    return removeBlock(contentEditable, block, cursorPosition);
 }
 
 /** Removes, adds and toggles the command's classes on its element, which has to stand in the editor. */

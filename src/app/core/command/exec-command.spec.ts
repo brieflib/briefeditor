@@ -1191,7 +1191,26 @@ describe("Delete row command", () => {
 
         execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
 
-        expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+        expectHtml(wrapper.innerHTML, `<p>text</p>`);
+    });
+
+    test("Should join the lists the removed table stood between", () => {
+        const wrapper = createWrapper(`
+            <ul><li class="item">zero</li></ul>
+            <table><thead><tr><th class="head">head</th></tr></thead></table>
+            <ul><li>first</li></ul>
+        `);
+        const cell = wrapper.querySelector(".head") as HTMLTableCellElement;
+        select(wrapper, ".item");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+        const expectedContainer = getFirstChild(wrapper, "li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
     });
 
     test("Should remove the table left without columns", () => {
@@ -1205,7 +1224,7 @@ describe("Delete row command", () => {
 
         execCommand(wrapper, {action: Action.DeleteColumn, table: {cell}});
 
-        expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+        expectHtml(wrapper.innerHTML, `<p>text</p>`);
     });
 });
 
@@ -1328,7 +1347,7 @@ describe("Cursor position after a table command", () => {
 
         const cursorPosition = execCommand(wrapper, {action: Action.DeleteRow, table: {cell}});
 
-        expectCursorAt(cursorPosition, getFirstChild(wrapper, ".text"), "text".length);
+        expectCursorAt(cursorPosition, getFirstChild(wrapper, "p"), "text".length);
     });
 
     test("Should move the cursor to the block after a table that opened the editor", () => {
@@ -1340,7 +1359,7 @@ describe("Cursor position after a table command", () => {
 
         const cursorPosition = execCommand(wrapper, {action: Action.DeleteColumn, table: {cell}});
 
-        expectCursorAt(cursorPosition, getFirstChild(wrapper, ".text"), 0);
+        expectCursorAt(cursorPosition, getFirstChild(wrapper, "p"), 0);
     });
 });
 // A table is not a first level element and cannot hold one, so it is never inserted at the cursor itself:
@@ -1837,9 +1856,12 @@ describe("Delete image command", () => {
 
         const cursorPosition = execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
 
-        expectHtml(wrapper.innerHTML, `<p class="text">text</p><p class="after">after</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".text"));
+        expectHtml(wrapper.innerHTML, `<p>text</p><p class="after">after</p>`);
+        const expectedContainer = getFirstChild(wrapper, "p");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe("text".length);
+        expect(cursorPosition.endOffset).toBe("text".length);
     });
 
     test("Should land the cursor at the start of the block after when the image opened the editor", () => {
@@ -1851,9 +1873,32 @@ describe("Delete image command", () => {
 
         const cursorPosition = execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
 
-        expectHtml(wrapper.innerHTML, `<p class="after">after</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".after"));
+        expectHtml(wrapper.innerHTML, `<p>after</p>`);
+        const expectedContainer = getFirstChild(wrapper, "p");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
         expect(cursorPosition.startOffset).toBe(0);
+        expect(cursorPosition.endOffset).toBe(0);
+    });
+
+    // The image block was a line of its own, so removing it leaves the lists it stood between
+    // side by side; the run is rebuilt as one for them to join.
+    test("Should join the lists the removed image block stood between", () => {
+        const wrapper = createWrapper(`
+            <ul><li class="item">zero</li></ul>
+            <p class="be-image"><img src="image.png"></p>
+            <ul><li>first</li></ul>
+        `);
+        select(wrapper, ".item");
+
+        const cursorPosition = execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
+
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+        const expectedContainer = getFirstChild(wrapper, "li");
+        expect(cursorPosition.startContainer).toBe(expectedContainer);
+        expect(cursorPosition.endContainer).toBe(expectedContainer);
+        expect(cursorPosition.startOffset).toBe("zero".length);
+        expect(cursorPosition.endOffset).toBe("zero".length);
     });
 
     test("Should leave an empty paragraph when the image was the only block", () => {

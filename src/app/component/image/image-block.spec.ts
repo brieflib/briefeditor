@@ -129,7 +129,7 @@ describe("Image block control", () => {
 
         button.click();
 
-        expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+        expectHtml(wrapper.innerHTML, `<p>text</p>`);
         expect(control.hidden).toBe(true);
     });
 });

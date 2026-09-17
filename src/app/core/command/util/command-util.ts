@@ -18,17 +18,21 @@ import {atEnd, atStart} from "@/core/cursor/util/cursor-util";
 /**
  * Removes a first-level block and returns the cursor position to fall back to: the end of
  * the block before it, or the start of the block after it only when the block opened the editor.
+ *
+ * @remarks
+ * The block may have stood between two lists, which the removal leaves side by side; the run
+ * the cursor falls back into is rebuilt as one so they join.
  */
-export function removeBlock(block: Element, cursorPosition: CursorPosition): CursorPosition {
+export function removeBlock(contentEditable: HTMLElement, block: Element, cursorPosition: CursorPosition): CursorPosition {
     const previous = block.previousElementSibling;
     const next = block.nextElementSibling;
     block.remove();
 
     if (previous) {
-        return atEnd(previous);
+        return mergeLists(contentEditable, atEnd(previous));
     }
 
-    return next ? atStart(next) : cursorPosition;
+    return next ? mergeLists(contentEditable, atStart(next)) : cursorPosition;
 }
 
 /**
