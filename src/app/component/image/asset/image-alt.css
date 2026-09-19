@@ -5,10 +5,6 @@
     z-index: 1000;
     /* The strip the image block reserves below itself (see image-block.css). */
     height: 2rem;
-    /* Hidden unless the document says the image block, a control or the field itself is hovered
-       (see image-block.css). The inline visibility `clip` sets on a field scrolled out of the
-       editor beats it. */
-    visibility: var(--be-image-alt-visibility, hidden);
 }
 
 /* Borderless by design: the caption should read as a line under the image, not as a form field. */
