@@ -1,5 +1,6 @@
 import "@/component/image/asset/image-block.css";
 import ImageControl from "@/component/image/image-control";
+import {getScrollContainer} from "@/component/shared/scroll-container";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {getRootElement, isImageBlock} from "@/core/shared/element-util";
@@ -21,7 +22,7 @@ export default class ImageBlock {
         this.contentEditable.addEventListener("pointermove", (event) => this.follow(event.target));
         // A touch has no move to follow: the press itself lays the control over the image.
         this.contentEditable.addEventListener("pointerdown", (event) => this.follow(event.target), {passive: true});
-        document.querySelector("#be-content")?.addEventListener("scroll", () => this.align());
+        getScrollContainer()?.addEventListener("scroll", () => this.align());
     }
 
     private createControl(): ImageControl {

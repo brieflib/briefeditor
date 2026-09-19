@@ -21,6 +21,7 @@ function setup(html: string) {
     const wrapper = createWrapper(html);
     const scroll = document.createElement("div");
     scroll.id = "be-content";
+    scroll.getBoundingClientRect = () => rect(0, 0, 500, 400);
     document.body.appendChild(scroll);
 
     const range = new Range();
@@ -34,14 +35,27 @@ function setup(html: string) {
 
     const control = document.body.querySelector("be-image-control") as HTMLElement;
     const shadow = control.shadowRoot as ShadowRoot;
+    const button = shadow.querySelector(".be-image-control-button") as HTMLElement;
+    const sizeWrapper = shadow.querySelector(".be-image-control-sizes") as HTMLElement;
+    // jsdom lays nothing out: each control reports the corner of the control's box it is drawn in.
+    button.getBoundingClientRect = () => corner(control, 0);
+    sizeWrapper.getBoundingClientRect = () => corner(control, 1);
     return {
         wrapper,
         image,
         scroll,
         control,
-        button: shadow.querySelector(".be-image-control-button") as HTMLElement,
+        button,
+        sizeWrapper,
         sizes: Array.from(shadow.querySelectorAll(".be-image-control-size")) as HTMLElement[]
     };
+}
+
+/** The box of a control drawn at the top (`edge` 0) or the bottom (`edge` 1) of the control's box. */
+function corner(control: HTMLElement, edge: number) {
+    const top = parseFloat(control.style.top);
+    const height = parseFloat(control.style.height);
+    return rect(parseFloat(control.style.left), top + edge * (height - 10), 10, 10);
 }
 
 function active(sizes: HTMLElement[]) {
@@ -121,6 +135,40 @@ describe("Image block control", () => {
         scroll.dispatchEvent(new Event("scroll"));
 
         expect(control.hidden).toBe(true);
+    });
+
+    test("Should hide the cross once the image's top has scrolled out of the editor", () => {
+        const {image, scroll, button, sizeWrapper} = setup(IMAGE);
+        image.dispatchEvent(pointer("pointermove"));
+        image.getBoundingClientRect = () => rect(100, -20, 200, 150);
+
+        scroll.dispatchEvent(new Event("scroll"));
+
+        expect(button.style.visibility).toBe("hidden");
+        expect(sizeWrapper.style.visibility).toBe("");
+    });
+
+    test("Should hide the sizes once the image's bottom has scrolled out of the editor", () => {
+        const {image, scroll, button, sizeWrapper} = setup(IMAGE);
+        image.dispatchEvent(pointer("pointermove"));
+        image.getBoundingClientRect = () => rect(100, 300, 200, 150);
+
+        scroll.dispatchEvent(new Event("scroll"));
+
+        expect(button.style.visibility).toBe("");
+        expect(sizeWrapper.style.visibility).toBe("hidden");
+    });
+
+    test("Should show a control again once it has scrolled back into the editor", () => {
+        const {image, scroll, button} = setup(IMAGE);
+        image.dispatchEvent(pointer("pointermove"));
+        image.getBoundingClientRect = () => rect(100, -20, 200, 150);
+        scroll.dispatchEvent(new Event("scroll"));
+        image.getBoundingClientRect = () => rect(100, 20, 200, 150);
+
+        scroll.dispatchEvent(new Event("scroll"));
+
+        expect(button.style.visibility).toBe("");
     });
 
     test("Should remove the image block when the control is selected", () => {

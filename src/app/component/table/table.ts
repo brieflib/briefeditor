@@ -1,4 +1,5 @@
 import TableControl, {Axis} from "@/component/table/table-control";
+import {getScrollContainer} from "@/component/shared/scroll-container";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 
@@ -35,7 +36,7 @@ export default class Table {
         this.contentEditable.addEventListener("pointermove", (event) => this.onHover(event));
         this.contentEditable.addEventListener("pointerleave", (event) => this.onHoverLeave(event));
         this.contentEditable.addEventListener("pointerdown", (event) => this.onPress(event), {passive: true});
-        document.querySelector("#be-content")?.addEventListener("scroll", () => this.resetAll());
+        getScrollContainer()?.addEventListener("scroll", () => this.resetAll());
     }
 
     private createControl(axis: Axis, apply: (pending: Pending) => void): ControlState {

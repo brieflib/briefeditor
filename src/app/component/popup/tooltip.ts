@@ -1,6 +1,7 @@
 // @ts-expect-error inline is not supported by lint
 import tooltipCss from "@/component/popup/asset/tooltip.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
+import {getScrollContainer, isInsideScrollContainer} from "@/component/shared/scroll-container";
 import {getBoundingClientRect, getCursorPosition} from "@/core/shared/type/cursor-position";
 
 class Tooltip extends HTMLElement {
@@ -20,7 +21,7 @@ class Tooltip extends HTMLElement {
         `;
 
         this.wrapper = shadowRoot.querySelector(".be-tooltip-wrapper") as HTMLElement;
-        this.scrollContainer = document.querySelector("#be-content") as HTMLElement;
+        this.scrollContainer = getScrollContainer() as HTMLElement;
 
         this.onScroll = () => {
             this.move();
@@ -34,7 +35,6 @@ class Tooltip extends HTMLElement {
         }
 
         this.move();
-        this.wrapper.setAttribute("open", "");
         this.scrollContainer.addEventListener("scroll", this.onScroll);
     }
 
@@ -43,9 +43,11 @@ class Tooltip extends HTMLElement {
         this.scrollContainer.removeEventListener("scroll", this.onScroll);
     }
 
+    /** Lays the tooltip over the cursor, showing it only while the cursor is in view. */
     private move() {
         const cursorPosition = getCursorPosition();
         const rect = getBoundingClientRect(cursorPosition);
+        this.wrapper.toggleAttribute("open", isInsideScrollContainer(rect));
         this.wrapper.style.top = `${rect.top}px`;
         this.wrapper.style.left = `${rect.left + rect.width / 2}px`;
     }

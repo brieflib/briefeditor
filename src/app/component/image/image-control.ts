@@ -3,13 +3,16 @@ import imageControlCss from "@/component/image/asset/image-control.css?inline=tr
 // @ts-expect-error inline is not supported by lint
 import controlButtonCss from "@/component/shared/asset/control-button.css?inline=true";
 import initShadowRoot from "@/component/shared/shadow-root";
+import {isInsideScrollContainer} from "@/component/shared/scroll-container";
 
 /**
  * Controls laid over an image: a close cross and the size buttons, each naming the class it
- * sets on the image block. Whether they show is left to the stylesheets.
+ * sets on the image block. Whether they show is left to the stylesheets, apart from the ones
+ * the image has carried out of the editor's view (see `clip`).
  */
 class ImageControl extends HTMLElement {
     private readonly button: HTMLElement;
+    private readonly sizeWrapper: HTMLElement;
     private readonly sizes: HTMLElement[];
 
     constructor() {
@@ -31,6 +34,7 @@ class ImageControl extends HTMLElement {
         `;
 
         this.button = shadowRoot.querySelector(".be-image-control-button") as HTMLElement;
+        this.sizeWrapper = shadowRoot.querySelector(".be-image-control-sizes") as HTMLElement;
         this.sizes = Array.from(shadowRoot.querySelectorAll(".be-image-control-size"));
         this.hidden = true;
     }
@@ -58,6 +62,18 @@ class ImageControl extends HTMLElement {
         this.style.width = `${rect.width}px`;
         this.style.height = `${rect.height}px`;
         this.hidden = false;
+        this.clip();
+    }
+
+    /**
+     * Hides the controls lying outside the editor's view: nothing clips them, so the cross of an
+     * image whose top has scrolled away would be drawn over whatever stands there instead. Each
+     * control is held on its own, so a tall image keeps the ones still in view.
+     */
+    private clip() {
+        for (const control of [this.button, this.sizeWrapper]) {
+            control.style.visibility = isInsideScrollContainer(control.getBoundingClientRect()) ? "" : "hidden";
+        }
     }
 
     /** Marks the size button whose class the image block carries - the default one when it carries none. */
