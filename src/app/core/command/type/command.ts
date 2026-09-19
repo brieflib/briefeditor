@@ -25,7 +25,8 @@ export enum Action {
 export interface Attributes {
     image?: Blob;
     href?: string | null;
-    class?: string | null
+    class?: string | null;
+    alt?: string | null;
 }
 
 export interface TableTarget {

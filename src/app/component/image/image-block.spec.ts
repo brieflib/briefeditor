@@ -4,6 +4,7 @@ import ImageBlock from "@/component/image/image-block";
 
 jest.mock("@/component/image/asset/image-block.css", () => "");
 jest.mock("@/component/image/asset/image-control.css?inline=true", () => "");
+jest.mock("@/component/image/asset/image-alt.css?inline=true", () => "");
 jest.mock("@/component/shared/asset/control-button.css?inline=true", () => "");
 jest.mock("../../core/shared/range-util", () => ({
         getRange: jest.fn()
@@ -40,6 +41,9 @@ function setup(html: string) {
     // jsdom lays nothing out: each control reports the corner of the control's box it is drawn in.
     button.getBoundingClientRect = () => corner(control, 0);
     sizeWrapper.getBoundingClientRect = () => corner(control, 1);
+
+    const alt = document.body.querySelector("be-image-alt") as HTMLElement;
+    const altInput = (alt.shadowRoot as ShadowRoot).querySelector(".be-image-alt-input") as HTMLInputElement;
     return {
         wrapper,
         image,
@@ -47,8 +51,17 @@ function setup(html: string) {
         control,
         button,
         sizeWrapper,
-        sizes: Array.from(shadow.querySelectorAll(".be-image-control-size")) as HTMLElement[]
+        sizes: Array.from(shadow.querySelectorAll(".be-image-control-size")) as HTMLElement[],
+        alt,
+        altInput
     };
+}
+
+/** Types `value` into the caption field, the way a keystroke reports itself. */
+function type(altInput: HTMLInputElement, value: string) {
+    altInput.focus();
+    altInput.value = value;
+    altInput.dispatchEvent(new Event("input"));
 }
 
 /** The box of a control drawn at the top (`edge` 0) or the bottom (`edge` 1) of the control's box. */
@@ -104,6 +117,15 @@ describe("Image block control", () => {
         image.dispatchEvent(pointer("pointermove"));
 
         (wrapper.querySelector(".text") as HTMLElement).dispatchEvent(pointer("pointermove"));
+
+        expect(control.hidden).toBe(false);
+        expect(box(control)).toEqual(["100px", "50px", "200px", "150px"]);
+    });
+
+    test("Should lay the control over the image when the pointer is on its block", () => {
+        const {wrapper, control} = setup(IMAGE);
+
+        (wrapper.querySelector(".be-image") as HTMLElement).dispatchEvent(pointer("pointermove"));
 
         expect(control.hidden).toBe(false);
         expect(box(control)).toEqual(["100px", "50px", "200px", "150px"]);
@@ -224,5 +246,95 @@ describe("Image block sizes", () => {
 
         expectHtml(wrapper.innerHTML, `<p class="be-image be-image-large"><img src="image.png"></p>`);
         expect(active(sizes)).toEqual(["LARGE"]);
+    });
+});
+
+describe("Image block caption", () => {
+    test("Should start hidden", () => {
+        const {alt} = setup(IMAGE);
+
+        expect(alt.hidden).toBe(true);
+    });
+
+    test("Should lay the field under the image, across its width", () => {
+        const {image, alt} = setup(IMAGE);
+
+        image.dispatchEvent(pointer("pointermove"));
+
+        expect(alt.hidden).toBe(false);
+        expect([alt.style.left, alt.style.top, alt.style.width]).toEqual(["100px", "200px", "200px"]);
+    });
+
+    test("Should fill the field with the alt the image carries", () => {
+        const {image, altInput} = setup(`<p class="be-image"><img src="image.png" alt="a cat"></p>`);
+
+        image.dispatchEvent(pointer("pointermove"));
+
+        expect(altInput.value).toBe("a cat");
+    });
+
+    test("Should leave the field empty for an image without alt", () => {
+        const {image, altInput} = setup(IMAGE);
+
+        image.dispatchEvent(pointer("pointermove"));
+
+        expect(altInput.value).toBe("");
+    });
+
+    test("Should write the typed text as the image's alt", () => {
+        const {wrapper, image, altInput} = setup(`<p class="text">text</p>${IMAGE}`);
+        image.dispatchEvent(pointer("pointermove"));
+
+        type(altInput, "a cat");
+
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p><p class="be-image"><img src="image.png" alt="a cat"></p>`);
+    });
+
+    test("Should drop the alt once the field is emptied", () => {
+        const {wrapper, image, altInput} = setup(`<p class="be-image"><img src="image.png" alt="a cat"></p>`);
+        image.dispatchEvent(pointer("pointermove"));
+
+        type(altInput, "");
+
+        expectHtml(wrapper.innerHTML, `<p class="be-image"><img src="image.png"></p>`);
+    });
+
+    test("Should keep the focus in the field while it is typed in", () => {
+        const {image, alt, altInput} = setup(`<p class="text">text</p>${IMAGE}`);
+        image.dispatchEvent(pointer("pointermove"));
+
+        type(altInput, "a cat");
+
+        expect(document.activeElement).toBe(alt);
+        expect(altInput.value).toBe("a cat");
+    });
+
+    test("Should follow the image when the content scrolls", () => {
+        const {image, scroll, alt} = setup(IMAGE);
+        image.dispatchEvent(pointer("pointermove"));
+        image.getBoundingClientRect = () => rect(100, 10, 200, 150);
+
+        scroll.dispatchEvent(new Event("scroll"));
+
+        expect([alt.style.left, alt.style.top, alt.style.width]).toEqual(["100px", "160px", "200px"]);
+    });
+
+    test("Should hide once its image is gone from the editor", () => {
+        const {image, scroll, alt} = setup(IMAGE);
+        image.dispatchEvent(pointer("pointermove"));
+        image.remove();
+
+        scroll.dispatchEvent(new Event("scroll"));
+
+        expect(alt.hidden).toBe(true);
+    });
+
+    test("Should hide once the control removes the image block", () => {
+        const {image, button, alt} = setup(`<p class="text">text</p>${IMAGE}`);
+        image.dispatchEvent(pointer("pointermove"));
+
+        button.click();
+
+        expect(alt.hidden).toBe(true);
     });
 });

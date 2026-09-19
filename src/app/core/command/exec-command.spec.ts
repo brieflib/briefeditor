@@ -2047,6 +2047,62 @@ describe("Modify class command", () => {
     });
 });
 
+// An attribute written on a named element comes from a field outside the editor (the image caption),
+// so the cursor is neither restored nor written back: the field keeps its focus while typed in.
+describe("Attribute command on a named element", () => {
+    function select(wrapper: HTMLElement, selector: string) {
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, selector), "".length);
+        range.setEnd(getFirstChild(wrapper, selector), "".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+    }
+
+    test("Should write the attribute on the element", () => {
+        const wrapper = createWrapper(`<p class="text">text</p><p class="be-image"><img src="image.png"></p>`);
+        select(wrapper, ".text");
+        const element = wrapper.querySelector("img") as HTMLElement;
+
+        const cursorPosition = execCommand(wrapper, {action: Action.Attribute, element, attributes: {alt: "a cat"}});
+
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p><p class="be-image"><img src="image.png" alt="a cat"></p>`);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".text"), "".length);
+    });
+
+    test("Should drop the attribute for an empty value", () => {
+        const wrapper = createWrapper(`<p class="text">text</p><p class="be-image"><img src="image.png" alt="a cat"></p>`);
+        select(wrapper, ".text");
+        const element = wrapper.querySelector("img") as HTMLElement;
+
+        execCommand(wrapper, {action: Action.Attribute, element, attributes: {alt: ""}});
+
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p><p class="be-image"><img src="image.png"></p>`);
+    });
+
+    test("Should ignore an element outside the editor", () => {
+        const wrapper = createWrapper(`<p class="text">text</p>`);
+        select(wrapper, ".text");
+        const element = document.createElement("img");
+
+        execCommand(wrapper, {action: Action.Attribute, element, attributes: {alt: "a cat"}});
+
+        expect(element.hasAttribute("alt")).toBe(false);
+        expectHtml(wrapper.innerHTML, `<p class="text">text</p>`);
+    });
+
+    test("Should leave the focus outside the editor", () => {
+        const wrapper = createWrapper(`<p class="text">text</p><p class="be-image"><img src="image.png"></p>`);
+        select(wrapper, ".text");
+        const element = wrapper.querySelector("img") as HTMLElement;
+        const input = document.createElement("input");
+        document.body.appendChild(input);
+        input.focus();
+
+        execCommand(wrapper, {action: Action.Attribute, element, attributes: {alt: "a cat"}});
+
+        expect(document.activeElement).toBe(input);
+    });
+});
+
 // A paste places the cursor itself - in the first cell of a pasted table, on the line after a pasted
 // image block - so the anchor read before the command must not be restored over it: an offset can't
 // tell the end of the line before the table or image from the start of what follows.

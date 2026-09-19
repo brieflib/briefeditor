@@ -60,8 +60,10 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     // writing this cursor back now would just hand back the old selection. The exception is a
     // click dropping a carrier: it rebuilds the block itself and suppresses the browser's
     // placement, so it must name the cursor in the rebuilt block on its own. Read before the
-    // carrier is dropped.
-    const isCursorPlacedByBrowser = command.action === Action.Click && !Carrier.isCarrierExist();
+    // carrier is dropped. An attribute typed into a field outside the editor (the image caption)
+    // is left alone too: taking the focus back would end the typing at the first letter.
+    const isCursorLeftAlone = (command.action === Action.Click && !Carrier.isCarrierExist()) ||
+        isTypedOutside(command);
 
     // Read before anything moves: every command below rebuilds the blocks it touches, so the
     // cursor is anchored as a text offset (which the rebuild can't invalidate) rather than a
@@ -148,7 +150,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
     // Same for an image block: whatever a command left the cursor on, it never rests in one.
     cursorPosition = escapeImageBlock(contentEditable, cursorPosition);
 
-    if (!isCursorPlacedByBrowser) {
+    if (!isCursorLeftAlone) {
         setCursorPosition(contentEditable, cursorPosition, command);
         // Toolbar commands take focus away from the editor, so it must be reclaimed; the
         // cursor above already settles where it belongs on screen.
@@ -167,6 +169,10 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
  * Delete (removes the text after the caret, which the anchor would read as text before it).
  */
 function isCursorRestorable(command: Command, cursorAnchor: CursorAnchor) {
+    if (isTypedOutside(command)) {
+        return false;
+    }
+
     switch (command.action) {
         case Action.Click:
         case Action.Image:
@@ -188,9 +194,16 @@ function isCursorRestorable(command: Command, cursorAnchor: CursorAnchor) {
     }
 }
 
+/** Whether the command writes an attribute named from outside the editor, so the cursor is not in it. */
+function isTypedOutside(command: Command) {
+    return command.action === Action.Attribute && !!command.element;
+}
+
+/** Writes the attributes on the command's element - which has to stand in the editor - or, without one, on the selected element of the command's tag. */
 function applyAttributesCommand(contentEditable: HTMLElement, command: Command) {
-    const tagName = (command.tag as string).toUpperCase();
-    const target = getElementByTagName(contentEditable, tagName);
+    const target = command.element
+        ? (contentEditable.contains(command.element) ? command.element : null)
+        : getElementByTagName(contentEditable, (command.tag as string).toUpperCase());
     if (target) {
         applyAttributes(target as HTMLElement, command.attributes);
     }

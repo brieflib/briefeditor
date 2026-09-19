@@ -1,6 +1,11 @@
-/* The control sits outside the editor, so the hovered image reaches it through the document:
-   the cross shows while the pointer is over an image block (and, from the control's own
-   stylesheet, while it is over the cross). */
-body:has(.be-editor .be-image > img:hover) be-image-control {
+/* The control and the caption field sit outside the editor, so the hovered image reaches them
+   through the document. Both show together while the pointer is over an image block (strip
+   included), over either of them, or while the field is being typed in: each lies over or under
+   the image, so leaving the block for one of them keeps the other. */
+body:has(.be-editor .be-image:hover, be-image-control:hover, be-image-alt:hover, be-image-alt:focus-within) be-image-control {
     --be-image-control-visibility: visible;
+}
+
+body:has(.be-editor .be-image:hover, be-image-control:hover, be-image-alt:hover, be-image-alt:focus-within) be-image-alt {
+    --be-image-alt-visibility: visible;
 }

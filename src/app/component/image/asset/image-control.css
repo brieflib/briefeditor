@@ -17,15 +17,10 @@
     font-size: clamp(6px, min(5px + 2.5cqw, 10cqh), 24px);
 }
 
-/* Hidden unless the document says the image is hovered (see image-block.css), or a control itself is. */
+/* Hidden unless the document says the image block, a control or the caption field is hovered (see image-block.css). */
 .be-image-control-button,
 .be-image-control-sizes {
     visibility: var(--be-image-control-visibility, hidden);
-}
-
-:host(:hover) .be-image-control-button,
-:host(:hover) .be-image-control-sizes {
-    visibility: visible;
 }
 
 .be-image-control-button {
