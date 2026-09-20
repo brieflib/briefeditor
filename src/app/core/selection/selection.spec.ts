@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import {getSelectedBlock, getSelectedSharedTags} from "@/core/selection/selection";
+import {getSelectedBlock, getSelectedParagraphs, getSelectedSharedTags} from "@/core/selection/selection";
 import {createWrapper, getFirstChild, getLastChild} from "@/core/shared/test-util";
 
 jest.mock("../shared/range-util", () => ({
@@ -282,5 +282,42 @@ describe("Selected blocks of an element-anchored selection", () => {
         select(item, 1, item, 1);
 
         expect(getSelectedBlock(wrapper)).toStrictEqual([item]);
+    });
+});
+
+describe("Selected paragraphs", () => {
+    test("Should find every paragraph from the one the cursor starts in to the one it ends in", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+            <p>first</p>
+            <p class="end">second</p>
+            <p>third</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getFirstChild(wrapper, ".end"), "sec".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const paragraphs = getSelectedParagraphs(wrapper);
+
+        expect(paragraphs).toStrictEqual(Array.from(wrapper.children).slice(0, 3));
+    });
+
+    test("Should find the one paragraph a cursor stays in", () => {
+        const wrapper = createWrapper(`
+            <p>zero</p>
+            <p class="start"><strong>first</strong></p>
+            <p>second</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start strong"), "fi".length);
+        range.setEnd(getFirstChild(wrapper, ".start strong"), "fir".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        const paragraphs = getSelectedParagraphs(wrapper);
+
+        expect(paragraphs).toStrictEqual([wrapper.children[1]]);
     });
 });

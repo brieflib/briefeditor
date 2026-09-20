@@ -9,12 +9,24 @@ export class Leaf {
         this.parents.push(parent);
     }
 
+    public addParents(parent: Node[]) {
+        this.parents.push(...parent);
+    }
+
+    public unshiftParent(parent: Node) {
+        this.parents.unshift(parent)
+    }
+
     public getParents() {
         return this.parents;
     }
 
     public setParents(parents: Node[]) {
         this.parents = parents;
+    }
+
+    public getFirstParent(){
+        return this.parents[0];
     }
 }
 

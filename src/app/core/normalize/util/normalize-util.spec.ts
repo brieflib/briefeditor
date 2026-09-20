@@ -1,4 +1,5 @@
 import {
+    addParentsFromDom,
     anchorCursorOnLeaf,
     collapseLeaves,
     filterLeafParents,
@@ -342,4 +343,52 @@ function createLeafFromNode(element: Node, nodeNames: string[]) {
 function testCollapse(toCollapse: Leaf[], result: string) {
     const collapsed = collapseLeaves(toCollapse);
     expectHtml((collapsed.firstChild as HTMLElement).innerHTML, result);
+}
+describe("Add parents from dom", () => {
+    test("Should wrap the fragment in the ancestors of the cursor's common ancestor", () => {
+        const wrapper = createWrapper(`<ul><li class="start"></li></ul>`);
+        const li = wrapper.querySelector(".start") as Node;
+        const cursorPosition = getCursorPositionFrom(li, 0, li, 0);
+
+        const fragment = new DocumentFragment();
+        const span = document.createElement("span");
+        span.textContent = "test";
+        fragment.appendChild(span);
+
+        const result = addParentsFromDom(wrapper, fragment, cursorPosition);
+
+        expect(result).toBe(fragment);
+        expectHtml(getHtml(result), `<ul><li class="start"><span>test</span></li></ul>`);
+    });
+
+    test("Should use the parent element when the common ancestor is a text node", () => {
+        const wrapper = createWrapper(`<p class="start">text</p>`);
+        const text = getFirstChild(wrapper, ".start");
+        const cursorPosition = getCursorPositionFrom(text, 1, text, 1);
+
+        const fragment = new DocumentFragment();
+        fragment.appendChild(document.createTextNode("test"));
+
+        addParentsFromDom(wrapper, fragment, cursorPosition);
+
+        expectHtml(getHtml(fragment), `<p class="start">test</p>`);
+    });
+
+    test("Should leave the fragment as is when the common ancestor is the editor", () => {
+        const wrapper = createWrapper(`<p>text</p>`);
+        const cursorPosition = getCursorPositionFrom(wrapper, 0, wrapper, 0);
+
+        const fragment = new DocumentFragment();
+        fragment.appendChild(document.createTextNode("test"));
+
+        addParentsFromDom(wrapper, fragment, cursorPosition);
+
+        expectHtml(getHtml(fragment), `test`);
+    });
+});
+
+function getHtml(fragment: DocumentFragment) {
+    const div = document.createElement("div");
+    div.appendChild(fragment.cloneNode(true));
+    return div.innerHTML;
 }

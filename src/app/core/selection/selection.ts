@@ -7,6 +7,23 @@ import {
 } from "@/core/selection/util/selection-util";
 import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {getBlockElement} from "@/core/shared/element-util";
+
+export function getSelectedBlocks(getFrom: HTMLElement, cursorPosition = getCursorPosition()): HTMLElement[] {
+    let firstBlock: HTMLElement | null = getBlockElement(getFrom, cursorPosition.startContainer);
+    const lastBlock = getBlockElement(getFrom, cursorPosition.endContainer);
+
+    const selectedParagraphs = [];
+    while (firstBlock) {
+        selectedParagraphs.push(firstBlock);
+        if (firstBlock === lastBlock) {
+            break;
+        }
+        firstBlock = firstBlock.nextElementSibling as HTMLElement | null;
+    }
+
+    return selectedParagraphs;
+}
 
 export function getSelectedSharedTags(findTill: HTMLElement, cursorPosition = getCursorPosition()) {
     let leafNodes = getSelectedLeaves(findTill);

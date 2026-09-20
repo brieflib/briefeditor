@@ -21,6 +21,14 @@ export function getChildFragment(child: Element) {
     return fragment;
 }
 
+export function getBlockElement(findTill: HTMLElement, child: HTMLElement | Node) {
+    while (child.parentElement && child.parentElement !== findTill) {
+        child = child.parentElement;
+    }
+
+    return child as HTMLElement;
+}
+
 export function getRootElement(findTill: HTMLElement, child: HTMLElement | Node) {
     while (child.parentElement && child.parentElement !== findTill) {
         child = child.parentElement;

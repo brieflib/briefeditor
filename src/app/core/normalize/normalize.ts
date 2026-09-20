@@ -2,11 +2,16 @@ import {
     collapseLeaves,
     extractFirstLevel,
     filterLeafParents,
-    getLeafNodes, maybeAppendCarrier,
+    getLeafNodes,
+    maybeAppendCarrier,
+    mergeBlocks,
+    normalizeNew,
     removeConsecutiveDuplicates,
+    replaceBlocks,
     replaceLeafParents,
     setLeafParents,
-    sortLeafParents
+    sortLeafParents,
+    wrapInTagNew
 } from "@/core/normalize/util/normalize-util";
 import {getRootElement} from "@/core/shared/element-util";
 import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
@@ -20,10 +25,46 @@ import {
     isCollapsed,
     isCursorPositionEqual
 } from "@/core/shared/type/cursor-position";
-import {getFirstSelectedRoot, getSelectedRoot} from "@/core/selection/selection";
+import {getFirstSelectedRoot, getSelectedBlocks, getSelectedRoot} from "@/core/selection/selection";
 import {getNextListWrapper, getPreviousListWrapper} from "@/core/list/util/list-util";
-import {applyAttributes} from "@/core/command/util/command-util";
 import {Attributes} from "@/core/command/type/command";
+import {insertCarrier} from "@/core/carrier/carrier";
+
+export class Normalizer {
+    private readonly contentEditable: HTMLElement;
+
+    constructor(contentEditable: HTMLElement) {
+        this.contentEditable = contentEditable;
+    }
+
+    /**
+     * Wraps the selected content in `tag`: the content is taken out of the paragraphs the cursor
+     * spans, wrapped, normalized into the schema, merged back with what stood outside the cursor
+     * and normalized once more, so the new tag collapses into its neighbours. The rebuilt
+     * paragraphs then take the place of the selected ones.
+     */
+    public appendTag(tag: string, cursorPosition = getCursorPosition()) {
+        if (isCollapsed(cursorPosition)) {
+            insertCarrier(cursorPosition, tag);
+            return;
+        }
+
+        // Selected blocks is created before DOM manipulations.
+        const selectedBlocks = getSelectedBlocks(this.contentEditable, cursorPosition);
+
+        const fragment = extractContents(cursorPosition);
+        const wrapped = wrapInTagNew(fragment, tag);
+        const normalized = normalizeNew(this.contentEditable, wrapped, cursorPosition);
+        const merged = mergeBlocks(selectedBlocks, normalized, cursorPosition);
+        replaceBlocks(selectedBlocks, normalizeNew(this.contentEditable, merged, cursorPosition));
+    }
+}
+
+function read(d: DocumentFragment) {
+    const e = document.createElement("div");
+    e.append(d);
+    return e.innerHTML;
+}
 
 export function normalize(contentEditable: HTMLElement, ...cursorPosition: CursorPosition[]) {
     let resultCursorPosition = cursorPosition[0] as CursorPosition;
@@ -72,20 +113,22 @@ export function removeTags(contentEditable: HTMLElement, tags: string[], cursorP
 }
 
 export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, attributes?: Attributes) {
-    cursorPosition = anchorBeforeSelfClose(cursorPosition);
-    const cursorAnchor = getCursorAnchor(contentEditable, cursorPosition);
-    const documentFragment: DocumentFragment = extractContents(cursorPosition);
-    maybeAppendCarrier(documentFragment);
-
-    const tagElement = document.createElement(tag);
-    applyAttributes(tagElement, attributes);
-    tagElement.appendChild(documentFragment);
-
-    const removeTagFrom = document.createElement("DELETED");
-    removeTagFrom.appendChild(tagElement);
-    insertNode(cursorPosition, removeTagFrom);
-
-    return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition, cursorAnchor);
+    // cursorPosition = anchorBeforeSelfClose(cursorPosition);
+    // const cursorAnchor = getCursorAnchor(contentEditable, cursorPosition);
+    // const documentFragment: DocumentFragment = extractContents(cursorPosition);
+    // maybeAppendCarrier(documentFragment);
+    //
+    // const tagElement = document.createElement(tag);
+    // applyAttributes(tagElement, attributes);
+    // tagElement.appendChild(documentFragment);
+    //
+    // const removeTagFrom = document.createElement("DELETED");
+    // removeTagFrom.appendChild(tagElement);
+    // insertNode(cursorPosition, removeTagFrom);
+    //
+    // return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition, cursorAnchor);
+    const normalizer: Normalizer = new Normalizer(contentEditable);
+    normalizer.appendTag(tag);
 }
 
 /**

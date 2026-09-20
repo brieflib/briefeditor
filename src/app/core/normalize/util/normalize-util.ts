@@ -5,6 +5,193 @@ import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-p
 import {hasSelfCloseDescendant, imageBlockClass, imageSizeClasses} from "@/core/shared/element-util";
 import {Carrier} from "@/core/carrier/carrier";
 
+/**
+ * Parent elements of the leaf originate from extracted content that lacks a DOM structure. Here we populate them:
+ * the fragment's content is wrapped in shallow clones of the cursor's common ancestor and each of its ancestors
+ * up to (excluding) `contentEditable`, innermost first.
+ *
+ * @returns The same fragment, now holding the wrapped content.
+ */
+export function addParentsFromDom(contentEditable: Node,
+                                  toNormalize: DocumentFragment,
+                                  cursorPosition: CursorPosition) {
+    const ancestor = cursorPosition.range.commonAncestorContainer;
+    // A text node can't hold children, so the closest element stands in for it
+    let parentFromDom = ancestor.nodeType === Node.ELEMENT_NODE ? ancestor : ancestor.parentElement;
+
+    while (parentFromDom && parentFromDom !== contentEditable) {
+        const cloned = parentFromDom.cloneNode(false);
+        cloned.appendChild(toNormalize);
+        toNormalize.appendChild(cloned);
+        parentFromDom = parentFromDom.parentElement;
+    }
+
+    return toNormalize;
+}
+
+/**
+ * Rebuilds a detached fragment into the schema: every leaf is read with the tags that stood
+ * over it, any of `tagsToRemove` is dropped, the rest are ordered by the tag hierarchy with
+ * consecutive duplicates removed, and the leaves are collapsed back so leaves that share a
+ * tag share one element.
+ *
+ * @returns A new fragment built of cloned elements around the leaves themselves, which are
+ * moved out of `toNormalize`.
+ */
+export function normalizeNew(contentEditable: Node,
+                             toNormalize: DocumentFragment,
+                             cursorPosition: CursorPosition,
+                             tagsToRemove: string[] = []) {
+    const leaves = getTextNodes(toNormalize)
+        .map(textNode => toLeafWithParents(contentEditable, textNode))
+        .map(leaf => sortLeafParents(leaf))
+        .filter(leaf => filterLeafParentsNew(tagsToRemove, leaf))
+        .map(leaf => removeConsecutiveDuplicates(leaf));
+
+    return collapseLeavesNew(leaves);
+}
+
+/**
+ * Merges the normalized blocks back into the ones the cursor spanned. The extract left the
+ * first and last selected paragraphs in the DOM holding what stood outside the cursor and moved
+ * the ones between out whole, so `fragment` carries one block per selected one: the first
+ * takes the leading leftover, the last the trailing one. Inside a single block the fragment
+ * holds inline content only, put back between the leftovers split at the cursor.
+ *
+ * @returns A fragment of the merged paragraphs, in order. The selected paragraphs still in the
+ * DOM are left empty as the place the result belongs.
+ */
+export function mergeBlocks(blocksToReplace: HTMLElement[], fragment: DocumentFragment, cursorPosition: CursorPosition): DocumentFragment {
+    const first = blocksToReplace[0];
+    const last = blocksToReplace[blocksToReplace.length - 1];
+    if (!first || !last) {
+        return fragment;
+    }
+
+    if (first !== last) {
+        fragment.firstElementChild?.prepend(...first.childNodes);
+        fragment.lastElementChild?.append(...last.childNodes);
+        return fragment;
+    }
+
+    // A single paragraph: split its leftover at the cursor (the range is collapsed where the
+    // content was taken from) and rebuild it in a clone with the content between the two sides
+    const leading = new Range();
+    leading.setStart(first, 0);
+    leading.setEnd(cursorPosition.range.startContainer, cursorPosition.range.startOffset);
+
+    const merged = first.cloneNode(false) as HTMLElement;
+    merged.append(leading.extractContents(), fragment, ...first.childNodes);
+    return nodeToFragment(merged);
+}
+
+/**
+ * Puts `fragment` where the selected paragraphs stand and drops them: the extract and the
+ * merge left the ones still in the DOM empty, and the ones between were moved out whole.
+ */
+export function replaceBlocks(blocksToReplace: HTMLElement[], fragment: DocumentFragment) {
+    const first = blocksToReplace[0];
+    if (!first) {
+        return;
+    }
+
+    first.before(fragment);
+    for (const block of blocksToReplace) {
+        block.remove();
+    }
+}
+
+export function getTextNodes(element: DocumentFragment, textNodes: Node[] = []) {
+    if (element.nodeType === Node.TEXT_NODE) {
+        textNodes.push(element);
+        return textNodes;
+    }
+
+    for (const child of element.childNodes) {
+        getLeafNodes(child, textNodes);
+    }
+
+    return textNodes;
+}
+
+export function toLeafWithParents(findTill: Node, leafNode: Node, leaf: Leaf = new Leaf()) {
+    if (findTill === leafNode) {
+        return leaf;
+    }
+
+    let parent = leafNode.parentElement;
+
+    leaf.unshiftParent(leafNode);
+    while (parent && parent !== findTill) {
+        leaf.unshiftParent(parent);
+        parent = parent.parentElement;
+    }
+
+    return leaf;
+}
+
+export function filterLeafParentsNew(tagsToRemove: string[], leaf: Leaf) {
+    const clearedParents = leaf.getParents().filter(parent => !tagsToRemove.includes(parent.nodeName));
+    leaf.setParents(clearedParents);
+
+    return leaf;
+}
+
+export function collapseLeavesNew(leaves: Leaf[],
+                                  container = document.createDocumentFragment()): DocumentFragment {
+    const parent = getSameFirstParent(leaves);
+
+    for (const leafGroup of parent) {
+        let firstParentElement = shiftFirstParent(leafGroup.leaves);
+        firstParentElement = clearNode(firstParentElement);
+
+        if (!firstParentElement) {
+            return container;
+        }
+        insertToContainer(container, collapseLeaves(leafGroup.leaves, nodeToFragment(firstParentElement)));
+    }
+
+    return container;
+}
+
+function clearNode(node: Node | undefined) {
+    if (!node) {
+        return;
+    }
+
+    if (node.nodeType === Node.TEXT_NODE) {
+        return node;
+    }
+
+    if (node instanceof HTMLElement) {
+        node.replaceChildren();
+        removeAttributesNew(node);
+    }
+    return node;
+}
+
+/** Drops every attribute but a link's href and the editor's own classes (the image block mark and sizes); any other class goes. */
+function removeAttributesNew(element: HTMLElement) {
+    for (const name of element.getAttributeNames()) {
+        if (name === "href") {
+            continue;
+        }
+        element.removeAttribute(name);
+    }
+}
+
+function insertToContainer(container: DocumentFragment, insertElement: DocumentFragment) {
+    container.appendChild(insertElement);
+}
+
+export function wrapInTagNew(documentFragment: DocumentFragment, tag: string) {
+    const wrapper = document.createElement(tag);
+    wrapper.appendChild(documentFragment);
+    const documentFragmentWrappedInTag = document.createDocumentFragment();
+    documentFragmentWrappedInTag.appendChild(wrapper);
+    return documentFragmentWrappedInTag;
+}
+
 export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     if ((element.nodeType === Node.TEXT_NODE && element.textContent) ||
         element === Carrier.getCarrier() ||
@@ -51,10 +238,14 @@ export function sortLeafParents(toSort: Leaf) {
         .getParents()
         .map(element => ({
             element: element,
-            name: element.nodeName,
             priority: tagHierarchy.get(element.nodeName) ?? -1
         } as TagHierarchy))
-        .sort((first, second) => second.priority - first.priority)
+        .sort((first, second) => {
+            if (isSchemaContain(first.element, [Display.ListWrapper, Display.List]) && isSchemaContain(second.element, [Display.ListWrapper, Display.List])) {
+                return 0;
+            }
+            return second.priority - first.priority
+        })
         .map(item => item.element);
     toSort.setParents(sortedParents);
 
@@ -120,11 +311,11 @@ function willElementsMerge(element: Node | undefined, compareTo: Node | undefine
     return false;
 }
 
-export function filterLeafParents(element: Node, excludeTags: string[], leaf: Leaf) {
+export function filterLeafParents(element: Node, tagsToRemove: string[], leaf: Leaf) {
     const leafParents = leaf.getParents();
 
     if (leafParents.includes(element)) {
-        leaf.setParents(leaf.getParents().filter(parent => !excludeTags.includes(parent.nodeName)));
+        leaf.setParents(leaf.getParents().filter(parent => !tagsToRemove.includes(parent.nodeName)));
     }
 
     return leaf;
@@ -297,7 +488,7 @@ function hasDuplicateList(node: Node | undefined) {
     return false;
 }
 
-function nodeToFragment(node: Node) {
+export function nodeToFragment(node: Node) {
     const fragment = new DocumentFragment();
     fragment.appendChild(node);
     return fragment;
