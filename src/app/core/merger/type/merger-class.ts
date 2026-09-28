@@ -7,6 +7,7 @@ export class Merger {
     private readonly cursorPosition: CursorPosition;
     private readonly originalBlocks: Node[] = [];
     private originalByFragmentNode = new Map<Node, Node>();
+    private cut: number | undefined;
     private firstInserted: Node | undefined;
     private lastInserted: Node | undefined;
 
@@ -17,8 +18,9 @@ export class Merger {
     }
 
     public extractContents() {
-        const {fragment, originalByFragmentNode} = extractContents(this.contentEditable, this.cursorPosition);
+        const {fragment, originalByFragmentNode, cut} = extractContents(this.contentEditable, this.cursorPosition);
         this.originalByFragmentNode = originalByFragmentNode;
+        this.cut = cut;
         return fragment;
     }
 
@@ -102,6 +104,12 @@ export class Merger {
             return ContentPosition.Start;
         }
         if (node.contains(endContainer)) {
+            return ContentPosition.End;
+        }
+
+        // The extraction cut between the children of the parent, so the insertion stands before the node following it
+        const parent = this.originalBlocks.at(0);
+        if (this.cut !== undefined && node.parentNode === parent && parent.childNodes[this.cut] === node) {
             return ContentPosition.End;
         }
 

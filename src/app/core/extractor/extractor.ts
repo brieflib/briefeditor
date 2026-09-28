@@ -1,26 +1,33 @@
 import {CursorPosition, isCollapsed} from "@/core/shared/type/cursor-position";
 import {getSelectedBlocks} from "@/core/selection/selection";
 import {ExtractedContent} from "@/core/extractor/type/extracted-content";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 /**
  * Extracts the selected content block by block and maps every fragment node to its original. A partly selected node
  * stays in the DOM and the ExtractedContent holds its extracted clone, a fully selected node is moved into the fragment
  * and maps to itself.
  */
-export function extractContents(contentEditable: HTMLElement, cursorPosition: CursorPosition): ExtractedContent {
+export function extractContents(contentEditable: HTMLElement,
+                                cursorPosition: CursorPosition): ExtractedContent {
     const fragment = new DocumentFragment();
     const originalByFragmentNode = new Map<Node, Node>();
     if (isCollapsed(cursorPosition)) {
-        return {fragment, originalByFragmentNode};
+        return {fragment, originalByFragmentNode, cut: undefined};
     }
 
     // Blocks are read before the split, which leaves the selection in the same blocks
     const blocks = getSelectedBlocks(contentEditable, cursorPosition);
     const {range} = cursorPosition;
     splitSingleText(range);
+    splitSharedAncestor(blocks, range);
 
+    let firstCut: number | undefined;
     blocks.forEach((block, index) => {
-        const blockRange = getBlockRange(range, block, index === 0, index === blocks.length - 1);
+        const {blockRange, cut} = getBlockRange(range, block, index === 0, index === blocks.length - 1);
+        if (index === 0) {
+            firstCut = cut;
+        }
         const commonAncestor = blockRange.commonAncestorContainer;
         const {startContainer, endContainer} = blockRange;
         const blockFragment = blockRange.extractContents();
@@ -33,7 +40,7 @@ export function extractContents(contentEditable: HTMLElement, cursorPosition: Cu
         fragment.append(blockFragment);
     });
 
-    return {fragment, originalByFragmentNode};
+    return {fragment, originalByFragmentNode, cut: firstCut};
 }
 
 /** Splits the text node holding the whole selection. */
@@ -48,7 +55,48 @@ function splitSingleText(range: Range) {
     range.selectNode(selected);
 }
 
-/** Clips the range to the block: only the first block starts at the cursor start and only the last ends at its end. */
+/**
+ * Splits off the tail of the inline element.
+ *
+ * <p><strong><u><i>ze|ro</i>fi|rst</u></strong>second</p> turns into <p><strong><u><i>ze</i>rst</u></strong>second</p>
+ * after extraction, so we cannot insert the extracted element between "ze" and "rst".
+ */
+function splitSharedAncestor(blocks: HTMLElement[], range: Range) {
+    if (blocks.length !== 1) {
+        return;
+    }
+
+    let shared = range.commonAncestorContainer;
+    while (shared.parentElement && isSchemaContain(shared.parentElement, [Display.Inline])) {
+        shared = shared.parentElement;
+    }
+
+    if (shared instanceof Element && isSchemaContain(shared, [Display.Inline])) {
+        splitAfter(shared, range.endContainer, range.endOffset);
+    }
+}
+
+/**
+ * Moves the part of the element after the point into a clone placed right after the element.
+ *
+ * @returns The clone.
+ */
+function splitAfter(element: Element, container: Node, offset: number) {
+    const trailing = new Range();
+    trailing.setStart(container, offset);
+    trailing.setEndAfter(element);
+
+    const fragment = trailing.extractContents();
+    const clone = fragment.firstChild;
+    element.after(fragment);
+
+    return clone;
+}
+
+/**
+ * Clips the range to the block: only the first block starts at the cursor start and only the last ends at its end.
+ * Also calculates the cut, the first child of the common ancestor the clipped range touches.
+ */
 function getBlockRange(range: Range, block: Node, isFirst: boolean, isLast: boolean) {
     const blockRange = new Range();
     blockRange.selectNodeContents(block);
@@ -60,7 +108,11 @@ function getBlockRange(range: Range, block: Node, isFirst: boolean, isLast: bool
         blockRange.setEnd(range.endContainer, range.endOffset);
     }
 
-    return blockRange;
+    // Nodes before the range stay, so after the extraction the node following the cut stands at this index
+    const parent = blockRange.commonAncestorContainer;
+    const cut = Array.from(parent.childNodes).findIndex(child => blockRange.intersectsNode(child));
+
+    return {blockRange, cut};
 }
 
 /** Maps every node of the fragment to itself, as the extraction moves fully selected nodes as they are. */

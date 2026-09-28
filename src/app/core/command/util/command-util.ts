@@ -51,11 +51,11 @@ export function removeBlock(contentEditable: HTMLElement, block: Element, cursor
 export function tag(contentEditable: HTMLElement, tag: string, action: Action, cursorPosition = getCursorPosition(), attributes?: Attributes) {
     const normalizer: Normalizer = new Normalizer(contentEditable);
     if (action === Action.Wrap) {
-        normalizer.appendTag(tag);
+        normalizer.appendTag(tag, attributes);
     }
 
     if (action === Action.Unwrap) {
-        removeTags(contentEditable, [tag], cursorPosition);
+        normalizer.removeTags([tag]);
     }
 
     return cursorPosition;

@@ -4,6 +4,8 @@ import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {hasSelfCloseDescendant, imageBlockClass, imageSizeClasses} from "@/core/shared/element-util";
 import {Carrier} from "@/core/carrier/carrier";
+import {Attributes} from "@/core/command/type/command";
+import {applyAttributes} from "@/core/command/util/command-util";
 
 /**
  * Parent elements of the leaf originate from extracted content that lacks a DOM structure. Here we populate them:
@@ -225,8 +227,9 @@ function insertToContainer(container: Node, insert: Node) {
     container.appendChild(insert);
 }
 
-export function wrapInTagNew(documentFragment: DocumentFragment, tag: string) {
+export function wrapInTagNew(documentFragment: DocumentFragment, tag: string, attributes?: Attributes) {
     const wrapper = document.createElement(tag);
+    applyAttributes(wrapper, attributes);
     wrapper.appendChild(documentFragment);
     const documentFragmentWrappedInTag = document.createDocumentFragment();
     documentFragmentWrappedInTag.appendChild(wrapper);

@@ -10,6 +10,7 @@ export enum Display {
     TableSection = "TableSection",
     Cell = "Cell",
     Line = "Line",
+    Inline = "Inline",
 }
 
 const schema: Map<string, Display[]> = new Map<string, Display[]>();
@@ -42,13 +43,13 @@ schema.set("TR", [Display.TableSection]);
 schema.set("TH", [Display.Cell]);
 schema.set("TD", [Display.Cell]);
 
-schema.set("STRONG", [Display.Collapse]);
-schema.set("EM", [Display.Collapse]);
-schema.set("U", [Display.Collapse]);
-schema.set("SUP", [Display.Collapse]);
-schema.set("SUB", [Display.Collapse]);
+schema.set("STRONG", [Display.Collapse, Display.Inline]);
+schema.set("EM", [Display.Collapse, Display.Inline]);
+schema.set("U", [Display.Collapse, Display.Inline]);
+schema.set("SUP", [Display.Collapse, Display.Inline]);
+schema.set("SUB", [Display.Collapse, Display.Inline]);
 
-schema.set("A", [Display.Link]);
+schema.set("A", [Display.Link, Display.Inline]);
 schema.set("#text", []);
 
 export function isSchemaContain(element: Node | undefined | null, contains: Display[]) {

@@ -563,6 +563,43 @@ describe("Wrap in tag", () => {
             </ul>
         `);
     });
+
+    test("Should wrap selection to an A tag", () => {
+        const wrapper = createWrapper(`
+            <p>
+                <strong>
+                    <u class="end"><i class="start">zero</i>first</u>
+                </strong>
+                second
+            </p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
+        range.setEnd(getLastChild(wrapper, ".end"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        tag(wrapper, "A", Action.Wrap);
+
+        expectHtml(wrapper.innerHTML, `
+             <p>
+                <strong>
+                    <u>
+                        <i>ze</i>
+                    </u>
+                </strong>
+                <a>
+                    <strong>
+                        <u><i>ro</i>fi</u>
+                    </strong>
+                </a>
+                <strong>
+                    <u>rst</u>
+                </strong>
+                second
+            </p>
+        `);
+    });
 });
 
 describe("Change first level", () => {
@@ -1072,8 +1109,8 @@ describe("Wrap in tag with attributes", () => {
         });
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze<a href="https://www.briefeditor.io">ro</a></p>
-            <p>
+            <p class="start">ze<a href="https://www.briefeditor.io">ro</a></p>
+            <p class="end">
                 <a href="https://www.briefeditor.io">first</a>
             </p>
         `);

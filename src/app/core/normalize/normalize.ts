@@ -40,23 +40,44 @@ export class Normalizer {
      * Wraps the selected content in `tag` and merges it back into the DOM. The inserted nodes are then normalized once
      * more together with their neighbours, so the new tag collapses into them.
      */
-    public appendTag(tag: string, cursorPosition = getCursorPosition()) {
+    public appendTag(tag: string, attributes?: Attributes, cursorPosition = getCursorPosition()) {
         if (isCollapsed(cursorPosition)) {
             insertCarrier(cursorPosition, tag);
             return;
         }
 
         const merger = new Merger(this.contentEditable, cursorPosition);
-        const wrapped = wrapInTagNew(merger.extractContents(), tag);
-        const {first, last} = merger.mergeIntoDom(normalizeNew(this.contentEditable, wrapped));
+        const extracted = merger.extractContents();
+        const wrapped = wrapInTagNew(extracted, tag, attributes);
+        const normalized = normalizeNew(this.contentEditable, wrapped);
+        const {first, last} = merger.mergeIntoDom(normalized);
 
         const involved = getInvolvedCursorPosition(first, last);
         if (!involved) {
             return;
         }
-
         const involvedMerger = new Merger(this.contentEditable, involved);
-        involvedMerger.mergeIntoDom(normalizeNew(this.contentEditable, involvedMerger.extractContents()));
+        const involvedExtracted = involvedMerger.extractContents();
+        const normalizedExtracted = normalizeNew(this.contentEditable, involvedExtracted);
+        involvedMerger.mergeIntoDom(normalizedExtracted);
+    }
+
+    public removeTags(tags: string[], cursorPosition = getCursorPosition()) {
+        const merger = new Merger(this.contentEditable, cursorPosition);
+        const extracted = merger.extractContents();
+        // Add DELETED so merger can indicate that this tag omits in original DOM.
+        const wrapped = wrapInTagNew(extracted, "DELETED");
+        const normalized = normalizeNew(this.contentEditable, wrapped, [...tags]);
+        const {first, last} = merger.mergeIntoDom(normalized);
+
+        const involved = getInvolvedCursorPosition(first, last);
+        if (!involved) {
+            return;
+        }
+        const involvedMerger = new Merger(this.contentEditable, involved);
+        const involvedExtracted = involvedMerger.extractContents();
+        const normalizedExtracted = normalizeNew(this.contentEditable, involvedExtracted, ["DELETED"]);
+        involvedMerger.mergeIntoDom(normalizedExtracted);
     }
 }
 
@@ -67,20 +88,25 @@ function getInvolvedCursorPosition(first: Node | undefined, last: Node | undefin
     }
 
     const range = new Range();
-    range.setStartBefore(getSiblingWithContent(first, node => node.previousSibling) ?? first);
-    range.setEndAfter(getSiblingWithContent(last, node => node.nextSibling) ?? last);
+    range.setStartBefore(getSiblingWithContent(first, node => node.previousSibling));
+    range.setEndAfter(getSiblingWithContent(last, node => node.nextSibling));
 
     return getCursorPositionFrom(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
 }
 
-/** Returns the closest sibling that isn't an empty text node, which an extraction leaves where it cut a text. */
+/**
+ * Returns the closest sibling holding content, passing over the empty text nodes and emptied tags an extraction leaves
+ * where it cut. Without one, returns the farthest empty sibling or the node itself, so the rebuild still drops them.
+ */
 function getSiblingWithContent(node: Node, next: (node: Node) => Node | null) {
+    let farthest = node;
     let sibling = next(node);
-    while (sibling instanceof Text && !sibling.data) {
+    while (sibling && !sibling.textContent) {
+        farthest = sibling;
         sibling = next(sibling);
     }
 
-    return sibling;
+    return sibling ?? farthest;
 }
 
 export function normalize(contentEditable: HTMLElement, ...cursorPosition: CursorPosition[]) {

@@ -4,10 +4,9 @@ export interface TagHierarchy {
     priority: number
 }
 
-const max = Number.MAX_SAFE_INTEGER;
+const max = Number.MAX_SAFE_INTEGER - 1;
 
 const tagHierarchy: Map<string, number> = new Map<string, number>();
-tagHierarchy.set("DELETED", max);
 tagHierarchy.set("TABLE", max);
 tagHierarchy.set("THEAD", max);
 tagHierarchy.set("TBODY", max);
@@ -26,6 +25,7 @@ tagHierarchy.set("H3", max);
 tagHierarchy.set("H4", max);
 tagHierarchy.set("H5", max);
 tagHierarchy.set("H6", max);
+tagHierarchy.set("DELETED", 6);
 tagHierarchy.set("A", 5);
 tagHierarchy.set("STRONG", 4);
 tagHierarchy.set("EM", 3);
