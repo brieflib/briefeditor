@@ -156,7 +156,7 @@ describe("Wrap in tag", () => {
         // expectCursor(cursorPosition, getFirstChild(wrapper, "em"), "".length, getFirstChild(wrapper, "em"), "fi".length);
 
         expectHtml(wrapper.innerHTML, `
-            <p><strong>zero</strong><em>fi</em>rst</p>
+            <p class="end"><strong>zero</strong><em>fi</em>rst</p>
         `);
     });
 
@@ -179,13 +179,13 @@ describe("Wrap in tag", () => {
         // expectCursor(cursorPosition, getFirstChild(wrapper, "p > em"), "".length, getFirstChild(wrapper, "p:last-child > em"), "se".length);
 
         expectHtml(wrapper.innerHTML, `
-            <p>zer<em>o</em></p>
+            <p class="start">zer<em>o</em></p>
             <p>
                 <strong>
                     <em>first</em>
                 </strong>
             </p>
-            <p><em>se</em>cond</p>
+            <p class="end"><em>se</em>cond</p>
         `);
     });
 
@@ -206,7 +206,7 @@ describe("Wrap in tag", () => {
         //expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "o  fi".length);
 
         expectHtml(wrapper.innerHTML, `
-            <p>zer<strong>o first</strong></p>
+            <p class="start">zer<strong>o first</strong></p>
         `);
     });
 
@@ -227,7 +227,7 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>ze<strong>ro</strong></p>
-            <p><strong>fi</strong>rst</p>
+            <p class="end"><strong>fi</strong>rst</p>
         `);
     });
 
@@ -265,7 +265,7 @@ describe("Wrap in tag", () => {
                 <li>
                     <strong>third</strong>
                 </li>
-                <li><strong>fo</strong>urth</li>
+                <li class="end"><strong>fo</strong>urth</li>
             </ul>
         `);
     });
@@ -296,7 +296,7 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li><strong>zero</strong>
+                <li class="start">ze<strong>ro</strong>
                     <ul>
                         <li><strong>first</strong></li>
                         <li><strong>second</strong></li>
@@ -304,7 +304,7 @@ describe("Wrap in tag", () => {
                     </ul>
                 </li>
                 <li><strong>fourth</strong></li>
-                <li><strong>fifth</strong></li>
+                <li class="end"><strong>fi</strong>fth</li>
             </ul>
         `);
     });
@@ -335,49 +335,10 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>ze<strong>ro</strong>
+                <li class="start">ze<strong>ro</strong>
                     <ul>
                         <li><strong>first</strong></li>
-                        <li><strong>se</strong>cond</li>
-                        <li>third</li>
-                    </ul>
-                </li>
-                <li>fourth</li>
-                <li>fifth</li>
-            </ul>
-        `);
-    });
-
-    test("Should wrap part of nested list in bold", () => {
-        const wrapper = createWrapper(`
-            <ul>
-                <li class="start">zero
-                    <ul>
-                        <li>first</li>
-                        <li class="end">second</li>
-                        <li>third</li>
-                    </ul>
-                </li>
-                <li>fourth</li>
-                <li>fifth</li>
-            </ul>
-        `);
-
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
-        tag(wrapper, "strong", Action.Wrap);
-        // ToDo: uncomment
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "strong > u"), "".length, getFirstChild(wrapper, "li:last-child > strong"), "fo".length);
-
-        expectHtml(wrapper.innerHTML, `
-            <ul>
-                <li>ze<strong>ro</strong>
-                    <ul>
-                        <li><strong>first</strong></li>
-                        <li><strong>se</strong>cond</li>
+                        <li class="end"><strong>se</strong>cond</li>
                         <li>third</li>
                     </ul>
                 </li>
@@ -413,11 +374,11 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>ze<strong>ro</strong>
+                <li class="start">ze<strong>ro</strong>
                     <ul>
                         <li><strong>first</strong></li>
                         <li><strong>second</strong></li>
-                        <li><strong>th</strong>ird</li>
+                        <li class="end"><strong>th</strong>ird</li>
                         <li>fourth</li>
                     </ul>
                 </li>
@@ -445,9 +406,9 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>ze<strong>ro</strong></li>
+                <li class="start">ze<strong>ro</strong></li>
             </ul>
-            <p><strong>fi</strong>rst</p>
+            <p class="end"><strong>fi</strong>rst</p>
         `);
     });
 
@@ -472,9 +433,9 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr>
-                <td>ze<strong>ro</strong></td>
+                <td class="start">ze<strong>ro</strong></td>
                 <td><strong>first</strong></td>
-                <td><strong>se</strong>cond</td>
+                <td class="end"><strong>se</strong>cond</td>
             </tr></tbody></table>
         `);
     });
@@ -498,8 +459,8 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <table>
-                <thead><tr><th><strong>zero</strong></th></tr></thead>
-                <tbody><tr><td><strong>first</strong></td></tr></tbody>
+                <thead><tr><th class="start"><strong>zero</strong></th></tr></thead>
+                <tbody><tr><td class="end"><strong>first</strong></td></tr></tbody>
             </table>
         `);
     });
@@ -524,9 +485,9 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr>
-                <td><strong>zero</strong></td>
+                <td class="start"><strong>zero</strong></td>
                 <td></td>
-                <td><strong>first</strong></td>
+                <td class="end"><strong>first</strong></td>
             </tr></tbody></table>
         `);
     });
@@ -564,9 +525,9 @@ describe("Wrap in tag", () => {
         // expectCursor(cursorPosition, getFirstChild(wrapper, "p > strong"), "".length, getFirstChild(wrapper, "p:last-child > strong"), "first".length);
 
         expectHtml(wrapper.innerHTML, `
-            <p><strong>zero</strong></p>
+            <p class="start"><strong>zero</strong></p>
             <p class="be-image"><img src="image.png"></p>
-            <p><strong>first</strong></p>
+            <p class="end"><strong>first</strong></p>
         `);
     });
 
@@ -593,12 +554,12 @@ describe("Wrap in tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li><br>
+                <li class="start"><br>
                     <ol>
                         <li><strong>nested</strong></li>
                     </ol>
                 </li>
-                <li><strong>last</strong></li>
+                <li class="end"><strong>last</strong></li>
             </ul>
         `);
     });

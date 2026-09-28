@@ -368,7 +368,7 @@ describe("Should append tags", () => {
         //expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "zero".length);
 
         expectHtml(wrapper.innerHTML, `
-            <p><strong>zerofirst</strong></p>
+            <p class="start"><strong>zerofirst</strong></p>
         `);
     });
 });
@@ -646,9 +646,45 @@ describe("Normalizer test", () => {
         normalizer.appendTag("STRONG");
 
         expectHtml(wrapper.innerHTML, `
-            <p><strong>zero</strong></p>
+            <p class="start"><strong>zero</strong></p>
             <p><strong>first</strong></p>
-            <p><strong>sec</strong>ond</p>
+            <p class="end"><strong>sec</strong>ond</p>
+        `);
+    });
+
+    test("Should collapse the new tag into the neighbour when the cursor starts at the end of an element", () => {
+        const wrapper = createWrapper(`
+            <p>ze<strong>r</strong>o</p>
+            <p>first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, "strong"), "r".length);
+        range.setEnd(getFirstChild(wrapper, "p + p"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        new Normalizer(wrapper).appendTag("STRONG");
+
+        expectHtml(wrapper.innerHTML, `
+            <p>ze<strong>ro</strong></p>
+            <p><strong>fi</strong>rst</p>
+        `);
+    });
+
+    test("Should wrap in the given tag and leave the neighbours outside the new tag", () => {
+        const wrapper = createWrapper(`
+            <p><strong>zero</strong>first</p>
+        `);
+
+        const range = new Range();
+        range.setStart(getFirstChild(wrapper, "strong"), "zero".length);
+        range.setEnd(getLastChild(wrapper, "p"), "fi".length);
+        (getRange as jest.Mock).mockReturnValue(range);
+
+        new Normalizer(wrapper).appendTag("EM");
+
+        expectHtml(wrapper.innerHTML, `
+            <p><strong>zero</strong><em>fi</em>rst</p>
         `);
     });
 })

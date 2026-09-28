@@ -1,4 +1,4 @@
-import {appendTag, mergeLists, removeTags, replaceTags} from "@/core/normalize/normalize";
+import {appendTag, mergeLists, Normalizer, removeTags, replaceTags} from "@/core/normalize/normalize";
 import {getElement, isImageBlock} from "@/core/shared/element-util";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
@@ -49,13 +49,16 @@ export function removeBlock(contentEditable: HTMLElement, block: Element, cursor
  * handed back as it stands, so the image stays selected.
  */
 export function tag(contentEditable: HTMLElement, tag: string, action: Action, cursorPosition = getCursorPosition(), attributes?: Attributes) {
+    const normalizer: Normalizer = new Normalizer(contentEditable);
     if (action === Action.Wrap) {
-        appendTag(contentEditable, cursorPosition, tag, attributes);
+        normalizer.appendTag(tag);
     }
 
     if (action === Action.Unwrap) {
         removeTags(contentEditable, [tag], cursorPosition);
     }
+
+    return cursorPosition;
 
     // const selectedPosition = getCursorPosition();
     // const cursorPosition = anchorCursorOnLeaf(selectedPosition);

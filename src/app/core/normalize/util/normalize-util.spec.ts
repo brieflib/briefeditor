@@ -5,6 +5,7 @@ import {
     filterLeafParents,
     getLeafNodes,
     getSameFirstParent,
+    getTextNodes,
     removeConsecutiveDuplicates,
     setLeafParents,
     sortLeafParents
@@ -29,6 +30,15 @@ test("Should find all leaves", () => {
     expect(leaves[1]?.textContent).toBe("first");
     expect(leaves[2]?.textContent).toBe(" second ");
     expect(leaves[3]?.textContent).toBe(" third ");
+});
+
+test("Should skip empty text nodes", () => {
+    const wrapper = createWrapper(`<p>ab<em>cd</em></p>`);
+    wrapper.querySelector("p")?.append(document.createTextNode(""));
+
+    const textNodes = getTextNodes(wrapper);
+
+    expect(textNodes.map(textNode => textNode.textContent)).toEqual(["ab", "cd"]);
 });
 
 test("Should find all leaf's parents", () => {

@@ -40,15 +40,15 @@ export function addParentsFromDom(contentEditable: Node,
  */
 export function normalizeNew(contentEditable: Node,
                              toNormalize: DocumentFragment,
-                             cursorPosition: CursorPosition,
                              tagsToRemove: string[] = []) {
     const leaves = getTextNodes(toNormalize)
         .map(textNode => toLeafWithParents(contentEditable, textNode))
         .map(leaf => sortLeafParents(leaf))
         .filter(leaf => filterLeafParentsNew(tagsToRemove, leaf))
+        .map(leaf => removeSelfCloseInlines(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return collapseLeavesNew(leaves);
+    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
 }
 
 /**
@@ -101,14 +101,18 @@ export function replaceBlocks(blocksToReplace: HTMLElement[], fragment: Document
     }
 }
 
-export function getTextNodes(element: DocumentFragment, textNodes: Node[] = []) {
-    if (element.nodeType === Node.TEXT_NODE) {
+/** Collects the text nodes and the empty elements, such as an empty cell, which have no text node to stand for them. */
+export function getTextNodes(element: Node, textNodes: Node[] = []) {
+    if (element instanceof Text && element.data) {
         textNodes.push(element);
-        return textNodes;
+    }
+
+    if (isSchemaContain(element, [Display.SelfClose, Display.Cell]) && !element.textContent) {
+        textNodes.push(element);
     }
 
     for (const child of element.childNodes) {
-        getLeafNodes(child, textNodes);
+        getTextNodes(child, textNodes);
     }
 
     return textNodes;
@@ -137,8 +141,27 @@ export function filterLeafParentsNew(tagsToRemove: string[], leaf: Leaf) {
     return leaf;
 }
 
+/** Drops the inline tags around a self-closing leaf such as an image or a br, since it holds nothing inline to tag. */
+export function removeSelfCloseInlines(leaf: Leaf) {
+    const parents = leaf.getParents();
+
+    // The last parent is the leaf itself
+    const leafNode = parents.at(-1);
+    const isSelfClose = isSchemaContain(leafNode, [Display.SelfClose]);
+    if (!isSelfClose) {
+        return leaf;
+    }
+
+    const parentsWithoutInlines = parents.filter(parent =>
+        !isSchemaContain(parent, [Display.Collapse, Display.Link]) ||
+        isSchemaContain(parent, [Display.ListWrapper]));
+    leaf.setParents(parentsWithoutInlines);
+
+    return leaf;
+}
+
 export function collapseLeavesNew(leaves: Leaf[],
-                                  container = document.createDocumentFragment()): DocumentFragment {
+                                  container: Node = document.createDocumentFragment()): Node {
     const parent = getSameFirstParent(leaves);
 
     for (const leafGroup of parent) {
@@ -148,40 +171,58 @@ export function collapseLeavesNew(leaves: Leaf[],
         if (!firstParentElement) {
             return container;
         }
-        insertToContainer(container, collapseLeaves(leafGroup.leaves, nodeToFragment(firstParentElement)));
+        insertToContainer(container, collapseLeavesNew(leafGroup.leaves, firstParentElement));
     }
 
     return container;
 }
 
+/**
+ * Hands back the node the leaves are collapsed into, emptied: a clone takes the node's place, so
+ * the node itself is left as it stands.
+ */
 function clearNode(node: Node | undefined) {
     if (!node) {
         return;
     }
 
-    if (node.nodeType === Node.TEXT_NODE) {
+    if (node instanceof Text) {
         return node;
     }
 
     if (node instanceof HTMLElement) {
-        node.replaceChildren();
+        const cleared = node.cloneNode(false) as HTMLElement;
+        node.replaceWith(cleared);
+        cleared.append(...node.childNodes);
         removeAttributesNew(node);
     }
+
     return node;
 }
 
 /** Drops every attribute but a link's href and the editor's own classes (the image block mark and sizes); any other class goes. */
 function removeAttributesNew(element: HTMLElement) {
     for (const name of element.getAttributeNames()) {
-        if (name === "href") {
+        if (name === "href" || name === "src") {
             continue;
         }
         element.removeAttribute(name);
     }
 }
 
-function insertToContainer(container: DocumentFragment, insertElement: DocumentFragment) {
-    container.appendChild(insertElement);
+/**
+ * Appends the collapsed content to the container it belongs in, joining it with the leaf before
+ * it when both are text.
+ */
+function insertToContainer(container: Node, insert: Node) {
+    const previousText = container.lastChild;
+
+    if (previousText instanceof Text && insert instanceof Text) {
+        previousText.appendData(insert.data);
+        return;
+    }
+
+    container.appendChild(insert);
 }
 
 export function wrapInTagNew(documentFragment: DocumentFragment, tag: string) {
@@ -576,7 +617,7 @@ function clearElementHTML(node: Node | undefined) {
 function removeAttributes(element: HTMLElement) {
     const kept = [imageBlockClass, ...imageSizeClasses].filter((name) => element.classList.contains(name));
     for (const name of element.getAttributeNames()) {
-        if (name === "href") {
+        if (name === "href" || name === "src") {
             continue;
         }
         element.removeAttribute(name);

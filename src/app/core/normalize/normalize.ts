@@ -4,10 +4,8 @@ import {
     filterLeafParents,
     getLeafNodes,
     maybeAppendCarrier,
-    mergeBlocks,
     normalizeNew,
     removeConsecutiveDuplicates,
-    replaceBlocks,
     replaceLeafParents,
     setLeafParents,
     sortLeafParents,
@@ -25,10 +23,11 @@ import {
     isCollapsed,
     isCursorPositionEqual
 } from "@/core/shared/type/cursor-position";
-import {getFirstSelectedRoot, getSelectedBlocks, getSelectedRoot} from "@/core/selection/selection";
+import {getFirstSelectedRoot, getSelectedRoot} from "@/core/selection/selection";
 import {getNextListWrapper, getPreviousListWrapper} from "@/core/list/util/list-util";
 import {Attributes} from "@/core/command/type/command";
 import {insertCarrier} from "@/core/carrier/carrier";
+import {Merger} from "@/core/merger/type/merger-class";
 
 export class Normalizer {
     private readonly contentEditable: HTMLElement;
@@ -38,10 +37,8 @@ export class Normalizer {
     }
 
     /**
-     * Wraps the selected content in `tag`: the content is taken out of the paragraphs the cursor
-     * spans, wrapped, normalized into the schema, merged back with what stood outside the cursor
-     * and normalized once more, so the new tag collapses into its neighbours. The rebuilt
-     * paragraphs then take the place of the selected ones.
+     * Wraps the selected content in `tag` and merges it back into the DOM. The inserted nodes are then normalized once
+     * more together with their neighbours, so the new tag collapses into them.
      */
     public appendTag(tag: string, cursorPosition = getCursorPosition()) {
         if (isCollapsed(cursorPosition)) {
@@ -49,21 +46,41 @@ export class Normalizer {
             return;
         }
 
-        // Selected blocks is created before DOM manipulations.
-        const selectedBlocks = getSelectedBlocks(this.contentEditable, cursorPosition);
+        const merger = new Merger(this.contentEditable, cursorPosition);
+        const wrapped = wrapInTagNew(merger.extractContents(), tag);
+        const {first, last} = merger.mergeIntoDom(normalizeNew(this.contentEditable, wrapped));
 
-        const fragment = extractContents(cursorPosition);
-        const wrapped = wrapInTagNew(fragment, tag);
-        const normalized = normalizeNew(this.contentEditable, wrapped, cursorPosition);
-        const merged = mergeBlocks(selectedBlocks, normalized, cursorPosition);
-        replaceBlocks(selectedBlocks, normalizeNew(this.contentEditable, merged, cursorPosition));
+        const involved = getInvolvedCursorPosition(first, last);
+        if (!involved) {
+            return;
+        }
+
+        const involvedMerger = new Merger(this.contentEditable, involved);
+        involvedMerger.mergeIntoDom(normalizeNew(this.contentEditable, involvedMerger.extractContents()));
     }
 }
 
-function read(d: DocumentFragment) {
-    const e = document.createElement("div");
-    e.append(d);
-    return e.innerHTML;
+/** Returns a cursor position spanning the inserted nodes together with their neighbouring siblings, taken whole. */
+function getInvolvedCursorPosition(first: Node | undefined, last: Node | undefined) {
+    if (!first || !last) {
+        return undefined;
+    }
+
+    const range = new Range();
+    range.setStartBefore(getSiblingWithContent(first, node => node.previousSibling) ?? first);
+    range.setEndAfter(getSiblingWithContent(last, node => node.nextSibling) ?? last);
+
+    return getCursorPositionFrom(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
+}
+
+/** Returns the closest sibling that isn't an empty text node, which an extraction leaves where it cut a text. */
+function getSiblingWithContent(node: Node, next: (node: Node) => Node | null) {
+    let sibling = next(node);
+    while (sibling instanceof Text && !sibling.data) {
+        sibling = next(sibling);
+    }
+
+    return sibling;
 }
 
 export function normalize(contentEditable: HTMLElement, ...cursorPosition: CursorPosition[]) {

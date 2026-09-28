@@ -244,7 +244,7 @@ function applyLinkCommand(contentEditable: HTMLElement, command: Command) {
     const tagName = (command.tag as string).toUpperCase();
     const sharedTags: string[] = getSelectedSharedTags(contentEditable);
     const href = command.attributes?.href;
-    let cursorPosition = getCursorPosition();
+    const cursorPosition = getCursorPosition();
     const collapsed = isCollapsed(cursorPosition);
     const isLinkSelected = sharedTags.includes(tagName);
 
@@ -259,16 +259,16 @@ function applyLinkCommand(contentEditable: HTMLElement, command: Command) {
         const link = getSelectedLink(contentEditable, cursorPosition)[0];
         if (link) {
             selectElement(link);
-            cursorPosition = tag(contentEditable, tagName, Action.Unwrap, command.attributes);
+            tag(contentEditable, tagName, Action.Unwrap, cursorPosition, command.attributes);
         }
     }
 
     if (!href && !collapsed && isLinkSelected) {
-        cursorPosition = tag(contentEditable, tagName, Action.Unwrap, command.attributes);
+        tag(contentEditable, tagName, Action.Unwrap, cursorPosition, command.attributes);
     }
 
     if (href && !collapsed && !isLinkSelected) {
-        cursorPosition = tag(contentEditable, tagName, Action.Wrap, command.attributes);
+        tag(contentEditable, tagName, Action.Wrap, cursorPosition, command.attributes);
     }
 
     return cursorPosition;
@@ -277,18 +277,18 @@ function applyLinkCommand(contentEditable: HTMLElement, command: Command) {
 function applyTagCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     const tagName = (command.tag as string).toUpperCase();
     const sharedTags: string[] = getSelectedSharedTags(contentEditable);
-
+    const cursorPosition = getCursorPosition();
     if (sharedTags.includes(tagName)) {
-        return tag(contentEditable, tagName, Action.Unwrap, command.attributes);
+        return tag(contentEditable, tagName, Action.Unwrap, cursorPosition, command.attributes);
     } else {
-        return tag(contentEditable, tagName, Action.Wrap, command.attributes);
+        return tag(contentEditable, tagName, Action.Wrap, cursorPosition, command.attributes);
     }
 }
 
 function applyUnwrapCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     const tagName = (command.tag as string).toUpperCase();
-
-    return tag(contentEditable, tagName, Action.Unwrap, command.attributes);
+    const cursorPosition = getCursorPosition();
+    return tag(contentEditable, tagName, Action.Unwrap, cursorPosition, command.attributes);
 }
 
 function applyFirstLevelCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
