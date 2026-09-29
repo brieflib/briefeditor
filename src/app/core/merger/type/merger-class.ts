@@ -35,13 +35,35 @@ export class Merger {
         this.firstInserted = undefined;
         this.lastInserted = undefined;
 
+        // Read before the merge, which moves the fragment nodes into the DOM
+        const dropped = this.getDroppedOriginals(fragment);
         this.joinAbsorbedBlocks(fragment);
         const original = this.originalBlocks.at(0);
         if (original instanceof Element) {
             this.mergeChildren(fragment, original);
         }
+        this.removeEmptied(dropped);
 
         return {first: this.firstInserted, last: this.lastInserted};
+    }
+
+    /**
+     * Returns the originals left in the DOM whose fragment nodes normalization dropped, e.g. a tag joined into its
+     * neighbour. Fully selected nodes map to themselves and aren't in the DOM, so they never count.
+     */
+    private getDroppedOriginals(fragment: DocumentFragment) {
+        return Array.from(this.originalByFragmentNode)
+            .filter(([fragmentNode, original]) => !fragment.contains(fragmentNode) && original.isConnected)
+            .map(([, original]) => original);
+    }
+
+    /** Removes the dropped originals the extraction left empty; one still holding unselected content stays. */
+    private removeEmptied(dropped: Node[]) {
+        for (const original of dropped) {
+            if (original.isConnected && !original.textContent) {
+                original.parentNode?.removeChild(original);
+            }
+        }
     }
 
     /**

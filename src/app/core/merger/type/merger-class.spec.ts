@@ -271,6 +271,18 @@ describe("Merger test", () => {
         `);
     });
 
+    test("Should remove a tag joined into its neighbour", () => {
+        const wrapper = createWrapper(`
+            <p><strong>zero</strong><strong>first</strong></p>
+        `);
+
+        wrapSelectionInTag(wrapper, getText(wrapper, "zero"), "".length, getText(wrapper, "first"), "first".length);
+
+        expectHtml(wrapper.innerHTML, `
+            <p><strong>zerofirst</strong></p>
+        `);
+    });
+
     test("Should merge content selected from a paragraph into a list", () => {
         const wrapper = createWrapper(`
             <p>ab</p>

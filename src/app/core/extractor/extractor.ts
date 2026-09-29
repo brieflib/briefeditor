@@ -91,21 +91,17 @@ function splitSharedAncestor(blocks: HTMLElement[], range: Range) {
     }
 }
 
-/**
- * Moves the part of the element after the point into a clone placed right after the element.
- *
- * @returns The clone.
- */
+/** Moves the part of the element after the point into a clone placed right after the element. */
 function splitAfter(element: Element, container: Node, offset: number) {
     const trailing = new Range();
     trailing.setStart(container, offset);
     trailing.setEndAfter(element);
 
     const fragment = trailing.extractContents();
-    const clone = fragment.firstChild;
-    element.after(fragment);
-
-    return clone;
+    // A point at the end of the element leaves an empty clone, which would stay in the DOM as an empty tag
+    if (fragment.textContent) {
+        element.after(fragment);
+    }
 }
 
 /**
