@@ -81,7 +81,8 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             cursorPosition = applyLinkCommand(contentEditable, command);
             break;
         case Action.Tag:
-            cursorPosition = applyTagCommand(contentEditable, command);
+            applyTagCommand(contentEditable, command);
+            cursorPosition = getCursorPosition();
             break;
         case Action.Unwrap:
             cursorPosition = applyUnwrapCommand(contentEditable, command);

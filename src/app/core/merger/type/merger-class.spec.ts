@@ -175,6 +175,28 @@ describe("Merger test", () => {
         `);
     });
 
+    test("Should not join a list the cursor ends at the start of", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+            </ul>
+            <ul>
+                <li>first</li>
+            </ul>
+        `);
+
+        wrapSelectionInTag(wrapper, getText(wrapper, "zero"), "z".length, getText(wrapper, "first"), "".length);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>z<strong>ero</strong></li>
+            </ul>
+            <ul>
+                <li>first</li>
+            </ul>
+        `);
+    });
+
     test("Should merge content selected from a paragraph into a list", () => {
         const wrapper = createWrapper(`
             <p>ab</p>

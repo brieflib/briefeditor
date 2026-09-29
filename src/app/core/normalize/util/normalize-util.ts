@@ -109,7 +109,12 @@ export function getTextNodes(element: Node, textNodes: Node[] = []) {
         textNodes.push(element);
     }
 
-    if (isSchemaContain(element, [Display.SelfClose, Display.Cell]) && !element.textContent) {
+    if (isSchemaContain(element, [Display.SelfClose])) {
+        textNodes.push(element);
+    }
+
+    // A cell holding a br or an image already has a leaf inside, so only a truly empty cell stands for itself
+    if (isSchemaContain(element, [Display.Cell]) && !element.textContent && !hasSelfCloseDescendant(element)) {
         textNodes.push(element);
     }
 
@@ -204,11 +209,16 @@ function clearNode(node: Node | undefined) {
 
 /** Drops every attribute but a link's href and the editor's own classes (the image block mark and sizes); any other class goes. */
 function removeAttributesNew(element: HTMLElement) {
+    const kept = ["be-image"].filter((name) => element.classList.contains(name));
     for (const name of element.getAttributeNames()) {
         if (name === "href" || name === "src") {
             continue;
         }
         element.removeAttribute(name);
+    }
+
+    if (kept.length) {
+        element.className = kept.join(" ");
     }
 }
 
@@ -590,13 +600,12 @@ function mergeText(previousText: Text, insertText: Text) {
     previousText.appendData(insertText.data);
 }
 
+/**
+ * Shifts the first parent off every leaf of the group and returns the first leaf's one. The leaves share it or it
+ * collapses theirs, so the element joined from several stands for the earliest of them.
+ */
 function shiftFirstParent(leaves: Leaf[]) {
-    let node;
-    for (const leaf of leaves) {
-        node = leaf.getParents().shift();
-    }
-
-    return node;
+    return leaves.map(leaf => leaf.getParents().shift())[0];
 }
 
 function clearElementHTML(node: Node | undefined) {

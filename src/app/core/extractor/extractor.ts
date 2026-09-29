@@ -19,6 +19,7 @@ export function extractContents(contentEditable: HTMLElement,
     // Blocks are read before the split, which leaves the selection in the same blocks
     const blocks = getSelectedBlocks(contentEditable, cursorPosition);
     const {range} = cursorPosition;
+    anchorOutsideSelfClose(range);
     splitSingleText(range);
     splitSharedAncestor(blocks, range);
 
@@ -42,6 +43,20 @@ export function extractContents(contentEditable: HTMLElement,
 
     return {fragment, originalByFragmentNode, cut: firstCut};
 }
+
+/**
+ * Moves a range boundary lying inside a self-closing element, such as an image, out of it. Otherwise the extraction
+ * takes the element as partly selected and clones it, leaving the original in the DOM.
+ */
+function anchorOutsideSelfClose(range: Range) {
+    if (isSchemaContain(range.startContainer, [Display.SelfClose])) {
+        range.setStartBefore(range.startContainer);
+    }
+    if (isSchemaContain(range.endContainer, [Display.SelfClose])) {
+        range.setEndAfter(range.endContainer);
+    }
+}
+
 
 /** Splits the text node holding the whole selection. */
 function splitSingleText(range: Range) {

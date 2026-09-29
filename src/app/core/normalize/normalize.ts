@@ -65,7 +65,7 @@ export class Normalizer {
     public removeTags(tags: string[], cursorPosition = getCursorPosition()) {
         const merger = new Merger(this.contentEditable, cursorPosition);
         const extracted = merger.extractContents();
-        // Add DELETED so merger can indicate that this tag omits in original DOM.
+        // Add DELETED so merger can indicate that this tag omits in the original DOM.
         const wrapped = wrapInTagNew(extracted, "DELETED");
         const normalized = normalizeNew(this.contentEditable, wrapped, [...tags]);
         const {first, last} = merger.mergeIntoDom(normalized);
@@ -82,7 +82,7 @@ export class Normalizer {
 }
 
 /** Returns a cursor position spanning the inserted nodes together with their neighbouring siblings, taken whole. */
-function getInvolvedCursorPosition(first: Node | undefined, last: Node | undefined) {
+export function getInvolvedCursorPosition(first: Node | undefined, last: Node | undefined) {
     if (!first || !last) {
         return undefined;
     }

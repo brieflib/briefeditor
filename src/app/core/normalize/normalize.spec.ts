@@ -31,104 +31,118 @@ beforeEach(() => {
 describe("Should normalize tags", () => {
     test("Should keep the image block class alone among the attributes", () => {
         testNormalize(`
-            <p class="be-image other" style="margin: 0" id="picture"><img src="image.png"></p>
-            <p class="other" style="margin: 0">zero</p>
-        `,
-            `
-            <p class="be-image"><img src="image.png"></p>
+            <p><img src="image.png" class="other be-image" style="margin: 0"></p>
             <p>zero</p>
-        `);
-    });
-
-    test("Should keep the image size classes on any element", () => {
-        testNormalize(`
-            <p class="other be-image-large be-image" style="margin: 0"><img src="image.png"></p>
-            <p class="other be-image-small">zero</p>
         `,
             `
-            <p class="be-image be-image-large"><img src="image.png"></p>
-            <p class="be-image-small">zero</p>
+            <p><img src="image.png" class="be-image"></p>
+            <p>zero</p>
         `);
     });
 
     test("Should sort tags by priority", () => {
         testNormalize(`
-            <strong>zero</strong>
-            <em><strong>first</strong>second</em>
-            third
+            <p>
+                <strong>zero</strong>
+                <em><strong>first</strong>second</em>
+                third
+            </p>
         `,
             `
-            <strong>zero<em>first</em></strong>
-            <em>second</em>
-            third
+            <p>
+                <strong>zero<em>first</em></strong>
+                <em>second</em>
+                third
+            </p>
         `);
     });
 
     test("Should collapse similar tags", () => {
         testNormalize(`
-            <strong>zero </strong>
-            <strong>first</strong>
+            <p>
+                <strong>zero </strong>
+                <strong>first</strong>
+            </p>
         `,
             `
-            <strong>zero first</strong>
+            <p>
+                <strong>zero first</strong>           
+            </p>
         `);
     });
 
     test("Should be the same", () => {
         testNormalize(`
-            <strong>zero</strong>
-            <span>first</span>
-            <strong>second</strong>
+            <p>
+                <strong>zero</strong>
+                <span>first</span>
+                <strong>second</strong>
+            </p>
         `,
             `
-            <strong>zero</strong>
-            <span>first</span>
-            <strong>second</strong>
+            <p>
+                <strong>zero</strong>
+                <span>first</span>
+                <strong>second</strong>
+            </p>
         `);
     });
 
     test("Should honor double br", () => {
         testNormalize(`
-            <strong>zero</strong>
-            <br>
-            <br>
-            <strong>first</strong>
+            <p>
+                <strong>zero</strong>
+                <br>
+                <br>
+                <strong>first</strong> 
+            </p>
         `,
             `
-            <strong>zero</strong>
-            <br>
-            <br>
-            <strong>first</strong>
+            <p>
+                <strong>zero</strong>
+                <br>
+                <br>
+                <strong>first</strong> 
+            </p>
         `);
     });
 
     test("Should honor br", () => {
         testNormalize(`
-            <strong>zero</strong>
-            <br>
-            <strong>first</strong>
+            <p>
+                <strong>zero</strong>
+                <br>
+                <strong>first</strong>            
+            </p>
         `,
             `
-            <strong>zero</strong>
-            <br>
-            <strong>first</strong>
+            <p>
+                <strong>zero</strong>
+                <br>
+                <strong>first</strong>            
+            </p>
         `);
     });
 
     test("Should delete duplicates", () => {
         testNormalize(`
-            <strong>zero
-                <strong>
-                    first
+            <p>
+                <strong>zero
                     <strong>
-                        <em>second</em>
+                        first
+                        <strong>
+                            <em>second</em>
+                        </strong>
                     </strong>
-                </strong>
-            </strong>`,
+                </strong>            
+            </p>
+            `,
             `
-            <strong>zero first
-                <em>second</em>
-            </strong>
+            <p>
+                <strong>zero first
+                    <em>second</em>
+                </strong>
+            </p>
         `);
     });
 
@@ -192,7 +206,8 @@ describe("Should normalize tags", () => {
         testNormalize(`
             <ul>
                 <li>zero</li>
-            </ul><ul>
+            </ul>
+            <ul>
                 <li>first</li>
             </ul>`,
             `

@@ -25,10 +25,10 @@ describe("Exec command with different cursor position", () => {
         const cursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
-            <p>
+            <p class="start">
                 <strong>zero</strong>
             </p>
-            <p>first</p>
+            <p class="end">first</p>
         `);
         expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "p + p"), "".length);
     });
@@ -199,8 +199,8 @@ describe("Cursor position after Tag command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
-            <p><strong>zero</strong></p>
-            <p><strong>fir</strong>st</p>
+            <p class="start"><strong>zero</strong></p>
+            <p class="end"><strong>fir</strong>st</p>
         `)
 
         // After: <p class="start"><strong>zero</strong></p><p class="end"><strong>fir</strong>st</p>

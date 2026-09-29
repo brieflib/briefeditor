@@ -1,6 +1,7 @@
 import {CursorPosition} from "@/core/shared/type/cursor-position";
 import {getSelectedBlocks} from "@/core/selection/selection";
 import {extractContents} from "@/core/extractor/extractor";
+import {getBlockElement} from "@/core/shared/element-util";
 
 export class Merger {
     private readonly contentEditable: HTMLElement;
@@ -17,6 +18,11 @@ export class Merger {
         this.originalBlocks = getSelectedBlocks(contentEditable, cursorPosition);
     }
 
+    /**
+     * extractContents gives two kinds of originals:
+     * - Partly selected ones stay in the DOM and keep their parents.
+     * - Fully selected ones move into the fragment and already map to themselves in originalByFragmentNode.
+     */
     public extractContents() {
         const {fragment, originalByFragmentNode, cut} = extractContents(this.contentEditable, this.cursorPosition);
         this.originalByFragmentNode = originalByFragmentNode;
@@ -29,12 +35,51 @@ export class Merger {
         this.firstInserted = undefined;
         this.lastInserted = undefined;
 
+        this.joinAbsorbedBlocks(fragment);
         const original = this.originalBlocks.at(0);
         if (original instanceof Element) {
             this.mergeChildren(fragment, original);
         }
 
         return {first: this.firstInserted, last: this.lastInserted};
+    }
+
+    /**
+     * Moves the blocks normalization joined into a fragment root's block (e.g. the second of two lists) into that block,
+     * so the fragment and the DOM have the same structure again.
+     */
+    private joinAbsorbedBlocks(fragment: DocumentFragment) {
+        for (const root of fragment.childNodes) {
+            const block = this.getConnectedOriginal(root);
+            if (!block) {
+                continue;
+            }
+
+            for (const absorbed of this.getAbsorbedBlocks(root, block)) {
+                block.append(...absorbed.childNodes);
+                absorbed.remove();
+            }
+        }
+    }
+
+    /**
+     * Returns the blocks other than `block` that hold the originals of the root's content. Only the fragment nodes the
+     * normalization kept count, as the map also holds the dropped ones.
+     */
+    private getAbsorbedBlocks(root: Node, block: Element) {
+        const absorbed = new Set<HTMLElement>();
+        for (const [fragmentNode, original] of this.originalByFragmentNode) {
+            if (!root.contains(fragmentNode) || !original.isConnected) {
+                continue;
+            }
+
+            const originalBlock = getBlockElement(this.contentEditable, original);
+            if (originalBlock !== block) {
+                absorbed.add(originalBlock);
+            }
+        }
+
+        return absorbed;
     }
 
     /**

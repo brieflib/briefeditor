@@ -1,7 +1,9 @@
 import {cleanElementWhitespace} from "@/core/shared/element-util";
-import {normalize} from "@/core/normalize/normalize";
+import {getInvolvedCursorPosition, Normalizer} from "@/core/normalize/normalize";
 import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
+import {normalizeNew} from "@/core/normalize/util/normalize-util";
+import {Merger} from "@/core/merger/type/merger-class";
 
 export function createWrapper(html: string) {
     const wrapper = document.createElement("div");
@@ -39,31 +41,33 @@ export function getText(wrapper: HTMLElement, content: string) {
 
 export function testNormalize(initial: string, result: string) {
     const wrapper = document.createElement("div");
-    const toNormalize = document.createElement("deleted");
-    toNormalize.innerHTML = replaceSpaces(initial);
-    wrapper.appendChild(toNormalize);
+    wrapper.innerHTML = replaceSpaces(initial);
     document.body.appendChild(wrapper);
 
     const range = new Range();
-    range.setStart(wrapper.firstChild as HTMLElement, "".length);
-    range.setEnd(wrapper.lastChild as HTMLElement, "".length);
+    const firstText = getFirstText(wrapper.firstChild as Element);
+    range.setStart(firstText, "".length);
+    const lastText = getLastText(wrapper.lastChild as Element);
+    range.setEnd(lastText, lastText.textContent.length);
     (getRange as jest.Mock).mockReturnValue(range);
 
-    const cursorPosition = normalize(wrapper, getCursorPosition());
-    expectHtml((wrapper.firstChild as HTMLElement).innerHTML, result);
-    // A cursor read on the wrapper's edges is anchored on the first text the rebuild left, or on the
-    // first empty element (a cell) when it left none.
-    const firstLeaf = document.createTreeWalker(wrapper, NodeFilter.SHOW_TEXT).nextNode() ??
-        document.createTreeWalker(wrapper, NodeFilter.SHOW_ELEMENT, node => node.hasChildNodes() ?
-            NodeFilter.FILTER_SKIP : NodeFilter.FILTER_ACCEPT).nextNode();
-    expectCursor(cursorPosition, firstLeaf, 0);
-}
+    const cursorPosition = getCursorPosition();
+    const n = new Normalizer(wrapper);
+    n.removeTags([]);
+    // const merger = new Merger(wrapper, cursorPosition);
+    // const extracted = merger.extractContents();
+    // const normalized = normalizeNew(wrapper, extracted);
+    // const {first, last} = merger.mergeIntoDom(normalized);
+    // const involved = getInvolvedCursorPosition(first, last);
+    // if (!involved) {
+    //     return;
+    // }
+    // const involvedMerger = new Merger(wrapper, involved);
+    // const involvedExtracted = involvedMerger.extractContents();
+    // const normalizedExtracted = normalizeNew(wrapper, involvedExtracted);
+    // involvedMerger.mergeIntoDom(normalizedExtracted);
 
-function replaceSpaces(html: string) {
-    const element = document.createElement("div");
-    element.innerHTML = html;
-    cleanElementWhitespace(element);
-    return element.innerHTML.replaceAll("\n", "");
+    expectHtml(wrapper.innerHTML, result);
 }
 
 /** Asserts all four ends of `cursorPosition`; a collapsed cursor names only its start. */
@@ -75,3 +79,36 @@ export function expectCursor(cursorPosition: CursorPosition | null | undefined, 
     expect(cursorPosition?.endContainer).toBe(endContainer);
     expect(cursorPosition?.endOffset).toBe(endOffset);
 }
+
+function getFirstText(node: Node) {
+    while (node && node.firstChild && node.nodeType !== Node.TEXT_NODE) {
+        node = node.firstChild;
+    }
+
+    return node as HTMLElement;
+}
+
+function getLastText(node: Node) {
+    let currentNode: Node = node;
+
+    while (currentNode.nodeType !== Node.TEXT_NODE) {
+        const childNodes = currentNode.childNodes;
+        const lastChild = childNodes[childNodes.length - 1];
+
+        if (!lastChild) {
+            return currentNode as HTMLElement;
+        }
+
+        currentNode = lastChild;
+    }
+
+    return currentNode as HTMLElement;
+}
+
+function replaceSpaces(html: string) {
+    const element = document.createElement("div");
+    element.innerHTML = html;
+    cleanElementWhitespace(element);
+    return element.innerHTML.replaceAll("\n", "");
+}
+

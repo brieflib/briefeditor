@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import {getSelectedBlock, getSelectedParagraphs, getSelectedSharedTags} from "@/core/selection/selection";
+import {getSelectedBlock, getSelectedBlocks, getSelectedSharedTags} from "@/core/selection/selection";
 import {createWrapper, getFirstChild, getLastChild} from "@/core/shared/test-util";
 
 jest.mock("../shared/range-util", () => ({
@@ -299,7 +299,7 @@ describe("Selected paragraphs", () => {
         range.setEnd(getFirstChild(wrapper, ".end"), "sec".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const paragraphs = getSelectedParagraphs(wrapper);
+        const paragraphs = getSelectedBlocks(wrapper);
 
         expect(paragraphs).toStrictEqual(Array.from(wrapper.children).slice(0, 3));
     });
@@ -316,7 +316,7 @@ describe("Selected paragraphs", () => {
         range.setEnd(getFirstChild(wrapper, ".start strong"), "fir".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const paragraphs = getSelectedParagraphs(wrapper);
+        const paragraphs = getSelectedBlocks(wrapper);
 
         expect(paragraphs).toStrictEqual([wrapper.children[1]]);
     });
