@@ -8,41 +8,27 @@ import {Attributes} from "@/core/command/type/command";
 import {applyAttributes} from "@/core/command/util/command-util";
 
 /**
- * Parent elements of the leaf originate from extracted content that lacks a DOM structure. Here we populate them:
- * the fragment's content is wrapped in shallow clones of the cursor's common ancestor and each of its ancestors
- * up to (excluding) `contentEditable`, innermost first.
- *
- * @returns The same fragment, now holding the wrapped content.
- */
-export function addParentsFromDom(contentEditable: Node,
-                                  toNormalize: DocumentFragment,
-                                  cursorPosition: CursorPosition) {
-    const ancestor = cursorPosition.range.commonAncestorContainer;
-    // A text node can't hold children, so the closest element stands in for it
-    let parentFromDom = ancestor.nodeType === Node.ELEMENT_NODE ? ancestor : ancestor.parentElement;
-
-    while (parentFromDom && parentFromDom !== contentEditable) {
-        const cloned = parentFromDom.cloneNode(false);
-        cloned.appendChild(toNormalize);
-        toNormalize.appendChild(cloned);
-        parentFromDom = parentFromDom.parentElement;
-    }
-
-    return toNormalize;
-}
-
-/**
  * Rebuilds a detached fragment into the schema: every leaf is read with the tags that stood
  * over it, any of `tagsToRemove` is dropped, the rest are ordered by the tag hierarchy with
- * consecutive duplicates removed, and the leaves are collapsed back so leaves that share a
- * tag share one element.
+ * consecutive duplicates removed.
  *
  * @returns A new fragment built of cloned elements around the leaves themselves, which are
  * moved out of `toNormalize`.
  */
 export function normalizeNew(contentEditable: Node,
-                             toNormalize: DocumentFragment,
-                             tagsToRemove: string[] = []) {
+                             toNormalize: DocumentFragment) {
+    const leaves = getTextNodes(toNormalize)
+        .map(textNode => toLeafWithParents(contentEditable, textNode))
+        .map(leaf => sortLeafParents(leaf))
+        .map(leaf => removeSelfCloseInlines(leaf))
+        .map(leaf => removeConsecutiveDuplicates(leaf));
+
+    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+}
+
+export function normalizeRemoveNew(contentEditable: Node,
+                                   toNormalize: DocumentFragment,
+                                   tagsToRemove: string[] = []) {
     const leaves = getTextNodes(toNormalize)
         .map(textNode => toLeafWithParents(contentEditable, textNode))
         .map(leaf => sortLeafParents(leaf))
@@ -54,53 +40,24 @@ export function normalizeNew(contentEditable: Node,
 }
 
 /**
- * Merges the normalized blocks back into the ones the cursor spanned. The extract left the
- * first and last selected paragraphs in the DOM holding what stood outside the cursor and moved
- * the ones between out whole, so `fragment` carries one block per selected one: the first
- * takes the leading leftover, the last the trailing one. Inside a single block the fragment
- * holds inline content only, put back between the leftovers split at the cursor.
- *
- * @returns A fragment of the merged paragraphs, in order. The selected paragraphs still in the
- * DOM are left empty as the place the result belongs.
+ * Rebuilds a detached fragment into the schema, replacing the leaves' `sourceTags` parents with `tagsToReplace`.
+ * With `isClosest` only the closest source parent is replaced, otherwise all are dropped for the most distant one.
  */
-export function mergeBlocks(blocksToReplace: HTMLElement[], fragment: DocumentFragment, cursorPosition: CursorPosition): DocumentFragment {
-    const first = blocksToReplace[0];
-    const last = blocksToReplace[blocksToReplace.length - 1];
-    if (!first || !last) {
-        return fragment;
-    }
+export function normalizeReplaceBlockNew(contentEditable: Node,
+                                         toNormalize: DocumentFragment,
+                                         sourceTags: string[],
+                                         targetTags: string[],
+                                         isClosest: boolean) {
+    // Leaves under the same source element share its replacement, so they collapse into one block again
+    const replacements = new Map<Node, HTMLElement[]>();
+    const leaves = getTextNodes(toNormalize)
+        .map(textNode => toLeafWithParents(contentEditable, textNode))
+        .map(leaf => replaceLeafParentsNew(sourceTags, targetTags, replacements, leaf, isClosest))
+        .map(leaf => sortLeafParents(leaf))
+        .map(leaf => removeSelfCloseInlines(leaf))
+        .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    if (first !== last) {
-        fragment.firstElementChild?.prepend(...first.childNodes);
-        fragment.lastElementChild?.append(...last.childNodes);
-        return fragment;
-    }
-
-    // A single paragraph: split its leftover at the cursor (the range is collapsed where the
-    // content was taken from) and rebuild it in a clone with the content between the two sides
-    const leading = new Range();
-    leading.setStart(first, 0);
-    leading.setEnd(cursorPosition.range.startContainer, cursorPosition.range.startOffset);
-
-    const merged = first.cloneNode(false) as HTMLElement;
-    merged.append(leading.extractContents(), fragment, ...first.childNodes);
-    return nodeToFragment(merged);
-}
-
-/**
- * Puts `fragment` where the selected paragraphs stand and drops them: the extract and the
- * merge left the ones still in the DOM empty, and the ones between were moved out whole.
- */
-export function replaceBlocks(blocksToReplace: HTMLElement[], fragment: DocumentFragment) {
-    const first = blocksToReplace[0];
-    if (!first) {
-        return;
-    }
-
-    first.before(fragment);
-    for (const block of blocksToReplace) {
-        block.remove();
-    }
+    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
 }
 
 /** Collects the text nodes and the empty elements, such as an empty cell, which have no text node to stand for them. */
@@ -146,6 +103,53 @@ export function filterLeafParentsNew(tagsToRemove: string[], leaf: Leaf) {
     leaf.setParents(clearedParents);
 
     return leaf;
+}
+
+/**
+ * Replaces the leaf's `sourceTags` parents with `tagsToReplace` elements. Either the closest one only, or all of
+ * them at once standing where the most distant one was.
+ */
+export function replaceLeafParentsNew(sourceTags: string[],
+                                      tagsToReplace: string[],
+                                      replacements: Map<Node, HTMLElement[]>,
+                                      leaf: Leaf,
+                                      isClosest: boolean) {
+    const parents = leaf.getParents();
+    const sources = parents.filter(parent => sourceTags.includes(parent.nodeName));
+    // Parents go from the most distant one to the leaf itself
+    const closest = sources.at(-1);
+    const source = isClosest ? closest : sources.at(0);
+    if (!source || !closest) {
+        return leaf;
+    }
+
+    // Keyed by the closest source, so every list item becomes a block of its own
+    const replacement = getReplacement(replacements, closest, tagsToReplace);
+    const replacedParents = parents.flatMap<Node>(parent => {
+        if (parent === source) {
+            return replacement;
+        }
+
+        if (!isClosest && sources.includes(parent)) {
+            return [];
+        }
+
+        return parent;
+    });
+    leaf.setParents(replacedParents);
+
+    return leaf;
+}
+
+/** Returns the elements standing for the source element, creating them when it's replaced for the first time. */
+function getReplacement(replacements: Map<Node, HTMLElement[]>, source: Node, tagsToReplace: string[]) {
+    let replacement = replacements.get(source);
+    if (!replacement) {
+        replacement = tagsToReplace.map(tag => document.createElement(tag));
+        replacements.set(source, replacement);
+    }
+
+    return replacement;
 }
 
 /** Drops the inline tags around a self-closing leaf such as an image or a br, since it holds nothing inline to tag. */
@@ -220,6 +224,34 @@ function removeAttributesNew(element: HTMLElement) {
     if (kept.length) {
         element.className = kept.join(" ");
     }
+}
+
+/** Returns a cursor position spanning the inserted nodes together with their neighbouring siblings, taken whole. */
+export function getInvolvedCursorPosition(first: Node | undefined, last: Node | undefined) {
+    if (!first || !last) {
+        return undefined;
+    }
+
+    const range = new Range();
+    range.setStartBefore(getSiblingWithContent(first, node => node.previousSibling));
+    range.setEndAfter(getSiblingWithContent(last, node => node.nextSibling));
+
+    return getCursorPositionFrom(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
+}
+
+/**
+ * Returns the closest sibling holding content, passing over the empty text nodes and emptied tags an extraction leaves
+ * where it cut. Without one, returns the farthest empty sibling or the node itself, so the rebuild still drops them.
+ */
+function getSiblingWithContent(node: Node, next: (node: Node) => Node | null) {
+    let farthest = node;
+    let sibling = next(node);
+    while (sibling && !sibling.textContent) {
+        farthest = sibling;
+        sibling = next(sibling);
+    }
+
+    return sibling ?? farthest;
 }
 
 /**

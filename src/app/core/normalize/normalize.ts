@@ -1,10 +1,10 @@
 import {
     collapseLeaves,
     extractFirstLevel,
-    filterLeafParents,
+    filterLeafParents, getInvolvedCursorPosition,
     getLeafNodes,
     maybeAppendCarrier,
-    normalizeNew,
+    normalizeNew, normalizeRemoveNew, normalizeReplaceBlockNew,
     removeConsecutiveDuplicates,
     replaceLeafParents,
     setLeafParents,
@@ -19,11 +19,12 @@ import {
     extractContents,
     getCursorPosition,
     getCursorPositionFrom,
+    getSelectedBlocksCursorPosition,
     insertNode,
     isCollapsed,
     isCursorPositionEqual
 } from "@/core/shared/type/cursor-position";
-import {getFirstSelectedRoot, getSelectedRoot} from "@/core/selection/selection";
+import {getFirstSelectedRoot, getSelectedBlocks, getSelectedRoot} from "@/core/selection/selection";
 import {getNextListWrapper, getPreviousListWrapper} from "@/core/list/util/list-util";
 import {Attributes} from "@/core/command/type/command";
 import {insertCarrier} from "@/core/carrier/carrier";
@@ -65,9 +66,7 @@ export class Normalizer {
     public removeTags(tags: string[], cursorPosition = getCursorPosition()) {
         const merger = new Merger(this.contentEditable, cursorPosition);
         const extracted = merger.extractContents();
-        // Add DELETED so merger can indicate that this tag omits in the original DOM.
-        const wrapped = wrapInTagNew(extracted, "DELETED");
-        const normalized = normalizeNew(this.contentEditable, wrapped, [...tags]);
+        const normalized = normalizeRemoveNew(this.contentEditable, extracted, [...tags]);
         const {first, last} = merger.mergeIntoDom(normalized);
 
         const involved = getInvolvedCursorPosition(first, last);
@@ -76,37 +75,37 @@ export class Normalizer {
         }
         const involvedMerger = new Merger(this.contentEditable, involved);
         const involvedExtracted = involvedMerger.extractContents();
-        const normalizedExtracted = normalizeNew(this.contentEditable, involvedExtracted, ["DELETED"]);
+        const normalizedExtracted = normalizeNew(this.contentEditable, involvedExtracted);
         involvedMerger.mergeIntoDom(normalizedExtracted);
     }
+
+    /**
+     * Replaces every selected block with `targetTags`; a list loses its wrapper and items instead. Blocks that hold
+     * no line, such as a table, keep their tags.
+     */
+    public replaceBlockTags(targetTags: string[], isClosest: boolean, cursorPosition = getCursorPosition()) {
+        // The whole blocks are replaced, so the extraction takes the blocks themselves
+        const wholeBlocks = getSelectedBlocksCursorPosition(this.contentEditable, cursorPosition);
+        if (!wholeBlocks) {
+            return;
+        }
+        const sourceTags = getSelectedBlocks(this.contentEditable, cursorPosition)
+            .filter(block => isSchemaContain(block, [Display.Line, Display.ListWrapper]))
+            .flatMap(block => getSourceTags(block));
+
+        const fragment = wholeBlocks.range.extractContents();
+        const normalized = normalizeReplaceBlockNew(this.contentEditable, fragment, sourceTags, targetTags, isClosest);
+        cursorPosition.range.insertNode(normalized);
+    }
 }
 
-/** Returns a cursor position spanning the inserted nodes together with their neighbouring siblings, taken whole. */
-export function getInvolvedCursorPosition(first: Node | undefined, last: Node | undefined) {
-    if (!first || !last) {
-        return undefined;
+/** Returns the tags standing for the block: a list is its wrapper and items, any other block is itself. */
+function getSourceTags(block: HTMLElement) {
+    if (isSchemaContain(block, [Display.ListWrapper])) {
+        return ["UL", "OL", "LI"];
     }
 
-    const range = new Range();
-    range.setStartBefore(getSiblingWithContent(first, node => node.previousSibling));
-    range.setEndAfter(getSiblingWithContent(last, node => node.nextSibling));
-
-    return getCursorPositionFrom(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
-}
-
-/**
- * Returns the closest sibling holding content, passing over the empty text nodes and emptied tags an extraction leaves
- * where it cut. Without one, returns the farthest empty sibling or the node itself, so the rebuild still drops them.
- */
-function getSiblingWithContent(node: Node, next: (node: Node) => Node | null) {
-    let farthest = node;
-    let sibling = next(node);
-    while (sibling && !sibling.textContent) {
-        farthest = sibling;
-        sibling = next(sibling);
-    }
-
-    return sibling ?? farthest;
+    return [block.nodeName];
 }
 
 export function normalize(contentEditable: HTMLElement, ...cursorPosition: CursorPosition[]) {
@@ -153,25 +152,6 @@ export function removeTags(contentEditable: HTMLElement, tags: string[], cursorP
     insertNode(cursorPosition, removeTagFrom);
 
     return removeAndNormalize(contentEditable, removeTagFrom, [...tags, "DELETED"], cursorPosition, cursorAnchor);
-}
-
-export function appendTag(contentEditable: HTMLElement, cursorPosition: CursorPosition, tag: string, attributes?: Attributes) {
-    // cursorPosition = anchorBeforeSelfClose(cursorPosition);
-    // const cursorAnchor = getCursorAnchor(contentEditable, cursorPosition);
-    // const documentFragment: DocumentFragment = extractContents(cursorPosition);
-    // maybeAppendCarrier(documentFragment);
-    //
-    // const tagElement = document.createElement(tag);
-    // applyAttributes(tagElement, attributes);
-    // tagElement.appendChild(documentFragment);
-    //
-    // const removeTagFrom = document.createElement("DELETED");
-    // removeTagFrom.appendChild(tagElement);
-    // insertNode(cursorPosition, removeTagFrom);
-    //
-    // return removeAndNormalize(contentEditable, removeTagFrom, ["DELETED"], cursorPosition, cursorAnchor);
-    const normalizer: Normalizer = new Normalizer(contentEditable);
-    normalizer.appendTag(tag);
 }
 
 /**

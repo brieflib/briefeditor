@@ -9,7 +9,7 @@ import {
 } from "@/core/command/util/command-util";
 import {
     getFirstSelectedRoot,
-    getSelectedBlock,
+    getSelectedBlock, getSelectedBlocks,
     getSelectedLink,
     getSelectedSharedTags,
     selectElement
@@ -37,7 +37,7 @@ import {CommandEvent} from "@/core/history/type/history-event";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
 import {Carrier} from "@/core/carrier/carrier";
-import {removeAndNormalize} from "@/core/normalize/normalize";
+import {Normalizer, removeAndNormalize} from "@/core/normalize/normalize";
 import {getCell, getCellCursorPosition, insertTable, isTableEmpty} from "@/core/command/util/table-util";
 import {
     atStart,
@@ -88,10 +88,10 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             cursorPosition = applyUnwrapCommand(contentEditable, command);
             break;
         case Action.FirstLevel:
-            cursorPosition = applyFirstLevelCommand(contentEditable, command);
+            applyFirstLevelCommand(contentEditable, command);
             break;
         case Action.List:
-            cursorPosition = applyListCommand(contentEditable, command);
+            applyListCommand(contentEditable, command);
             break;
         case Action.PlusIndent:
             cursorPosition = plusIndent(contentEditable);
@@ -292,23 +292,24 @@ function applyUnwrapCommand(contentEditable: HTMLElement, command: Command): Cur
     return tag(contentEditable, tagName, Action.Unwrap, cursorPosition, command.attributes);
 }
 
-function applyFirstLevelCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
+function applyFirstLevelCommand(contentEditable: HTMLElement, command: Command) {
     const tagName = (command.tag as string).toUpperCase();
-    if (!getSelectedSharedTags(contentEditable).includes(tagName)) {
-        return changeBlock(contentEditable, [tagName]);
-    }
+    // if (!getSelectedSharedTags(contentEditable).includes(tagName)) {
+    //     changeBlock(contentEditable, [tagName]);
+    // }
 
-    const blockElements = getSelectedBlock(contentEditable);
-    const isParagraph = isElementsEqualToTags(blockElements, [tagName]);
+    const blockElements = getSelectedBlocks(contentEditable);
     let tags = [tagName];
+    const isParagraph = isElementsEqualToTags(blockElements, tags);
     if (isParagraph) {
         tags = ["P"];
     }
 
-    return changeBlock(contentEditable, tags);
+    const normalizer = new Normalizer(contentEditable);
+    normalizer.replaceBlockTags(tags, false);
 }
 
-function applyListCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
+function applyListCommand(contentEditable: HTMLElement, command: Command) {
     const tagName = (command.tag as string).toUpperCase();
     // The selection already stands in a list and is asked for the other type, which is a change to the
     // list itself rather than to the blocks the selection holds.
@@ -323,7 +324,7 @@ function applyListCommand(contentEditable: HTMLElement, command: Command): Curso
         tags = ["P"];
     }
 
-    return changeBlock(contentEditable, tags);
+    changeBlock(contentEditable, tags);
 }
 
 /**

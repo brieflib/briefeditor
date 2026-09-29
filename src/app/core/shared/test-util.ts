@@ -1,9 +1,7 @@
 import {cleanElementWhitespace} from "@/core/shared/element-util";
-import {getInvolvedCursorPosition, Normalizer} from "@/core/normalize/normalize";
+import {Normalizer} from "@/core/normalize/normalize";
 import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
-import {normalizeNew} from "@/core/normalize/util/normalize-util";
-import {Merger} from "@/core/merger/type/merger-class";
 
 export function createWrapper(html: string) {
     const wrapper = document.createElement("div");
@@ -51,21 +49,7 @@ export function testNormalize(initial: string, result: string) {
     range.setEnd(lastText, lastText.textContent.length);
     (getRange as jest.Mock).mockReturnValue(range);
 
-    const cursorPosition = getCursorPosition();
-    const n = new Normalizer(wrapper);
-    n.removeTags([]);
-    // const merger = new Merger(wrapper, cursorPosition);
-    // const extracted = merger.extractContents();
-    // const normalized = normalizeNew(wrapper, extracted);
-    // const {first, last} = merger.mergeIntoDom(normalized);
-    // const involved = getInvolvedCursorPosition(first, last);
-    // if (!involved) {
-    //     return;
-    // }
-    // const involvedMerger = new Merger(wrapper, involved);
-    // const involvedExtracted = involvedMerger.extractContents();
-    // const normalizedExtracted = normalizeNew(wrapper, involvedExtracted);
-    // involvedMerger.mergeIntoDom(normalizedExtracted);
+    new Normalizer(wrapper).removeTags([]);
 
     expectHtml(wrapper.innerHTML, result);
 }

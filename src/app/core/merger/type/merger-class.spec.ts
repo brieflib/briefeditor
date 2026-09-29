@@ -1,10 +1,8 @@
 import {getRange} from "@/core/shared/range-util";
-import {createWrapper, expectHtml, getFirstChild, getLastChild, getText} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild, getText} from "@/core/shared/test-util";
 import {Merger} from "@/core/merger/type/merger-class";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {normalizeNew, wrapInTagNew} from "@/core/normalize/util/normalize-util";
-import {tag} from "@/core/command/util/command-util";
-import {Action} from "@/core/command/type/command";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -193,6 +191,82 @@ describe("Merger test", () => {
             </ul>
             <ul>
                 <li>first</li>
+            </ul>
+        `);
+    });
+
+    test("Should join two lists the selection spans", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+            </ul>
+            <ul>
+                <li>first</li>
+                <li>second</li>
+            </ul>
+        `);
+
+        wrapSelectionInTag(wrapper, getText(wrapper, "zero"), "z".length, getText(wrapper, "first"), "f".length);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>z<strong>ero</strong></li>
+                <li><strong>f</strong>irst</li>
+                <li>second</li>
+            </ul>
+        `);
+    });
+
+    test("Should join two lists when the selection ends in a nested list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+            </ul>
+            <ul>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                        <li>third</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        wrapSelectionInTag(wrapper, getText(wrapper, "zero"), "z".length, getText(wrapper, "second"), "s".length);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>z<strong>ero</strong></li>
+                <li><strong>first</strong>
+                    <ul>
+                        <li><strong>s</strong>econd</li>
+                        <li>third</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+    });
+
+    test("Should join three lists when the middle one is fully selected", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+            </ul>
+            <ul>
+                <li>first</li>
+            </ul>
+            <ul>
+                <li>second</li>
+            </ul>
+        `);
+
+        wrapSelectionInTag(wrapper, getText(wrapper, "zero"), "z".length, getText(wrapper, "second"), "s".length);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>z<strong>ero</strong></li>
+                <li><strong>first</strong></li>
+                <li><strong>s</strong>econd</li>
             </ul>
         `);
     });

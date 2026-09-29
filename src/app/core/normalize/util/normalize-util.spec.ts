@@ -1,11 +1,11 @@
 import {
-    addParentsFromDom,
     anchorCursorOnLeaf,
     collapseLeaves,
     filterLeafParents,
     getLeafNodes,
     getSameFirstParent,
     getTextNodes,
+    normalizeReplaceBlockNew,
     removeConsecutiveDuplicates,
     setLeafParents,
     sortLeafParents
@@ -326,6 +326,55 @@ test("Should remove leaf's parents", () => {
     expect(filtered?.getParents().map(parent => parent.nodeName)).toStrictEqual(["SPAN", "#text"])
 });
 
+describe("Should replace block tags", () => {
+    test("Should replace a paragraph with a heading", () => {
+        testReplaceBlock(`<p>zero<strong>first</strong></p>`, ["P"], ["H1"], false,
+            `<h1>zero<strong>first</strong></h1>`);
+    });
+
+    test("Should keep separate paragraphs separate", () => {
+        testReplaceBlock(`<p>zero</p><p>first</p>`, ["P"], ["H1"], false,
+            `<h1>zero</h1><h1>first</h1>`);
+    });
+
+    test("Should replace all source tags with a wrapper at the most distant one", () => {
+        testReplaceBlock(`<blockquote><p>zero</p><p>first</p></blockquote>`, ["BLOCKQUOTE", "P"], ["H1"], false,
+            `<h1>zero</h1><h1>first</h1>`);
+    });
+
+    test("Should replace every list item with a block", () => {
+        testReplaceBlock(`<ul><li>zero</li><li>first</li></ul>`, ["UL", "OL", "LI"], ["P"], false,
+            `<p>zero</p><p>first</p>`);
+    });
+
+    test("Should replace only the closest source tag", () => {
+        testReplaceBlock(`<blockquote><p>zero</p><p>first</p></blockquote>`, ["BLOCKQUOTE", "P"], ["H1"], true,
+            `<blockquote><h1>zero</h1><h1>first</h1></blockquote>`);
+    });
+
+    test("Should replace paragraphs with one list", () => {
+        testReplaceBlock(`<p>zero</p><p>first</p>`, ["P"], ["UL", "LI"], false,
+            `<ul><li>zero</li><li>first</li></ul>`);
+    });
+
+    test("Should leave a leaf without source tags as is", () => {
+        testReplaceBlock(`<h2>zero</h2><p>first</p>`, ["P"], ["H1"], false,
+            `<h2>zero</h2><h1>first</h1>`);
+    });
+});
+
+function testReplaceBlock(initial: string, sourceTags: string[], tagsToReplace: string[], isClosest: boolean, result: string) {
+    const wrapper = createWrapper(initial);
+    const fragment = document.createDocumentFragment();
+    fragment.append(...wrapper.childNodes);
+
+    const replaced = normalizeReplaceBlockNew(wrapper, fragment, sourceTags, tagsToReplace, isClosest);
+
+    const container = document.createElement("div");
+    container.appendChild(replaced);
+    expectHtml(container.innerHTML, result);
+}
+
 function createLeaf(text: string, parentNames: string[]) {
     const parents: Node[] = [];
 
@@ -353,52 +402,4 @@ function createLeafFromNode(element: Node, nodeNames: string[]) {
 function testCollapse(toCollapse: Leaf[], result: string) {
     const collapsed = collapseLeaves(toCollapse);
     expectHtml((collapsed.firstChild as HTMLElement).innerHTML, result);
-}
-describe("Add parents from dom", () => {
-    test("Should wrap the fragment in the ancestors of the cursor's common ancestor", () => {
-        const wrapper = createWrapper(`<ul><li class="start"></li></ul>`);
-        const li = wrapper.querySelector(".start") as Node;
-        const cursorPosition = getCursorPositionFrom(li, 0, li, 0);
-
-        const fragment = new DocumentFragment();
-        const span = document.createElement("span");
-        span.textContent = "test";
-        fragment.appendChild(span);
-
-        const result = addParentsFromDom(wrapper, fragment, cursorPosition);
-
-        expect(result).toBe(fragment);
-        expectHtml(getHtml(result), `<ul><li class="start"><span>test</span></li></ul>`);
-    });
-
-    test("Should use the parent element when the common ancestor is a text node", () => {
-        const wrapper = createWrapper(`<p class="start">text</p>`);
-        const text = getFirstChild(wrapper, ".start");
-        const cursorPosition = getCursorPositionFrom(text, 1, text, 1);
-
-        const fragment = new DocumentFragment();
-        fragment.appendChild(document.createTextNode("test"));
-
-        addParentsFromDom(wrapper, fragment, cursorPosition);
-
-        expectHtml(getHtml(fragment), `<p class="start">test</p>`);
-    });
-
-    test("Should leave the fragment as is when the common ancestor is the editor", () => {
-        const wrapper = createWrapper(`<p>text</p>`);
-        const cursorPosition = getCursorPositionFrom(wrapper, 0, wrapper, 0);
-
-        const fragment = new DocumentFragment();
-        fragment.appendChild(document.createTextNode("test"));
-
-        addParentsFromDom(wrapper, fragment, cursorPosition);
-
-        expectHtml(getHtml(fragment), `test`);
-    });
-});
-
-function getHtml(fragment: DocumentFragment) {
-    const div = document.createElement("div");
-    div.appendChild(fragment.cloneNode(true));
-    return div.innerHTML;
 }

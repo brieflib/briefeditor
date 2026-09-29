@@ -1,18 +1,10 @@
-import {appendTag, mergeLists, Normalizer, removeTags, replaceTags} from "@/core/normalize/normalize";
-import {getElement, isImageBlock} from "@/core/shared/element-util";
+import {mergeLists, Normalizer, replaceTags} from "@/core/normalize/normalize";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {getSelectedBlock, getSelectedInlineContainer, getSelectedListWrapper} from "@/core/selection/selection";
+import {getSelectedBlock, getSelectedListWrapper} from "@/core/selection/selection";
 import {Action, Attributes} from "@/core/command/type/command";
-import {
-    CursorPosition,
-    getCursorPosition,
-    getCursorPositionFrom,
-    isCollapsed
-} from "@/core/shared/type/cursor-position";
-import {Carrier} from "@/core/carrier/carrier";
+import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
 import {maybeInsertLists} from "@/core/list/list";
-import {getFirstOwnText, getLastOwnText, getLine} from "@/core/list/util/list-util";
 import {atEnd, atStart} from "@/core/cursor/util/cursor-util";
 
 /**
@@ -134,39 +126,33 @@ export function applyAttributes(element: HTMLElement, attributes?: Attributes) {
     }
 }
 
-/**
- * Replaces the tag of every block the selection touches (or a whole list wrapper when
- * `replaceTo` names one), returning a cursor position the caller can restore.
- *
- * @remarks
- * Each block is rebuilt from its leaves, which would strand a cursor anchored on the block
- * element itself; anchoring it on a leaf first keeps it valid through every replacement.
- */
-export function changeBlock(contentEditable: HTMLElement, replaceTo: string[],
-                            cursorPosition: CursorPosition = getCursorPosition()): CursorPosition {
-    const isList = replaceTo.length === 1 && isSchemaContainNodeName(replaceTo[0], [Display.ListWrapper]);
-    cursorPosition = anchorCursorOnLeaf(cursorPosition);
+export function changeBlock(contentEditable: HTMLElement,
+                            replaceTo: string[],
+                            cursorPosition: CursorPosition = getCursorPosition()) {
 
-    const blocks = getSelectedBlock(contentEditable, cursorPosition);
-    for (let i = blocks.length - 1; i >= 0; i--) {
-        const b = getSelectedBlock(contentEditable, cursorPosition);
-        const block = b[i];
-        if (!block) {
-            continue;
-        }
-        const displays = isList ? [Display.FirstLevel] : [Display.FirstLevel, Display.List];
-        const replaceFrom = getOfType(displays).filter(item => !replaceTo.includes(item));
-        replaceTags(contentEditable, block, replaceFrom, replaceTo, isList);
-    }
-    // A list built out of blocks stands beside any list already there; maybeInsertLists joins
-    // the two into one wrapper wherever the type matches.
-    if (isList) {
-        maybeInsertLists(contentEditable, cursorPosition);
-    } else {
-        mergeLists(contentEditable, cursorPosition);
-    }
+    // const isList = replaceTo.length === 1 && isSchemaContainNodeName(replaceTo[0], [Display.ListWrapper]);
+    // cursorPosition = anchorCursorOnLeaf(cursorPosition);
+    // const blocks = getSelectedBlock(contentEditable, cursorPosition);
+    // for (let i = blocks.length - 1; i >= 0; i--) {
+    //     const b = getSelectedBlock(contentEditable, cursorPosition);
+    //     const block = b[i];
+    //     if (!block) {
+    //         continue;
+    //     }
+    //     const displays = isList ? [Display.FirstLevel] : [Display.FirstLevel, Display.List];
+    //     const replaceFrom = getOfType(displays).filter(item => !replaceTo.includes(item));
+    //     replaceTags(contentEditable, block, replaceFrom, replaceTo, isList);
+    // }
+    // // A list built out of blocks stands beside any list already there; maybeInsertLists joins
+    // // the two into one wrapper wherever the type matches.
+    // if (isList) {
+    //     maybeInsertLists(contentEditable, cursorPosition);
+    // } else {
+    //     mergeLists(contentEditable, cursorPosition);
+    // }
+    // return cursorPosition;
 
-    return cursorPosition;
+
 }
 
 export function isElementsEqualToTags(elements: HTMLElement[], tags: string[]) {

@@ -55,31 +55,20 @@ export class Merger {
                 continue;
             }
 
-            for (const absorbed of this.getAbsorbedBlocks(root, block)) {
-                block.append(...absorbed.childNodes);
-                absorbed.remove();
+            // A partly selected child keeps its original in the DOM, inside the block it came from
+            for (const child of root.childNodes) {
+                const original = this.getConnectedOriginal(child);
+                if (!original) {
+                    continue;
+                }
+
+                const absorbed = getBlockElement(this.contentEditable, original);
+                if (absorbed !== block) {
+                    block.append(...absorbed.childNodes);
+                    absorbed.remove();
+                }
             }
         }
-    }
-
-    /**
-     * Returns the blocks other than `block` that hold the originals of the root's content. Only the fragment nodes the
-     * normalization kept count, as the map also holds the dropped ones.
-     */
-    private getAbsorbedBlocks(root: Node, block: Element) {
-        const absorbed = new Set<HTMLElement>();
-        for (const [fragmentNode, original] of this.originalByFragmentNode) {
-            if (!root.contains(fragmentNode) || !original.isConnected) {
-                continue;
-            }
-
-            const originalBlock = getBlockElement(this.contentEditable, original);
-            if (originalBlock !== block) {
-                absorbed.add(originalBlock);
-            }
-        }
-
-        return absorbed;
     }
 
     /**
@@ -95,7 +84,7 @@ export class Merger {
          * 3. If some fragments have connected originals, insert them inside the firstConnectedOriginal.
          */
         for (const fragment of fragmentParent.childNodes) {
-            const firstConnectedOriginal = this.getConnectedOriginal(fragment);
+            const firstConnectedOriginal = this.getOriginalInPlace(fragment);
             if (!firstConnectedOriginal) {
                 insertion.push(fragment);
                 continue;
@@ -109,6 +98,21 @@ export class Merger {
 
         this.insertNodes(originalParent, insertion);
         this.trackInserted(insertion);
+    }
+
+    /**
+     * Returns the connected original of a fragment node when it still stands under the original of the node's parent.
+     * A root stands for a block, so its original always counts; an original moved elsewhere, such as one inside a
+     * removed tag, doesn't, and the node is inserted as new.
+     */
+    private getOriginalInPlace(fragmentNode: Node) {
+        const original = this.getConnectedOriginal(fragmentNode);
+        const fragmentParent = fragmentNode.parentNode;
+        if (!original || !fragmentParent || fragmentParent instanceof DocumentFragment) {
+            return original;
+        }
+
+        return this.originalByFragmentNode.get(fragmentParent) === original.parentNode ? original : undefined;
     }
 
     /** Remembers the first and the last inserted nodes, as the nodes are inserted in document order. */

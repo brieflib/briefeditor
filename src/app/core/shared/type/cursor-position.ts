@@ -1,6 +1,7 @@
 import {getRange} from "@/core/shared/range-util";
 import {getFirstText, getLastText} from "@/core/shared/element-util";
 import {Command} from "@/core/command/type/command";
+import {getSelectedBlocks} from "@/core/selection/selection";
 import {anchorCursorOnLeaf, collapseLeaves, getLeafNodes, setLeafParents} from "@/core/normalize/util/normalize-util";
 
 export interface CursorPosition {
@@ -50,6 +51,25 @@ export function getCursorPositionFrom(startContainer: Node, startOffset: number,
         ...cursorPosition,
         range: getRangeFromCursorPosition(cursorPosition)
     };
+}
+
+/**
+ * Returns a cursor position standing around the selected blocks, so extracting it takes the blocks themselves.
+ * Undefined when no block is selected.
+ */
+export function getSelectedBlocksCursorPosition(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const blocks = getSelectedBlocks(contentEditable, cursorPosition);
+    const firstBlock = blocks.at(0);
+    const lastBlock = blocks.at(-1);
+    if (!firstBlock || !lastBlock) {
+        return;
+    }
+
+    const range = new Range();
+    range.setStartBefore(firstBlock);
+    range.setEndAfter(lastBlock);
+
+    return getCursorPositionFrom(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
 }
 
 export function getCursorPositionFromElement(element: Node, isRange = true): CursorPosition {
