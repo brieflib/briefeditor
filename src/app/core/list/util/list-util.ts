@@ -31,15 +31,15 @@ export function getListsOrderNumbers(contentEditable: HTMLElement, cursorPositio
     return orderNumbers;
 }
 
-function getStartListWrapper(listWrapper: Element) {
+function getStartListWrapper(listWrapper: HTMLElement) {
     while (listWrapper.previousElementSibling && isSchemaContain(listWrapper.previousElementSibling, [Display.ListWrapper])) {
-        listWrapper = listWrapper.previousElementSibling;
+        listWrapper = listWrapper.previousElementSibling as HTMLElement;
     }
 
     return listWrapper as HTMLElement;
 }
 
-export function countListWrapperParents(findTill: HTMLElement, element: Element) {
+export function countListWrapperParents(findTill: HTMLElement, element: HTMLElement) {
     let count = 0;
     let current = element.parentElement;
 
@@ -53,10 +53,10 @@ export function countListWrapperParents(findTill: HTMLElement, element: Element)
     return count;
 }
 
-export function getDirectChildren(li: Element, display: Display[]) {
-    const listWrappers: Element[] = [];
+export function getDirectChildren(li: HTMLElement, display: Display[]) {
+    const listWrappers: HTMLElement[] = [];
 
-    Array.from(li.children).forEach(element => {
+    (Array.from(li.children) as HTMLElement[]).forEach(element => {
         if (isSchemaContain(element, display)) {
             listWrappers.push(element);
         }
@@ -70,7 +70,7 @@ export function getDirectChildren(li: Element, display: Display[]) {
  * content {@link parseList} reads into a `ListClass`. Anything that inspects or writes onto
  * an item's line should go through this rather than stripping wrappers on its own.
  */
-export function getLine(block: Element): HTMLElement {
+export function getLine(block: HTMLElement): HTMLElement {
     const line = block.cloneNode(true) as HTMLElement;
     getDirectChildren(line, [Display.ListWrapper]).forEach(listWrapper => listWrapper.remove());
 
@@ -108,7 +108,7 @@ function getOwnChildNodes(block: Node) {
 }
 
 /** Whether a list item's line is empty. An image counts as content, the same as text does. */
-export function isListEmpty(list: Element) {
+export function isListEmpty(list: HTMLElement) {
     const line = getLine(list);
 
     return !line.textContent && !line.querySelector(imageSelector);
@@ -119,22 +119,22 @@ export function isListEmpty(list: Element) {
  * text nodes. An item standing outside any wrapper (pasted markup can hold one) still
  * counts as part of the run.
  */
-export function getNextListWrapper(wrapper: Element): Element | null {
+export function getNextListWrapper(wrapper: HTMLElement): HTMLElement | null {
     return getSiblingListWrapper(wrapper, node => node.nextSibling);
 }
 
 /** The previous list wrapper or item in the same run. See {@link getNextListWrapper}. */
-export function getPreviousListWrapper(wrapper: Element): Element | null {
+export function getPreviousListWrapper(wrapper: HTMLElement): HTMLElement | null {
     return getSiblingListWrapper(wrapper, node => node.previousSibling);
 }
 
-function getSiblingListWrapper(wrapper: Element, sibling: (node: ChildNode) => ChildNode | null): Element | null {
+function getSiblingListWrapper(wrapper: HTMLElement, sibling: (node: ChildNode) => ChildNode | null): HTMLElement | null {
     let node: ChildNode | null = sibling(wrapper);
     while (node && node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) {
         node = sibling(node);
     }
 
-    return node && isSchemaContain(node, [Display.ListWrapper, Display.List]) ? node as Element : null;
+    return node && isSchemaContain(node, [Display.ListWrapper, Display.List]) ? node as HTMLElement : null;
 }
 
 /**
@@ -147,7 +147,7 @@ export function getFirstListWrapper(rootWrapper: HTMLElement) {
         return rootWrapper;
     }
 
-    let firstWrapper: Element = rootWrapper;
+    let firstWrapper: HTMLElement = rootWrapper;
     let next = getNextListWrapper(firstWrapper);
     while (next) {
         firstWrapper = next;
@@ -166,15 +166,15 @@ export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: Doc
     const firstWrapper = getFirstListWrapper(rootWrapper);
     firstWrapper.before(listWrapper);
 
-    let current: Element | null = firstWrapper;
+    let current: HTMLElement | null = firstWrapper;
     while (current) {
-        const next: Element | null = getNextListWrapper(current);
+        const next: HTMLElement | null = getNextListWrapper(current);
         current.remove();
         current = next;
     }
 }
 
-function getListPosition(listWrapper: Element | null, list: ChildNode): number {
+function getListPosition(listWrapper: HTMLElement | null, list: ChildNode): number {
     let offset = 0;
     while (listWrapper && isSchemaContain(listWrapper, [Display.ListWrapper])) {
         const allLists = listWrapper.querySelectorAll("li");
@@ -184,7 +184,7 @@ function getListPosition(listWrapper: Element | null, list: ChildNode): number {
             }
         }
         offset += allLists.length;
-        listWrapper = listWrapper.nextElementSibling;
+        listWrapper = listWrapper.nextElementSibling as HTMLElement | null;
     }
 
     return 0;

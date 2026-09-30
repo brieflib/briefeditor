@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import {createWrapper, getFirstChild} from "@/core/shared/test-util";
+import {createWrapper, getFirstChild, selectRange} from "@/core/shared/test-util";
 import {TableCursor} from "@/core/cursor/table-cursor";
 import {getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 
@@ -19,13 +19,6 @@ function select(container: Node, offset: number) {
     const range = new Range();
     range.setStart(container, offset);
     range.setEnd(container, offset);
-    (getRange as jest.Mock).mockReturnValue(range);
-}
-
-function selectRange(startContainer: Node, startOffset: number, endContainer: Node, endOffset: number) {
-    const range = new Range();
-    range.setStart(startContainer, startOffset);
-    range.setEnd(endContainer, endOffset);
     (getRange as jest.Mock).mockReturnValue(range);
 }
 

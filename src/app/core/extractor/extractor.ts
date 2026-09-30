@@ -74,9 +74,10 @@ function splitSingleText(range: Range) {
  * Splits off the tail of the inline element.
  *
  * <p><strong><u><i>ze|ro</i>fi|rst</u></strong>second</p> turns into <p><strong><u><i>ze</i>rst</u></strong>second</p>
- * after extraction, so we cannot insert the extracted element between "ze" and "rst".
+ * after extraction, so we cannot insert the extracted element between "ze" and "rst". Method splits it to
+ * <p><strong><u><i>ze</i></u></strong><strong><u>rst</u></strong>second</p>
  */
-function splitSharedAncestor(blocks: HTMLElement[], range: Range) {
+export function splitSharedAncestor(blocks: HTMLElement[], range: Range) {
     if (blocks.length !== 1) {
         return;
     }
@@ -86,13 +87,13 @@ function splitSharedAncestor(blocks: HTMLElement[], range: Range) {
         shared = shared.parentElement;
     }
 
-    if (shared instanceof Element && isSchemaContain(shared, [Display.Inline])) {
+    if (shared instanceof HTMLElement && isSchemaContain(shared, [Display.Inline])) {
         splitAfter(shared, range.endContainer, range.endOffset);
     }
 }
 
-/** Moves the part of the element after the point into a clone placed right after the element. */
-function splitAfter(element: Element, container: Node, offset: number) {
+/** Moves the part of the element after the point into a container placed right after the element. */
+function splitAfter(element: HTMLElement, container: Node, offset: number) {
     const trailing = new Range();
     trailing.setStart(container, offset);
     trailing.setEndAfter(element);

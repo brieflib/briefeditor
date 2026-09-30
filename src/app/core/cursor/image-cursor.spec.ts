@@ -1,5 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
-import {createWrapper, getFirstChild} from "@/core/shared/test-util";
+import {createWrapper, getFirstChild, selectRange} from "@/core/shared/test-util";
 import {ImageCursor} from "@/core/cursor/image-cursor";
 import {getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 
@@ -17,13 +17,6 @@ function select(container: Node, offset: number) {
     (getRange as jest.Mock).mockReturnValue(range);
 
     return range;
-}
-
-function selectRange(startContainer: Node, startOffset: number, endContainer: Node, endOffset: number) {
-    const range = new Range();
-    range.setStart(startContainer, startOffset);
-    range.setEnd(endContainer, endOffset);
-    (getRange as jest.Mock).mockReturnValue(range);
 }
 
 function keydownEvent(key: string, options: KeyboardEventInit = {}) {
@@ -47,7 +40,7 @@ function image(wrapper: HTMLElement) {
 }
 
 /** Gives `element` a layout of `height` at `top`, since jsdom lays nothing out on its own. */
-function layout(element: Element, top: number, height: number) {
+function layout(element: HTMLElement, top: number, height: number) {
     element.getBoundingClientRect = () => new DOMRect(0, top, 100, height);
 }
 

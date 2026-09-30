@@ -39,7 +39,7 @@ export class Merger {
         const dropped = this.getDroppedOriginals(fragment);
         this.joinAbsorbedBlocks(fragment);
         const original = this.originalBlocks.at(0);
-        if (original instanceof Element) {
+        if (original instanceof HTMLElement) {
             this.mergeChildren(fragment, original);
         }
         this.removeEmptied(dropped);
@@ -164,7 +164,7 @@ export class Merger {
     private getConnectedOriginal(fragmentNode: Node) {
         const original = this.originalByFragmentNode.get(fragmentNode);
 
-        return original instanceof Element && original.isConnected ? original : undefined;
+        return original instanceof HTMLElement && original.isConnected ? original : undefined;
     }
 
     /** Checks whether the node holds the start or the end container of the cursor, where the extracted content was cut off. */

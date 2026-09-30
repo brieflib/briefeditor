@@ -84,7 +84,7 @@ export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition:
     }
     cursorPosition = mergeBlocks(contentEditable, cursorPosition, "");
     if (!previousNode.textContent) {
-        (previousNode as Element)?.remove();
+        (previousNode as HTMLElement)?.remove();
         // This removal stands after the merge above, so the lists it left side by side are
         // joined here rather than by the merge's own pass.
         return mergeLists(contentEditable, cursorPosition);
@@ -157,7 +157,7 @@ export function mergeNextBlock(contentEditable: HTMLElement, cursorPosition: Cur
     }
 
     if (!nextNode.textContent && !isSchemaContain(nextNode, [Display.SelfClose])) {
-        (nextNode as Element)?.remove();
+        (nextNode as HTMLElement)?.remove();
         return mergeLists(contentEditable, cursorPosition);
     }
 
@@ -408,8 +408,8 @@ function insertText(cursorPosition: CursorPosition, key: string): {node: Text, o
 
     const textNode = document.createTextNode(key);
     if (isSchemaContain(container, [Display.SelfClose])) {
-        (container as Element).before(textNode);
-        (container as Element).remove();
+        (container as HTMLElement).before(textNode);
+        (container as HTMLElement).remove();
     } else {
         insertNode(cursorPosition, textNode);
     }
@@ -456,7 +456,7 @@ function deleteCharacter(contentEditable: HTMLElement, cursorPosition: CursorPos
     }
 
     if (isSchemaContain(leaf, [Display.SelfClose])) {
-        (leaf as Element).remove();
+        (leaf as HTMLElement).remove();
         return addBrForEmptyBlockAndNormalize(contentEditable, cursorPosition);
     }
 

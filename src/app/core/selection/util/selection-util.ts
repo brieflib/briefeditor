@@ -7,10 +7,11 @@ export enum SelectionType {
     Root = "Root",
     Block = "Block",
     ParentElement = "ParentElement",
-    ListWrapper = "ListWrapper",
+    FirstLevel = "FirstLevel",
     Link = "Link",
     /** A block, item or cell: each holds a run of inline content of its own. */
-    InlineContainer = "InlineContainer"
+    InlineContainer = "InlineContainer",
+    ListWrapper = "ListWrapper"
 }
 
 /**
@@ -128,11 +129,11 @@ export function getSelected(findTill: HTMLElement, cursorPosition: CursorPositio
                 }
                 block = getElement(findTill, leafNode as HTMLElement, [Display.FirstLevel, Display.List, Display.Cell]);
                 break;
-            case SelectionType.ListWrapper:
+            case SelectionType.FirstLevel:
                 if (!findTill) {
                     return [];
                 }
-                block = getElement(findTill, leafNode as HTMLElement, [Display.FirstLevel, Display.ListWrapper]);
+                block = getElement(findTill, leafNode as HTMLElement, [Display.FirstLevel]);
                 break;
             case SelectionType.Link:
                 if (!findTill) {
@@ -140,8 +141,14 @@ export function getSelected(findTill: HTMLElement, cursorPosition: CursorPositio
                 }
                 block = getElement(findTill, leafNode as HTMLElement, [Display.Link]);
                 break;
+            case SelectionType.ListWrapper:
+                if (!findTill) {
+                    return [];
+                }
+                block = getElement(findTill, leafNode as HTMLElement, [Display.FirstLevel, Display.ListWrapper]);
+                break;
         }
-        if (block !== null && !selected.includes(block)) {
+        if (block && !selected.includes(block)) {
             selected.push(block);
         }
     }

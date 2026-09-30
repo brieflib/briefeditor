@@ -249,7 +249,7 @@ export function cloneRange(cursorPosition: CursorPosition) {
     }
 }
 
-export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: CursorPosition, command?: Command) {
+export function setCursorPosition(cursorPosition: CursorPosition) {
     const range: Range = getRangeFromCursorPosition(cursorPosition);
     const selection: Selection | null = window.getSelection();
     if (!selection) {
@@ -257,40 +257,16 @@ export function setCursorPosition(contentEditable: HTMLElement, cursorPosition: 
     }
     selection.removeAllRanges();
     selection.addRange(range);
-
-    scrollToViewport(contentEditable, cursorPosition, command);
 }
 
-function scrollToViewport(contentEditable: HTMLElement, cursorPosition: CursorPosition, command?: Command) {
-    if (command && command.event instanceof KeyboardEvent && command.event.key.length !== 1) {
-        return;
-    }
-
-    const element = getCursorElement(contentEditable, cursorPosition);
-    if (!element || isInViewport(element)) {
+export function scrollToViewport(cursorPosition: CursorPosition) {
+    const {startContainer} = cursorPosition;
+    const element = startContainer instanceof HTMLElement ? startContainer : startContainer.parentElement;
+    if (!element || !element.isConnected || isInViewport(element)) {
         return;
     }
 
     element.scrollIntoView({ behavior: 'auto', block: 'start' });
-}
-
-/**
- * The element the cursor sits in, or `null` when there's nowhere sensible to scroll to: the
- * editor itself (an empty block anchors the cursor on the block, not a text node, so climbing
- * to its parent can reach the editor - scrolling that in would jump to the document's start)
- * or an element an edit has left detached.
- */
-function getCursorElement(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    const container = cursorPosition.startContainer;
-    const element = container.nodeType === Node.ELEMENT_NODE
-        ? container as HTMLElement
-        : container.parentElement;
-
-    if (!element || !element.isConnected || element === contentEditable) {
-        return null;
-    }
-
-    return element;
 }
 
 function isInViewport(element: HTMLElement) {

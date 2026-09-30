@@ -1,4 +1,5 @@
 import {getRange} from "@/core/shared/range-util";
+import {AvailableClasses} from "@/core/shared/available-classes";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
@@ -10,8 +11,13 @@ jest.mock("../shared/range-util", () => ({
     })
 );
 
+beforeAll(() => {
+    const availableClasses = AvailableClasses.getInstance();
+    availableClasses.setClasses(["start", "end"]);
+});
+
 describe("Exec command with different cursor position", () => {
-    test("Should apply bold when cursor located at start", () => {
+    test("Should apply bold when cursor is located at start", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>
             <p class="end">first</p>
@@ -72,13 +78,13 @@ describe("Exec command with different cursor position", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li><strong>zero</strong>first</li>
+                <li><strong class="start">zero</strong>first</li>
                 <li>
-                    <strong>second</strong>
+                    <strong class="end">second</strong>
                 </li>
             </ul>
         `);
-        expectCursor(cursorPosition, getFirstChild(wrapper, "li > strong"), "".length, getFirstChild(wrapper, "li + li > strong"), "second".length);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "second".length);
     });
 
     test("Should change ordered list to unordered list when cursor is at start", () => {
@@ -246,7 +252,7 @@ describe("Cursor position after Tag command", () => {
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
-             <p>z<strong>erofirst</strong>second</p>
+             <p class="start">z<strong>erofirst</strong>second</p>
         `);
 
         // The selection opens on the boundary between the paragraph's own text and the tag the wrap wrote,
@@ -278,9 +284,9 @@ describe("Cursor position after Tag command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>zero</li>
+                <li class="start">zero</li>
                 <li>first</li>
-                <li>sec<strong>ond</strong></li>
+                <li class="end">sec<strong>ond</strong></li>
             </ul>
         `)
 
@@ -312,14 +318,14 @@ describe("Cursor position after Tag command", () => {
     `;
     const mixedListWrapped = `
         <ul>
-            <li><strong>first</strong>
+            <li class="start"><strong>first</strong>
                 <ol>
                     <li><strong>second</strong>
                         <ul>
                             <li><strong>third</strong></li>
                         </ul>
                     </li>
-                    <li><strong>fourth</strong></li>
+                    <li class="end"><strong>fourth</strong></li>
                 </ol>
             </li>
         </ul>
@@ -369,14 +375,14 @@ describe("Cursor position after Tag command", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>first
+                <li class="start">first
                     <ol>
                         <li>second
                             <ul>
                                 <li>third</li>
                             </ul>
                         </li>
-                        <li>fourth</li>
+                        <li class="end">fourth</li>
                     </ol>
                 </li>
             </ul>
@@ -1091,7 +1097,10 @@ describe("Image command", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        const cursorPosition = execCommand(wrapper, {
+            action: Action.Image,
+            attributes: {image: new Blob(["image"], {type: "image/png"})}
+        });
         // The image lands only once its file is read, so the cursor handed back is still the empty line's.
         expectCursor(cursorPosition, wrapper.querySelector(".start br"), 0);
         await waitForImage(wrapper);
@@ -1113,7 +1122,10 @@ describe("Image command", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        const cursorPosition = execCommand(wrapper, {
+            action: Action.Image,
+            attributes: {image: new Blob(["image"], {type: "image/png"})}
+        });
         await waitForImage(wrapper);
 
         const paragraphs = wrapper.querySelectorAll("p");
@@ -1133,7 +1145,10 @@ describe("Image command", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = execCommand(wrapper, {action: Action.Image, attributes: {image: new Blob(["image"], {type: "image/png"})}});
+        const cursorPosition = execCommand(wrapper, {
+            action: Action.Image,
+            attributes: {image: new Blob(["image"], {type: "image/png"})}
+        });
         await waitForImage(wrapper);
 
         const paragraphs = wrapper.querySelectorAll("p");
@@ -1676,7 +1691,7 @@ describe("Insert table command", () => {
 // pinned here is that decision: whether the command writes a selection at all.
 describe("Click command", () => {
     // The carrier is static, so a test that leaves one behind would follow the next one into its first command.
-    beforeEach(() => Carrier.removeCarrier());
+    beforeEach(() => Carrier.getInstance().removeCarrier());
 
     function stubSelection() {
         const selection = {removeAllRanges: jest.fn(), addRange: jest.fn()} as unknown as Selection;
@@ -1730,8 +1745,8 @@ describe("Click command", () => {
         select(wrapper, "strong", "ze".length, "ze".length);
         const split = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
         selectCursor(split);
-        expect(Carrier.isCarrierExist()).toBe(true);
-        expectCursor(split, Carrier.getCarrier(), 0);
+        expect(Carrier.getInstance().isCarrierExist()).toBe(true);
+        expectCursor(split, Carrier.getInstance().getCarrier(), 0);
 
         const selection = stubSelection();
         const focus = jest.spyOn(wrapper, "focus");
@@ -1746,7 +1761,7 @@ describe("Click command", () => {
         expect(selection.removeAllRanges).toHaveBeenCalled();
         expect(selection.addRange).toHaveBeenCalled();
         expect(focus).toHaveBeenCalled();
-        expect(Carrier.isCarrierExist()).toBe(false);
+        expect(Carrier.getInstance().isCarrierExist()).toBe(false);
         expectHtml(wrapper.innerHTML, `<p><strong>zero</strong></p>`);
         expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "ze".length);
     });
@@ -2032,7 +2047,11 @@ describe("Modify class command", () => {
         select(wrapper, ".text");
         const element = wrapper.querySelector(".be-image") as HTMLElement;
 
-        const cursorPosition = execCommand(wrapper, {action: Action.ModifyClass, element, classes: {toggle: ["be-image-medium"]}});
+        const cursorPosition = execCommand(wrapper, {
+            action: Action.ModifyClass,
+            element,
+            classes: {toggle: ["be-image-medium"]}
+        });
 
         expectHtml(wrapper.innerHTML, `<p class="text">text</p><p class="be-image be-image-medium"><img src="image.png"></p>`);
         expectCursor(cursorPosition, getFirstChild(wrapper, ".text"), "".length);
@@ -2129,7 +2148,10 @@ describe("Cursor position after a paste command", () => {
         const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end">one</li><li>two</li></ul>`);
         selectItems(wrapper);
 
-        const cursorPosition = execCommand(wrapper, {action: Action.Clipboard, event: pasteEvent(`<p>fourth</p><img src="x">`)});
+        const cursorPosition = execCommand(wrapper, {
+            action: Action.Clipboard,
+            event: pasteEvent(`<p>fourth</p><img src="x">`)
+        });
 
         expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul><p class="be-image"><img src="x"></p><ul><li>two</li></ul>`);
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "ul:last-child li"));
@@ -2145,8 +2167,10 @@ describe("Cursor position after a paste command", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        const cursorPosition = execCommand(wrapper, {action: Action.Clipboard,
-            event: pasteEvent(`<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody><tr><td>c</td><td>d</td></tr></tbody></table>`)});
+        const cursorPosition = execCommand(wrapper, {
+            action: Action.Clipboard,
+            event: pasteEvent(`<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody><tr><td>c</td><td>d</td></tr></tbody></table>`)
+        });
 
         expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "th"));
         expect(cursorPosition.startOffset).toBe(0);

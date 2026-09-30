@@ -55,10 +55,10 @@ export function conformLines(body: HTMLElement, line: HTMLElement | undefined) {
  * a table never nests in a list. An image block arrives lifted already, by `wrapImages`.
  */
 export function hoistBlocks(root: HTMLElement) {
-    root.querySelectorAll(blockSelector).forEach(block => hoist(root, block));
+    root.querySelectorAll<HTMLElement>(blockSelector).forEach(block => hoist(root, block));
 }
 
-function hoist(root: HTMLElement, block: Element) {
+function hoist(root: HTMLElement, block: HTMLElement) {
     const stopAt = isSchemaContain(block, [Display.Table]) ? [] : [Display.List, Display.Cell];
 
     let parent = block.parentElement;
@@ -133,7 +133,7 @@ function renameLines(body: HTMLElement, tag: string) {
  * the blank it is.
  */
 function foldLines(body: HTMLElement) {
-    let run: Element[] = [];
+    let run: HTMLElement[] = [];
     const fold = () => {
         const first = run[0];
         if (first && run.length > 1) {
@@ -154,7 +154,7 @@ function foldLines(body: HTMLElement) {
 
     for (const child of Array.from(body.childNodes)) {
         if (isSchemaContain(child, [Display.Line]) && !isImageBlock(child)) {
-            run.push(child as Element);
+            run.push(child as HTMLElement);
         } else if (isContent(child)) {
             // A list, a table or an image block divides the run; the whitespace between blocks doesn't.
             fold();

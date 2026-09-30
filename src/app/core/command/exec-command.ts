@@ -1,35 +1,27 @@
 import {Action, Command} from "@/core/command/type/command";
+import {applyAttributes, isElementsEqualToTags, removeBlock, tag} from "@/core/command/util/command-util";
 import {
-    applyAttributes,
-    changeBlock,
-    isElementsEqualToTags,
-    isListWrapper,
-    removeBlock,
-    tag
-} from "@/core/command/util/command-util";
-import {
-    getFirstSelectedRoot,
-    getSelectedBlock, getSelectedBlocks,
+    getFirstSelectedRoot, getListWrappers,
+    getSelectedBlock,
+    getSelectedBlocks,
     getSelectedLink,
     getSelectedSharedTags,
     selectElement
 } from "@/core/selection/selection";
-import {changeListWrapper, minusIndent, plusIndent} from "@/core/list/list";
+import {minusIndent, plusIndent} from "@/core/list/list";
 import {
     createImageBlock,
-    ensureParagraph,
     getElementByTagName,
     getRootElement,
     insertBetweenBlocks,
     isImageBlock
 } from "@/core/shared/element-util";
 import {
-    cloneRange,
     CursorPosition,
     getCursorPosition,
-    getCursorPositionFrom,
     isCollapsed,
     isRangeIn,
+    scrollToViewport,
     setCursorPosition
 } from "@/core/shared/type/cursor-position";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
@@ -37,38 +29,23 @@ import {CommandEvent} from "@/core/history/type/history-event";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {handleClipboardEvent, handleCutEvent} from "@/core/clipboard/clipboard";
 import {Carrier} from "@/core/carrier/carrier";
-import {Normalizer, removeAndNormalize} from "@/core/normalize/normalize";
+import {Normalizer} from "@/core/normalize/normalize";
 import {getCell, getCellCursorPosition, insertTable, isTableEmpty} from "@/core/command/util/table-util";
 import {
     atStart,
-    CursorAnchor,
     escapeImageBlock,
     getCursorAnchor,
     isCursorInTable,
-    restoreCursorPosition
+    resolveCursorAnchor
 } from "@/core/cursor/util/cursor-util";
 
 /**
  * Applies an editor command and returns the resulting cursor position, wrapping the work
- * in `CommandEvent.Start`/`End` so history can record it as a single undo step.
+ * in `CommandEvent.HistoryStart`/`HistoryEnd` so history can record it as a single undo step.
  */
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
-    contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
-    let cursorPosition = getCursorPosition();
-
-    // A click is the one command the browser places itself, only once the event is over, so
-    // writing this cursor back now would just hand back the old selection. The exception is a
-    // click dropping a carrier: it rebuilds the block itself and suppresses the browser's
-    // placement, so it must name the cursor in the rebuilt block on its own. Read before the
-    // carrier is dropped. An attribute typed into a field outside the editor (the image caption)
-    // is left alone too: taking the focus back would end the typing at the first letter.
-    const isCursorLeftAlone = (command.action === Action.Click && !Carrier.isCarrierExist()) ||
-        isTypedOutside(command);
-
-    // Read before anything moves: every command below rebuilds the blocks it touches, so the
-    // cursor is anchored as a text offset (which the rebuild can't invalidate) rather than a
-    // node pair.
-    const cursorAnchor = getCursorAnchor(contentEditable, cursorPosition);
+    contentEditable.dispatchEvent(new CustomEvent(CommandEvent.HistoryStart));
+    const cursorAnchor = getCursorAnchor(contentEditable);
 
     switch (command.action)  {
         case Action.Attribute:
@@ -78,14 +55,14 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             applyImageCommand(contentEditable, command);
             break;
         case Action.Link:
-            cursorPosition = applyLinkCommand(contentEditable, command);
+            applyLinkCommand(contentEditable, command);
             break;
         case Action.Tag:
             applyTagCommand(contentEditable, command);
-            cursorPosition = getCursorPosition();
+            getCursorPosition();
             break;
         case Action.Unwrap:
-            cursorPosition = applyUnwrapCommand(contentEditable, command);
+            applyUnwrapCommand(contentEditable, command);
             break;
         case Action.FirstLevel:
             applyFirstLevelCommand(contentEditable, command);
@@ -94,70 +71,59 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             applyListCommand(contentEditable, command);
             break;
         case Action.PlusIndent:
-            cursorPosition = plusIndent(contentEditable);
+            plusIndent(contentEditable);
             break;
         case Action.MinusIndent:
-            cursorPosition = minusIndent(contentEditable);
+            minusIndent(contentEditable);
             break;
         case Action.Keyboard:
-            cursorPosition = handleKeyboardEvent(contentEditable, command.event as KeyboardEvent, cursorPosition);
-            cursorPosition = removeCarrier(contentEditable, cursorPosition);
+            if (command.event instanceof KeyboardEvent) {
+                handleKeyboardEvent(contentEditable, command.event as KeyboardEvent);
+                Carrier.getInstance().removeCarrier();
+            }
             break;
         case Action.Clipboard:
-            cursorPosition = handleClipboardEvent(contentEditable, command.event as ClipboardEvent);
+            handleClipboardEvent(contentEditable, command.event as ClipboardEvent);
             break;
         case Action.Cut:
-            cursorPosition = handleCutEvent(contentEditable, command.event as ClipboardEvent);
+            handleCutEvent(contentEditable, command.event as ClipboardEvent);
             break;
         case Action.InsertTable:
-            cursorPosition = applyInsertTableCommand(contentEditable, command, cursorPosition);
+            applyInsertTableCommand(contentEditable, command);
             break;
         case Action.InsertRow:
-            cursorPosition = applyInsertRowCommand(command, cursorPosition);
+            applyInsertRowCommand(command);
             break;
         case Action.InsertColumn:
-            cursorPosition = applyInsertColumnCommand(command, cursorPosition);
+            applyInsertColumnCommand(command);
             break;
         case Action.DeleteRow:
-            cursorPosition = applyDeleteRowCommand(contentEditable, command, cursorPosition);
+            applyDeleteRowCommand(contentEditable, command);
             break;
         case Action.DeleteColumn:
-            cursorPosition = applyDeleteColumnCommand(contentEditable, command, cursorPosition);
+            applyDeleteColumnCommand(contentEditable, command);
             break;
         case Action.DeleteImage:
-            cursorPosition = applyDeleteImageCommand(contentEditable, command, cursorPosition);
+            applyDeleteImageCommand(contentEditable, command);
             break;
         case Action.ModifyClass:
             applyModifyClassCommand(contentEditable, command);
             break;
         case Action.Click:
-            cursorPosition = removeCarrier(contentEditable, cursorPosition, command.event as MouseEvent);
+            if (command.event instanceof MouseEvent) {
+                Carrier.getInstance().removeCarrier(command.event);
+            }
             break;
     }
 
-    if (command.action !== Action.Attribute && command.tag) {
-        applyAttributesCommand(contentEditable, command);
+    let cursorPosition = getCursorPosition();
+    if (isCursorRestorable(command)) {
+        cursorPosition = resolveCursorAnchor(contentEditable, cursorAnchor);
+        setCursorPosition(cursorPosition);
     }
 
-    // Restore from the anchor rather than the nodes the command carried through the rebuild:
-    // a node surviving a write is no proof its offset still means what it did, since a text
-    // leaf can keep its identity while the text around it moves into other nodes.
-    if (isCursorRestorable(command, cursorAnchor)) {
-        cursorPosition = restoreCursorPosition(contentEditable, cursorAnchor, cursorPosition);
-    }
-
-    // Runs after every command, so the editor is guaranteed a paragraph however the last block left it.
-    cursorPosition = ensureParagraph(contentEditable, cursorPosition);
-    // Same for an image block: whatever a command left the cursor on, it never rests in one.
-    cursorPosition = escapeImageBlock(contentEditable, cursorPosition);
-
-    if (!isCursorLeftAlone) {
-        setCursorPosition(contentEditable, cursorPosition, command);
-        // Toolbar commands take focus away from the editor, so it must be reclaimed; the
-        // cursor above already settles where it belongs on screen.
-        contentEditable.focus({preventScroll: true});
-    }
-    contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
+    scrollToViewport(cursorPosition);
+    contentEditable.dispatchEvent(new CustomEvent(CommandEvent.HistoryEnd));
     return cursorPosition;
 }
 
@@ -169,7 +135,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
  * writing text, so the old offset no longer points to the right place) and a collapsed
  * Delete (removes the text after the caret, which the anchor would read as text before it).
  */
-function isCursorRestorable(command: Command, cursorAnchor: CursorAnchor) {
+function isCursorRestorable(command: Command) {
     if (isTypedOutside(command)) {
         return false;
     }
@@ -187,8 +153,11 @@ function isCursorRestorable(command: Command, cursorAnchor: CursorAnchor) {
         case Action.ModifyClass:
             return false;
         case Action.Keyboard: {
-            const key = (command.event as KeyboardEvent).key;
-            return key !== "Enter" && !(key === "Delete" && cursorAnchor.length === 0);
+            if (command.event instanceof KeyboardEvent) {
+                const key = command.event.key;
+                return key !== "Enter" && key !== "Delete";
+            }
+            return false;
         }
         default:
             return true;
@@ -227,13 +196,13 @@ function applyImageCommand(contentEditable: HTMLElement, command: Command, ) {
             if (isRangeIn(contentEditable, cursorPosition) && !isCursorInTable(contentEditable, cursorPosition)) {
                 // The file loads after the command that asked for it ends, so this needs
                 // its own recording window - otherwise history never sees the image.
-                contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Start));
+                contentEditable.dispatchEvent(new CustomEvent(CommandEvent.HistoryStart));
                 const root = getFirstSelectedRoot(contentEditable, cursorPosition);
                 insertBetweenBlocks(contentEditable, root, cursorPosition, paragraph);
                 // The cursor never rests in the image block: it goes to the line after it,
                 // which is opened for it when the image closes the document.
-                setCursorPosition(contentEditable, escapeImageBlock(contentEditable, atStart(paragraph)));
-                contentEditable.dispatchEvent(new CustomEvent(CommandEvent.End));
+                setCursorPosition(escapeImageBlock(contentEditable, atStart(paragraph)));
+                contentEditable.dispatchEvent(new CustomEvent(CommandEvent.HistoryEnd));
             }
         };
 
@@ -306,45 +275,26 @@ function applyFirstLevelCommand(contentEditable: HTMLElement, command: Command) 
     }
 
     const normalizer = new Normalizer(contentEditable);
-    normalizer.replaceBlockTags(tags, false);
+    normalizer.replaceBlockTags(tags);
 }
 
 function applyListCommand(contentEditable: HTMLElement, command: Command) {
     const tagName = (command.tag as string).toUpperCase();
     // The selection already stands in a list and is asked for the other type, which is a change to the
     // list itself rather than to the blocks the selection holds.
-    if (isListWrapper(contentEditable) && !getSelectedSharedTags(contentEditable).includes(tagName)) {
-        return changeListWrapper(contentEditable, tagName);
-    }
+    // if (!getSelectedSharedTags(contentEditable).includes(tagName)) {
+    //     return changeListWrapper(contentEditable, tagName);
+    // }
 
-    const blockElements = getSelectedBlock(contentEditable);
+    const blockElements = getListWrappers(contentEditable);
     let tags = [tagName, "LI"];
     const isParagraph = isElementsEqualToTags(blockElements, tags);
     if (isParagraph) {
         tags = ["P"];
     }
 
-    changeBlock(contentEditable, tags);
-}
-
-/**
- * Removes an active carrier, if any, collapsing its root back into a rebuilt clone and
- * remapping `cursorPosition` onto the rebuilt nodes (otherwise it would point at a text node
- * the collapse discarded). The click's default action is suppressed too, since by then its
- * target is detached and the browser would otherwise follow the clicked link instead.
- */
-function removeCarrier(contentEditable: HTMLElement, cursorPosition: CursorPosition, event?: MouseEvent): CursorPosition {
-    const carrier = Carrier.getCarrier();
-    if (!carrier) {
-        return cursorPosition;
-    }
-
-    event?.preventDefault();
-    contentEditable.dispatchEvent(new CustomEvent(CommandEvent.Carrier));
-    Carrier.removeCarrier();
-    const rootElement = getFirstSelectedRoot(contentEditable, getCursorPositionFrom(carrier, 0, carrier, 0));
-
-    return removeAndNormalize(contentEditable, rootElement, [], cloneRange(cursorPosition));
+    const normalizer = new Normalizer(contentEditable);
+    normalizer.replaceBlockTags(tags);
 }
 
 /**
@@ -352,7 +302,7 @@ function removeCarrier(contentEditable: HTMLElement, cursorPosition: CursorPosit
  * size picker takes focus away). Dropped if the cursor is already inside a cell - a table
  * can't nest there.
  */
-function applyInsertTableCommand(contentEditable: HTMLElement, command: Command, cursorPosition: CursorPosition): CursorPosition {
+function applyInsertTableCommand(contentEditable: HTMLElement, command: Command, cursorPosition = getCursorPosition()): CursorPosition {
     const size = command.size;
     if (!size || !isRangeIn(contentEditable, cursorPosition)) {
         return cursorPosition;
@@ -372,7 +322,7 @@ function applyInsertTableCommand(contentEditable: HTMLElement, command: Command,
  * (and the other table-edit commands below) names the cell the cursor should end up in and
  * leaves the caller to restore it there.
  */
-function applyInsertRowCommand(command: Command, cursorPosition: CursorPosition): CursorPosition {
+function applyInsertRowCommand(command: Command, cursorPosition = getCursorPosition()): CursorPosition {
     const target = command.table;
     if (!target) {
         return cursorPosition;
@@ -405,7 +355,7 @@ function applyInsertRowCommand(command: Command, cursorPosition: CursorPosition)
     return getCellCursorPosition(newRow.cells[columnIndex], cursorPosition);
 }
 
-function applyInsertColumnCommand(command: Command, cursorPosition: CursorPosition): CursorPosition {
+function applyInsertColumnCommand(command: Command, cursorPosition = getCursorPosition()): CursorPosition {
     const target = command.table;
     if (!target) {
         return cursorPosition;
@@ -434,7 +384,7 @@ function applyInsertColumnCommand(command: Command, cursorPosition: CursorPositi
     return getCellCursorPosition(insertedCell, cursorPosition);
 }
 
-function applyDeleteRowCommand(contentEditable: HTMLElement, command: Command, cursorPosition: CursorPosition): CursorPosition {
+function applyDeleteRowCommand(contentEditable: HTMLElement, command: Command, cursorPosition = getCursorPosition()): CursorPosition {
     const target = command.table;
     if (!target) {
         return cursorPosition;
@@ -461,7 +411,7 @@ function applyDeleteRowCommand(contentEditable: HTMLElement, command: Command, c
     return getCellCursorPosition(getCell(table, rowIndex, columnIndex), cursorPosition);
 }
 
-function applyDeleteColumnCommand(contentEditable: HTMLElement, command: Command, cursorPosition: CursorPosition): CursorPosition {
+function applyDeleteColumnCommand(contentEditable: HTMLElement, command: Command, cursorPosition = getCursorPosition()): CursorPosition {
     const target = command.table;
     if (!target) {
         return cursorPosition;
@@ -487,7 +437,7 @@ function applyDeleteColumnCommand(contentEditable: HTMLElement, command: Command
 }
 
 /** Removes the image block the command's image stands in; anything else is left as it is. */
-function applyDeleteImageCommand(contentEditable: HTMLElement, command: Command, cursorPosition: CursorPosition): CursorPosition {
+function applyDeleteImageCommand(contentEditable: HTMLElement, command: Command, cursorPosition = getCursorPosition()): CursorPosition {
     const image = command.image;
     if (!image || !contentEditable.contains(image)) {
         return cursorPosition;

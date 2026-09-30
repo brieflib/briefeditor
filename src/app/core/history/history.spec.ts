@@ -54,7 +54,7 @@ describe("History undo/redo", () => {
     // Commands run back to back within the same millisecond, so the clock is the test's to move.
     beforeEach(() => {
         jest.useFakeTimers();
-        Carrier.removeCarrier();
+        Carrier.getInstance().removeCarrier();
     });
     afterEach(() => jest.useRealTimers());
 
@@ -684,7 +684,7 @@ describe("History undo/redo", () => {
 describe("History grouping", () => {
     beforeEach(() => {
         jest.useFakeTimers();
-        Carrier.removeCarrier();
+        Carrier.getInstance().removeCarrier();
     });
     afterEach(() => jest.useRealTimers());
 
@@ -861,7 +861,7 @@ describe("History grouping", () => {
 describe("History stack state", () => {
     beforeEach(() => {
         jest.useFakeTimers();
-        Carrier.removeCarrier();
+        Carrier.getInstance().removeCarrier();
     });
     afterEach(() => jest.useRealTimers());
 

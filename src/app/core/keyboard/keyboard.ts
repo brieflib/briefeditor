@@ -1,16 +1,17 @@
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
 import {isCursorInTable} from "@/core/cursor/util/cursor-util";
 import {
-    newLine,
+    deleteNextCharacter,
+    deletePreviousCharacter,
+    deleteSelection,
+    insertBreak,
+    insertCharacter,
+    isPrintableKey,
     isSpecialKey,
     mergeBlocks,
     mergeNextBlock,
-    mergePreviousBlock, insertBreak,
-    deleteSelection,
-    deleteNextCharacter,
-    deletePreviousCharacter,
-    insertCharacter,
-    isPrintableKey
+    mergePreviousBlock,
+    newLine
 } from "@/core/keyboard/util/keyboard-util";
 import {
     CursorPosition,
@@ -40,7 +41,7 @@ export function handleKeyboardEvent(contentEditable: HTMLElement, event: Keyboar
         // one more empty item. A break belongs inside the item and keeps to its own behaviour.
         if (!event.shiftKey && isCursorInEmptyList(contentEditable, cursorPosition)) {
             cursorPosition = exitList(contentEditable, cursorPosition);
-            setCursorPosition(contentEditable, cursorPosition);
+            setCursorPosition(cursorPosition);
             return cursorPosition;
         }
 
@@ -51,12 +52,12 @@ export function handleKeyboardEvent(contentEditable: HTMLElement, event: Keyboar
 
         if (isSchemaContain(breakCursorPosition.startContainer, [Display.SelfClose]) &&
             isSchemaContain(breakCursorPosition.endContainer, [Display.SelfClose])) {
-            setCursorPosition(contentEditable, breakCursorPosition);
+            setCursorPosition(breakCursorPosition);
             return breakCursorPosition;
         }
 
         breakCursorPosition = normalize(contentEditable, cursorPosition, breakCursorPosition);
-        setCursorPosition(contentEditable, breakCursorPosition);
+        setCursorPosition(breakCursorPosition);
         return breakCursorPosition;
     }
 
@@ -67,21 +68,21 @@ export function handleKeyboardEvent(contentEditable: HTMLElement, event: Keyboar
             key = "";
         }
         cursorPosition = mergeBlocks(contentEditable, cursorPosition, key);
-        setCursorPosition(contentEditable, cursorPosition);
+        setCursorPosition(cursorPosition);
         return cursorPosition;
     }
 
     if (event.key === "Delete" && isCursorAtEndOfBlock(contentEditable)) {
         event.preventDefault();
         cursorPosition = mergeNextBlock(contentEditable, cursorPosition);
-        setCursorPosition(contentEditable, cursorPosition);
+        setCursorPosition(cursorPosition);
         return cursorPosition;
     }
 
     if (event.key === "Backspace" && isCursorAtStartOfBlock(contentEditable)) {
         event.preventDefault();
         cursorPosition = mergePreviousBlock(contentEditable, cursorPosition);
-        setCursorPosition(contentEditable, cursorPosition);
+        setCursorPosition(cursorPosition);
         return cursorPosition;
     }
 
@@ -94,14 +95,14 @@ export function handleKeyboardEvent(contentEditable: HTMLElement, event: Keyboar
                 ? deletePreviousCharacter(contentEditable, cursorPosition)
                 : deleteNextCharacter(contentEditable, cursorPosition);
         }
-        setCursorPosition(contentEditable, cursorPosition);
+        setCursorPosition(cursorPosition);
         return cursorPosition;
     }
 
     if (isPrintableKey(event)) {
         event.preventDefault();
         cursorPosition = insertCharacter(contentEditable, cursorPosition, event.key);
-        setCursorPosition(contentEditable, cursorPosition);
+        setCursorPosition(cursorPosition);
         return cursorPosition;
     }
 

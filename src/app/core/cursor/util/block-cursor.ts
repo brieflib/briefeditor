@@ -5,7 +5,7 @@ import {getRootElement} from "@/core/shared/element-util";
 /** The cursor's first-level root and the block beside it in a move's direction. */
 export interface Neighbour {
     root: HTMLElement;
-    sibling: Element | null;
+    sibling: HTMLElement | null;
 }
 
 /**
@@ -101,7 +101,7 @@ export abstract class BlockCursor {
             return null;
         }
 
-        return {root, sibling: isBefore ? root.previousElementSibling : root.nextElementSibling};
+        return {root, sibling: (isBefore ? root.previousElementSibling : root.nextElementSibling) as HTMLElement | null};
     }
 
     /**
@@ -130,7 +130,7 @@ function isPlainClick(event: MouseEvent) {
 }
 
 function applyCursor(contentEditable: HTMLElement, target: CursorPosition) {
-    setCursorPosition(contentEditable, target);
+    setCursorPosition(target);
 
     return target;
 }

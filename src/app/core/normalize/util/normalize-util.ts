@@ -1,11 +1,19 @@
 import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
-import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {Display, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
-import {hasSelfCloseDescendant, imageBlockClass, imageSizeClasses} from "@/core/shared/element-util";
+import {
+    getBlockElement,
+    getFirstText,
+    getLastText,
+    hasSelfCloseDescendant,
+    imageBlockClass,
+    imageSizeClasses
+} from "@/core/shared/element-util";
 import {Carrier} from "@/core/carrier/carrier";
 import {Attributes} from "@/core/command/type/command";
 import {applyAttributes} from "@/core/command/util/command-util";
+import {AvailableClasses} from "@/core/shared/available-classes";
 
 /**
  * Rebuilds a detached fragment into the schema: every leaf is read with the tags that stood
@@ -19,6 +27,7 @@ export function normalizeNew(contentEditable: Node,
                              toNormalize: DocumentFragment) {
     const leaves = getTextNodes(toNormalize)
         .map(textNode => toLeafWithParents(contentEditable, textNode))
+        .map(leaf => divideFirstLevels(leaf))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeSelfCloseInlines(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
@@ -40,29 +49,46 @@ export function normalizeRemoveNew(contentEditable: Node,
 }
 
 /**
- * Rebuilds a detached fragment into the schema, replacing the leaves' `sourceTags` parents with `tagsToReplace`.
- * With `isClosest` only the closest source parent is replaced, otherwise all are dropped for the most distant one.
+ * Rebuilds a detached fragment into the schema, replacing the selected `blocks`, list items or lines, with
+ * `targetTags`. A line the replacement left in a list is divided out of it.
  */
 export function normalizeReplaceBlockNew(contentEditable: Node,
                                          toNormalize: DocumentFragment,
-                                         sourceTags: string[],
-                                         targetTags: string[],
-                                         isClosest: boolean) {
-    // Leaves under the same source element share its replacement, so they collapse into one block again
+                                         blocks: Node[],
+                                         targetTags: string[]) {
+    // Leaves under the same block share its replacement, so they collapse into one block again
     const replacements = new Map<Node, HTMLElement[]>();
     const leaves = getTextNodes(toNormalize)
         .map(textNode => toLeafWithParents(contentEditable, textNode))
-        .map(leaf => replaceLeafParentsNew(sourceTags, targetTags, replacements, leaf, isClosest))
+        .map(leaf => replaceLeafParentsNew(blocks, targetTags, replacements, leaf))
+        .map(leaf => divideFirstLevels(leaf))
         .map(leaf => sortLeafParents(leaf))
-        .map(leaf => removeSelfCloseInlines(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
     return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
 }
 
+/**
+ * Rebuilds the block holding the carrier, dropping `tagsToRemove` from the carrier's parents only. Self-closing
+ * leaves keep their inline tags, so an empty line like <strong><br></strong> stays as it is.
+ */
+export function normalizeCarrierNew(contentEditable: Node,
+                                    toNormalize: DocumentFragment,
+                                    carrierText: Text,
+                                    tagsToRemove: string[]) {
+    const leaves = getTextNodes(toNormalize)
+        .map(textNode => toLeafWithParents(contentEditable, textNode))
+        .map(leaf => leaf.getParents().at(-1) === carrierText ? filterLeafParentsNew(tagsToRemove, leaf) : leaf)
+        .map(leaf => sortLeafParents(leaf))
+        .map(leaf => removeConsecutiveDuplicates(leaf));
+
+    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+}
+
+
 /** Collects the text nodes and the empty elements, such as an empty cell, which have no text node to stand for them. */
 export function getTextNodes(element: Node, textNodes: Node[] = []) {
-    if (element instanceof Text && element.data) {
+    if (element instanceof Text && (element.data || element === Carrier.getInstance().getCarrier())) {
         textNodes.push(element);
     }
 
@@ -80,6 +106,23 @@ export function getTextNodes(element: Node, textNodes: Node[] = []) {
     }
 
     return textNodes;
+}
+
+export function maybeInsertCarrier(contentEditable: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
+    const carrier = Carrier.getInstance();
+    const firstTag = tags.at(0);
+    if (firstTag && tags.length === 1 && carrier.isInsertAllowed(cursorPosition)) {
+        carrier.insertCarrier(cursorPosition, firstTag);
+        const carrierText = carrier.getCarrier();
+        if (carrierText instanceof Text) {
+            const range = new Range();
+            range.selectNodeContents(getBlockElement(contentEditable, carrierText));
+            range.insertNode(normalizeCarrierNew(contentEditable, range.extractContents(), carrierText, tags));
+        }
+        return true;
+    }
+
+    return false;
 }
 
 export function toLeafWithParents(findTill: Node, leafNode: Node, leaf: Leaf = new Leaf()) {
@@ -106,37 +149,61 @@ export function filterLeafParentsNew(tagsToRemove: string[], leaf: Leaf) {
 }
 
 /**
- * Replaces the leaf's `sourceTags` parents with `tagsToReplace` elements. Either the closest one only, or all of
- * them at once standing where the most distant one was.
+ * Replaces the leaf's closest selected block with `tagsToReplace` elements. A leaf outside the selected blocks is
+ * left as is.
  */
-export function replaceLeafParentsNew(sourceTags: string[],
+export function replaceLeafParentsNew(blocks: Node[],
                                       tagsToReplace: string[],
                                       replacements: Map<Node, HTMLElement[]>,
-                                      leaf: Leaf,
-                                      isClosest: boolean) {
+                                      leaf: Leaf) {
     const parents = leaf.getParents();
-    const sources = parents.filter(parent => sourceTags.includes(parent.nodeName));
-    // Parents go from the most distant one to the leaf itself
-    const closest = sources.at(-1);
-    const source = isClosest ? closest : sources.at(0);
-    if (!source || !closest) {
+    // Parents go from the most distant one to the leaf itself, so the last selected one is the closest
+    const blockIndex = parents.findLastIndex(parent => blocks.includes(parent));
+    const block = parents[blockIndex];
+    if (!block) {
         return leaf;
     }
 
-    // Keyed by the closest source, so every list item becomes a block of its own
-    const replacement = getReplacement(replacements, closest, tagsToReplace);
-    const replacedParents = parents.flatMap<Node>(parent => {
-        if (parent === source) {
-            return replacement;
-        }
+    const {start, end} = getReplacedRange(parents, blockIndex, tagsToReplace);
+    // Keyed by the block, so every list item or line becomes a block of its own
+    const replacement = getReplacement(replacements, block, tagsToReplace);
+    leaf.setParents([...parents.slice(0, start), ...replacement, ...parents.slice(end)]);
 
-        if (!isClosest && sources.includes(parent)) {
-            return [];
-        }
+    return leaf;
+}
 
-        return parent;
-    });
-    leaf.setParents(replacedParents);
+/**
+ * Returns the parents the replacement takes the place of: the closest wrapper of the item for a lone wrapper, the
+ * item with its wrapper for anything else, or the line itself.
+ */
+function getReplacedRange(parents: Node[], blockIndex: number, tagsToReplace: string[]) {
+    const hasWrapper = isSchemaContain(parents[blockIndex - 1], [Display.ListWrapper]);
+    if (!hasWrapper) {
+        return {start: blockIndex, end: blockIndex + 1};
+    }
+
+    const isWrapperOnly = tagsToReplace.length === 1 && isSchemaContainNodeName(tagsToReplace[0], [Display.ListWrapper]);
+    if (isWrapperOnly) {
+        return {start: blockIndex - 1, end: blockIndex};
+    }
+
+    return {start: blockIndex - 1, end: blockIndex + 1};
+}
+
+/**
+ * Keeps the parents from the leaf's closest first level on when a line stands among several first levels. A line
+ * can't hold or be held by another first level, while lists nested in list items stay as they are.
+ */
+export function divideFirstLevels(leaf: Leaf) {
+    const parents = leaf.getParents();
+    const firstLevels = parents.filter(parent => isSchemaContain(parent, [Display.FirstLevel]));
+    const hasLine = firstLevels.some(parent => isSchemaContain(parent, [Display.Line]));
+    const closest = firstLevels.at(-1);
+    if (!hasLine || firstLevels.length < 2 || !closest) {
+        return leaf;
+    }
+
+    leaf.setParents(parents.slice(parents.indexOf(closest)));
 
     return leaf;
 }
@@ -213,7 +280,7 @@ function clearNode(node: Node | undefined) {
 
 /** Drops every attribute but a link's href and the editor's own classes (the image block mark and sizes); any other class goes. */
 function removeAttributesNew(element: HTMLElement) {
-    const kept = ["be-image"].filter((name) => element.classList.contains(name));
+    const kept = AvailableClasses.getInstance().getClasses().filter((name) => element.classList.contains(name));
     for (const name of element.getAttributeNames()) {
         if (name === "href" || name === "src") {
             continue;
@@ -229,7 +296,7 @@ function removeAttributesNew(element: HTMLElement) {
 /** Returns a cursor position spanning the inserted nodes together with their neighbouring siblings, taken whole. */
 export function getInvolvedCursorPosition(first: Node | undefined, last: Node | undefined) {
     if (!first || !last) {
-        return undefined;
+        return;
     }
 
     const range = new Range();
@@ -246,6 +313,7 @@ export function getInvolvedCursorPosition(first: Node | undefined, last: Node | 
 function getSiblingWithContent(node: Node, next: (node: Node) => Node | null) {
     let farthest = node;
     let sibling = next(node);
+
     while (sibling && !sibling.textContent) {
         farthest = sibling;
         sibling = next(sibling);
@@ -280,7 +348,7 @@ export function wrapInTagNew(documentFragment: DocumentFragment, tag: string, at
 
 export function getLeafNodes(element: Node, leafNodes: Node[] = []) {
     if ((element.nodeType === Node.TEXT_NODE && element.textContent) ||
-        element === Carrier.getCarrier() ||
+        element === Carrier.getInstance().getCarrier() ||
         isSchemaContain(element, [Display.SelfClose]) ||
         isEmptyCell(element)) {
         leafNodes.push(element);
@@ -546,9 +614,9 @@ function anchorContainerOnLeaf(container: Node, offset: number) {
 }
 
 export function maybeAppendCarrier(documentFragment: DocumentFragment) {
-    if (!documentFragment.textContent && Carrier.isCursorCollapsed()) {
+    if (!documentFragment.textContent && Carrier.getInstance().isCursorCollapsed()) {
         const carrier = document.createTextNode("");
-        Carrier.setCarrier(carrier);
+        Carrier.getInstance().setCarrier(carrier);
         documentFragment.appendChild(carrier);
     }
 }
@@ -565,7 +633,7 @@ function hasDuplicateList(node: Node | undefined) {
     }
 
     if (isSchemaContain(node, [Display.ListWrapper])) {
-        const li = (node as Element).querySelectorAll("li")[0];
+        const li = (node as HTMLElement).querySelectorAll("li")[0];
         if (li && isSchemaContain(li.firstChild, [Display.ListWrapper])) {
             return true;
         }
@@ -613,7 +681,7 @@ function asText(node: Node | null): Text | null {
 }
 
 function holdsCarrier(insertElement: DocumentFragment) {
-    return Carrier.isCarrierExist() && insertElement.contains(Carrier.getCarrier());
+    return Carrier.getInstance().isCarrierExist() && insertElement.contains(Carrier.getInstance().getCarrier());
 }
 
 /**
@@ -633,8 +701,8 @@ function mergeText(previousText: Text, insertText: Text) {
 }
 
 /**
- * Shifts the first parent off every leaf of the group and returns the first leaf's one. The leaves share it or it
- * collapses theirs, so the element joined from several stands for the earliest of them.
+ * Shifts the leaves' first parent off. A parent an earlier group already holds is handed out as an empty clone,
+ * so the node itself stays with the first group.
  */
 function shiftFirstParent(leaves: Leaf[]) {
     return leaves.map(leaf => leaf.getParents().shift())[0];

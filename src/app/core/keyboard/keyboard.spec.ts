@@ -1558,8 +1558,8 @@ describe("Enter in an empty list item", () => {
         `);
 
         const range = new Range();
-        range.setStart(wrapper.querySelector(".start") as Element, 0);
-        range.setEnd(wrapper.querySelector(".start") as Element, 0);
+        range.setStart(wrapper.querySelector(".start") as HTMLElement, 0);
+        range.setEnd(wrapper.querySelector(".start") as HTMLElement, 0);
         (getRange as jest.Mock).mockReturnValue(range);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));

@@ -10,6 +10,7 @@ import {ImageCursor} from "@/core/cursor/image-cursor";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
 import {handleCopyEvent, handleDragEvent, handleDragOverEvent} from "@/core/clipboard/clipboard";
+import {AvailableClasses} from "@/core/shared/available-classes";
 
 class Editor extends HTMLElement {
     constructor(contentEditable: HTMLElement, settings: Settings) {
@@ -54,6 +55,8 @@ class Editor extends HTMLElement {
         const history = this.addHistory(contentEditable);
         this.addTable(contentEditable);
         this.addImageBlock(contentEditable);
+
+        AvailableClasses.getInstance().setClasses(["be-image"])
 
         return history;
     }

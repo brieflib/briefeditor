@@ -96,7 +96,7 @@ function readValue(mutation: Mutation): string | null {
     if (mutation.type === "characterData") {
         return (mutation.target as CharacterData).data;
     }
-    return (mutation.target as Element).getAttribute(mutation.attributeName ?? "");
+    return (mutation.target as HTMLElement).getAttribute(mutation.attributeName ?? "");
 }
 
 function applyMutation(mutation: Mutation, toRemove: Node[], toInsert: Node[], value: string | null) {
@@ -108,7 +108,7 @@ function applyMutation(mutation: Mutation, toRemove: Node[], toInsert: Node[], v
             (mutation.target as CharacterData).data = value ?? "";
             break;
         case "attributes":
-            setAttribute(mutation.target as Element, mutation.attributeName ?? "", value);
+            setAttribute(mutation.target as HTMLElement, mutation.attributeName ?? "", value);
             break;
     }
 }
@@ -126,7 +126,7 @@ function replaceNodes(target: Node, nextSibling: Node | null, toRemove: Node[], 
     }
 }
 
-function setAttribute(target: Element, name: string, value: string | null) {
+function setAttribute(target: HTMLElement, name: string, value: string | null) {
     if (value === null) {
         target.removeAttribute(name);
     } else {

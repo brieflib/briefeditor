@@ -1,6 +1,6 @@
 import {cleanElementWhitespace} from "@/core/shared/element-util";
 import {Normalizer} from "@/core/normalize/normalize";
-import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
+import {CursorPosition} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
 
 export function createWrapper(html: string) {
@@ -37,19 +37,27 @@ export function getText(wrapper: HTMLElement, content: string) {
     throw new Error(`No text node holds "${content}"`);
 }
 
+/** Places the mocked cursor from `startContainer` at `startOffset` to `endContainer` at `endOffset`. */
+export function selectRange(startContainer: Node, startOffset: number, endContainer: Node, endOffset: number) {
+    const range = new Range();
+    range.setStart(startContainer, startOffset);
+    range.setEnd(endContainer, endOffset);
+    (getRange as jest.Mock).mockReturnValue(range);
+}
+
 export function testNormalize(initial: string, result: string) {
     const wrapper = document.createElement("div");
     wrapper.innerHTML = replaceSpaces(initial);
     document.body.appendChild(wrapper);
 
     const range = new Range();
-    const firstText = getFirstText(wrapper.firstChild as Element);
+    const firstText = getFirstText(wrapper.firstChild as HTMLElement);
     range.setStart(firstText, "".length);
-    const lastText = getLastText(wrapper.lastChild as Element);
+    const lastText = getLastText(wrapper.lastChild as HTMLElement);
     range.setEnd(lastText, lastText.textContent.length);
     (getRange as jest.Mock).mockReturnValue(range);
 
-    new Normalizer(wrapper).removeTags([]);
+    new Normalizer(wrapper).normalize();
 
     expectHtml(wrapper.innerHTML, result);
 }

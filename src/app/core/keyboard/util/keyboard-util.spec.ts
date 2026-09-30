@@ -1957,7 +1957,7 @@ describe("Insert break", () => {
             <p class="start">fir<em>st</em></p>
         `);
 
-        const emText = (wrapper.querySelector(".start em") as Element).firstChild as Node;
+        const emText = (wrapper.querySelector(".start em") as HTMLElement).firstChild as Node;
         const range = new Range();
         range.setStart(emText, "s".length);
         range.setEnd(emText, "s".length);
@@ -1978,7 +1978,7 @@ describe("Insert break", () => {
             <p class="start">zero<strong>bold</strong></p>
         `);
 
-        const boldText = (wrapper.querySelector(".start strong") as Element).firstChild as Node;
+        const boldText = (wrapper.querySelector(".start strong") as HTMLElement).firstChild as Node;
         const range = new Range();
         range.setStart(boldText, "".length);
         range.setEnd(boldText, "".length);
@@ -2011,7 +2011,7 @@ describe("Insert break", () => {
 
         // The node the line was divided at is left holding nothing, and a node standing for no content is
         // not written back into either side. It shows in no markup, so it is counted instead.
-        expect((wrapper.querySelector(".start") as Element).childNodes.length).toBe(1);
+        expect((wrapper.querySelector(".start") as HTMLElement).childNodes.length).toBe(1);
     });
 
     test("Should keep the break whole on the side of the line it was written on", () => {

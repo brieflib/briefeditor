@@ -25,7 +25,6 @@ tagHierarchy.set("H3", max);
 tagHierarchy.set("H4", max);
 tagHierarchy.set("H5", max);
 tagHierarchy.set("H6", max);
-tagHierarchy.set("INLINE", 6);
 tagHierarchy.set("A", 5);
 tagHierarchy.set("STRONG", 4);
 tagHierarchy.set("EM", 3);

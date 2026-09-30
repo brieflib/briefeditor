@@ -29,7 +29,12 @@ export function getBlockElement(findTill: HTMLElement, child: HTMLElement | Node
     return child as HTMLElement;
 }
 
+/** The child of `findTill` holding `child`. A point on `findTill` itself stands in no child, so `findTill` is returned instead of climbing past it. */
 export function getRootElement(findTill: HTMLElement, child: HTMLElement | Node) {
+    if (child === findTill) {
+        return findTill;
+    }
+
     while (child.parentElement && child.parentElement !== findTill) {
         child = child.parentElement;
     }
@@ -37,7 +42,12 @@ export function getRootElement(findTill: HTMLElement, child: HTMLElement | Node)
     return child as HTMLElement;
 }
 
+/** The closest element of `display` holding `child`, below `findTill`. `findTill` itself is returned for a point on it, instead of climbing past it. */
 export function getElement(findTill: HTMLElement, child: HTMLElement, display: Display[]) {
+    if (child === findTill) {
+        return findTill;
+    }
+
     while (child.parentElement && child.parentElement !== findTill && !isSchemaContain(child, display)) {
         child = child.parentElement;
     }

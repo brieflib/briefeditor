@@ -1,5 +1,6 @@
 import {
     CursorPosition,
+    getCursorPosition,
     getCursorPositionFrom,
     isCollapsed
 } from "@/core/shared/type/cursor-position";
@@ -9,38 +10,23 @@ import {
     getFirstText,
     getLastText,
     getNextNode,
+    getPreviousNode,
     getRootElement,
     isImageBlock
 } from "@/core/shared/element-util";
-import {Carrier} from "@/core/carrier/carrier";
+import {LinePosition} from "@/core/cursor/type/line-position";
 
 export interface NodeOffset {
     readonly node: Node;
     readonly offset: number;
 }
 
-/**
- * An endpoint recorded as a place in the text rather than a node: the block holding it and
- * the offset inside that block. `index` is kept too, since a command that rebuilds the block
- * hands back a new element in the same place.
- */
-interface BlockOffset {
-    readonly block: HTMLElement;
-    readonly index: number;
-    readonly offset: number;
-}
-
-/**
- * A cursor recorded as a place in the text, so it survives a rebuild of the DOM around it.
- * `length` (the spanned text) is kept because the two ends are each measured against their
- * own block, and is the only thing that says how far the end stands from the start once a
- * rebuild collapses both blocks into one.
- */
 export interface CursorAnchor {
-    readonly start: BlockOffset | null;
-    readonly end: BlockOffset | null;
+    readonly previousBlock: Node | null;
+    readonly start: number;
+    readonly end: number;
+    readonly endLinePosition: LinePosition;
     readonly length: number;
-    readonly textLength: number;
 }
 
 export interface StrandedTable {
@@ -125,7 +111,7 @@ export function atEnd(element: Node) {
 }
 
 /** The edge of the block beside `element` the cursor lands on when carried past it, or `null` if there is none. */
-export function getSiblingTarget(element: Element, isBefore: boolean) {
+export function getSiblingTarget(element: HTMLElement, isBefore: boolean) {
     const sibling = isBefore ? element.previousElementSibling : element.nextElementSibling;
     if (!sibling || !isSchemaContain(sibling, [Display.FirstLevel, Display.List, Display.Table])) {
         return null;
@@ -199,7 +185,7 @@ function getCaretRect(cursorPosition: CursorPosition): DOMRect | null {
 
     const container = cursorPosition.startContainer;
     const element = container.nodeType === Node.ELEMENT_NODE
-        ? container as Element
+        ? container as HTMLElement
         : container.parentElement;
     const elementRect = element?.getBoundingClientRect();
 
@@ -249,15 +235,7 @@ export function getStrandedTable(cursorPosition: CursorPosition): StrandedTable 
     return null;
 }
 
-/**
- * The text node and offset that `targetPosition` (a character offset counted over `root`'s
- * text) names.
- *
- * @param isEnd - A boundary between two text nodes answers to two offsets. A selection's end
- * should resolve to the node before the boundary (staying inside the tag it was written in);
- * its start to the node after. Pass `false` for a start endpoint.
- */
-export function findNodeAndOffset(root: Node, targetPosition: number, isEnd = true): NodeOffset {
+export function findNodeAndOffset(root: Node, targetPosition: number, isEnd: boolean): NodeOffset {
     let position = 0;
     const stack: Node[] = [root];
     while (stack.length > 0) {
@@ -298,205 +276,112 @@ export function findNodeAndOffset(root: Node, targetPosition: number, isEnd = tr
 }
 
 /** Reads the cursor as a place in the text, to be taken before a command rebuilds the document. */
-export function getCursorAnchor(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorAnchor {
+export function getCursorAnchor(contentEditable: HTMLElement, cursorPosition = getCursorPosition()): CursorAnchor {
+    // Both ends count from the block the selection starts in: the command may rebuild it and every block after it,
+    // so only the block before it is sure to stay.
+    const block = getRootElement(contentEditable, cursorPosition.startContainer);
+
     return {
-        start: getBlockOffset(contentEditable, cursorPosition.startContainer, cursorPosition.startOffset),
-        end: getBlockOffset(contentEditable, cursorPosition.endContainer, cursorPosition.endOffset),
-        length: getSelectedLength(cursorPosition),
-        textLength: contentEditable.textContent.length
+        // A start on the editor itself counts from the editor's start: the editor's own sibling is outside of it.
+        previousBlock: block === contentEditable ? null : block.previousSibling,
+        start: getOffsetFromBlock(block, cursorPosition.startContainer, cursorPosition.startOffset),
+        end: getOffsetFromBlock(block, cursorPosition.endContainer, cursorPosition.endOffset),
+        endLinePosition: getLinePosition(contentEditable, cursorPosition.endContainer, cursorPosition.endOffset),
+        length: getSelectedLength(cursorPosition)
     };
+}
+
+/**
+ * Whether the point stands before any text of its line. Such a point and the end of the line before it count to
+ * the same offset, and only this tells them apart.
+ */
+function getLinePosition(contentEditable: HTMLElement, container: Node, offset: number) {
+    const line = getElement(contentEditable, container as HTMLElement, [Display.Line, Display.List]);
+    if (line && getOffsetInElement(line, container, offset) === 0) {
+        return LinePosition.CursorAtStart;
+    }
+
+    return LinePosition.CursorAtEnd;
 }
 
 /** How much text the cursor spans, counted the same way its endpoint offsets are. */
 function getSelectedLength(cursorPosition: CursorPosition) {
-    if (!cursorPosition.startContainer.isConnected || !cursorPosition.endContainer.isConnected) {
-        return 0;
-    }
+    return cursorPosition.range.toString().length;
+}
 
+/** How much text stands from the start of `block` up to the point, which may lie in a block after it. */
+function getOffsetFromBlock(block: Node, container: Node, offset: number) {
     const range = new Range();
-    range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
-    range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
+    range.setStart(block, 0);
+    range.setEnd(container, offset);
 
     return range.toString().length;
 }
 
-/**
- * The endpoint's first-level block and its offset in it. Measuring against anything smaller
- * wouldn't survive a command that moves the smaller thing (e.g. indenting an item into
- * another list).
- */
-function getBlockOffset(contentEditable: HTMLElement, container: Node, offset: number): BlockOffset | null {
-    if (!container.isConnected) {
-        return null;
+export function resolveCursorAnchor(contentEditable: HTMLElement, cursorAnchor: CursorAnchor): CursorPosition {
+    // The start counts from its own block, so it never stands on a boundary between blocks.
+    const start = resolveBlockOffset(contentEditable, cursorAnchor.previousBlock, cursorAnchor.start, false,
+        LinePosition.CursorAtEnd);
+
+    // A caret is one place: resolved on its own, its end would fall on the text before a boundary between two texts.
+    if (cursorAnchor.length === 0) {
+        return getCursorPositionFrom(start.node, start.offset, start.node, start.offset);
     }
 
-    // An endpoint on the editor itself stands in no block: climbing from it would leave the
-    // editor and anchor the cursor in the page around it.
-    if (container === contentEditable) {
-        return null;
-    }
-
-    const block = getRootElement(contentEditable, container);
-    if (block.nodeType !== Node.ELEMENT_NODE) {
-        return null;
-    }
-
-    return {
-        block: block,
-        // childNodes, not children: a stray text node beside the blocks is a child too, and
-        // skipping it would miscount.
-        index: Array.prototype.indexOf.call(contentEditable.childNodes, block),
-        offset: getOffsetInElement(block, container, offset)
-    };
-}
-
-/**
- * Restores the cursor after a command runs, from the anchor read before it, corrected for
- * any text the command wrote.
- *
- * @remarks
- * `cursorPosition` (the command's own return value) wins whenever it's still meaningful: on
- * an empty leaf (a br, or a text node emptied in place) that an offset-based anchor can't
- * distinguish from the end of the line above it, or - when nothing changed - as one still
- * connected to the document. Otherwise the anchor is resolved to a fresh position.
- */
-export function restoreCursorPosition(contentEditable: HTMLElement, cursorAnchor: CursorAnchor,
-                                      cursorPosition: CursorPosition): CursorPosition {
-    // A carrier still connected keeps its claim on the cursor over anything below.
-    const isCarrierConnected = Carrier.getCarrier()?.isConnected ?? false;
-
-    if (!isCarrierConnected && isCaretOnEmptyLeaf(cursorPosition)) {
-        return cursorPosition;
-    }
-
-    // Offsets read before the command are stale by however much text it wrote or removed.
-    const delta = contentEditable.textContent.length - cursorAnchor.textLength;
-
-    if (delta === 0 && !isCarrierConnected && isPositionConnected(cursorPosition)) {
-        return cursorPosition;
-    }
-
-    return resolveCursorAnchor(contentEditable, cursorAnchor, delta) ?? cursorPosition;
-}
-
-function isPositionConnected(cursorPosition: CursorPosition) {
-    return cursorPosition.startContainer.isConnected && cursorPosition.endContainer.isConnected;
-}
-
-function isCaretOnEmptyLeaf(cursorPosition: CursorPosition) {
-    const container = cursorPosition.startContainer;
-    if (!isCollapsed(cursorPosition) || !container.isConnected) {
-        return false;
-    }
-
-    return isSchemaContain(container, [Display.SelfClose]) ||
-        (container.nodeType === Node.TEXT_NODE && !container.textContent);
-}
-
-/**
- * Resolves an anchor back to a position, with `delta` = 0 for a rebuild that wrote no text
- * (the case every layer below a command uses to carry a cursor through its own rebuild).
- */
-export function resolveCursorAnchor(contentEditable: HTMLElement, cursorAnchor: CursorAnchor,
-                                    delta = 0): CursorPosition | null {
-    // A collapsed cursor that was just wrapped sits in an empty text node with no offset of
-    // its own to find by search, so it's named directly - otherwise the next character typed
-    // would land outside the tag just applied. A carrier the last rebuild discarded has no
-    // claim on the cursor.
-    const carrier = Carrier.getCarrier();
-    if (carrier?.isConnected) {
-        return getCursorPositionFrom(carrier, 0, carrier, 0);
-    }
-
-    if (delta !== 0 || isAnchorCollapsed(cursorAnchor)) {
-        const caret = resolveCaret(contentEditable, getCaretAnchor(cursorAnchor), delta);
-        if (!caret) {
-            return null;
-        }
-
-        return getCursorPositionFrom(caret.node, caret.offset, caret.node, caret.offset);
-    }
-
-    const end = resolveBlockOffset(contentEditable, cursorAnchor.end, delta);
-    // The end resolves to the node before a boundary (staying inside the tag the selection
-    // was written in); the start resolves to the node after it. See findNodeAndOffset.
-    const start = resolveBlockOffset(contentEditable, cursorAnchor.start, delta, false);
-    if (!start || !end) {
-        return null;
-    }
+    const end = resolveBlockOffset(contentEditable, cursorAnchor.previousBlock, cursorAnchor.end, true,
+        cursorAnchor.endLinePosition);
 
     return getCursorPositionFrom(start.node, start.offset, end.node, end.offset);
 }
 
 /**
- * Where the caret lands once text spanning the anchor is written over: the start, advanced
- * by the spanned length. Needed because a multi-block selection has each end measured
- * against its own block; measuring the end against its own block after the write would
- * misplace it in whatever block follows.
+ * Finds the endpoint again by counting its offset from the block after `previousBlock`, walking on to the next
+ * blocks while the offset runs past them. Without a previous block it counts from the start of contentEditable.
+ *
+ * @param linePosition - A point that stood at the start of its line goes to the text after a boundary.
  */
-function getCaretAnchor(cursorAnchor: CursorAnchor): BlockOffset | null {
-    if (!cursorAnchor.start) {
-        return cursorAnchor.end;
-    }
-
-    return {...cursorAnchor.start, offset: cursorAnchor.start.offset + cursorAnchor.length};
-}
-
-/**
- * Resolves a caret, preferring the line a just-written br opens over the end of the line
- * above it (both answer to the same text offset, since a br holds no text of its own).
- */
-function resolveCaret(contentEditable: HTMLElement, blockOffset: BlockOffset | null, delta: number) {
-    const caret = resolveBlockOffset(contentEditable, blockOffset, delta);
-    if (!caret || caret.offset < (caret.node.textContent?.length ?? 0) ||
-        !isSchemaContain(getNextNode(contentEditable, caret.node), [Display.SelfClose])) {
-        return caret;
-    }
-
-    return resolveBlockOffset(contentEditable, blockOffset, delta, false);
-}
-
-/** Whether the anchor's two ends name the same place in the same block. */
-function isAnchorCollapsed(cursorAnchor: CursorAnchor) {
-    return cursorAnchor.start?.block === cursorAnchor.end?.block &&
-        cursorAnchor.start?.offset === cursorAnchor.end?.offset;
-}
-
-function resolveBlockOffset(contentEditable: HTMLElement, blockOffset: BlockOffset | null, delta: number,
-                            isEnd = true): NodeOffset | null {
-    if (!blockOffset) {
-        return null;
-    }
-
-    let block: Node | null = getAnchoredBlock(contentEditable, blockOffset);
+function resolveBlockOffset(contentEditable: HTMLElement, previousBlock: Node | null, offset: number, isEnd: boolean,
+                            linePosition: LinePosition): NodeOffset {
+    const isLineStart = linePosition === LinePosition.CursorAtStart;
+    let block = previousBlock?.isConnected ? previousBlock.nextSibling : contentEditable.firstChild;
     if (!block) {
-        return null;
+        return {node: contentEditable, offset: 0};
     }
 
-    // If a rebuild split the block, the text it no longer holds moved to the blocks after
-    // it, so an offset past this block's own text is counted forward into those blocks
-    // (never backward, since the place is always ahead of the block it was read in).
-    let offset = Math.max(blockOffset.offset + delta, 0);
     let length = block.textContent?.length ?? 0;
-    while (offset > length && block.nextSibling) {
+    // A line start at the end of a block's text belongs to the next block; an empty block holds it already.
+    while ((offset > length || (isLineStart && offset === length && length > 0)) && block.nextSibling) {
         offset -= length;
         block = block.nextSibling;
         length = block.textContent?.length ?? 0;
     }
 
-    return findNodeAndOffset(block, offset, isEnd);
+    return enterEmptyTag(block as HTMLElement, findNodeAndOffset(block, offset, isEnd && !isLineStart));
 }
 
 /**
- * The anchor's original block if still connected, or the element now standing in its place
- * (by index) if a command rebuilt it. Returns `null` if that block was removed entirely.
+ * Moves the point into an empty tag standing right beside it, since such a tag holds no text to be found by
+ * offset. Only a tag inside `block` is taken.
  */
-function getAnchoredBlock(contentEditable: HTMLElement, blockOffset: BlockOffset): HTMLElement | null {
-    if (blockOffset.block.isConnected) {
-        return blockOffset.block;
+function enterEmptyTag(block: HTMLElement, nodeOffset: NodeOffset): NodeOffset {
+    const node = nodeOffset.node;
+    if (!(node instanceof Text)) {
+        return nodeOffset;
     }
 
-    const root = contentEditable.childNodes[blockOffset.index];
+    let emptyText: Node | null = null;
+    if (nodeOffset.offset === node.data.length) {
+        const next = getNextNode(block, node);
+        emptyText = next ? getFirstText(next) : null;
+    } else if (nodeOffset.offset === 0) {
+        const previous = getPreviousNode(block, node);
+        emptyText = previous ? getLastText(previous) : null;
+    }
 
-    return root && root.nodeType === Node.ELEMENT_NODE ? root as HTMLElement : null;
+    // The sibling search climbs to the block itself and could hand back a node from the block beside it.
+    if (emptyText && block.contains(emptyText) && emptyText instanceof Text && !emptyText.data) {
+        return {node: emptyText, offset: 0};
+    }
+
+    return nodeOffset;
 }

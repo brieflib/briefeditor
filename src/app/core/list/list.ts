@@ -153,10 +153,10 @@ function parseSelectedList(contentEditable: HTMLElement, cursorPosition: CursorP
  */
 function copyListRun(root: HTMLElement): HTMLElement {
     const container = document.createElement("div");
-    let current: Element | null = getFirstListWrapper(root);
+    let current: HTMLElement | null = getFirstListWrapper(root);
     while (current && isSchemaContain(current, [Display.ListWrapper])) {
         container.appendChild(current.cloneNode(true));
-        current = current.nextElementSibling;
+        current = current.nextElementSibling as HTMLElement | null;
     }
 
     return (container.firstElementChild ?? container) as HTMLElement;

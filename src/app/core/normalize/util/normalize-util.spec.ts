@@ -1,18 +1,24 @@
 import {
     anchorCursorOnLeaf,
     collapseLeaves,
+    divideFirstLevels,
     filterLeafParents,
     getLeafNodes,
     getSameFirstParent,
     getTextNodes,
-    normalizeReplaceBlockNew,
     removeConsecutiveDuplicates,
     setLeafParents,
     sortLeafParents
 } from "@/core/normalize/util/normalize-util";
 import {Leaf} from "@/core/normalize/type/leaf";
-import {createWrapper, expectHtml, getFirstChild} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild, selectRange} from "@/core/shared/test-util";
 import {getCursorPositionFrom} from "@/core/shared/type/cursor-position";
+import {Normalizer} from "@/core/normalize/normalize";
+
+jest.mock("../../shared/range-util", () => ({
+        getRange: jest.fn()
+    })
+);
 
 test("Should find all leaves", () => {
     const wrapper = createWrapper(`
@@ -328,52 +334,273 @@ test("Should remove leaf's parents", () => {
 
 describe("Should replace block tags", () => {
     test("Should replace a paragraph with a heading", () => {
-        testReplaceBlock(`<p>zero<strong>first</strong></p>`, ["P"], ["H1"], false,
-            `<h1>zero<strong>first</strong></h1>`);
+        const wrapper = createWrapper(`
+            <p class="start">zero<strong>first</strong></p>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["H1"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>zero<strong>first</strong></h1>
+        `);
     });
 
     test("Should keep separate paragraphs separate", () => {
-        testReplaceBlock(`<p>zero</p><p>first</p>`, ["P"], ["H1"], false,
-            `<h1>zero</h1><h1>first</h1>`);
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+            <p class="end">first</p>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["H1"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>zero</h1>
+            <h1>first</h1>
+        `);
     });
 
-    test("Should replace all source tags with a wrapper at the most distant one", () => {
-        testReplaceBlock(`<blockquote><p>zero</p><p>first</p></blockquote>`, ["BLOCKQUOTE", "P"], ["H1"], false,
-            `<h1>zero</h1><h1>first</h1>`);
+    test("Should divide a replaced line out of the line holding it", () => {
+        const wrapper = createWrapper(`
+            <blockquote>
+                <p class="start">zero</p>
+                <p class="end">first</p>
+            </blockquote>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["H1"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <h1>zero</h1>
+            <h1>first</h1>
+        `);
     });
 
     test("Should replace every list item with a block", () => {
-        testReplaceBlock(`<ul><li>zero</li><li>first</li></ul>`, ["UL", "OL", "LI"], ["P"], false,
-            `<p>zero</p><p>first</p>`);
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+                <li class="end">first</li>
+            </ul>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["P"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <p>first</p>
+        `);
     });
 
-    test("Should replace only the closest source tag", () => {
-        testReplaceBlock(`<blockquote><p>zero</p><p>first</p></blockquote>`, ["BLOCKQUOTE", "P"], ["H1"], true,
-            `<blockquote><h1>zero</h1><h1>first</h1></blockquote>`);
+    test("Should replace only the selected list item", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start">first</li>
+                <li>second</li>
+            </ul>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["P"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <p>first</p>
+            <ul>
+                <li>second</li>
+            </ul>
+        `);
+    });
+
+    test("Should change only the wrapper of the selected list item", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start">first</li>
+            </ul>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["OL"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <ol>
+                <li>first</li>
+            </ol>
+        `);
+    });
+
+    test("Should keep the nested list of an item whose wrapper is changed", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li class="start">zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["UL"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+    });
+
+    test("Should keep an inline tag around a line break", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li><strong class="start">zero<br>first</strong></li>
+            </ul>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["P"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <p><strong>zero<br>first</strong></p>
+        `);
     });
 
     test("Should replace paragraphs with one list", () => {
-        testReplaceBlock(`<p>zero</p><p>first</p>`, ["P"], ["UL", "LI"], false,
-            `<ul><li>zero</li><li>first</li></ul>`);
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+            <p class="end">first</p>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["UL", "LI"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li>first</li>
+            </ul>
+        `);
     });
 
-    test("Should leave a leaf without source tags as is", () => {
-        testReplaceBlock(`<h2>zero</h2><p>first</p>`, ["P"], ["H1"], false,
-            `<h2>zero</h2><h1>first</h1>`);
+    test("Should leave a leaf of a block that is not selected as is", () => {
+        const wrapper = createWrapper(`
+            <h2>zero</h2>
+            <p class="start">first</p>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["H1"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <h2>zero</h2>
+            <h1>first</h1>
+        `);
+    });
+
+    test("Should divide a replaced inner list item out of the outer list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li class="start">first</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["P"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <p>first</p>
+        `);
+    });
+
+    test("Should keep the outer items after a divided one in a list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li class="start">first</li>
+                    </ol>
+                </li>
+                <li>second</li>
+            </ul>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["P"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <p>first</p>
+            <ul>
+                <li>second</li>
+            </ul>
+        `);
+    });
+
+    test("Should leave the outer list of the same type as is", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ul>
+                        <li class="start">first</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["P"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <p>first</p>
+        `);
+    });
+
+    test("Should replace an outer and an inner list item", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero
+                    <ol>
+                        <li class="end">first</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+
+        new Normalizer(wrapper).replaceBlockTags(["P"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
+            <p>first</p>
+        `);
     });
 });
-
-function testReplaceBlock(initial: string, sourceTags: string[], tagsToReplace: string[], isClosest: boolean, result: string) {
-    const wrapper = createWrapper(initial);
-    const fragment = document.createDocumentFragment();
-    fragment.append(...wrapper.childNodes);
-
-    const replaced = normalizeReplaceBlockNew(wrapper, fragment, sourceTags, tagsToReplace, isClosest);
-
-    const container = document.createElement("div");
-    container.appendChild(replaced);
-    expectHtml(container.innerHTML, result);
-}
 
 function createLeaf(text: string, parentNames: string[]) {
     const parents: Node[] = [];

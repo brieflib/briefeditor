@@ -26,7 +26,7 @@ export function parseList(rootWrapper: HTMLElement): ListClass[] {
     const result: ListClass[] = [];
 
     let afterItem = false;
-    let current: Element | null = getFirstListWrapper(rootWrapper);
+    let current: HTMLElement | null = getFirstListWrapper(rootWrapper);
     while (current && isSchemaContain(current, [Display.ListWrapper, Display.List])) {
         if (isList(current)) {
             parseListItem(current, ListWrapper.UL, 0, result);
@@ -242,34 +242,34 @@ function findCursorInNextNonEmpty(lists: ListClass[], startIndex: number): Curso
 }
 
 function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[]) {
-    for (const child of Array.from(wrapper.children)) {
+    for (const child of Array.from(wrapper.children) as HTMLElement[]) {
         if (isList(child)) {
             parseListItem(child, wrapperType, level, result);
         } else if (isSchemaContain(child, [Display.ListWrapper])) {
-            parseListWrapper(child as HTMLElement, toListWrapper(child), level + 1, result);
+            parseListWrapper(child, toListWrapper(child), level + 1, result);
         }
     }
 }
 
 /** Reads an item's own line, then walks into any lists nested in it, each a level deeper. */
-function parseListItem(item: Element, wrapperType: ListWrapper, level: number, result: ListClass[]) {
+function parseListItem(item: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[]) {
     const listClass = new ListClass();
     listClass.nestedLevel = level;
     listClass.listWrapper = wrapperType;
     listClass.listContent = getChildFragment(item);
     result.push(listClass);
 
-    for (const child of Array.from(item.children)) {
+    for (const child of Array.from(item.children) as HTMLElement[]) {
         if (isSchemaContain(child, [Display.ListWrapper])) {
-            parseListWrapper(child as HTMLElement, toListWrapper(child), level + 1, result);
+            parseListWrapper(child, toListWrapper(child), level + 1, result);
         }
     }
 }
 
-function isList(element: Element): boolean {
+function isList(element: HTMLElement): boolean {
     return element.nodeName === "LI";
 }
 
-function toListWrapper(element: Element): ListWrapper {
+function toListWrapper(element: HTMLElement): ListWrapper {
     return element.nodeName === "UL" ? ListWrapper.UL : ListWrapper.OL;
 }

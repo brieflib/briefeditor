@@ -7,7 +7,7 @@ import {
 } from "@/core/selection/util/selection-util";
 import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getBlockElement} from "@/core/shared/element-util";
+import {getBlockElement, getRootElement} from "@/core/shared/element-util";
 
 export function getSelectedBlocks(getFrom: HTMLElement, cursorPosition = getCursorPosition()): HTMLElement[] {
     let firstBlock: HTMLElement | null = getBlockElement(getFrom, cursorPosition.startContainer);
@@ -23,6 +23,15 @@ export function getSelectedBlocks(getFrom: HTMLElement, cursorPosition = getCurs
     }
 
     return selectedParagraphs;
+}
+
+export function getFirstSelectedBlock(getFrom: HTMLElement, cursorPosition: CursorPosition): HTMLElement {
+    const selectedBlock = getRootElement(getFrom, cursorPosition.startContainer);
+    if (!selectedBlock) {
+        throw new Error("Selected block is not found");
+    }
+
+    return selectedBlock;
 }
 
 export function getSelectedSharedTags(findTill: HTMLElement, cursorPosition = getCursorPosition()) {
@@ -57,6 +66,10 @@ export function getSelectedRoot(findTill: HTMLElement, cursorPosition: CursorPos
     return getSelected(findTill, cursorPosition, SelectionType.Root);
 }
 
+export function getListWrappers(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): HTMLElement[] {
+    return getSelected(findTill, cursorPosition, SelectionType.ListWrapper);
+}
+
 export function getFirstSelectedRoot(contentEditable: HTMLElement, cursorPosition: CursorPosition): HTMLElement {
     const selectedRoots = getSelected(contentEditable, cursorPosition, SelectionType.Root);
     const firstSelectedRoot = selectedRoots[0];
@@ -83,8 +96,9 @@ export function getSelectedLink(findTill: HTMLElement, cursorPosition: CursorPos
     return getSelected(findTill, cursorPosition, SelectionType.Link);
 }
 
-export function getSelectedListWrapper(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): HTMLElement[] {
-    return getSelected(findTill, cursorPosition, SelectionType.ListWrapper);
+/** The closest first level of every selected leaf, such as a paragraph or the innermost list holding it. */
+export function getSelectedFirstLevel(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): HTMLElement[] {
+    return getSelected(findTill, cursorPosition, SelectionType.FirstLevel);
 }
 
 export function selectElement(element: HTMLElement) {

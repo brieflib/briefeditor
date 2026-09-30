@@ -1,10 +1,13 @@
 import {
     collapseLeaves,
     extractFirstLevel,
-    filterLeafParents, getInvolvedCursorPosition,
+    filterLeafParents,
+    getInvolvedCursorPosition,
     getLeafNodes,
-    maybeAppendCarrier,
-    normalizeNew, normalizeRemoveNew, normalizeReplaceBlockNew,
+    maybeInsertCarrier,
+    normalizeNew,
+    normalizeRemoveNew,
+    normalizeReplaceBlockNew,
     removeConsecutiveDuplicates,
     replaceLeafParents,
     setLeafParents,
@@ -16,18 +19,15 @@ import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-ut
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     CursorPosition,
-    extractContents,
     getCursorPosition,
     getCursorPositionFrom,
-    getSelectedBlocksCursorPosition,
-    insertNode,
     isCollapsed,
     isCursorPositionEqual
 } from "@/core/shared/type/cursor-position";
-import {getFirstSelectedRoot, getSelectedBlocks, getSelectedRoot} from "@/core/selection/selection";
+import {getFirstSelectedRoot, getSelectedBlock, getSelectedBlocks, getSelectedRoot} from "@/core/selection/selection";
 import {getNextListWrapper, getPreviousListWrapper} from "@/core/list/util/list-util";
 import {Attributes} from "@/core/command/type/command";
-import {insertCarrier} from "@/core/carrier/carrier";
+import {Carrier} from "@/core/carrier/carrier";
 import {Merger} from "@/core/merger/type/merger-class";
 
 export class Normalizer {
@@ -37,13 +37,26 @@ export class Normalizer {
         this.contentEditable = contentEditable;
     }
 
+    public normalize(cursorPosition = getCursorPosition()) {
+        const blocks = getSelectedBlocks(this.contentEditable, cursorPosition);
+        const involved = getInvolvedCursorPosition(blocks.at(0), blocks.at(-1));
+        if (!involved) {
+            return;
+        }
+
+        // The range takes the whole blocks, so the rebuilt ones simply take their place
+        const fragment = involved.range.extractContents();
+        involved.range.insertNode(normalizeNew(this.contentEditable, fragment));
+    }
+
     /**
      * Wraps the selected content in `tag` and merges it back into the DOM. The inserted nodes are then normalized once
      * more together with their neighbours, so the new tag collapses into them.
      */
     public appendTag(tag: string, attributes?: Attributes, cursorPosition = getCursorPosition()) {
-        if (isCollapsed(cursorPosition)) {
-            insertCarrier(cursorPosition, tag);
+        const carrier = Carrier.getInstance();
+        if (carrier.isInsertAllowed(cursorPosition)) {
+            carrier.insertCarrier(cursorPosition, tag);
             return;
         }
 
@@ -64,6 +77,11 @@ export class Normalizer {
     }
 
     public removeTags(tags: string[], cursorPosition = getCursorPosition()) {
+        const isCarrierInserted = maybeInsertCarrier(this.contentEditable, tags, cursorPosition);
+        if (isCarrierInserted) {
+            return;
+        }
+
         const merger = new Merger(this.contentEditable, cursorPosition);
         const extracted = merger.extractContents();
         const normalized = normalizeRemoveNew(this.contentEditable, extracted, [...tags]);
@@ -80,32 +98,21 @@ export class Normalizer {
     }
 
     /**
-     * Replaces every selected block with `targetTags`; a list loses its wrapper and items instead. Blocks that hold
-     * no line, such as a table, keep their tags.
+     * Replaces every selected list item or line with `targetTags`: a lone wrapper changes only the item's wrapper,
+     * anything else replaces the item with its wrapper, or the line.
      */
-    public replaceBlockTags(targetTags: string[], isClosest: boolean, cursorPosition = getCursorPosition()) {
-        // The whole blocks are replaced, so the extraction takes the blocks themselves
-        const wholeBlocks = getSelectedBlocksCursorPosition(this.contentEditable, cursorPosition);
-        if (!wholeBlocks) {
+    public replaceBlockTags(targetTags: string[], cursorPosition = getCursorPosition()) {
+        // Read before the extraction, which moves the blocks into the fragment as they are
+        const blocks = getSelectedBlock(this.contentEditable, cursorPosition);
+        const roots = getSelectedBlocks(this.contentEditable, cursorPosition);
+        const involved = getInvolvedCursorPosition(roots.at(0), roots.at(-1));
+        if (!involved) {
             return;
         }
-        const sourceTags = getSelectedBlocks(this.contentEditable, cursorPosition)
-            .filter(block => isSchemaContain(block, [Display.Line, Display.ListWrapper]))
-            .flatMap(block => getSourceTags(block));
-
-        const fragment = wholeBlocks.range.extractContents();
-        const normalized = normalizeReplaceBlockNew(this.contentEditable, fragment, sourceTags, targetTags, isClosest);
-        cursorPosition.range.insertNode(normalized);
+        const fragment = involved.range.extractContents();
+        const normalized = normalizeReplaceBlockNew(this.contentEditable, fragment, blocks, targetTags);
+        involved.range.insertNode(normalized);
     }
-}
-
-/** Returns the tags standing for the block: a list is its wrapper and items, any other block is itself. */
-function getSourceTags(block: HTMLElement) {
-    if (isSchemaContain(block, [Display.ListWrapper])) {
-        return ["UL", "OL", "LI"];
-    }
-
-    return [block.nodeName];
 }
 
 export function normalize(contentEditable: HTMLElement, ...cursorPosition: CursorPosition[]) {
@@ -140,20 +147,6 @@ export function normalize(contentEditable: HTMLElement, ...cursorPosition: Curso
     return resultCursorPosition;
 }
 
-export function removeTags(contentEditable: HTMLElement, tags: string[], cursorPosition: CursorPosition) {
-    cursorPosition = anchorBeforeSelfClose(cursorPosition);
-    // Read before the extract, since extracting shifts the offsets the cursor position holds.
-    const cursorAnchor = getCursorAnchor(contentEditable, cursorPosition);
-    const documentFragment: DocumentFragment = extractContents(cursorPosition);
-    const removeTagFrom = document.createElement("DELETED");
-    maybeAppendCarrier(documentFragment);
-    removeTagFrom.appendChild(documentFragment);
-
-    insertNode(cursorPosition, removeTagFrom);
-
-    return removeAndNormalize(contentEditable, removeTagFrom, [...tags, "DELETED"], cursorPosition, cursorAnchor);
-}
-
 /**
  * Rebuilds the markup around `removeTagFrom`, dropping any of `tags` found among its leaves'
  * ancestors, and remaps the cursor across the rebuild.
@@ -176,7 +169,7 @@ export function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: 
 
     replaceElement(collapseLeaves(leaves), rootElement);
 
-    return resolveCursorAnchor(contentEditable, cursorAnchor) ?? cursorPosition;
+    return resolveCursorAnchor(contentEditable, cursorAnchor);
 }
 
 export function replaceTags(contentEditable: HTMLElement, replaceTagFrom: HTMLElement, replaceFrom: string[], replaceTo: string[], isClosest = false) {

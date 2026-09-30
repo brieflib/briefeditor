@@ -19,7 +19,7 @@ export function handleClipboardEvent(contentEditable: HTMLElement, event: Clipbo
         cursorPosition = pasteHtml(contentEditable, htmlString, cursorPosition);
     }
 
-    setCursorPosition(contentEditable, cursorPosition);
+    setCursorPosition(cursorPosition);
     return cursorPosition;
 }
 
@@ -48,7 +48,7 @@ export function handleCutEvent(contentEditable: HTMLElement, event: ClipboardEve
     const firstRoot = getFirstSelectedRoot(contentEditable, cursorPosition);
     cursorPosition = removeAndNormalize(contentEditable, firstRoot, [], cursorPosition);
 
-    setCursorPosition(contentEditable, cursorPosition);
+    setCursorPosition(cursorPosition);
     return cursorPosition;
 }
 

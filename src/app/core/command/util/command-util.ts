@@ -1,10 +1,6 @@
-import {mergeLists, Normalizer, replaceTags} from "@/core/normalize/normalize";
-import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
-import {Display, getOfType, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {getSelectedBlock, getSelectedListWrapper} from "@/core/selection/selection";
+import {mergeLists, Normalizer} from "@/core/normalize/normalize";
 import {Action, Attributes} from "@/core/command/type/command";
 import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
-import {maybeInsertLists} from "@/core/list/list";
 import {atEnd, atStart} from "@/core/cursor/util/cursor-util";
 
 /**
@@ -15,7 +11,7 @@ import {atEnd, atStart} from "@/core/cursor/util/cursor-util";
  * The block may have stood between two lists, which the removal leaves side by side; the run
  * the cursor falls back into is rebuilt as one so they join.
  */
-export function removeBlock(contentEditable: HTMLElement, block: Element, cursorPosition: CursorPosition): CursorPosition {
+export function removeBlock(contentEditable: HTMLElement, block: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
     const previous = block.previousElementSibling;
     const next = block.nextElementSibling;
     block.remove();
@@ -126,50 +122,9 @@ export function applyAttributes(element: HTMLElement, attributes?: Attributes) {
     }
 }
 
-export function changeBlock(contentEditable: HTMLElement,
-                            replaceTo: string[],
-                            cursorPosition: CursorPosition = getCursorPosition()) {
-
-    // const isList = replaceTo.length === 1 && isSchemaContainNodeName(replaceTo[0], [Display.ListWrapper]);
-    // cursorPosition = anchorCursorOnLeaf(cursorPosition);
-    // const blocks = getSelectedBlock(contentEditable, cursorPosition);
-    // for (let i = blocks.length - 1; i >= 0; i--) {
-    //     const b = getSelectedBlock(contentEditable, cursorPosition);
-    //     const block = b[i];
-    //     if (!block) {
-    //         continue;
-    //     }
-    //     const displays = isList ? [Display.FirstLevel] : [Display.FirstLevel, Display.List];
-    //     const replaceFrom = getOfType(displays).filter(item => !replaceTo.includes(item));
-    //     replaceTags(contentEditable, block, replaceFrom, replaceTo, isList);
-    // }
-    // // A list built out of blocks stands beside any list already there; maybeInsertLists joins
-    // // the two into one wrapper wherever the type matches.
-    // if (isList) {
-    //     maybeInsertLists(contentEditable, cursorPosition);
-    // } else {
-    //     mergeLists(contentEditable, cursorPosition);
-    // }
-    // return cursorPosition;
-
-
-}
-
 export function isElementsEqualToTags(elements: HTMLElement[], tags: string[]) {
     for (const element of elements) {
         if (!tags.includes(element.nodeName)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-export function isListWrapper(contentEditable: HTMLElement) {
-    const maybeListWrappers = getSelectedListWrapper(contentEditable);
-
-    for (const element of maybeListWrappers) {
-        if (!isSchemaContain(element, [Display.ListWrapper])) {
             return false;
         }
     }

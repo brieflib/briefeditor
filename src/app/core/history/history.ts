@@ -38,9 +38,9 @@ export class History {
         this.contentEditable = contentEditable;
         this.observer = new MutationObserver((records) => this.records.push(...records));
 
-        contentEditable.addEventListener(CommandEvent.Start, () => this.start());
+        contentEditable.addEventListener(CommandEvent.HistoryStart, () => this.start());
         contentEditable.addEventListener(CommandEvent.Carrier, () => this.carrier());
-        contentEditable.addEventListener(CommandEvent.End, () => this.end());
+        contentEditable.addEventListener(CommandEvent.HistoryEnd, () => this.end());
         contentEditable.addEventListener("keydown", (event) => this.handleKeyboardEvent(event));
     }
 
@@ -93,7 +93,7 @@ export class History {
 
     private start() {
         this.cursorBefore = captureCursorPath(this.contentEditable, getCursorPosition());
-        this.carrierBefore = Carrier.getCarrier();
+        this.carrierBefore = Carrier.getInstance().getCarrier();
         this.carrierOnly = false;
         this.records = [];
         this.observer.observe(this.contentEditable, OBSERVER_OPTIONS);
@@ -107,7 +107,7 @@ export class History {
 
     /** Whether the command did nothing but leave a carrier (splitting an element around the caret with an empty text node) - a change to the tree, not the screen. */
     private isCarrierOnly() {
-        const carrier = Carrier.getCarrier();
+        const carrier = Carrier.getInstance().getCarrier();
         if (carrier) {
             return carrier !== this.carrierBefore;
         }
@@ -205,7 +205,7 @@ export class History {
 
         const cursorPosition = resolveCursorPath(this.contentEditable, cursorPath);
         if (cursorPosition) {
-            setCursorPosition(this.contentEditable, cursorPosition);
+            setCursorPosition(cursorPosition);
         }
     }
 }

@@ -686,7 +686,7 @@ describe("Change first level", () => {
         range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
         (getRange as jest.Mock).mockReturnValue(range);
 
-        changeBlock(wrapper, ["P"], true);
+        changeBlock(wrapper, ["P"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "p > strong"), "".length, getFirstChild(wrapper, "p > strong"), "fi".length);
 
         expectHtml(wrapper.innerHTML, `
@@ -953,10 +953,11 @@ describe("Change first level", () => {
     test("Should change inner unordered list to ordered", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li>zero</li>
-                <ul>
-                    <li class="start">first</li>
-                </ul>
+                <li>zero
+                    <ul>
+                        <li class="start">first</li>
+                    </ul>
+                </li>
             </ul>
         `);
 
@@ -1131,7 +1132,7 @@ describe("Remove block", () => {
     test("Should land at the end of the block before", () => {
         const wrapper = createWrapper(`<p class="before">before</p><p class="target">target</p><p class="after">after</p>`);
 
-        removeBlock(wrapper, wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".after"));
+        removeBlock(wrapper, wrapper.querySelector(".target") as HTMLElement, cursorIn(wrapper, ".after"));
 
         expectHtml(wrapper.innerHTML, `<p>before</p><p class="after">after</p>`);
         getFirstChild(wrapper, "p");
@@ -1144,7 +1145,7 @@ describe("Remove block", () => {
     test("Should land at the start of the block after when there is none before", () => {
         const wrapper = createWrapper(`<p class="target">target</p><p class="after">after</p>`);
 
-        removeBlock(wrapper, wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".after"));
+        removeBlock(wrapper, wrapper.querySelector(".target") as HTMLElement, cursorIn(wrapper, ".after"));
 
         expectHtml(wrapper.innerHTML, `<p>after</p>`);
         getFirstChild(wrapper, "p");
@@ -1157,7 +1158,7 @@ describe("Remove block", () => {
     test("Should join the lists the removed block stood between", () => {
         const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="target">target</p><ul><li>first</li></ul>`);
 
-        removeBlock(wrapper, wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".target"));
+        removeBlock(wrapper, wrapper.querySelector(".target") as HTMLElement, cursorIn(wrapper, ".target"));
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
         getFirstChild(wrapper, "li");
@@ -1170,7 +1171,7 @@ describe("Remove block", () => {
     test("Should keep lists of different types apart when the block between them goes", () => {
         const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="target">target</p><ol><li>first</li></ol>`);
 
-        removeBlock(wrapper, wrapper.querySelector(".target") as Element, cursorIn(wrapper, ".target"));
+        removeBlock(wrapper, wrapper.querySelector(".target") as HTMLElement, cursorIn(wrapper, ".target"));
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul><ol><li>first</li></ol>`);
         getFirstChild(wrapper, "li");
@@ -1184,7 +1185,7 @@ describe("Remove block", () => {
         const wrapper = createWrapper(`<p class="target">target</p>`);
         const given = getCursorPositionFrom(wrapper, 0, wrapper, 0);
 
-        removeBlock(wrapper, wrapper.querySelector(".target") as Element, given);
+        removeBlock(wrapper, wrapper.querySelector(".target") as HTMLElement, given);
 
         expectHtml(wrapper.innerHTML, ``);
         // expect(cursorPosition).toBe(given);
@@ -1193,8 +1194,7 @@ describe("Remove block", () => {
 });
 
 function changeBlock(wrapper: HTMLElement,
-                     replaceTo: string[],
-                     isClosest = false) {
+                     replaceTo: string[]) {
     const normalizer = new Normalizer(wrapper);
-    normalizer.replaceBlockTags(replaceTo, isClosest);
+    normalizer.replaceBlockTags(replaceTo);
 }

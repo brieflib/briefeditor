@@ -1,5 +1,6 @@
-import {createImageBlock, getRootElement, isImageBlock, wrapImages} from "@/core/shared/element-util";
+import {createImageBlock, getElement, getRootElement, isImageBlock, wrapImages} from "@/core/shared/element-util";
 import {createWrapper, expectHtml} from "@/core/shared/test-util";
+import {Display} from "@/core/normalize/type/schema";
 
 test("Should find first level element", () => {
     const wrapper = createWrapper(`
@@ -12,6 +13,13 @@ test("Should find first level element", () => {
     const rootElement = getRootElement(wrapper, span);
 
     expect(rootElement).toBe(wrapper.firstChild);
+});
+
+test("Should stop at the editable element when the point stands on it", () => {
+    const wrapper = createWrapper(`<p class="start">zero</p>`);
+
+    expect(getRootElement(wrapper, wrapper)).toBe(wrapper);
+    expect(getElement(wrapper, wrapper, [Display.FirstLevel])).toBe(wrapper);
 });
 describe("Image block", () => {
     test("Should build a marked paragraph around an image", () => {

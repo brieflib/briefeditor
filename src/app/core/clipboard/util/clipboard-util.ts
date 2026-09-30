@@ -250,15 +250,15 @@ function cleanPastedContent(htmlString: string, cell: HTMLTableCellElement | nul
  * The tree is walked once; a run is rewritten in full as soon as its first line is found, so
  * the walk never revisits the lines after it.
  */
-function rewriteLists(parent: Element, cursorPosition: CursorPosition) {
+function rewriteLists(parent: HTMLElement, cursorPosition: CursorPosition) {
     // Snapshot the children before any run is rewritten.
-    for (const child of Array.from(parent.children)) {
+    for (const child of Array.from(parent.children) as HTMLElement[]) {
         if (!child.isConnected) {
             continue;
         }
 
         if (isSchemaContain(child, [Display.ListWrapper, Display.List])) {
-            normalizeList(child as HTMLElement, cursorPosition);
+            normalizeList(child, cursorPosition);
         } else {
             // A bare li with no wrapper: markup pasted from outside the editor.
             rewriteLists(child, cursorPosition);
@@ -377,8 +377,8 @@ function takeEdgeBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement
 
     // Both ends are read before either is taken: taking the first one would leave the last one standing
     // somewhere else. Both join the same line - the lead its first half, the tail its second.
-    const first = pastedContent.firstElementChild;
-    const last = pastedContent.lastElementChild;
+    const first = pastedContent.firstElementChild as HTMLElement | null;
+    const last = pastedContent.lastElementChild as HTMLElement | null;
     if (isEmptyItem(line)) {
         const lead = takeEdgeBlock(first, line);
         const tail = lead ? "" : takeEdgeBlock(last, line);
@@ -401,7 +401,7 @@ function takeEdgeBlocks(contentEditable: HTMLElement, pastedContent: HTMLElement
  * in place) for anything else, including an empty line, a block holding nothing or an image
  * block, which is written as a paragraph but carries no words for the line.
  */
-function takeEdgeBlock(element: Element | null, line: HTMLElement): string {
+function takeEdgeBlock(element: HTMLElement | null, line: HTMLElement): string {
     if (!element || element.nodeName !== lineTag(line) || isImageBlock(element) || isBlank(element) ||
         isEmptyBlock(element)) {
         return "";
@@ -495,7 +495,7 @@ function hasSeveralBlocks(pastedContent: HTMLElement) {
  * Whether the paste holds nothing but whitespace or a single `br`. `trim` treats a
  * no-break space as whitespace too, so a copied nbsp counts as blank as well.
  */
-function isBlank(pastedContent: Element) {
+function isBlank(pastedContent: HTMLElement) {
     const text = pastedContent.textContent ?? "";
     const breaks = pastedContent.querySelectorAll("br").length;
 
