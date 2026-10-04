@@ -13,16 +13,16 @@ export function getSelectedBlocks(getFrom: HTMLElement, cursorPosition = getCurs
     let firstBlock: HTMLElement | null = getBlockElement(getFrom, cursorPosition.startContainer);
     const lastBlock = getBlockElement(getFrom, cursorPosition.endContainer);
 
-    const selectedParagraphs = [];
+    const selectedBlocks = [];
     while (firstBlock) {
-        selectedParagraphs.push(firstBlock);
+        selectedBlocks.push(firstBlock);
         if (firstBlock === lastBlock) {
             break;
         }
         firstBlock = firstBlock.nextElementSibling as HTMLElement | null;
     }
 
-    return selectedParagraphs;
+    return selectedBlocks;
 }
 
 export function getFirstSelectedBlock(getFrom: HTMLElement, cursorPosition: CursorPosition): HTMLElement {

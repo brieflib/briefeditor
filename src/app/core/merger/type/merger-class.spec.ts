@@ -247,6 +247,34 @@ describe("Merger test", () => {
         `);
     });
 
+    test("Should keep a partly selected item of a nested list joined into a fully selected one", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                    <ol>
+                        <li class="end">second</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        wrapSelectionInTag(wrapper, getText(wrapper, "zero"), "z".length, getText(wrapper, "second"), "s".length);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>z<strong>ero</strong>
+                    <ol>
+                        <li><strong>first</strong></li>
+                        <li class="end"><strong>s</strong>econd</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+    });
+
     test("Should join three lists when the middle one is fully selected", () => {
         const wrapper = createWrapper(`
             <ul>

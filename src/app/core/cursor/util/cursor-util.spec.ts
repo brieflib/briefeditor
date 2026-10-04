@@ -78,26 +78,35 @@ describe("Cursor as a place in the text", () => {
     test("Should find the offset back across a tag boundary", () => {
         const wrapper = createWrapper(`<p class="start">z<strong>erofirst</strong>second</p>`);
         const block = wrapper.querySelector("p") as HTMLElement;
-        const strongText = getFirstChild(wrapper, ".start strong");
 
-        // The boundary answers to two offsets. The end of a selection belongs to the node before it, so it
-        // stays inside the tag it was written in, and the start to the node after it.
-        expect(findNodeAndOffset(block, "z".length, true)).toEqual({node: getFirstChild(wrapper, ".start"), offset: 1});
-        expect(findNodeAndOffset(block, "z".length, false)).toEqual({node: strongText, offset: 0});
+        // The boundary answers to two offsets, and the point is found on the node before it.
+        expect(findNodeAndOffset(block, "z".length)).toEqual({node: getFirstChild(wrapper, ".start"), offset: 1});
+    });
+
+    test("Should resolve the end standing at the start of the next block into that block", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
+        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "".length,
+            getFirstChild(wrapper, ".end"), "".length);
+
+        expect(cursorAnchor.isCursorEndInsideNextBlock).toBe(true);
+
+        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "".length);
     });
 
     test("Should put the cursor on the br of a block holding no text", () => {
         const wrapper = createWrapper(`<p class="start"><br></p>`);
         const block = wrapper.querySelector("p") as HTMLElement;
 
-        expect(findNodeAndOffset(block, 0, true)).toEqual({node: block.firstChild, offset: 0});
+        expect(findNodeAndOffset(block, 0)).toEqual({node: block.firstChild, offset: 0});
     });
 
     test("Should fall to the end of the text when the offset asks for more than there is", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         const block = wrapper.querySelector("p") as HTMLElement;
 
-        expect(findNodeAndOffset(block, "zerofirst".length, true))
+        expect(findNodeAndOffset(block, "zerofirst".length))
             .toEqual({node: getFirstChild(wrapper, ".start"), offset: "zero".length});
     });
 

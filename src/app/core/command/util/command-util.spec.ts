@@ -4,11 +4,17 @@ import {Action} from "@/core/command/type/command";
 import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
 import {getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {Normalizer} from "@/core/normalize/normalize";
+import {AvailableClasses} from "@/core/shared/available-classes";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
     })
 );
+
+beforeAll(() => {
+    const availableClasses = AvailableClasses.getInstance();
+    availableClasses.setClasses(["start", "end"]);
+});
 
 describe("Unwrap tag", () => {
     test("Should unwrap strong from selection", () => {
@@ -157,7 +163,7 @@ describe("Wrap in tag", () => {
         // expectCursor(cursorPosition, getFirstChild(wrapper, "em"), "".length, getFirstChild(wrapper, "em"), "fi".length);
 
         expectHtml(wrapper.innerHTML, `
-            <p class="end"><strong>zero</strong><em>fi</em>rst</p>
+            <p class="end"><strong class="start">zero</strong><em>fi</em>rst</p>
         `);
     });
 

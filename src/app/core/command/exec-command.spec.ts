@@ -1,8 +1,14 @@
-import {getRange} from "@/core/shared/range-util";
 import {AvailableClasses} from "@/core/shared/available-classes";
 import execCommand from "@/core/command/exec-command";
 import {Action} from "@/core/command/type/command";
-import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {
+    createWrapper,
+    expectCursor,
+    expectHtml,
+    getFirstChild,
+    getLastChild,
+    selectRange
+} from "@/core/shared/test-util";
 import {CursorPosition} from "@/core/shared/type/cursor-position";
 import {Carrier} from "@/core/carrier/carrier";
 
@@ -23,11 +29,7 @@ describe("Exec command with different cursor position", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "".length);
         const cursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
@@ -36,7 +38,7 @@ describe("Exec command with different cursor position", () => {
             </p>
             <p class="end">first</p>
         `);
-        expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "p + p"), "".length);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start strong"), "".length, getFirstChild(wrapper, ".end"), "".length);
     });
 
     test("Should change paragraph to unordered list", () => {
@@ -45,10 +47,7 @@ describe("Exec command with different cursor position", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
 
@@ -69,11 +68,7 @@ describe("Exec command with different cursor position", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "second".length);
         const cursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         expectHtml(wrapper.innerHTML, `
@@ -99,11 +94,7 @@ describe("Exec command with different cursor position", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
         const cursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         expectHtml(wrapper.innerHTML, `
@@ -130,11 +121,7 @@ describe("Link command", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "f".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "f".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "f".length, getFirstChild(wrapper, ".start"), "f".length);
         const cursorPosition = execCommand(wrapper, {
             action: Action.Link, tag: "A", attributes: {
                 href: "first"
@@ -156,19 +143,12 @@ describe("Cursor position after Tag command", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "ze".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         // After: <p class="start"><strong>ze</strong>ro</p>
         const expectedNode = wrapper.querySelector("strong")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedNode);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedNode);
-        expect(cursorPosition.endOffset).toBe("ze".length);
+        expectCursor(cursorPosition, expectedNode, "".length, expectedNode, "ze".length);
     });
 
     test("Should return cursor at unwrapped text after removing strong", () => {
@@ -176,19 +156,12 @@ describe("Cursor position after Tag command", () => {
             <p class="start"><strong>zero</strong></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, "strong"), "".length);
-        range.setEnd(getFirstChild(wrapper, "strong"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, "strong"), "".length, getFirstChild(wrapper, "strong"), "ze".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         // After: <p class="start">ze<strong>ro</strong></p>
         const expectedNode = wrapper.querySelector("p")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedNode);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedNode);
-        expect(cursorPosition.endOffset).toBe("ze".length);
+        expectCursor(cursorPosition, expectedNode, "".length, expectedNode, "ze".length);
     });
 
     test("Should return cursor spanning wrapped content across two paragraphs", () => {
@@ -197,11 +170,7 @@ describe("Cursor position after Tag command", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "fir".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
@@ -212,10 +181,7 @@ describe("Cursor position after Tag command", () => {
         // After: <p class="start"><strong>zero</strong></p><p class="end"><strong>fir</strong>st</p>
         const expectedStart = wrapper.querySelectorAll("strong")[0]?.firstChild;
         const expectedEnd = wrapper.querySelectorAll("strong")[1]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("fir".length);
+        expectCursor(cursorPosition, expectedStart, "".length, expectedEnd, "fir".length);
     });
 
     test("Cursor should span middle of wrapped content", () => {
@@ -223,20 +189,13 @@ describe("Cursor position after Tag command", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "z".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zer".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "z".length, getFirstChild(wrapper, ".start"), "zer".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         // After: <p class="start">z<strong>er</strong>o</p>
-        const expectedStart = wrapper.querySelector("strong")?.firstChild;
-        const expectedEnd = wrapper.querySelector("strong")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("er".length);
+        const expectedStart = wrapper.querySelector(".start strong")?.firstChild;
+        const expectedEnd = wrapper.querySelector(".start strong")?.firstChild;
+        expectCursor(cursorPosition, expectedStart, "".length, expectedEnd, "er".length);
     });
 
     test("Wrap different type of content. Cursor position should span both", () => {
@@ -244,11 +203,7 @@ describe("Cursor position after Tag command", () => {
             <p class="start">zero<strong>first</strong>second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "z".length);
-        range.setEnd(getFirstChild(wrapper, ".start strong"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "z".length, getFirstChild(wrapper, ".start strong"), "fir".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
@@ -260,10 +215,7 @@ describe("Cursor position after Tag command", () => {
         // covers, rather than at the end of the text written before it.
         const expectedStart = wrapper.querySelector("p strong")?.firstChild;
         const expectedEnd = wrapper.querySelector("p strong")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("erofir".length);
+        expectCursor(cursorPosition, expectedStart, "".length, expectedEnd, "erofir".length);
     });
 
     test("Should return cursor spanning unwrapped content across two list items", () => {
@@ -275,11 +227,7 @@ describe("Cursor position after Tag command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start strong"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end strong"), "sec".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start strong"), "".length, getFirstChild(wrapper, ".end strong"), "sec".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
@@ -292,10 +240,7 @@ describe("Cursor position after Tag command", () => {
 
         const expectedStart = wrapper.querySelectorAll("li")[0]?.firstChild;
         const expectedEnd = wrapper.querySelectorAll("li")[2]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("sec".length);
+        expectCursor(cursorPosition, expectedStart, "".length, expectedEnd, "sec".length);
     });
 
     // An item holding nested lists is tagged on its own line; each nested item takes its own
@@ -334,20 +279,13 @@ describe("Cursor position after Tag command", () => {
     test("Should keep the cursor spanning a whole nested list after wrapping it", () => {
         const wrapper = createWrapper(mixedList);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fourth".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "fourth".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, mixedListWrapped);
 
         const strongs = wrapper.querySelectorAll("strong");
-        expect(cursorPosition.startContainer).toBe(strongs[0]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(strongs[3]?.firstChild);
-        expect(cursorPosition.endOffset).toBe("fourth".length);
+        expectCursor(cursorPosition, strongs[0]?.firstChild, "".length, strongs[3]?.firstChild, "fourth".length);
     });
 
     test("Should keep the cursor spanning a whole nested list after unwrapping it", () => {
@@ -366,11 +304,7 @@ describe("Cursor position after Tag command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start strong"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end strong"), "fourth".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start strong"), "".length, getFirstChild(wrapper, ".end strong"), "fourth".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
@@ -389,62 +323,45 @@ describe("Cursor position after Tag command", () => {
         `);
 
         const items = wrapper.querySelectorAll("li");
-        expect(cursorPosition.startContainer).toBe(items[0]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(items[3]?.firstChild);
-        expect(cursorPosition.endOffset).toBe("fourth".length);
+        expectCursor(cursorPosition, items[0]?.firstChild, "".length, items[3]?.firstChild, "fourth".length);
     });
 
     test("Should wrap a whole nested list selected on its elements", () => {
         const wrapper = createWrapper(mixedList);
 
         // A select-all leaves the ends on the list and the editor rather than on text.
-        const range = new Range();
-        range.setStart(wrapper.querySelector("ul") as Node, 0);
-        range.setEnd(wrapper, wrapper.childNodes.length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(wrapper.querySelector("ul") as Node, 0, wrapper, wrapper.childNodes.length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, mixedListWrapped);
 
         const strongs = wrapper.querySelectorAll("strong");
-        expect(cursorPosition.startContainer).toBe(strongs[0]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(strongs[3]?.firstChild);
-        expect(cursorPosition.endOffset).toBe("fourth".length);
+        expectCursor(cursorPosition, strongs[0]?.firstChild, "".length, strongs[3]?.firstChild, "fourth".length);
     });
 
     test("Should keep the cursor spanning a selection reaching into nested items", () => {
         const wrapper = createWrapper(mixedList);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fou".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "fou".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>fi<strong>rst</strong>
+                <li class="start">fi<strong>rst</strong>
                     <ol>
                         <li><strong>second</strong>
                             <ul>
                                 <li><strong>third</strong></li>
                             </ul>
                         </li>
-                        <li><strong>fou</strong>rth</li>
+                        <li class="end"><strong>fou</strong>rth</li>
                     </ol>
                 </li>
             </ul>
         `);
 
         const strongs = wrapper.querySelectorAll("strong");
-        expect(cursorPosition.startContainer).toBe(strongs[0]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(strongs[3]?.firstChild);
-        expect(cursorPosition.endOffset).toBe("fou".length);
+        expectCursor(cursorPosition, strongs[0]?.firstChild, "".length, strongs[3]?.firstChild, "fou".length);
     });
 });
 
@@ -454,23 +371,16 @@ describe("Cursor position after FirstLevel command", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
-        execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "zero".length);
+        const cursorPosition = execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
 
         expectHtml(wrapper.innerHTML, `
-            <h1 class="start">zero</h1>
+            <h1>zero</h1>
         `);
 
         // After: <h1>zero</h1>
-        // const expectedNode = wrapper.querySelector("h1")?.firstChild;
-        // expect(cursorPosition.startContainer).toBe(expectedNode);
-        // expect(cursorPosition.startOffset).toBe("ze".length);
-        // expect(cursorPosition.endContainer).toBe(expectedNode);
-        // expect(cursorPosition.endOffset).toBe("zero".length);
+        const expectedNode = wrapper.querySelector("h1")?.firstChild;
+        expectCursor(cursorPosition, expectedNode, "ze".length, expectedNode, "zero".length);
     });
 
     test("Should return cursor inside paragraph after toggling heading back to paragraph", () => {
@@ -478,19 +388,12 @@ describe("Cursor position after FirstLevel command", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "zero".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
 
         // After: <p>zero</p>
         const expectedNode = wrapper.querySelector("p")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedNode);
-        expect(cursorPosition.startOffset).toBe("ze".length);
-        expect(cursorPosition.endContainer).toBe(expectedNode);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, expectedNode, "ze".length, expectedNode, "zero".length);
     });
 
     test("Should return cursor spanning both blocks after changing two paragraphs to headings", () => {
@@ -499,21 +402,14 @@ describe("Cursor position after FirstLevel command", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "fir".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.FirstLevel, tag: "H1"});
 
         // After: <h1>zero</h1><h1>first</h1>
         const headings = wrapper.querySelectorAll("h1");
         const expectedStart = headings[0]?.firstChild;
         const expectedEnd = headings[1]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("fir".length);
+        expectCursor(cursorPosition, expectedStart, "".length, expectedEnd, "fir".length);
     });
 });
 
@@ -523,19 +419,12 @@ describe("Cursor position after List command", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "ze".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         // After: <ul><li>zero</li></ul>
         const expectedNode = wrapper.querySelector("li")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedNode);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedNode);
-        expect(cursorPosition.endOffset).toBe("ze".length);
+        expectCursor(cursorPosition, expectedNode, "".length, expectedNode, "ze".length);
     });
 
     test("Should return cursor inside paragraph after converting unordered list back to paragraph", () => {
@@ -545,19 +434,12 @@ describe("Cursor position after List command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         // After: <p>zero</p>
         const expectedNode = wrapper.querySelector("p")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedNode);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedNode);
-        expect(cursorPosition.endOffset).toBe("".length);
+        expectCursor(cursorPosition, expectedNode, "".length, expectedNode, "".length);
     });
 
     test("Should return cursor spanning both list items after converting two paragraphs to list", () => {
@@ -566,21 +448,14 @@ describe("Cursor position after List command", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         // After: <ul><li>zero</li><li>first</li></ul>
         const listItems = wrapper.querySelectorAll("li");
         const expectedStart = listItems[0]?.firstChild;
         const expectedEnd = listItems[1]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("".length);
+        expectCursor(cursorPosition, expectedStart, "".length, expectedEnd, "".length);
     });
 
     test("Should return cursor inside list item after switching inner ordered list to unordered", () => {
@@ -594,19 +469,12 @@ describe("Cursor position after List command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "fir".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.List, tag: "UL"});
 
         // After: inner OL becomes UL
         const expectedNode = wrapper.querySelector("ul ul li")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedNode);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedNode);
-        expect(cursorPosition.endOffset).toBe("fir".length);
+        expectCursor(cursorPosition, expectedNode, "".length, expectedNode, "fir".length);
     });
 });
 
@@ -619,19 +487,12 @@ describe("Cursor position after PlusIndent command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
 
         // After: <ul><li>zero<ul><li>first</li></ul></li></ul>
         const expectedNode = wrapper.querySelectorAll("li")[1]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedNode);
-        expect(cursorPosition.startOffset).toBe("fi".length);
-        expect(cursorPosition.endContainer).toBe(expectedNode);
-        expect(cursorPosition.endOffset).toBe("fi".length);
+        expectCursor(cursorPosition, expectedNode, "fi".length, expectedNode, "fi".length);
     });
 
     test("Should keep cursor spanning indented items after two items indent", () => {
@@ -643,20 +504,13 @@ describe("Cursor position after PlusIndent command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "se".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
 
         // After: <ul><li>zero<ul><li class="start">first</li><li class="end">second</li></ul></li></ul>
         const expectedStart = wrapper.querySelectorAll("ul li")[1]?.firstChild;
         const expectedEnd = wrapper.querySelectorAll("ul li")[2]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("fi".length);
-        expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("se".length);
+        expectCursor(cursorPosition, expectedStart, "fi".length, expectedEnd, "se".length);
     });
 
     test("Should keep cursor in li with nested child after indenting list with nested list", () => {
@@ -672,20 +526,13 @@ describe("Cursor position after PlusIndent command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "rst".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "rst".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
 
         // After: <ul><li>zero<ul><li class="start">fi<strong class="end">rst</strong></li><li>second</li></ul></li></ul>
         const expectedStart = wrapper.querySelectorAll("ul li ul li")[0]?.firstChild;
         const expectedEnd = wrapper.querySelectorAll("ul li ul li strong")[0]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("fi".length);
-        expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("rst".length);
+        expectCursor(cursorPosition, expectedStart, "fi".length, expectedEnd, "rst".length);
     });
 
     // An empty item holds no text, and an item is measured against the whole list: the empty line answers to
@@ -698,18 +545,11 @@ describe("Cursor position after PlusIndent command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero<ul><li><br></li></ul></li></ul>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ul li ul li br"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ul li ul li br"));
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.querySelector("ul li ul li br"), 0, wrapper.querySelector("ul li ul li br"), 0);
     });
 
     // The browser anchors the cursor on an empty item itself rather than on the br standing in for its line.
@@ -721,18 +561,11 @@ describe("Cursor position after PlusIndent command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".start") as HTMLElement, 0);
-        range.setEnd(wrapper.querySelector(".start") as HTMLElement, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(wrapper.querySelector(".start") as HTMLElement, 0, wrapper.querySelector(".start") as HTMLElement, 0);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero<ul><li><br></li></ul></li></ul>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ul li ul li br"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ul li ul li br"));
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.querySelector("ul li ul li br"), 0, wrapper.querySelector("ul li ul li br"), 0);
     });
 
     // A selection reaching into an empty item ends on a line holding no text, which answers to the same
@@ -741,34 +574,27 @@ describe("Cursor position after PlusIndent command", () => {
         const wrapper = createWrapper(`
             <ol>
                 <li>zero</li>
-                <li class="start">First ordered item</li>
+                <li class="start">first</li>
                 <li class="end"><br></li>
-                <li>Third ordered item</li>
+                <li>second</li>
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "Fi".length);
-        range.setEnd(wrapper.querySelector(".end") as HTMLElement, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "Fi".length, wrapper.querySelector(".end") as HTMLElement, 0);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
 
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>zero
                     <ol>
-                        <li>First ordered item</li>
+                        <li>first</li>
                         <li><br></li>
                     </ol>
                 </li>
-                <li>Third ordered item</li>
+                <li>second</li>
             </ol>
         `);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ol li ol li")?.firstChild);
-        expect(cursorPosition.startOffset).toBe("Fi".length);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ol li ol li br"));
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.querySelector("ol li ol li")?.firstChild, "fi".length, wrapper.querySelector("ol li ol li br"), 0);
     });
 
     test("Should keep selection starting on an empty item after indent", () => {
@@ -780,11 +606,7 @@ describe("Cursor position after PlusIndent command", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".start") as HTMLElement, 0);
-        range.setEnd(getFirstChild(wrapper, ".end"), "Thi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(wrapper.querySelector(".start") as HTMLElement, 0, getFirstChild(wrapper, ".end"), "Thi".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.PlusIndent});
 
         expectHtml(wrapper.innerHTML, `
@@ -797,10 +619,7 @@ describe("Cursor position after PlusIndent command", () => {
                 </li>
             </ol>
         `);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("ol li ol li br"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ol li ol li:last-child")?.firstChild);
-        expect(cursorPosition.endOffset).toBe("Thi".length);
+        expectCursor(cursorPosition, wrapper.querySelector("ol li ol li br"), 0, wrapper.querySelector("ol li ol li:last-child")?.firstChild, "Thi".length);
     });
 
     test("Should keep selection ending on an empty item after outdent", () => {
@@ -816,11 +635,7 @@ describe("Cursor position after PlusIndent command", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "Fi".length);
-        range.setEnd(wrapper.querySelector(".end") as HTMLElement, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "Fi".length, wrapper.querySelector(".end") as HTMLElement, 0);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.MinusIndent});
 
         expectHtml(wrapper.innerHTML, `
@@ -831,10 +646,7 @@ describe("Cursor position after PlusIndent command", () => {
                 <li>Third ordered item</li>
             </ol>
         `);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("ol li")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe("Fi".length);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelector("ol li br"));
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("ol li")[1]?.firstChild, "Fi".length, wrapper.querySelector("ol li br"), 0);
     });
 });
 
@@ -851,19 +663,12 @@ describe("Cursor position after MinusIndent command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".start"), "se".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.MinusIndent});
 
         // After: <ul><li>zero</li><li>first</li><li class="start">second</li></ul>
         const expectedNode = wrapper.querySelectorAll("ul li")[2]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedNode);
-        expect(cursorPosition.startOffset).toBe("se".length);
-        expect(cursorPosition.endContainer).toBe(expectedNode);
-        expect(cursorPosition.endOffset).toBe("se".length);
+        expectCursor(cursorPosition, expectedNode, "se".length, expectedNode, "se".length);
     });
 
     test("Should keep cursor spanning outdented items after two items outdent", () => {
@@ -880,20 +685,13 @@ describe("Cursor position after MinusIndent command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "th".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.MinusIndent});
 
         // After: <ul><li>zero</li><li>first</li><li class="start">second</li><li class="end">third<ul><li>fourth</li></ul></li></ul>
         const expectedStart = wrapper.querySelectorAll("ul li")[2]?.firstChild;
         const expectedEnd = wrapper.querySelectorAll("ul li")[3]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("se".length);
-        expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("th".length);
+        expectCursor(cursorPosition, expectedStart, "se".length, expectedEnd, "th".length);
     });
 
     test("Should keep cursor inside list item with inline formatting after outdent", () => {
@@ -910,19 +708,12 @@ describe("Cursor position after MinusIndent command", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "r".length);
-        range.setEnd(getLastChild(wrapper, ".start"), "rst".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getLastChild(wrapper, ".start"), "r".length, getLastChild(wrapper, ".start"), "rst".length);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.MinusIndent});
 
         // After: <ol><li>zero</li><li class="start"><strong>fi</strong>rst</li></ol>
         const expectedNode = wrapper.querySelectorAll("ol li")[1]?.lastChild;
-        expect(cursorPosition.startContainer).toBe(expectedNode);
-        expect(cursorPosition.startOffset).toBe("r".length);
-        expect(cursorPosition.endContainer).toBe(expectedNode);
-        expect(cursorPosition.endOffset).toBe("rst".length);
+        expectCursor(cursorPosition, expectedNode, "r".length, expectedNode, "rst".length);
     });
 
     test("Should keep cursor on the br of an empty item after outdent", () => {
@@ -936,18 +727,11 @@ describe("Cursor position after MinusIndent command", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
         const cursorPosition: CursorPosition = execCommand(wrapper, {action: Action.MinusIndent});
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li><br></li></ul>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelectorAll("ul li")[1]?.firstChild);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(wrapper.querySelectorAll("ul li")[1]?.firstChild);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.querySelectorAll("ul li")[1]?.firstChild, 0, wrapper.querySelectorAll("ul li")[1]?.firstChild, 0);
     });
 });
 
@@ -961,18 +745,11 @@ describe("Keyboard command that empties a list item", () => {
     test("Should keep the cursor in the item backspace emptied", () => {
         const wrapper = createWrapper(`<ul><li>zero</li><li class="start">a</li></ul>`);
         const text = getFirstChild(wrapper, ".start");
-        const range = new Range();
-        range.setStart(text, "a".length);
-        range.setEnd(text, "a".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(text, "a".length, text, "a".length);
         const cursorPosition = keyboard(wrapper, "Backspace");
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br></li></ul>`);
-        expect(cursorPosition.startContainer.parentElement).toBe(wrapper.querySelector(".start"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), 0);
     });
 
     // The anchor reads the text a command removed as text before the caret, which is where backspace
@@ -980,53 +757,32 @@ describe("Keyboard command that empties a list item", () => {
     test("Should keep the cursor where a delete removed the character after it", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         const text = getFirstChild(wrapper, ".start");
-        const range = new Range();
-        range.setStart(text, "ze".length);
-        range.setEnd(text, "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(text, "ze".length, text, "ze".length);
         const cursorPosition = keyboard(wrapper, "Delete");
 
         expectHtml(wrapper.innerHTML, `<p class="start">zeo</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("ze".length);
-        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.endOffset).toBe("ze".length);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
     });
 
     test("Should keep the cursor in the item delete emptied", () => {
         const wrapper = createWrapper(`<ul><li>zero</li><li class="start">a</li><li>first</li></ul>`);
         const text = getFirstChild(wrapper, ".start");
-        const range = new Range();
-        range.setStart(text, 0);
-        range.setEnd(text, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(text, 0, text, 0);
         const cursorPosition = keyboard(wrapper, "Delete");
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br></li><li>first</li></ul>`);
-        expect(cursorPosition.startContainer.parentElement).toBe(wrapper.querySelector(".start"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), 0);
     });
 
     // The typed text ends right before the nested list; a placeholder br left behind it would
     // resolve the cursor onto the nested item instead.
     test("Should keep the cursor on the text typed into an empty item holding a nested list", () => {
         const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><br><ul><li>child</li></ul></li></ul>`);
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".start") as HTMLElement, 0);
-        range.setEnd(wrapper.querySelector(".start") as HTMLElement, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(wrapper.querySelector(".start") as HTMLElement, 0, wrapper.querySelector(".start") as HTMLElement, 0);
         const cursorPosition = keyboard(wrapper, "a");
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">a<ul><li>child</li></ul></li></ul>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("a".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "a".length, cursorPosition.startContainer, cursorPosition.startOffset);
     });
 
     // Backspace leaves the cursor on the text node it emptied, beside the placeholder it
@@ -1034,41 +790,29 @@ describe("Keyboard command that empties a list item", () => {
     test("Should drop the placeholder when typing into an item backspace emptied", () => {
         const wrapper = createWrapper(`<ul><li>zero</li><li class="start">a<ul><li>child</li></ul></li></ul>`);
         const text = getFirstChild(wrapper, ".start");
-        const range = new Range();
-        range.setStart(text, "a".length);
-        range.setEnd(text, "a".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(text, "a".length, text, "a".length);
         let cursorPosition = keyboard(wrapper, "Backspace");
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br><ul><li>child</li></ul></li></ul>`);
 
-        range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
-        range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
+        selectRange(cursorPosition.startContainer, cursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
         cursorPosition = keyboard(wrapper, "c");
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">c<ul><li>child</li></ul></li></ul>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("c".length);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "c".length);
     });
 
     test("Should drop the placeholder when typing into a paragraph backspace emptied", () => {
         const wrapper = createWrapper(`<p class="start">a</p><p>next</p>`);
         const text = getFirstChild(wrapper, ".start");
-        const range = new Range();
-        range.setStart(text, "a".length);
-        range.setEnd(text, "a".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(text, "a".length, text, "a".length);
         let cursorPosition = keyboard(wrapper, "Backspace");
         expectHtml(wrapper.innerHTML, `<p class="start"><br></p><p>next</p>`);
 
-        range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
-        range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
+        selectRange(cursorPosition.startContainer, cursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
         cursorPosition = keyboard(wrapper, "c");
 
         expectHtml(wrapper.innerHTML, `<p class="start">c</p><p>next</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("c".length);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "c".length);
     });
 });
 
@@ -1092,11 +836,7 @@ describe("Image command", () => {
     test("Should insert an image in an empty paragraph", async () => {
         const wrapper = createWrapper(`<p class="start"><br></p>`);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
         const cursorPosition = execCommand(wrapper, {
             action: Action.Image,
             attributes: {image: new Blob(["image"], {type: "image/png"})}
@@ -1117,11 +857,7 @@ describe("Image command", () => {
     test("Should keep the paragraph the image is dropped at the end of", async () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
         const cursorPosition = execCommand(wrapper, {
             action: Action.Image,
             attributes: {image: new Blob(["image"], {type: "image/png"})}
@@ -1140,11 +876,7 @@ describe("Image command", () => {
     test("Should leave the cursor at the start of the line after an image dropped mid-line", async () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
         const cursorPosition = execCommand(wrapper, {
             action: Action.Image,
             attributes: {image: new Blob(["image"], {type: "image/png"})}
@@ -1165,46 +897,29 @@ describe("Image command", () => {
     test("Should move the cursor a command left in an image block to the line after it", () => {
         const wrapper = createWrapper(`<p class="be-image"><img src="image.png"></p><p class="after">zero</p>`);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".be-image") as Node, 0);
-        range.setEnd(wrapper.querySelector(".be-image") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(wrapper.querySelector(".be-image") as Node, 0, wrapper.querySelector(".be-image") as Node, 0);
         const cursorPosition = execCommand(wrapper, {action: Action.Click, event: new MouseEvent("click")});
 
         expectHtml(wrapper.innerHTML, `<p class="be-image"><img src="image.png"></p><p class="after">zero</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".after"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".after"), 0, cursorPosition.startContainer, cursorPosition.startOffset);
     });
 
     // Clicking an image selects it as a range around the img; bold has nothing to wrap there.
     test("Should leave a selected image block alone when a tag is applied", () => {
         const wrapper = createWrapper(`<p class="be-image"><img src="image.png"></p><p class="after">zero</p>`);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".be-image") as Node, 0);
-        range.setEnd(wrapper.querySelector(".be-image") as Node, 1);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(wrapper.querySelector(".be-image") as Node, 0, wrapper.querySelector(".be-image") as Node, 1);
         const cursorPosition = execCommand(wrapper, {action: Action.Tag, tag: "STRONG"});
 
         expectHtml(wrapper.innerHTML, `<p class="be-image"><img src="image.png"></p><p class="after">zero</p>`);
         // The image stays selected, the same as before the command.
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector(".be-image"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(1);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expectCursor(cursorPosition, wrapper.querySelector(".be-image"), 0, wrapper.querySelector(".be-image"), 1);
     });
 });
 
 describe("Delete row command", () => {
     function select(wrapper: HTMLElement, selector: string) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), "".length);
-        range.setEnd(getFirstChild(wrapper, selector), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, selector), "".length, getFirstChild(wrapper, selector), "".length);
     }
 
     function selectCell(wrapper: HTMLElement, selector: string) {
@@ -1272,10 +987,7 @@ describe("Delete row command", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
         const expectedContainer = getFirstChild(wrapper, "li");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("zero".length);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, expectedContainer, "zero".length);
     });
 
     test("Should remove the table left without columns", () => {
@@ -1304,19 +1016,12 @@ describe("Cursor position after a table command", () => {
     }
 
     function selectCell(wrapper: HTMLElement, selector: string) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), "".length);
-        range.setEnd(getFirstChild(wrapper, selector), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, selector), "".length, getFirstChild(wrapper, selector), "".length);
         return wrapper.querySelector(selector) as HTMLTableCellElement;
     }
 
     function expectCursorAt(cursorPosition: CursorPosition, node: Node | null | undefined, offset: number) {
-        expect(cursorPosition.startContainer).toBe(node);
-        expect(cursorPosition.startOffset).toBe(offset);
-        expect(cursorPosition.endContainer).toBe(node);
-        expect(cursorPosition.endOffset).toBe(offset);
+        expectCursor(cursorPosition, node, offset, node, offset);
     }
 
     test("Should move the cursor into the inserted row", () => {
@@ -1432,10 +1137,7 @@ describe("Cursor position after a table command", () => {
 // it goes before, after, or between the halves of the first level element the cursor is in.
 describe("Insert table command", () => {
     function selectAt(wrapper: HTMLElement, selector: string, offset: number) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), offset);
-        range.setEnd(getFirstChild(wrapper, selector), offset);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, selector), offset, getFirstChild(wrapper, selector), offset);
     }
 
     test("Should build a header row and a body of the picked size", () => {
@@ -1679,10 +1381,7 @@ describe("Insert table command", () => {
 
         // An empty cell holds nothing for the cursor to take, so it takes the cell itself.
         const firstCell = wrapper.querySelector("th");
-        expect(cursorPosition.startContainer).toBe(firstCell);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(firstCell);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, firstCell, 0, firstCell, 0);
     });
 });
 
@@ -1701,17 +1400,11 @@ describe("Click command", () => {
     }
 
     function select(wrapper: HTMLElement, selector: string, start: number, end: number) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), start);
-        range.setEnd(getFirstChild(wrapper, selector), end);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, selector), start, getFirstChild(wrapper, selector), end);
     }
 
     function selectCursor(cursorPosition: CursorPosition) {
-        const range = new Range();
-        range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
-        range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(cursorPosition.startContainer, cursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
     }
 
     test("Should leave a plain click's cursor to the browser", () => {
@@ -1775,19 +1468,12 @@ describe("Click command", () => {
 describe("Block command with the cursor on an empty block", () => {
     function selectBlock(wrapper: HTMLElement, selector: string) {
         const block = wrapper.querySelector(selector) as HTMLElement;
-        const range = new Range();
-        range.setStart(block, 0);
-        range.setEnd(block, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(block, 0, block, 0);
         return block;
     }
 
     function selectCursor(cursorPosition: CursorPosition) {
-        const range = new Range();
-        range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
-        range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(cursorPosition.startContainer, cursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
     }
 
     test("Should keep the cursor in the block when an empty line becomes a heading", () => {
@@ -1847,10 +1533,7 @@ describe("Block command with the cursor on an empty block", () => {
 // and a delete leaves an empty paragraph rather than a document with no line to write on.
 describe("Keyboard command that empties the document", () => {
     function selectAll(wrapper: HTMLElement) {
-        const range = new Range();
-        range.setStart(wrapper, 0);
-        range.setEnd(wrapper, wrapper.childNodes.length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper, 0, wrapper, wrapper.childNodes.length);
     }
 
     function keyboard(wrapper: HTMLElement, key: string) {
@@ -1874,10 +1557,7 @@ describe("Keyboard command that empties the document", () => {
         const cursorPosition = keyboard(wrapper, "a");
 
         expectHtml(wrapper.innerHTML, `<p>a</p>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
-        expect(cursorPosition.startOffset).toBe("a".length);
-        expect(cursorPosition.endOffset).toBe("a".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "a".length);
     });
 
     test("Should type into the paragraph the deleted document was given back", () => {
@@ -1898,11 +1578,7 @@ describe("Keyboard command that empties the document", () => {
     test("Should leave a document that is only a table alone", () => {
         const wrapper = createWrapper(`<table><tbody><tr><td class="start">a</td></tr></tbody></table>`);
         const text = getFirstChild(wrapper, ".start");
-        const range = new Range();
-        range.setStart(text, "a".length);
-        range.setEnd(text, "a".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(text, "a".length, text, "a".length);
         const cursorPosition = keyboard(wrapper, "b");
 
         expectHtml(wrapper.innerHTML, `<table><tbody><tr><td class="start">ab</td></tr></tbody></table>`);
@@ -1910,19 +1586,13 @@ describe("Keyboard command that empties the document", () => {
     });
 
     function selectCursor(cursorPosition: CursorPosition) {
-        const range = new Range();
-        range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
-        range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(cursorPosition.startContainer, cursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
     }
 });
 
 describe("Delete image command", () => {
     function select(wrapper: HTMLElement, selector: string) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), "".length);
-        range.setEnd(getFirstChild(wrapper, selector), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, selector), "".length, getFirstChild(wrapper, selector), "".length);
     }
 
     function image(wrapper: HTMLElement) {
@@ -1941,10 +1611,7 @@ describe("Delete image command", () => {
 
         expectHtml(wrapper.innerHTML, `<p>text</p><p class="after">after</p>`);
         const expectedContainer = getFirstChild(wrapper, "p");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("text".length);
-        expect(cursorPosition.endOffset).toBe("text".length);
+        expectCursor(cursorPosition, expectedContainer, "text".length);
     });
 
     test("Should land the cursor at the start of the block after when the image opened the editor", () => {
@@ -1958,10 +1625,7 @@ describe("Delete image command", () => {
 
         expectHtml(wrapper.innerHTML, `<p>after</p>`);
         const expectedContainer = getFirstChild(wrapper, "p");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, expectedContainer, 0);
     });
 
     // The image block was a line of its own, so removing it leaves the lists it stood between
@@ -1978,19 +1642,12 @@ describe("Delete image command", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
         const expectedContainer = getFirstChild(wrapper, "li");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("zero".length);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, expectedContainer, "zero".length);
     });
 
     test("Should leave an empty paragraph when the image was the only block", () => {
         const wrapper = createWrapper(`<p class="be-image"><img src="image.png"></p>`);
-        const range = new Range();
-        range.setStart(wrapper, 0);
-        range.setEnd(wrapper, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(wrapper, 0, wrapper, 0);
         const cursorPosition = execCommand(wrapper, {action: Action.DeleteImage, image: image(wrapper)});
 
         expectHtml(wrapper.innerHTML, `<p><br></p>`);
@@ -2021,10 +1678,7 @@ describe("Delete image command", () => {
 
 describe("Modify class command", () => {
     function select(wrapper: HTMLElement, selector: string) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), "".length);
-        range.setEnd(getFirstChild(wrapper, selector), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, selector), "".length, getFirstChild(wrapper, selector), "".length);
     }
 
     test("Should remove, add and toggle classes in that order", () => {
@@ -2074,10 +1728,7 @@ describe("Modify class command", () => {
 // so the cursor is neither restored nor written back: the field keeps its focus while typed in.
 describe("Attribute command on a named element", () => {
     function select(wrapper: HTMLElement, selector: string) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), "".length);
-        range.setEnd(getFirstChild(wrapper, selector), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, selector), "".length, getFirstChild(wrapper, selector), "".length);
     }
 
     test("Should write the attribute on the element", () => {
@@ -2138,10 +1789,7 @@ describe("Cursor position after a paste command", () => {
     }
 
     function selectItems(wrapper: HTMLElement) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getLastChild(wrapper, ".end"), getLastChild(wrapper, ".end").textContent?.length ?? 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getLastChild(wrapper, ".end"), getLastChild(wrapper, ".end").textContent?.length ?? 0);
     }
 
     test("Should leave the cursor on the item after a pasted image block", () => {
@@ -2154,27 +1802,17 @@ describe("Cursor position after a paste command", () => {
         });
 
         expectHtml(wrapper.innerHTML, `<ul><li>fourth</li></ul><p class="be-image"><img src="x"></p><ul><li>two</li></ul>`);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "ul:last-child li"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul:last-child li"), 0, cursorPosition.startContainer, cursorPosition.startOffset);
     });
 
     test("Should leave the cursor in the first cell of a pasted table", () => {
         const wrapper = createWrapper(`<p class="start end">fourth</p>`);
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
-        (getRange as jest.Mock).mockReturnValue(range);
-
+        selectRange(getFirstChild(wrapper, ".start"), "fou".length, getFirstChild(wrapper, ".start"), "fou".length);
         const cursorPosition = execCommand(wrapper, {
             action: Action.Clipboard,
             event: pasteEvent(`<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody><tr><td>c</td><td>d</td></tr></tbody></table>`)
         });
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "th"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "th"), 0, cursorPosition.startContainer, cursorPosition.startOffset);
     });
 });

@@ -19,10 +19,13 @@ import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-ut
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     CursorPosition,
+    extractContents,
     getCursorPosition,
     getCursorPositionFrom,
     isCollapsed,
-    isCursorPositionEqual
+    isCursorPositionEqual,
+    wrapCursorPosition,
+    insertNode
 } from "@/core/shared/type/cursor-position";
 import {getFirstSelectedRoot, getSelectedBlock, getSelectedBlocks, getSelectedRoot} from "@/core/selection/selection";
 import {getNextListWrapper, getPreviousListWrapper} from "@/core/list/util/list-util";
@@ -39,14 +42,12 @@ export class Normalizer {
 
     public normalize(cursorPosition = getCursorPosition()) {
         const blocks = getSelectedBlocks(this.contentEditable, cursorPosition);
-        const involved = getInvolvedCursorPosition(blocks.at(0), blocks.at(-1));
-        if (!involved) {
-            return;
-        }
+        const wrappedCursorPosition = wrapCursorPosition(blocks.at(0), blocks.at(-1));
 
-        // The range takes the whole blocks, so the rebuilt ones simply take their place
-        const fragment = involved.range.extractContents();
-        involved.range.insertNode(normalizeNew(this.contentEditable, fragment));
+        if (wrappedCursorPosition) {
+            const fragment = extractContents(wrappedCursorPosition);
+            insertNode(wrappedCursorPosition, normalizeNew(this.contentEditable, fragment));
+        }
     }
 
     /**
@@ -59,6 +60,16 @@ export class Normalizer {
             carrier.insertCarrier(cursorPosition, tag);
             return;
         }
+
+        // const blocks = getSelectedBlocks(this.contentEditable, cursorPosition);
+        // const fragment = extractContents(cursorPosition);
+        // const wrapped = wrapInTagNew(fragment, tag, attributes);
+        // insertNode(cursorPosition, wrapped);
+        // const wrappedCursorPosition = wrapCursorPosition(blocks.at(0), blocks.at(-1));
+        // if (wrappedCursorPosition) {
+        //     const fragment = extractContents(wrappedCursorPosition);
+        //     insertNode(wrappedCursorPosition, normalizeNew(this.contentEditable, fragment));
+        // }
 
         const merger = new Merger(this.contentEditable, cursorPosition);
         const extracted = merger.extractContents();
@@ -155,7 +166,9 @@ export function normalize(contentEditable: HTMLElement, ...cursorPosition: Curso
  * The rebuild replaces every element it touches but writes no text of its own, so the cursor
  * is read as a position in the text beforehand and restored from the same text afterwards.
  */
-export function removeAndNormalize(contentEditable: HTMLElement, removeTagFrom: HTMLElement, tags: string[],
+export function removeAndNormalize(contentEditable: HTMLElement,
+                                   removeTagFrom: HTMLElement,
+                                   tags: string[],
                                    cursorPosition: CursorPosition,
                                    cursorAnchor = getCursorAnchor(contentEditable, cursorPosition)) {
     const rootElement = getRootElement(contentEditable, removeTagFrom);

@@ -53,6 +53,18 @@ export function getCursorPositionFrom(startContainer: Node, startOffset: number,
     };
 }
 
+export function wrapCursorPosition(first: Node | undefined, last: Node | undefined) {
+    if (!first || !last) {
+        return;
+    }
+
+    const range = new Range();
+    range.setStartBefore(first);
+    range.setEndAfter(last);
+
+    return getCursorPositionFrom(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
+}
+
 /**
  * Returns a cursor position standing around the selected blocks, so extracting it takes the blocks themselves.
  * Undefined when no block is selected.
@@ -94,7 +106,7 @@ export function getCursorPositionFromElement(element: Node, isRange = true): Cur
     };
 }
 
-export function extractContents(cursorPosition: CursorPosition): DocumentFragment {
+export function extractContents(cursorPosition: CursorPosition) {
     return cursorPosition.range.extractContents();
 }
 

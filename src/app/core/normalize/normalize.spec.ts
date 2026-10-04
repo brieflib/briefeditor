@@ -1,14 +1,12 @@
-import {Normalizer, removeAndNormalize, replaceTags} from "@/core/normalize/normalize";
+import {Normalizer, replaceTags} from "@/core/normalize/normalize";
 import {
     createWrapper,
-    expectCursor,
     expectHtml,
     getFirstChild,
     getLastChild,
     selectRange,
     testNormalize
 } from "@/core/shared/test-util";
-import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
 import {Carrier} from "@/core/carrier/carrier";
 

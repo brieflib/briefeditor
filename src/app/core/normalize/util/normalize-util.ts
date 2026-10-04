@@ -4,8 +4,6 @@ import {Display, isSchemaContain, isSchemaContainNodeName} from "@/core/normaliz
 import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {
     getBlockElement,
-    getFirstText,
-    getLastText,
     hasSelfCloseDescendant,
     imageBlockClass,
     imageSizeClasses
@@ -24,8 +22,8 @@ import {AvailableClasses} from "@/core/shared/available-classes";
  * moved out of `toNormalize`.
  */
 export function normalizeNew(contentEditable: Node,
-                             toNormalize: DocumentFragment) {
-    const leaves = getTextNodes(toNormalize)
+                             block: DocumentFragment) {
+    const leaves = getTextNodes(block)
         .map(textNode => toLeafWithParents(contentEditable, textNode))
         .map(leaf => divideFirstLevels(leaf))
         .map(leaf => sortLeafParents(leaf))

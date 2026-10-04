@@ -2,6 +2,7 @@ import {CursorPosition} from "@/core/shared/type/cursor-position";
 import {getSelectedBlocks} from "@/core/selection/selection";
 import {extractContents} from "@/core/extractor/extractor";
 import {getBlockElement} from "@/core/shared/element-util";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export class Merger {
     private readonly contentEditable: HTMLElement;
@@ -32,12 +33,14 @@ export class Merger {
 
     /** Merges the fragment into the selected blocks and returns the first and the last inserted nodes. */
     public mergeIntoDom(fragment: DocumentFragment): InsertedNodes {
-        this.firstInserted = undefined;
-        this.lastInserted = undefined;
-
         // Read before the merge, which moves the fragment nodes into the DOM
         const dropped = this.getDroppedOriginals(fragment);
         this.joinAbsorbedBlocks(fragment);
+        this.joinMovedItems(fragment);
+
+        // Joining the moved items merges into originals, which isn't an insertion the caller should see
+        this.firstInserted = undefined;
+        this.lastInserted = undefined;
         const original = this.originalBlocks.at(0);
         if (original instanceof HTMLElement) {
             this.mergeChildren(fragment, original);
@@ -90,6 +93,23 @@ export class Merger {
                     absorbed.remove();
                 }
             }
+        }
+    }
+
+    /**
+     * Puts the partly selected items back in place of their clones, which normalization moved under another list, e.g.
+     * an item of a nested list joined into the list before it. The item keeps its unselected content and attributes.
+     */
+    private joinMovedItems(fragmentParent: Node) {
+        for (const fragmentNode of Array.from(fragmentParent.childNodes)) {
+            const original = this.getConnectedOriginal(fragmentNode);
+            if (original && isSchemaContain(original, [Display.List]) && !this.getOriginalInPlace(fragmentNode)) {
+                fragmentNode.replaceWith(original);
+                this.mergeChildren(fragmentNode, original);
+                continue;
+            }
+
+            this.joinMovedItems(fragmentNode);
         }
     }
 
