@@ -1,15 +1,5 @@
 import {createWrapper, expectHtml, getFirstChild, getLastChild, selectRange} from "@/core/shared/test-util";
-import {
-    convertList,
-    ListWrapper,
-    minusOrderNumbers,
-    normalizeLists,
-    parseList,
-    plusOrderNumbers
-} from "@/core/list/type/list-class";
-import {getFirstSelectedRoot} from "@/core/selection/selection";
-import {getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
-import {getListsOrderNumbers} from "@/core/list/util/list-util";
+import {convertList, ListClass, ListWrapper, normalizeLists, parseList} from "@/core/list/type/list-class";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -32,32 +22,38 @@ describe("Parse to ListClass", () => {
             </ul>
         `);
 
+        selectRange(getFirstChild(wrapper, ".start li"), "ze".length, getFirstChild(wrapper, ".start li"), "ze".length);
+
         const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
         const lists = parseList(rootWrapper);
 
         expect(lists[0]?.listWrapper).toBe(ListWrapper.UL);
         expect(lists[0]?.nestedLevel).toBe(0);
         expect(lists[0]?.listContent.textContent).toBe("zero");
+        expect(lists[0]?.selected).toBe(true);
 
         expect(lists[1]?.listWrapper).toBe(ListWrapper.OL);
         expect(lists[1]?.nestedLevel).toBe(1);
         expect(lists[1]?.listContent.textContent).toBe("first second");
+        expect(lists[1]?.selected).toBe(false);
 
         expect(lists[2]?.listWrapper).toBe(ListWrapper.UL);
         expect(lists[2]?.nestedLevel).toBe(2);
         expect(lists[2]?.listContent.textContent).toBe("third");
+        expect(lists[2]?.selected).toBe(false);
 
         expect(lists[3]?.listWrapper).toBe(ListWrapper.OL);
         expect(lists[3]?.nestedLevel).toBe(1);
         expect(lists[3]?.listContent.textContent).toBe("fourth");
+        expect(lists[3]?.selected).toBe(false);
     });
 
     test("Parse multiple list wrappers", () => {
         const wrapper = createWrapper(`
-            <ol>
+            <ol class="start">
                 <li>zero</li>
             </ol>
-            <ul class="start">
+            <ul class="middle">
                 <li>first</li>
             </ul>
             <ol>
@@ -65,20 +61,26 @@ describe("Parse to ListClass", () => {
             </ol>
         `);
 
-        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
-        const lists = parseList(rootWrapper);
+        selectRange(getFirstChild(wrapper, ".start li"), "ze".length, getFirstChild(wrapper, ".middle li"), "ze".length);
+
+
+        const middle = wrapper.querySelector(".middle") as HTMLElement;
+        const lists = parseList(middle);
 
         expect(lists[0]?.listWrapper).toBe(ListWrapper.OL);
         expect(lists[0]?.nestedLevel).toBe(0);
         expect(lists[0]?.listContent.textContent).toBe("zero");
+        expect(lists[0]?.selected).toBe(true);
 
         expect(lists[1]?.listWrapper).toBe(ListWrapper.UL);
         expect(lists[1]?.nestedLevel).toBe(0);
         expect(lists[1]?.listContent.textContent).toBe("first");
+        expect(lists[1]?.selected).toBe(true);
 
         expect(lists[2]?.listWrapper).toBe(ListWrapper.OL);
         expect(lists[2]?.nestedLevel).toBe(0);
         expect(lists[2]?.listContent.textContent).toBe("second");
+        expect(lists[2]?.selected).toBe(false);
     });
 });
 
@@ -101,9 +103,9 @@ describe("Convert ListClass to DOM", () => {
             </ul>
         `);
 
-        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
-        const normalized = normalizeLists(parseList(rootWrapper), getCursorPositionFrom(wrapper, 0, wrapper, 0, false));
-        const listWrapper = convertList(normalized.lists).firstElementChild as HTMLElement;
+        const ulWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const normalized = normalizeLists(parseList(ulWrapper));
+        const listWrapper = convertList(normalized).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
             <ul>
                 <li>zero
@@ -116,10 +118,10 @@ describe("Convert ListClass to DOM", () => {
                 </li>
             </ul>
         `);
-        expect(normalized.cursorPosition.startContainer).toBe(wrapper);
-        expect(normalized.cursorPosition.startOffset).toBe(0);
-        expect(normalized.cursorPosition.endContainer).toBe(wrapper);
-        expect(normalized.cursorPosition.endOffset).toBe(0);
+        // expect(normalized.cursorPosition.startContainer).toBe(wrapper);
+        // expect(normalized.cursorPosition.startOffset).toBe(0);
+        // expect(normalized.cursorPosition.endContainer).toBe(wrapper);
+        // expect(normalized.cursorPosition.endOffset).toBe(0);
     });
 
     test("Normalize list with different nesting level", () => {
@@ -134,9 +136,9 @@ describe("Convert ListClass to DOM", () => {
             </ul>
         `);
 
-        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
-        const normalized = normalizeLists(parseList(rootWrapper), getCursorPositionFrom(wrapper, 0, wrapper, 0, false));
-        const listWrapper = convertList(normalized.lists).firstElementChild as HTMLElement;
+        const ulWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const normalized = normalizeLists(parseList(ulWrapper),);
+        const listWrapper = convertList(normalized).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
             <ul>
                 <li>second
@@ -146,10 +148,10 @@ describe("Convert ListClass to DOM", () => {
                 </li>
             </ul>
         `);
-        expect(normalized.cursorPosition.startContainer).toBe(wrapper);
-        expect(normalized.cursorPosition.startOffset).toBe(0);
-        expect(normalized.cursorPosition.endContainer).toBe(wrapper);
-        expect(normalized.cursorPosition.endOffset).toBe(0);
+        // expect(normalized.cursorPosition.startContainer).toBe(wrapper);
+        // expect(normalized.cursorPosition.startOffset).toBe(0);
+        // expect(normalized.cursorPosition.endContainer).toBe(wrapper);
+        // expect(normalized.cursorPosition.endOffset).toBe(0);
     });
 
     test("Convert nested list", () => {
@@ -168,8 +170,8 @@ describe("Convert ListClass to DOM", () => {
             </ul>
         `);
 
-        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
-        const lists = parseList(rootWrapper);
+        const ulWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const lists = parseList(ulWrapper);
 
         const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
@@ -199,8 +201,8 @@ describe("Convert ListClass to DOM", () => {
             </ol>
         `);
 
-        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
-        const lists = parseList(rootWrapper);
+        const olWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const lists = parseList(olWrapper);
 
         const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
@@ -232,8 +234,8 @@ describe("Convert ListClass to DOM", () => {
             </ul>
         `);
 
-        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
-        const lists = parseList(rootWrapper);
+        const ulWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const lists = parseList(ulWrapper);
 
         const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
@@ -270,8 +272,8 @@ describe("Convert ListClass to DOM", () => {
             </ul>
         `);
 
-        const rootWrapper = wrapper.querySelector(".start") as HTMLElement;
-        const lists = parseList(rootWrapper);
+        const ulWrapper = wrapper.querySelector(".start") as HTMLElement;
+        const lists = parseList(ulWrapper);
 
         const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
@@ -303,15 +305,15 @@ describe("Plus indent", () => {
 
         selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
-        const cursorPosition = getCursorPosition();
-        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = getListsOrderNumbers(wrapper);
-        const lists = parseList(rootWrapper);
-        const result = plusOrderNumbers(lists, orderNumbers);
+        const ulWrapper = wrapper.querySelector("ul") as HTMLElement;
+        const lists = parseList(ulWrapper);
+        (lists[1] as ListClass).nestedLevel = 2;
+        (lists[2] as ListClass).nestedLevel = 3;
+        const result = normalizeLists(lists);
 
         expect(result[0]?.nestedLevel).toBe(0);
         expect(result[1]?.nestedLevel).toBe(1);
-        expect(result[2]?.nestedLevel).toBe(1);
+        expect(result[2]?.nestedLevel).toBe(2);
     });
 
     test("Plus indent of two different nesting level list", () => {
@@ -320,19 +322,19 @@ describe("Plus indent", () => {
                 <li>zero</li>
                 <li class="start">first</li>
                 <ol>
-                    <li class="end">second</li> 
-                    <li>third</li> 
+                    <li class="end">second</li>
+                    <li>third</li>
                 </ol>
             </ul>
         `);
 
         selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
-        const cursorPosition = getCursorPosition();
-        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = getListsOrderNumbers(wrapper);
-        const lists = parseList(rootWrapper);
-        const result = plusOrderNumbers(lists, orderNumbers);
+        const ulWrapper = wrapper.querySelector("ul") as HTMLElement;
+        const lists = parseList(ulWrapper);
+        (lists[1] as ListClass).nestedLevel = 1;
+        (lists[2] as ListClass).nestedLevel = 2;
+        const result = normalizeLists(lists);
 
         expect(result[0]?.nestedLevel).toBe(0);
         expect(result[1]?.nestedLevel).toBe(1);
@@ -343,7 +345,7 @@ describe("Plus indent", () => {
     test("Plus indent of nesting level list with previous ul list wrapper", () => {
         const wrapper = createWrapper(`
             <ul>
-                <li>zero</li>         
+                <li>zero</li>
             </ul>
             <ol>
                 <li>first</li>
@@ -353,11 +355,10 @@ describe("Plus indent", () => {
 
         selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".start"), "".length);
 
-        const cursorPosition = getCursorPosition();
-        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = getListsOrderNumbers(wrapper);
-        const lists = parseList(rootWrapper);
-        const result = plusOrderNumbers(lists, orderNumbers);
+        const ulWrapper = wrapper.querySelector("ul") as HTMLElement;
+        const lists = parseList(ulWrapper);
+        (lists[2] as ListClass).nestedLevel = 1;
+        const result = normalizeLists(lists);
 
         expect(result[0]?.nestedLevel).toBe(0);
         expect(result[1]?.nestedLevel).toBe(0);
@@ -379,11 +380,11 @@ describe("Plus indent", () => {
 
         selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
-        const cursorPosition = getCursorPosition();
-        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = getListsOrderNumbers(wrapper);
-        const lists = parseList(rootWrapper);
-        const result = plusOrderNumbers(lists, orderNumbers);
+        const ulWrapper = wrapper.querySelector("ul") as HTMLElement;
+        const lists = parseList(ulWrapper);
+        (lists[1] as ListClass).nestedLevel = 1;
+        (lists[2] as ListClass).nestedLevel = 2;
+        const result = normalizeLists(lists);
 
         expect(result[0]?.nestedLevel).toBe(0);
         expect(result[1]?.nestedLevel).toBe(1);
@@ -410,11 +411,12 @@ describe("Plus indent", () => {
 
         selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "".length);
 
-        const cursorPosition = getCursorPosition();
-        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = getListsOrderNumbers(wrapper);
-        const lists = parseList(rootWrapper);
-        const result = plusOrderNumbers(lists, orderNumbers);
+        const ulWrapper = wrapper.querySelector("ul") as HTMLElement;
+        const lists = parseList(ulWrapper);
+        (lists[1] as ListClass).nestedLevel = 1;
+        (lists[2] as ListClass).nestedLevel = 3;
+        (lists[3] as ListClass).nestedLevel = 2;
+        const result = normalizeLists(lists);
 
         expect(result[0]?.nestedLevel).toBe(0);
         expect(result[1]?.nestedLevel).toBe(1);
@@ -430,22 +432,21 @@ describe("Minus indent", () => {
                 <li>zero</li>
                 <ol>
                     <li class="start">first</li>
-                    <li class="end">second</li>                
+                    <li class="end">second</li>
                 </ol>
             </ul>
         `);
 
         selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
-        const cursorPosition = getCursorPosition();
-        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = getListsOrderNumbers(wrapper);
-        const lists = parseList(rootWrapper);
-        const result = minusOrderNumbers(lists, orderNumbers);
+        const ulWrapper = wrapper.querySelector("ul") as HTMLElement;
+        const lists = parseList(ulWrapper);
+        (lists[1] as ListClass).nestedLevel = 0;
+        const result = normalizeLists(lists);
 
         expect(result[0]?.nestedLevel).toBe(0);
         expect(result[1]?.nestedLevel).toBe(0);
-        expect(result[2]?.nestedLevel).toBe(0);
+        expect(result[2]?.nestedLevel).toBe(1);
     });
 
     test("Minus indent of two different nesting level list", () => {
@@ -455,24 +456,48 @@ describe("Minus indent", () => {
                 <ul>
                     <li class="start">first</li>
                     <ol>
-                        <li class="end">second</li> 
-                        <li>third</li> 
-                    </ol>                
+                        <li class="end">second</li>
+                        <li>third</li>
+                    </ol>
                 </ul>
             </ul>
         `);
 
         selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
-        const cursorPosition = getCursorPosition();
-        const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
-        const orderNumbers = getListsOrderNumbers(wrapper);
-        const lists = parseList(rootWrapper);
-        const result = minusOrderNumbers(lists, orderNumbers);
+        const ulWrapper = wrapper.querySelector("ul") as HTMLElement;
+        const lists = parseList(ulWrapper);
+        (lists[2] as ListClass).nestedLevel = 0;
+        const result = normalizeLists(lists);
 
         expect(result[0]?.nestedLevel).toBe(0);
-        expect(result[1]?.nestedLevel).toBe(0);
-        expect(result[2]?.nestedLevel).toBe(1);
-        expect(result[3]?.nestedLevel).toBe(2);
+        expect(result[1]?.nestedLevel).toBe(1);
+        expect(result[2]?.nestedLevel).toBe(0);
+        expect(result[3]?.nestedLevel).toBe(1);
+    });
+});
+
+describe("Selection", () => {
+    test("Mark lines selected by the cursor", () => {
+        const wrapper = createWrapper(`
+         <ul class="list">
+             <li>zero</li>
+             <li class="start">first
+                 <ul>
+                     <li class="end">second</li>
+                 </ul>
+             </li>
+             <li>third</li>
+         </ul>
+     `);
+
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "sec".length);
+
+        const lists = parseList(wrapper.querySelector(".list") as HTMLElement);
+
+        expect(lists[0]?.selected).toBe(false);
+        expect(lists[1]?.selected).toBe(true);
+        expect(lists[2]?.selected).toBe(true);
+        expect(lists[3]?.selected).toBe(false);
     });
 });

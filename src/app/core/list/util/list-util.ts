@@ -174,7 +174,8 @@ export function appendBeforeAndDelete(rootWrapper: HTMLElement, listWrapper: Doc
     }
 }
 
-function getListPosition(listWrapper: HTMLElement | null, list: ChildNode): number {
+/** The index of `list` in the run opened by `listWrapper`, counted in the document order {@link parseList} reads lines in. */
+export function getListPosition(listWrapper: HTMLElement | null, list: ChildNode): number {
     let offset = 0;
     while (listWrapper && isSchemaContain(listWrapper, [Display.ListWrapper])) {
         const allLists = listWrapper.querySelectorAll("li");

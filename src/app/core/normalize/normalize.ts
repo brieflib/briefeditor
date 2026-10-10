@@ -5,6 +5,7 @@ import {
     getInvolvedCursorPosition,
     getLeafNodes,
     maybeInsertCarrier,
+    normalizeMergeNew,
     normalizeNew,
     normalizeRemoveNew,
     normalizeReplaceBlockNew,
@@ -108,6 +109,17 @@ export class Normalizer {
         const fragment = involved.range.extractContents();
         const normalized = normalizeReplaceBlockNew(this.contentEditable, fragment, blocks, targetTags);
         involved.range.insertNode(normalized);
+    }
+
+    /** Merges `lastBlock` into `firstBlock`, rebuilding every root from the one holding the first to the one holding the last. */
+    public mergeBlocks(firstBlock: HTMLElement, lastBlock: HTMLElement) {
+        const firstRoot = getRootElement(this.contentEditable, firstBlock);
+        const lastRoot = getRootElement(this.contentEditable, lastBlock);
+        const wrappedCursorPosition = wrapCursorPosition(firstRoot, lastRoot);
+        if (wrappedCursorPosition) {
+            const fragment = extractContents(wrappedCursorPosition);
+            insertNode(wrappedCursorPosition, normalizeMergeNew(this.contentEditable, fragment, firstBlock, lastBlock));
+        }
     }
 }
 

@@ -1,7 +1,5 @@
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {getChildFragment, imageSelector} from "@/core/shared/element-util";
-import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
-import {getFirstListWrapper, getNextListWrapper} from "@/core/list/util/list-util";
+import {CursorPosition, getCursorPosition, intersectsNode} from "@/core/shared/type/cursor-position";
 
 export enum ListWrapper {
     UL = "UL",
@@ -12,180 +10,85 @@ export class ListClass {
     nestedLevel!: number;
     listWrapper!: ListWrapper;
     listContent!: DocumentFragment;
+    selected!: boolean
 }
 
 /**
- * Flattens a list run into a `ListClass` per line, in document order.
- *
- * @remarks
- * An item standing outside any wrapper (pasted markup can hold one; the editor never writes
- * one) has no wrapper to take its type from and is read as an unordered line at that level.
- * A wrapper found right after such an item is read as its nested list, one level under it.
+ * Flattens the run of list wrappers that `listWrapper` belongs to, in order, into one `ListClass` per line.
  */
-export function parseList(rootWrapper: HTMLElement): ListClass[] {
+export function parseList(listWrapper: HTMLElement, cursorPosition = getCursorPosition()): ListClass[] {
     const result: ListClass[] = [];
 
-    let afterItem = false;
-    let current: HTMLElement | null = getFirstListWrapper(rootWrapper);
-    while (current && isSchemaContain(current, [Display.ListWrapper, Display.List])) {
-        if (isList(current)) {
-            parseListItem(current, ListWrapper.UL, 0, result);
-            afterItem = true;
-        } else {
-            parseListWrapper(current as HTMLElement, toListWrapper(current), afterItem ? 1 : 0, result);
-        }
-        current = getNextListWrapper(current);
+    for (const wrapper of getListWrappers(listWrapper)) {
+        parseListWrapper(wrapper, 0, result, cursorPosition);
     }
 
     return result;
 }
 
-/** Rebuilds a flat `ListClass[]` (the inverse of {@link parseList}) into nested list markup. */
-export function convertList(lists: ListClass[]): DocumentFragment {
-    const fragment = new DocumentFragment();
-    const list = lists[0];
-    if (!list) {
-        return fragment;
+/**
+ * The list wrappers from the first one to the last one.
+ */
+function getListWrappers(listWrapper: HTMLElement): HTMLElement[] {
+    if (!isSchemaContain(listWrapper, [Display.ListWrapper])) {
+        return [];
     }
 
-    const rootWrapper: HTMLElement = document.createElement(list.listWrapper);
-    let currentLi: HTMLElement | null | undefined = document.createElement("li");
-    currentLi.appendChild(list.listContent);
-    rootWrapper.appendChild(currentLi);
-    const rootWrappers: HTMLElement[] = [rootWrapper];
+    let first: Element = listWrapper;
+    while (first.previousElementSibling && isSchemaContain(first.previousElementSibling, [Display.ListWrapper])) {
+        first = first.previousElementSibling;
+    }
 
-    for (let i = 0; i <= lists.length; i++) {
-        const list = lists[i];
-        if (!list) {
-            return appendToFragment(fragment, rootWrappers);
-        }
+    const wrappers: HTMLElement[] = [];
+    let current: Element | null = first;
+    while (current && isSchemaContain(current, [Display.ListWrapper])) {
+        wrappers.push(current as HTMLElement);
+        current = current.nextElementSibling;
+    }
 
-        const nextList = lists[i + 1];
-        if (!nextList) {
-            return appendToFragment(fragment, rootWrappers);
-        }
+    return wrappers;
+}
 
-        const lastRootWrapper = rootWrappers[rootWrappers.length - 1];
-        if (lastRootWrapper && nextList.nestedLevel === 0 && nextList.listWrapper !== lastRootWrapper.nodeName) {
-            const newWrapper: HTMLElement = document.createElement(nextList.listWrapper);
-            rootWrappers.push(newWrapper);
-            const li = document.createElement("li");
-            li.appendChild(nextList.listContent);
-            newWrapper.appendChild(li);
-            currentLi = li;
-            continue;
-        }
+/**
+ * Rebuilds a flat `ListClass[]` (the inverse of {@link parseList}) into nested list markup.
+ * Expects lists cleaned up by {@link normalizeLists}: starting at level 0 and going at most one level deeper per line.
+ */
+export function convertList(lists: ListClass[]): DocumentFragment {
+    const fragment = new DocumentFragment();
+    const wrappers: HTMLElement[] = [];
 
-        if (list.nestedLevel + 1 === nextList.nestedLevel) {
-            const nextWrapper = document.createElement(nextList.listWrapper);
-            currentLi?.appendChild(nextWrapper);
-            currentLi = nextWrapper;
-        }
+    for (const list of lists) {
+        // Close the wrappers deeper than this line
+        wrappers.length = Math.min(wrappers.length, list.nestedLevel + 1);
 
-        if (list.nestedLevel > nextList.nestedLevel) {
-            let nestedLevel = list.nestedLevel;
-            while (nestedLevel > nextList.nestedLevel) {
-                nestedLevel--;
-                currentLi = currentLi?.parentElement?.parentElement;
-            }
-            currentLi = currentLi?.parentElement;
-
-            // A line in the other type doesn't belong to the wrapper the climb landed in, so
-            // it closes that wrapper and opens one of its own beside it.
-            if (currentLi && currentLi.nodeName !== nextList.listWrapper) {
-                const nextWrapper = document.createElement(nextList.listWrapper);
-                currentLi.parentElement?.appendChild(nextWrapper);
-                currentLi = nextWrapper;
-            }
-        }
-
-        if (list.nestedLevel === nextList.nestedLevel && list.listWrapper !== nextList.listWrapper) {
-            currentLi = currentLi?.parentElement?.parentElement;
-            const nextWrapper = document.createElement(nextList.listWrapper);
-            currentLi?.appendChild(nextWrapper);
-            currentLi = nextWrapper;
-        }
-
-        if (list.nestedLevel === nextList.nestedLevel && list.listWrapper === nextList.listWrapper) {
-            currentLi = currentLi?.parentElement;
+        // A line of the other type closes the wrapper of its level and opens one of its own beside it
+        if (wrappers[list.nestedLevel]?.nodeName !== list.listWrapper) {
+            wrappers.length = list.nestedLevel;
+            const wrapper = document.createElement(list.listWrapper);
+            const parent = wrappers[list.nestedLevel - 1]?.lastElementChild ?? fragment;
+            parent.appendChild(wrapper);
+            wrappers.push(wrapper);
         }
 
         const li = document.createElement("li");
-        li.appendChild(nextList.listContent);
-        currentLi?.appendChild(li);
-        currentLi = li;
-    }
-
-    return appendToFragment(fragment, rootWrappers);
-}
-
-function appendToFragment(fragment: DocumentFragment, rootWrappers: HTMLElement[]) {
-    const firstWrapper = rootWrappers[0];
-    if (!firstWrapper) {
-        return fragment;
-    }
-
-    fragment.appendChild(firstWrapper);
-    for (let i = 1; i < rootWrappers.length; i++) {
-        const rootWrapper = rootWrappers[i];
-        if (rootWrapper) {
-            fragment.appendChild(rootWrapper);
-        }
+        li.appendChild(list.listContent);
+        wrappers[list.nestedLevel]?.appendChild(li);
     }
 
     return fragment;
 }
 
-export function plusOrderNumbers(lists: ListClass[], orderNumbers: number[]): ListClass[] {
-    return shiftOrderNumbers(lists, orderNumbers, 1);
-}
-
-export function minusOrderNumbers(lists: ListClass[], orderNumbers: number[]): ListClass[] {
-    return shiftOrderNumbers(lists, orderNumbers, -1);
-}
-
-export function shiftOrderNumbers(lists: ListClass[], orderNumbers: number[], shift: number): ListClass[] {
-    for (const orderNumber of orderNumbers) {
-        const list = lists[orderNumber];
-        if (list) {
-            list.nestedLevel += shift;
-        }
-    }
-
-    return lists;
-}
-
-export interface NormalizeListsResult {
-    lists: ListClass[];
-    cursorPosition: CursorPosition;
-}
-
 /**
- * Renumbers nesting levels after a list is edited and drops items with no content - an
- * empty wrapper the parse walked through, or an item an edit emptied out. `dropped` names
- * an item to drop explicitly (e.g. the one line a modification replaces).
+ * Renumbers nesting levels and drops items with no content - an empty wrapper the parse walked through.
  *
- * @returns The cleaned-up list plus the cursor position, redirected if it was orphaned by a
- * dropped item.
+ * @returns The cleaned-up list.
  */
-export function normalizeLists(lists: ListClass[], cursorPosition: CursorPosition, dropped?: ListClass): NormalizeListsResult {
+export function normalizeLists(lists: ListClass[]): ListClass[] {
     const result: ListClass[] = [];
     const levelMap = new Map<number, number>();
-    const cursorOrphaned = isCursorOrphaned(cursorPosition, lists);
-    let updatedCursorPosition: CursorPosition = cursorPosition;
-    let redirected = false;
 
-    for (let i = 0; i < lists.length; i++) {
-        const list = lists[i];
-        if (!list || list === dropped || isWithoutContent(list)) {
-            if (!redirected && list &&
-                (cursorOrphaned || list.listContent.contains(cursorPosition.startContainer))) {
-                const found = findCursorInNextNonEmpty(lists, i + 1);
-                if (found) {
-                    updatedCursorPosition = found;
-                    redirected = true;
-                }
-            }
+    for (const list of lists) {
+        if (isWithoutContent(list)) {
             continue;
         }
 
@@ -209,7 +112,29 @@ export function normalizeLists(lists: ListClass[], cursorPosition: CursorPositio
         result.push(list);
     }
 
-    return {lists: result, cursorPosition: updatedCursorPosition};
+    return result;
+}
+
+/** Moves every selected line one level deeper. */
+export function plusLevel(lists: ListClass[]): ListClass[] {
+    for (const list of lists) {
+        if (list.selected) {
+            list.nestedLevel += 1;
+        }
+    }
+
+    return lists;
+}
+
+/** Moves every selected line one level shallower. */
+export function minusLevel(lists: ListClass[]): ListClass[] {
+    for (const list of lists) {
+        if (list.selected) {
+            list.nestedLevel -= 1;
+        }
+    }
+
+    return lists;
 }
 
 /** Whether a `ListClass` line holds no content (nested lists don't count, per `listContent`). */
@@ -217,51 +142,29 @@ function isWithoutContent(list: ListClass): boolean {
     return !list.listContent.textContent && !list.listContent.firstElementChild;
 }
 
-/** Whether a `ListClass` line is blank (its br has nothing written on it). An image counts as content. */
-export function isListClassEmpty(list: ListClass | undefined): boolean {
-    if (!list) {
-        return false;
-    }
-
-    return !list.listContent.textContent && !list.listContent.querySelector(imageSelector);
-}
-
-function isCursorOrphaned(cursorPosition: CursorPosition, lists: ListClass[]): boolean {
-    return !cursorPosition.startContainer.isConnected &&
-        !lists.some(l => l?.listContent.contains(cursorPosition.startContainer));
-}
-
-function findCursorInNextNonEmpty(lists: ListClass[], startIndex: number): CursorPosition | undefined {
-    for (let i = startIndex; i < lists.length; i++) {
-        const firstNode = lists[i]?.listContent.textContent ? lists[i]?.listContent.firstChild : null;
-        if (firstNode) {
-            return getCursorPositionFrom(firstNode, 0, firstNode, 0, false);
-        }
-    }
-    return undefined;
-}
-
-function parseListWrapper(wrapper: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[]) {
+function parseListWrapper(wrapper: HTMLElement, level: number, result: ListClass[], cursorPosition: CursorPosition) {
+    const wrapperType = toWrapperType(wrapper);
     for (const child of Array.from(wrapper.children) as HTMLElement[]) {
         if (isList(child)) {
-            parseListItem(child, wrapperType, level, result);
+            parseListItem(child, wrapperType, level, result, cursorPosition);
         } else if (isSchemaContain(child, [Display.ListWrapper])) {
-            parseListWrapper(child, toListWrapper(child), level + 1, result);
+            parseListWrapper(child, level + 1, result, cursorPosition);
         }
     }
 }
 
 /** Reads an item's own line, then walks into any lists nested in it, each a level deeper. */
-function parseListItem(item: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[]) {
+function parseListItem(item: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[], cursorPosition: CursorPosition) {
     const listClass = new ListClass();
     listClass.nestedLevel = level;
     listClass.listWrapper = wrapperType;
     listClass.listContent = getChildFragment(item);
+    listClass.selected = isLineSelected(item, cursorPosition);
     result.push(listClass);
 
     for (const child of Array.from(item.children) as HTMLElement[]) {
         if (isSchemaContain(child, [Display.ListWrapper])) {
-            parseListWrapper(child, toListWrapper(child), level + 1, result);
+            parseListWrapper(child, level + 1, result, cursorPosition);
         }
     }
 }
@@ -270,6 +173,40 @@ function isList(element: HTMLElement): boolean {
     return element.nodeName === "LI";
 }
 
-function toListWrapper(element: HTMLElement): ListWrapper {
+function toWrapperType(element: HTMLElement): ListWrapper {
     return element.nodeName === "UL" ? ListWrapper.UL : ListWrapper.OL;
+}
+
+/** Whether the cursor touches the item's own line; a nested list inside the item doesn't count. */
+function isLineSelected(item: HTMLElement, cursorPosition: CursorPosition): boolean {
+    const childNodes = Array.from(item.childNodes);
+
+    return childNodes.some((node, index) => {
+        if (isSchemaContain(node, [Display.ListWrapper])) {
+            return false;
+        }
+
+        // A cursor in an empty item rests on the item beside its br, so it intersects no node
+        if (isSchemaContain(node, [Display.SelfClose])) {
+            const isBefore = cursorPosition.range.isPointInRange(item, index);
+            const isAfter = cursorPosition.range.isPointInRange(item, index + 1);
+            if (isBefore || isAfter) {
+                return true;
+            }
+        }
+
+        return intersectsNode(cursorPosition, node);
+    });
+}
+
+
+function getChildFragment(child: Element) {
+    const fragment = new DocumentFragment();
+    for (const node of Array.from(child.childNodes)) {
+        if (!isSchemaContain(node, [Display.ListWrapper])) {
+            fragment.appendChild(node.cloneNode(true));
+        }
+    }
+
+    return fragment;
 }

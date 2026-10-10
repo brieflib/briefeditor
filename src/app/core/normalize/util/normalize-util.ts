@@ -83,6 +83,44 @@ export function normalizeReplaceBlockNew(contentEditable: Node,
 }
 
 /**
+ * Rebuilds a detached fragment into the schema, moving the leaves of `lastBlock` into `firstBlock`. Both blocks
+ * must stand in `toNormalize`.
+ */
+export function normalizeMergeNew(contentEditable: Node,
+                                  toNormalize: DocumentFragment,
+                                  firstBlock: Node,
+                                  lastBlock: Node) {
+    // Inside the fragment the chain stops at the fragment, so it holds only the first block and its wrappers
+    const firstBlockParents = toLeafWithParents(contentEditable, firstBlock).getParents();
+    const leaves = getTextNodes(toNormalize)
+        .map(textNode => toLeafWithParents(contentEditable, textNode))
+        .map(leaf => mergeLeafParentsNew(firstBlockParents, lastBlock, leaf))
+        .map(leaf => divideFirstLevels(leaf))
+        .map(leaf => sortLeafParents(leaf))
+        .map(leaf => removeSelfCloseInlines(leaf))
+        .map(leaf => removeConsecutiveDuplicates(leaf));
+
+    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+}
+
+/**
+ * Replaces the leaf's parents up to and including `lastBlock` with `firstBlockParents`, so the leaf collapses into
+ * the first block. A leaf outside `lastBlock` is left as is.
+ */
+export function mergeLeafParentsNew(firstBlockParents: Node[], lastBlock: Node, leaf: Leaf) {
+    const parents = leaf.getParents();
+    const lastBlockIndex = parents.indexOf(lastBlock);
+    if (lastBlockIndex < 0) {
+        return leaf;
+    }
+
+    // The same element instances as the first block's own leaves, so collapseLeavesNew groups them together
+    leaf.setParents([...firstBlockParents, ...parents.slice(lastBlockIndex + 1)]);
+
+    return leaf;
+}
+
+/**
  * Rebuilds the block holding the carrier, dropping `tagsToRemove` from the carrier's parents only. Self-closing
  * leaves keep their inline tags, so an empty line like <strong><br></strong> stays as it is.
  */

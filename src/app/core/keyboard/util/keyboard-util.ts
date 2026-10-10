@@ -4,7 +4,8 @@ import {
     deleteContents,
     getCursorPosition,
     getCursorPositionFrom,
-    getCursorPositionFromElement, insertNode,
+    getCursorPositionFromElement,
+    insertNode,
     isCollapsed,
     splitAtCursor
 } from "@/core/shared/type/cursor-position";
@@ -14,7 +15,8 @@ import {
     getFirstText,
     getLastNonEmptyText,
     getLastText,
-    getNextNode, getNextNotEmptyNode,
+    getNextNode,
+    getNextNotEmptyNode,
     getPreviousNode,
     getRootElement,
     hasSelfCloseDescendant,
@@ -23,16 +25,50 @@ import {
 } from "@/core/shared/element-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
-import {mergeLists, normalize} from "@/core/normalize/normalize";
+import {mergeLists, normalize, Normalizer} from "@/core/normalize/normalize";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     maybeInsertLists,
     mergeIntoPreviousEmptyItem,
+    mergeItems,
     mergeNextIntoEmptyItem,
     removeEmptyItem,
     splitItem
 } from "@/core/list/list";
 import {getDirectChildren, getLine, isListEmpty} from "@/core/list/util/list-util";
+
+/**
+ * Deletes a selection spanning blocks, typing `pressedKey` in its place, and merges the last selected block into the
+ * first one.
+ */
+export function mergeBlocksNew(contentEditable: HTMLElement,
+                               pressedKey = "",
+                               cursorPosition: CursorPosition = getCursorPosition()) {
+    // An item is merged on its own, not with its whole list; read before the deletion removes the blocks between
+    const blocks = getSelectedBlock(contentEditable, cursorPosition);
+    const firstBlock = blocks.at(0);
+    const lastBlock = blocks.at(-1);
+
+    if (!firstBlock || !lastBlock) {
+        return;
+    }
+
+    cursorPosition = deleteContents(cursorPosition);
+
+    if (pressedKey && isKeyPrintable(pressedKey)) {
+        const keyText = document.createTextNode(pressedKey);
+        insertNode(cursorPosition, keyText);
+    }
+
+    const isFirstItem = isSchemaContain(firstBlock, [Display.List]);
+    const isLastItem = isSchemaContain(lastBlock, [Display.List]);
+    if (isFirstItem && isLastItem) {
+        mergeItems(contentEditable, firstBlock, lastBlock, cursorPosition);
+        return;
+    }
+
+    new Normalizer(contentEditable).mergeBlocks(firstBlock, lastBlock);
+}
 
 /** Merges the current block into the one before it (backspace at the start of a line). */
 export function mergePreviousBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
@@ -398,7 +434,7 @@ export function insertCharacter(contentEditable: HTMLElement, cursorPosition: Cu
 }
 
 /** Writes `key` at the cursor and names the text node and offset right after it. */
-function insertText(cursorPosition: CursorPosition, key: string): {node: Text, offset: number} {
+function insertText(cursorPosition: CursorPosition, key: string): { node: Text, offset: number } {
     const container = cursorPosition.startContainer;
     if (container.nodeType === Node.TEXT_NODE) {
         const text = container as Text;

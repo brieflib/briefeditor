@@ -1,15 +1,21 @@
-import {getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
+import {
+    getFirstSelectedBlock,
+    getFirstSelectedRoot,
+    getSelectedBlock,
+    getSelectedBlocks
+} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     appendBeforeAndDelete,
     countListWrapperParents,
     getFirstListWrapper,
+    getListPosition,
     getListsOrderNumbers,
     getNextListWrapper,
     getPreviousListWrapper,
     isListEmpty
 } from "@/core/list/util/list-util";
-import {getFirstText, getRootElement} from "@/core/shared/element-util";
+import {getFirstText, getRootElement, imageSelector} from "@/core/shared/element-util";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
@@ -22,18 +28,13 @@ import {
 } from "@/core/shared/type/cursor-position";
 import {
     convertList,
-    isListClassEmpty,
     ListClass,
-    ListWrapper,
-    minusOrderNumbers,
-    normalizeLists,
-    parseList,
-    plusOrderNumbers,
-    shiftOrderNumbers
+    ListWrapper, minusLevel, normalizeLists,
+    parseList, plusLevel
 } from "@/core/list/type/list-class";
 
 /** A list nests five wrappers deep at most: one for the item's own level, one per level above it. */
-const deepestNestedLevel = 4;
+const deepestNestedLevel = 6;
 
 /**
  * Whether the line after the selection's last item opens a list nested deeper than it.
@@ -80,52 +81,44 @@ export function isLeavingListEnabled(contentEditable: HTMLElement, cursorPositio
 }
 
 /**
- * Whether the selected items can be indented one level deeper: there must be a line above at
- * least as deep to nest under, a list doesn't go past {@link deepestNestedLevel}, and no
- * selected item may already be at that depth.
+ * Whether the selected items can be indented one level deeper: the first selected line needs a line above it,
+ * at least as deep, to nest under, and no selected line may already be at {@link deepestNestedLevel}.
  */
-export function isPlusIndentEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
-    const parsed = parseSelectedList(contentEditable, cursorPosition);
-    if (!parsed) {
-        return false;
-    }
-
-    const {lists, orderNumbers} = parsed;
-    const first = orderNumbers[0] ?? 0;
+export function isPlusIndentEnabled(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
+    const block = getFirstSelectedBlock(contentEditable, cursorPosition);
+    const lists = parseList(block, cursorPosition);
+    const first = lists.findIndex(list => list.selected);
     const list = lists[first];
     const previous = lists[first - 1];
     if (!list || !previous || previous.nestedLevel < list.nestedLevel) {
         return false;
     }
 
-    return orderNumbers.every(orderNumber => (lists[orderNumber]?.nestedLevel ?? deepestNestedLevel) < deepestNestedLevel);
+    return lists.every(list => !list.selected || list.nestedLevel < deepestNestedLevel);
 }
 
 /**
- * Whether the selected items can be lifted out one level. An item's nested list comes along
- * with it, so this fails if a nested list would be left two levels below the item it hangs
- * from (a gap a list can't represent) - i.e. a nested item is selected without its parent.
+ * Whether the selected items can be indented one level deeper: the first selected line needs a line above it,
+ * at least as deep, to nest under, and no selected line may already be at {@link deepestNestedLevel}.
  */
-export function isMinusIndentEnabled(contentEditable: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()) {
-    const parsed = parseSelectedList(contentEditable, cursorPosition);
-    if (!parsed) {
+export function isMinusIndentEnabled(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
+    const block = getFirstSelectedBlock(contentEditable, cursorPosition);
+    const lists = parseList(block, cursorPosition);
+    if (!lists.some(list => list.selected)) {
         return false;
     }
 
-    const {lists, orderNumbers} = parsed;
-    for (const orderNumber of orderNumbers) {
-        const list = lists[orderNumber];
-        if (!list || list.nestedLevel === 0) {
-            return false;
+    return lists.every((list, index) => {
+        if (!list.selected) {
+            return true;
         }
 
-        const nested = lists[orderNumber + 1];
-        if (nested && nested.nestedLevel > list.nestedLevel && !orderNumbers.includes(orderNumber + 1)) {
-            return false;
-        }
-    }
+        // A nested line left behind would end up two levels below the line it hangs from
+        const next = lists[index + 1];
+        const isNestedLeftBehind = !!next && next.nestedLevel > list.nestedLevel && !next.selected;
 
-    return true;
+        return list.nestedLevel > 0 && !isNestedLeftBehind;
+    });
 }
 
 /**
@@ -178,36 +171,31 @@ function cursorPositionOf(block: HTMLElement): CursorPosition {
  * rebuild discards. It's anchored on the item's br up front instead, and the returned
  * position should be restored by the caller.
  */
-export function plusIndent(contentEditable: HTMLElement): CursorPosition {
-    const cursorPosition = anchorCursorOnLeaf(getCursorPosition());
+export function plusIndent(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
     if (!isPlusIndentEnabled(contentEditable, cursorPosition)) {
-        return cursorPosition;
+        return;
     }
 
-    const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
-    const listsOrderNumbers = getListsOrderNumbers(contentEditable, cursorPosition);
-    const lists = parseList(firstListWrapper);
-    const plussedLists = plusOrderNumbers(lists, listsOrderNumbers);
-    const listWrappers = convertList(plussedLists);
-    appendBeforeAndDelete(firstListWrapper, listWrappers);
-    return cursorPosition;
+    const block = getFirstSelectedBlock(contentEditable, cursorPosition);
+    const lists = parseList(block);
+    const plussedLists = plusLevel(lists);
+    const normalized = normalizeLists(plussedLists);
+    const listWrappers = convertList(normalized);
+    appendBeforeAndDelete(block, listWrappers);
 }
 
 /** Lifts the selected items out one level. See {@link plusIndent} for why the cursor is anchored on a leaf. */
-export function minusIndent(contentEditable: HTMLElement): CursorPosition {
-    const cursorPosition = anchorCursorOnLeaf(getCursorPosition());
+export function minusIndent(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
     if (!isMinusIndentEnabled(contentEditable, cursorPosition)) {
-        return cursorPosition;
+        return;
     }
 
-    const firstListWrapper = getFirstSelectedRoot(contentEditable, cursorPosition);
-    const listsOrderNumbers = getListsOrderNumbers(contentEditable, cursorPosition);
-    const lists = parseList(firstListWrapper);
-    const minusLists = minusOrderNumbers(lists, listsOrderNumbers);
-    const listWrappers = convertList(minusLists);
-    appendBeforeAndDelete(firstListWrapper, listWrappers);
-
-    return cursorPosition;
+    const block = getFirstSelectedBlock(contentEditable, cursorPosition);
+    const lists = parseList(block);
+    const minusedLists = minusLevel(lists);
+    const normalized = normalizeLists(minusedLists);
+    const listWrappers = convertList(normalized);
+    appendBeforeAndDelete(block, listWrappers);
 }
 
 /**
@@ -235,10 +223,37 @@ export function maybeInsertLists(contentEditable: HTMLElement, cursorPosition: C
  */
 export function rebuildList(root: HTMLElement, lists: ListClass[], cursorPosition: CursorPosition,
                             dropped?: ListClass): CursorPosition {
-    const normalized = normalizeLists(lists, cursorPosition, dropped);
-    appendBeforeAndDelete(root, convertList(normalized.lists));
+    // const normalized = normalizeLists(lists, cursorPosition, dropped);
+    // appendBeforeAndDelete(root, convertList(normalized.lists));
 
-    return normalized.cursorPosition;
+    return cursorPosition;
+}
+
+/**
+ * Moves the line of `lastItem` to the end of the line of `firstItem` and rebuilds their run; what was nested in
+ * `lastItem` or stood after it keeps its place in the run.
+ */
+export function mergeItems(contentEditable: HTMLElement,
+                           firstItem: HTMLElement,
+                           lastItem: HTMLElement,
+                           cursorPosition: CursorPosition): CursorPosition {
+    const root = getRootElement(contentEditable, firstItem);
+    const firstListWrapper = getFirstListWrapper(root);
+    // Read before the parse, which moves every line out of its item
+    const firstIndex = getListPosition(firstListWrapper, firstItem);
+    const lastIndex = getListPosition(firstListWrapper, lastItem);
+
+    const lists = parseList(root);
+    const firstList = lists[firstIndex];
+    const lastList = lists[lastIndex];
+    if (!firstList || !lastList) {
+        return cursorPosition;
+    }
+
+    firstList.listContent.append(lastList.listContent);
+
+    // The emptied lines left by the deletion, such as an item whose own line was selected, are dropped by the rebuild
+    return rebuildList(root, lists, cursorPosition, lastList);
 }
 
 /** Reads `root`'s run and rebuilds it as is - the normalization pass on its own. */
@@ -449,12 +464,13 @@ export function exitList(contentEditable: HTMLElement, cursorPosition: CursorPos
  * none of it ends up two levels below the item it hangs from.
  */
 function minusIndentList(root: HTMLElement, cursorPosition: CursorPosition, orderNumber: number): CursorPosition {
-    const lists = parseList(root);
-    const minusLists = minusOrderNumbers(lists, withNested(lists, orderNumber));
-    appendBeforeAndDelete(root, convertList(minusLists));
-
-    return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset,
-        cursorPosition.endContainer, cursorPosition.endOffset);
+    // const lists = parseList(root);
+    // const minusLists = minusOrderNumbers(lists, withNested(lists, orderNumber));
+    // appendBeforeAndDelete(root, convertList(minusLists));
+    //
+    // return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset,
+    //     cursorPosition.endContainer, cursorPosition.endOffset);
+    return cursorPosition;
 }
 
 /**
@@ -507,15 +523,15 @@ function withNested(lists: ListClass[], orderNumber: number): number[] {
  * renormalized; a blank split line is dropped rather than kept as an empty item.
  */
 export function splitListAround(root: HTMLElement, cursorPosition: CursorPosition, node: Node, splitIndex: number) {
-    const lists = parseList(root);
-    const splitAt = lists[splitIndex];
-    const fragment = new DocumentFragment();
-    fragment.append(convertList(normalizeLists(lists.slice(0, splitIndex), cursorPosition).lists));
-    fragment.append(node);
-    fragment.append(convertList(normalizeLists(lists.slice(splitIndex), cursorPosition,
-        isListClassEmpty(splitAt) ? splitAt : undefined).lists));
+    //const lists = parseList(root);
+    // const splitAt = lists[splitIndex];
+    // const fragment = new DocumentFragment();
+    // fragment.append(convertList(normalizeLists(lists.slice(0, splitIndex), cursorPosition).lists));
+    // fragment.append(node);
+    // fragment.append(convertList(normalizeLists(lists.slice(splitIndex), cursorPosition,
+    //     isListClassEmpty(splitAt) ? splitAt : undefined).lists));
 
-    appendBeforeAndDelete(root, fragment);
+    //appendBeforeAndDelete(root, fragment);
 }
 
 export interface SplitPoint {
@@ -573,4 +589,24 @@ export function spliceListsAtCursor(contentEditable: HTMLElement, root: HTMLElem
     lists.splice(splitPoint.splitIndex, 0, ...pasted);
 
     return rebuildList(splitPoint.root, lists, cursorPosition, isListClassEmpty(splitAt) ? splitAt : undefined);
+}
+
+function shiftOrderNumbers(lists: ListClass[], orderNumbers: number[], shift: number): ListClass[] {
+    for (const orderNumber of orderNumbers) {
+        const list = lists[orderNumber];
+        if (list) {
+            list.nestedLevel += shift;
+        }
+    }
+
+    return lists;
+}
+
+/** Whether a `ListClass` line is blank (its br has nothing written on it). An image counts as content. */
+export function isListClassEmpty(list: ListClass | undefined): boolean {
+    if (!list) {
+        return false;
+    }
+
+    return !list.listContent.textContent && !list.listContent.querySelector(imageSelector);
 }

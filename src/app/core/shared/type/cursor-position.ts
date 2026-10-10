@@ -67,8 +67,7 @@ export function getSelectedTexts(contentEditable: HTMLElement, cursorPosition = 
 }
 
 
-
-export function wrapCursorPosition(first: Node | undefined, last: Node | undefined) {
+export function wrapCursorPosition(first?: Node, last?: Node) {
     if (!first || !last) {
         return;
     }
