@@ -10,15 +10,6 @@ jest.mock("../shared/range-util", () => ({
 
 const IMAGE = `<p class="image be-image"><img src="image.png"></p>`;
 
-function select(container: Node, offset: number) {
-    const range = new Range();
-    range.setStart(container, offset);
-    range.setEnd(container, offset);
-    (getRange as jest.Mock).mockReturnValue(range);
-
-    return range;
-}
-
 function keydownEvent(key: string, options: KeyboardEventInit = {}) {
     return new KeyboardEvent("keydown", {key, cancelable: true, ...options});
 }
@@ -55,7 +46,7 @@ describe("Image cursor", () => {
             const wrapper = createWrapper(`<p class="before">before</p>${IMAGE}<p class="after">after</p>`);
             const imageCursor = new ImageCursor(wrapper);
 
-            select(getFirstChild(wrapper, ".before"), "before".length);
+            selectRange(getFirstChild(wrapper, ".before"), "before".length, getFirstChild(wrapper, ".before"), "before".length);
             const keyboardEvent = keydownEvent("ArrowRight");
             const cursorPosition = imageCursor.onKeyDown(keyboardEvent);
 
@@ -70,7 +61,7 @@ describe("Image cursor", () => {
             const wrapper = createWrapper(`<p class="before">before</p>${IMAGE}<p class="after">after</p>`);
             const imageCursor = new ImageCursor(wrapper);
 
-            select(getFirstChild(wrapper, ".after"), "".length);
+            selectRange(getFirstChild(wrapper, ".after"), "".length, getFirstChild(wrapper, ".after"), "".length);
             const keyboardEvent = keydownEvent("ArrowLeft");
             const cursorPosition = imageCursor.onKeyDown(keyboardEvent);
 
@@ -85,7 +76,7 @@ describe("Image cursor", () => {
             const wrapper = createWrapper(`<ul><li>zero</li><li class="before">before</li></ul>${IMAGE}<p class="after">after</p>`);
             const imageCursor = new ImageCursor(wrapper);
 
-            select(getFirstChild(wrapper, ".before"), "before".length);
+            selectRange(getFirstChild(wrapper, ".before"), "before".length, getFirstChild(wrapper, ".before"), "before".length);
             const keyboardEvent = keydownEvent("ArrowRight");
             const cursorPosition = imageCursor.onKeyDown(keyboardEvent);
 
@@ -100,7 +91,7 @@ describe("Image cursor", () => {
             const wrapper = createWrapper(`<p class="before">before</p>${IMAGE}<p class="after">after</p>`);
             const imageCursor = new ImageCursor(wrapper);
 
-            select(getFirstChild(wrapper, ".before"), "bef".length);
+            selectRange(getFirstChild(wrapper, ".before"), "bef".length, getFirstChild(wrapper, ".before"), "bef".length);
             const keyboardEvent = keydownEvent("ArrowRight");
 
             expect(imageCursor.onKeyDown(keyboardEvent)).toBeNull();
@@ -111,7 +102,7 @@ describe("Image cursor", () => {
             const wrapper = createWrapper(`<p class="before">before</p><p class="after">after</p>${IMAGE}`);
             const imageCursor = new ImageCursor(wrapper);
 
-            select(getFirstChild(wrapper, ".before"), "before".length);
+            selectRange(getFirstChild(wrapper, ".before"), "before".length, getFirstChild(wrapper, ".before"), "before".length);
             const keyboardEvent = keydownEvent("ArrowRight");
 
             expect(imageCursor.onKeyDown(keyboardEvent)).toBeNull();
@@ -122,7 +113,7 @@ describe("Image cursor", () => {
             const wrapper = createWrapper(`<p class="before">before</p>${IMAGE}`);
             const imageCursor = new ImageCursor(wrapper);
 
-            select(getFirstChild(wrapper, ".before"), "before".length);
+            selectRange(getFirstChild(wrapper, ".before"), "before".length, getFirstChild(wrapper, ".before"), "before".length);
             const keyboardEvent = keydownEvent("ArrowRight");
 
             expect(imageCursor.onKeyDown(keyboardEvent)).toBeNull();
@@ -133,7 +124,7 @@ describe("Image cursor", () => {
             const wrapper = createWrapper(`<p class="before">before</p>${IMAGE}<p class="after">after</p>`);
             const imageCursor = new ImageCursor(wrapper);
 
-            select(getFirstChild(wrapper, ".before"), "before".length);
+            selectRange(getFirstChild(wrapper, ".before"), "before".length, getFirstChild(wrapper, ".before"), "before".length);
             const keyboardEvent = keydownEvent("ArrowRight", {shiftKey: true});
 
             expect(imageCursor.onKeyDown(keyboardEvent)).toBeNull();
@@ -159,7 +150,9 @@ describe("Image cursor", () => {
             const before = wrapper.querySelector(".before") as HTMLElement;
             layout(before, 0, 40);
 
-            const range = select(getFirstChild(wrapper, ".before"), "bef".length);
+            selectRange(getFirstChild(wrapper, ".before"), "bef".length, getFirstChild(wrapper, ".before"), "bef".length);
+
+            const range = getRange();
             caretAt(range, 20, 20);
             const keyboardEvent = keydownEvent("ArrowDown");
             const cursorPosition = imageCursor.onKeyDown(keyboardEvent);
@@ -177,7 +170,9 @@ describe("Image cursor", () => {
             const before = wrapper.querySelector(".before") as HTMLElement;
             layout(before, 0, 40);
 
-            const range = select(getFirstChild(wrapper, ".before"), "bef".length);
+            selectRange(getFirstChild(wrapper, ".before"), "bef".length, getFirstChild(wrapper, ".before"), "bef".length);
+
+            const range = getRange();
             caretAt(range, 0, 20);
             const keyboardEvent = keydownEvent("ArrowDown");
 
@@ -191,7 +186,9 @@ describe("Image cursor", () => {
             const after = wrapper.querySelector(".after") as HTMLElement;
             layout(after, 100, 40);
 
-            const range = select(getFirstChild(wrapper, ".after"), "aft".length);
+            selectRange(getFirstChild(wrapper, ".after"), "aft".length, getFirstChild(wrapper, ".after"), "aft".length);
+
+            const range = getRange();
             caretAt(range, 100, 20);
             const keyboardEvent = keydownEvent("ArrowUp");
             const cursorPosition = imageCursor.onKeyDown(keyboardEvent);
@@ -209,7 +206,9 @@ describe("Image cursor", () => {
             const after = wrapper.querySelector(".after") as HTMLElement;
             layout(after, 100, 40);
 
-            const range = select(getFirstChild(wrapper, ".after"), "aft".length);
+            selectRange(getFirstChild(wrapper, ".after"), "aft".length, getFirstChild(wrapper, ".after"), "aft".length);
+
+            const range = getRange();
             caretAt(range, 120, 20);
             const keyboardEvent = keydownEvent("ArrowUp");
 
@@ -221,7 +220,7 @@ describe("Image cursor", () => {
             const wrapper = createWrapper(`<ul><li class="first">zero</li><li>before</li></ul>${IMAGE}<p class="after">after</p>`);
             const imageCursor = new ImageCursor(wrapper);
 
-            select(getFirstChild(wrapper, ".first"), "zero".length);
+            selectRange(getFirstChild(wrapper, ".first"), "zero".length, getFirstChild(wrapper, ".first"), "zero".length);
             const keyboardEvent = keydownEvent("ArrowDown");
 
             expect(imageCursor.onKeyDown(keyboardEvent)).toBeNull();
@@ -232,7 +231,7 @@ describe("Image cursor", () => {
             const wrapper = createWrapper(`<ul><li>zero</li><li class="before">before</li></ul>${IMAGE}<p class="after">after</p>`);
             const imageCursor = new ImageCursor(wrapper);
 
-            select(getFirstChild(wrapper, ".before"), "bef".length);
+            selectRange(getFirstChild(wrapper, ".before"), "bef".length, getFirstChild(wrapper, ".before"), "bef".length);
             const keyboardEvent = keydownEvent("ArrowDown");
             const cursorPosition = imageCursor.onKeyDown(keyboardEvent);
 
@@ -247,7 +246,7 @@ describe("Image cursor", () => {
             const wrapper = createWrapper(`<p class="before"><br></p>${IMAGE}<p class="after">after</p>`);
             const imageCursor = new ImageCursor(wrapper);
 
-            select(getFirstChild(wrapper, ".before"), "".length);
+            selectRange(getFirstChild(wrapper, ".before"), "".length, getFirstChild(wrapper, ".before"), "".length);
             const keyboardEvent = keydownEvent("ArrowDown");
             const cursorPosition = imageCursor.onKeyDown(keyboardEvent);
 

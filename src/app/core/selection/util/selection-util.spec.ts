@@ -1,6 +1,5 @@
 import {getSelectedLeaves} from "@/core/selection/util/selection-util";
-import {getRange} from "@/core/shared/range-util";
-import {createWrapper, getFirstChild} from "@/core/shared/test-util";
+import {createWrapper, getFirstChild, selectRange} from "@/core/shared/test-util";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -22,10 +21,7 @@ test("Should find selected leaf nodes", () => {
     const start = getFirstChild(wrapper, ".start");
     const end = getFirstChild(wrapper, ".end");
 
-    const range = new Range();
-    range.setStart(start, "fi".length);
-    range.setEnd(end, "se".length);
-    (getRange as jest.Mock).mockReturnValue(range);
+    selectRange(start, "fi".length, end, "se".length);
 
     const leaves = getSelectedLeaves(wrapper);
 

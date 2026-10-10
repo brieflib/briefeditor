@@ -1,7 +1,6 @@
 import {removeBlock, tag} from "@/core/command/util/command-util";
-import {getRange} from "@/core/shared/range-util";
 import {Action} from "@/core/command/type/command";
-import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild, getLastChild, selectRange} from "@/core/shared/test-util";
 import {getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {Normalizer} from "@/core/normalize/normalize";
 import {AvailableClasses} from "@/core/shared/available-classes";
@@ -27,10 +26,7 @@ describe("Unwrap tag", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getLastChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getLastChild(wrapper, ".end"), "fi".length);
 
         tag(wrapper, "STRONG", Action.Unwrap);
         // ToDo: uncomment
@@ -57,10 +53,7 @@ describe("Unwrap tag", () => {
             <p><strong class="start">zero</strong>first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         tag(wrapper, "STRONG", Action.Unwrap);
         // ToDo: uncomment
@@ -79,10 +72,7 @@ describe("Unwrap tag", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "fir".length);
 
         tag(wrapper, "STRONG", Action.Unwrap);
         // ToDo: uncomment
@@ -104,10 +94,7 @@ describe("Unwrap tag", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         tag(wrapper, "STRONG", Action.Unwrap);
         // ToDo: uncomment
@@ -129,10 +116,7 @@ describe("Unwrap tag", () => {
             </tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "first".length);
 
         tag(wrapper, "STRONG", Action.Unwrap);
         // ToDo: uncomment
@@ -153,10 +137,7 @@ describe("Wrap in tag", () => {
             <p class="end"><strong class="start">zero</strong>first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getLastChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getLastChild(wrapper, ".end"), "fi".length);
 
         tag(wrapper, "em", Action.Wrap);
         // ToDo: uncomment
@@ -176,10 +157,7 @@ describe("Wrap in tag", () => {
             <p class="end">second</p>        
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zer".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zer".length, getFirstChild(wrapper, ".end"), "se".length);
 
         tag(wrapper, "em", Action.Wrap);
         // ToDo: uncomment
@@ -203,10 +181,7 @@ describe("Wrap in tag", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zer".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zer".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         tag(wrapper, "strong", Action.Wrap);
         // ToDo: uncomment
@@ -223,10 +198,7 @@ describe("Wrap in tag", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "r".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "r".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         tag(wrapper, "strong", Action.Wrap);
         // ToDo: uncomment
@@ -251,10 +223,7 @@ describe("Wrap in tag", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fo".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "fo".length);
 
         tag(wrapper, "strong", Action.Wrap);
         // ToDo: uncomment
@@ -292,10 +261,7 @@ describe("Wrap in tag", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         tag(wrapper, "strong", Action.Wrap);
         // ToDo: uncomment
@@ -331,10 +297,7 @@ describe("Wrap in tag", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         tag(wrapper, "strong", Action.Wrap);
         // ToDo: uncomment
@@ -370,10 +333,7 @@ describe("Wrap in tag", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "th".length);
 
         tag(wrapper, "strong", Action.Wrap);
         // ToDo: uncomment
@@ -402,10 +362,7 @@ describe("Wrap in tag", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         tag(wrapper, "strong", Action.Wrap);
         // ToDo: uncomment
@@ -429,10 +386,7 @@ describe("Wrap in tag", () => {
             </tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         tag(wrapper, "STRONG", Action.Wrap);
         // ToDo: uncomment
@@ -455,10 +409,7 @@ describe("Wrap in tag", () => {
             </table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "first".length);
 
         tag(wrapper, "STRONG", Action.Wrap);
         // ToDo: uncomment
@@ -481,10 +432,7 @@ describe("Wrap in tag", () => {
             </tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "first".length);
 
         tag(wrapper, "STRONG", Action.Wrap);
         // ToDo: uncomment
@@ -503,10 +451,7 @@ describe("Wrap in tag", () => {
     test("Should not wrap an image block", () => {
         const wrapper = createWrapper(`<p class="be-image"><img src="image.png"></p>`);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".be-image") as Node, 0);
-        range.setEnd(wrapper.querySelector(".be-image") as Node, 1);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector(".be-image") as Node, 0, wrapper.querySelector(".be-image") as Node, 1);
 
         tag(wrapper, "STRONG", Action.Wrap);
         // ToDo: uncomment
@@ -522,10 +467,7 @@ describe("Wrap in tag", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "first".length);
 
         tag(wrapper, "STRONG", Action.Wrap);
         // ToDo: uncomment
@@ -550,10 +492,7 @@ describe("Wrap in tag", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".start") as Node, 0);
-        range.setEnd(getFirstChild(wrapper, ".end"), "last".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector(".start") as Node, 0, getFirstChild(wrapper, ".end"), "last".length);
 
         tag(wrapper, "STRONG", Action.Wrap);
         // ToDo: uncomment
@@ -581,10 +520,7 @@ describe("Wrap in tag", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getLastChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getLastChild(wrapper, ".end"), "fi".length);
 
         tag(wrapper, "A", Action.Wrap);
 
@@ -615,10 +551,7 @@ describe("Change first level", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zer".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "zer".length);
 
         changeBlock(wrapper, ["H1"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), "".length, getFirstChild(wrapper, "h1"), "zer".length);
@@ -635,10 +568,7 @@ describe("Change first level", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zer".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "zer".length);
 
         changeBlock(wrapper, ["H1"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "h1 > strong"), "".length, getFirstChild(wrapper, "h1 > strong"), "zer".length);
@@ -657,10 +587,7 @@ describe("Change first level", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zer".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "zer".length);
 
         changeBlock(wrapper, ["UL", "LI"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "li > strong"), "".length, getFirstChild(wrapper, "li > strong"), "zer".length);
@@ -687,10 +614,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "fi".length);
 
         changeBlock(wrapper, ["P"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "p > strong"), "".length, getFirstChild(wrapper, "p > strong"), "fi".length);
@@ -712,10 +636,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zer".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "zer".length);
 
         changeBlock(wrapper, ["P"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "".length, getFirstChild(wrapper, "p"), "zer".length);
@@ -733,10 +654,7 @@ describe("Change first level", () => {
             <p class="start">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "fi".length);
 
         changeBlock(wrapper, ["UL", "LI"]);
         // expectCursor(cursorPosition, getFirstChild(wrapper, "li + li"), "".length, getFirstChild(wrapper, "li + li"), "fi".length);
@@ -758,10 +676,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "fir".length);
 
         changeBlock(wrapper, ["P"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "".length, getFirstChild(wrapper, "p"), "fir".length);
@@ -800,10 +715,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         changeBlock(wrapper, ["P"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "".length, getFirstChild(wrapper, "p"), "ze".length);
@@ -823,10 +735,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".start"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".start"), "fi".length);
 
         changeBlock(wrapper, ["P"]);
         //expectCursor(cursorPosition, getLastChild(wrapper, "p"), "".length, getLastChild(wrapper, "p"), "fi".length);
@@ -846,10 +755,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         changeBlock(wrapper, ["P"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "p > strong"), "".length, getFirstChild(wrapper, "p > strong"), "ze".length);
@@ -872,10 +778,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         changeBlock(wrapper, ["P"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "ze".length, getFirstChild(wrapper, "p + p"), "fi".length);
@@ -891,10 +794,7 @@ describe("Change first level", () => {
             <p class="start">zero<br>first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         changeBlock(wrapper, ["UL", "LI"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "".length, getFirstChild(wrapper, "li"), "ze".length);
@@ -914,10 +814,7 @@ describe("Change first level", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         changeBlock(wrapper, ["UL", "LI"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "".length, getFirstChild(wrapper, "li"), "ze".length);
@@ -941,10 +838,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         changeBlock(wrapper, ["P"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "ze".length, getFirstChild(wrapper, "p:last-child"), "se".length);
@@ -967,10 +861,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
 
         changeBlock(wrapper, ["OL"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "ol > li"), "fi".length, getFirstChild(wrapper, "ol > li"), "fi".length);
@@ -994,11 +885,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
-
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
 
         changeBlock(wrapper, ["OL"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "ol > li"), "fi".length, getFirstChild(wrapper, "ol > li"), "fi".length);
@@ -1025,10 +912,7 @@ describe("Change first level", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".start"), "se".length);
 
         changeBlock(wrapper, ["UL"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "ul ul > li"), "se".length, getFirstChild(wrapper, "ul ul > li"), "se".length);
@@ -1058,10 +942,7 @@ describe("Change first level", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zer".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "zer".length);
 
         changeBlock(wrapper, ["UL"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "ul > li"), "ze".length, getFirstChild(wrapper, "ul > li"), "zer".length);
@@ -1083,10 +964,7 @@ describe("Change first level", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "first".length);
 
         changeBlock(wrapper, ["UL", "LI"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "ze".length, getFirstChild(wrapper, "li + li"), "first".length);
@@ -1107,10 +985,7 @@ describe("Wrap in tag with attributes", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "first".length);
 
         tag(wrapper, "A", Action.Wrap, getCursorPosition(), {
             href: "https://www.briefeditor.io"

@@ -1,4 +1,4 @@
-import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, getText} from "@/core/shared/test-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, getText, selectRange} from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {getSelectedHtml, pasteHtml} from "@/core/clipboard/util/clipboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
@@ -16,10 +16,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `word`, getCursorPosition());
 
@@ -34,10 +31,7 @@ describe("Sanitize input", () => {
             <ul><li>zero</li><li><br></li></ul>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `word`, getCursorPosition());
 
@@ -54,10 +48,7 @@ describe("Sanitize input", () => {
             <ul><li><br></li></ul>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<ul><li>zero</li><li>first</li></ul>`, getCursorPosition());
 
@@ -72,10 +63,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `zero<br>first`, getCursorPosition());
 
@@ -90,10 +78,7 @@ describe("Sanitize input", () => {
             <p class="start">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "f".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "f".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "f".length, getFirstChild(wrapper, ".start"), "f".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<p><strong style="margin: 0">second<span class="test">third</span></strong></p>`, cursorPosition);
@@ -109,10 +94,7 @@ describe("Sanitize input", () => {
             <p class="start">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<p>second<img src="${image}"> third</p>`, cursorPosition);
@@ -130,10 +112,7 @@ describe("Sanitize input", () => {
             <p><em class="start">first</em></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "f".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "f".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "f".length, getFirstChild(wrapper, ".start"), "f".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<strong style="margin: 0">second</strong>`, cursorPosition);
@@ -149,10 +128,7 @@ describe("Sanitize input", () => {
             <p><em>zero</em><em><a class="start">first</a></em></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "f".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "f".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "f".length, getFirstChild(wrapper, ".start"), "f".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<strong style="margin: 0">second</strong>`, cursorPosition);
@@ -168,10 +144,7 @@ describe("Sanitize input", () => {
             <p><strong>zero</strong>,<em>first</em>,<u>second</u>,<a class="start">third</a>.</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "t".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "t".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "t".length, getFirstChild(wrapper, ".start"), "t".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<strong style="margin: 0">second</strong>`, cursorPosition);
@@ -196,10 +169,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<h1>third</h1><strong>fourth</strong>`, cursorPosition);
@@ -231,10 +201,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<h1>third</h1>`, cursorPosition);
@@ -257,10 +224,7 @@ describe("Sanitize input", () => {
             <h1 class="start">first</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p><strong>zero</strong></p>`, cursorPosition);
@@ -278,10 +242,7 @@ describe("Sanitize input", () => {
             <p class="start">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<h2>zero</h2>`, cursorPosition);
@@ -298,10 +259,7 @@ describe("Sanitize input", () => {
             <p class="start">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
 
         const cursorPosition = pasteHtml(wrapper, `<blockquote>zero</blockquote>`, getCursorPosition());
 
@@ -318,10 +276,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<h1>first</h1>`, cursorPosition);
@@ -338,10 +293,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<h2>first</h2>`, getCursorPosition());
 
@@ -360,10 +312,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p>`, getCursorPosition());
 
@@ -381,16 +330,10 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const copyRange = new Range();
-        copyRange.setStart(getFirstChild(wrapper, ".source"), "Editor ".length);
-        copyRange.setEnd(getFirstChild(wrapper, ".source"), "Editor Reference".length);
-        (getRange as jest.Mock).mockReturnValue(copyRange);
+        selectRange(getFirstChild(wrapper, ".source"), "Editor ".length, getFirstChild(wrapper, ".source"), "Editor Reference".length);
         const copied = getSelectedHtml(getCursorPosition());
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
         const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
@@ -406,16 +349,10 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const copyRange = new Range();
-        copyRange.setStart(getFirstChild(wrapper, ".source"), "Editor ".length);
-        copyRange.setEnd(getFirstChild(wrapper, ".source"), "Editor Reference".length);
-        (getRange as jest.Mock).mockReturnValue(copyRange);
+        selectRange(getFirstChild(wrapper, ".source"), "Editor ".length, getFirstChild(wrapper, ".source"), "Editor Reference".length);
         const copied = getSelectedHtml(getCursorPosition());
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
         const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
@@ -431,16 +368,10 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const copyRange = new Range();
-        copyRange.setStart(getFirstChild(wrapper, ".source"), "Editor ".length);
-        copyRange.setEnd(getFirstChild(wrapper, ".source"), "Editor Reference".length);
-        (getRange as jest.Mock).mockReturnValue(copyRange);
+        selectRange(getFirstChild(wrapper, ".source"), "Editor ".length, getFirstChild(wrapper, ".source"), "Editor Reference".length);
         const copied = getSelectedHtml(getCursorPosition());
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
         const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
@@ -457,16 +388,10 @@ describe("Sanitize input", () => {
             <h1><br></h1>
         `);
 
-        const copyRange = new Range();
-        copyRange.setStart(getFirstChild(wrapper, ".source"), "Editor ".length);
-        copyRange.setEnd(getFirstChild(wrapper, ".source"), "Editor Reference".length);
-        (getRange as jest.Mock).mockReturnValue(copyRange);
+        selectRange(getFirstChild(wrapper, ".source"), "Editor ".length, getFirstChild(wrapper, ".source"), "Editor Reference".length);
         const copied = getSelectedHtml(getCursorPosition());
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
         const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
@@ -484,16 +409,10 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const copyRange = new Range();
-        copyRange.setStart(getFirstChild(wrapper, ".source"), "f".length);
-        copyRange.setEnd(getFirstChild(wrapper, ".source"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(copyRange);
+        selectRange(getFirstChild(wrapper, ".source"), "f".length, getFirstChild(wrapper, ".source"), "fir".length);
         const copied = getSelectedHtml(getCursorPosition());
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
         const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
@@ -515,10 +434,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<h1>first</h1>`, cursorPosition);
@@ -535,10 +451,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
 
@@ -553,10 +466,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
 
@@ -574,10 +484,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<h1>second</h1>`, getCursorPosition());
 
@@ -597,10 +504,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<div>first</div>`, getCursorPosition());
 
@@ -616,10 +520,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<div><h1>first</h1><p>second</p></div>`, getCursorPosition());
 
@@ -635,10 +536,7 @@ describe("Sanitize input", () => {
             <h1><br></h1>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<p>zero</p>`, getCursorPosition());
 
@@ -653,10 +551,7 @@ describe("Sanitize input", () => {
             <h1 class="start">first</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "fi".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<!--StartFragment--><p>zero</p><!--EndFragment-->`, cursorPosition);
@@ -679,10 +574,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fir".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fir".length, getFirstChild(wrapper, ".start"), "fir".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<h1>third</h1><p>fourth</p>`, cursorPosition);
@@ -724,10 +616,7 @@ describe("Sanitize input", () => {
         `);
 
         const link = getFirstChild(wrapper, ".start"); // "hello" text node inside the <a>
-        const range = new Range();
-        range.setStart(link, "h".length);
-        range.setEnd(link, "hell".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(link, "h".length, link, "hell".length);
 
         const html = getSelectedHtml(getCursorPosition());
 
@@ -751,10 +640,7 @@ describe("Sanitize input", () => {
         // What a drag across the whole list gives: from the line the item was written as into the list
         // nested under it. The item is what stands between the two, so without it the line is copied as
         // loose words and the wrapper around it is never reached.
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const html = getSelectedHtml(getCursorPosition());
 
@@ -769,10 +655,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, "li"), "f".length);
-        range.setEnd(getFirstChild(wrapper, "li"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, "li"), "f".length, getFirstChild(wrapper, "li"), "fir".length);
 
         expect(getSelectedHtml(getCursorPosition())).toBe("<ul><li>ir</li></ul>");
     });
@@ -782,10 +665,7 @@ describe("Sanitize input", () => {
             <h1>Editor Reference Guide</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, "h1"), "Editor ".length);
-        range.setEnd(getFirstChild(wrapper, "h1"), "Editor Reference".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, "h1"), "Editor ".length, getFirstChild(wrapper, "h1"), "Editor Reference".length);
 
         expect(getSelectedHtml(getCursorPosition())).toBe("<h1>Reference</h1>");
     });
@@ -795,10 +675,7 @@ describe("Sanitize input", () => {
             <p>zero first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, "p"), "zero ".length);
-        range.setEnd(getFirstChild(wrapper, "p"), "zero fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, "p"), "zero ".length, getFirstChild(wrapper, "p"), "zero fir".length);
 
         expect(getSelectedHtml(getCursorPosition())).toBe("<p>fir</p>");
     });
@@ -808,10 +685,7 @@ describe("Sanitize input", () => {
             <h1>Editor <strong>Reference</strong> Guide</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, "h1"), "Edi".length);
-        range.setEnd(getLastChild(wrapper, "h1"), " Gu".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, "h1"), "Edi".length, getLastChild(wrapper, "h1"), " Gu".length);
 
         expect(getSelectedHtml(getCursorPosition())).toBe("<h1>tor <strong>Reference</strong> Gu</h1>");
     });
@@ -827,10 +701,7 @@ describe("Sanitize input", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         expect(getSelectedHtml(getCursorPosition())).toBe(`<ol><li><ol><li class="start">rst</li></ol></li></ol>`);
     });
@@ -877,10 +748,7 @@ describe("Sanitize input", () => {
         `);
 
         const cell = getFirstChild(wrapper, ".start"); // "second" text node inside the <td>
-        const range = new Range();
-        range.setStart(cell, "s".length);
-        range.setEnd(cell, "seco".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(cell, "s".length, cell, "seco".length);
 
         const html = getSelectedHtml(getCursorPosition());
 
@@ -892,10 +760,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `first`, cursorPosition);
@@ -912,10 +777,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
@@ -933,10 +795,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, cursorPosition);
@@ -957,10 +816,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, cursorPosition);
@@ -981,10 +837,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<li>first</li><li>second</li>`, cursorPosition);
@@ -1005,10 +858,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<li>first</li><ul><li>second</li></ul><li>third</li>`, cursorPosition);
@@ -1033,10 +883,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, cursorPosition);
@@ -1061,10 +908,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ul><li>second</li></ul>`, getCursorPosition());
 
@@ -1083,10 +927,7 @@ describe("Sanitize input", () => {
             <ul><li>first</li></ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ul><li>second</li></ul>`, getCursorPosition());
 
@@ -1107,10 +948,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<ol><li><ol><li>first</li></ol></li><li>second</li></ol>`, cursorPosition);
@@ -1139,16 +977,10 @@ describe("Sanitize input", () => {
             <p class="start">third</p>
         `);
 
-        const copyRange = new Range();
-        copyRange.setStart(getFirstChild(wrapper, ".from"), "".length);
-        copyRange.setEnd(getFirstChild(wrapper, ".to"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(copyRange);
+        selectRange(getFirstChild(wrapper, ".from"), "".length, getFirstChild(wrapper, ".to"), "second".length);
         const copied = getSelectedHtml(getCursorPosition());
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "third".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "third".length, getFirstChild(wrapper, ".start"), "third".length);
         const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
@@ -1183,16 +1015,10 @@ describe("Sanitize input", () => {
             </ol>
         `);
 
-        const copyRange = new Range();
-        copyRange.setStart(getFirstChild(wrapper, ".from"), "".length);
-        copyRange.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(copyRange);
+        selectRange(getFirstChild(wrapper, ".from"), "".length, getFirstChild(wrapper, ".start"), "first".length);
         const copied = getSelectedHtml(getCursorPosition());
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
         const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
@@ -1222,16 +1048,10 @@ describe("Sanitize input", () => {
             </ol>
         `);
 
-        const copyRange = new Range();
-        copyRange.setStart(getFirstChild(wrapper, ".from"), "".length);
-        copyRange.setEnd(getFirstChild(wrapper, ".to"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(copyRange);
+        selectRange(getFirstChild(wrapper, ".from"), "".length, getFirstChild(wrapper, ".to"), "first".length);
         const copied = getSelectedHtml(getCursorPosition());
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "Third".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "Third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "Third".length, getFirstChild(wrapper, ".start"), "Third".length);
         const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
@@ -1255,10 +1075,7 @@ describe("Sanitize input", () => {
         const html = `<h3 class="from">Ordered List</h3><ol><li class="first">First ordered item<ol><li class="empty"><br></li></ol></li></ol>`;
 
         function selectFromHeading(wrapper: HTMLElement) {
-            const range = new Range();
-            range.setStart(getFirstChild(wrapper, ".from"), "".length);
-            range.setEnd(wrapper.querySelector(".empty") as Node, 0);
-            (getRange as jest.Mock).mockReturnValue(range);
+            selectRange(getFirstChild(wrapper, ".from"), "".length, wrapper.querySelector(".empty") as Node, 0);
         }
 
         test("Should replace the selection with a pasted paragraph", () => {
@@ -1283,10 +1100,7 @@ describe("Sanitize input", () => {
 
         test("Should replace the selection with what was copied from the heading into the first item", () => {
             const wrapper = createWrapper(html);
-            const copyRange = new Range();
-            copyRange.setStart(getFirstChild(wrapper, ".from"), "".length);
-            copyRange.setEnd(getFirstChild(wrapper, ".first"), "First".length);
-            (getRange as jest.Mock).mockReturnValue(copyRange);
+            selectRange(getFirstChild(wrapper, ".from"), "".length, getFirstChild(wrapper, ".first"), "First".length);
             const copied = getSelectedHtml(getCursorPosition());
 
             selectFromHeading(wrapper);
@@ -1302,10 +1116,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<ol><li><ol><li>first</li></ol></li><li>second</li></ol>`, getCursorPosition());
 
@@ -1325,10 +1136,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ol><li><ol><li>first</li></ol></li><li>second</li></ol>`, getCursorPosition());
 
@@ -1352,10 +1160,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ol><li><ol><li>first<ol><li>second</li></ol></li></ol></li></ol>`, getCursorPosition());
 
@@ -1377,10 +1182,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ul><li>first</li></ul><p>second</p><ol><li><ol><li>third</li></ol></li><li>fourth</li></ol>`,
             getCursorPosition());
@@ -1408,10 +1210,7 @@ describe("Sanitize input", () => {
         `);
 
         const items = wrapper.querySelectorAll("li");
-        const range = new Range();
-        range.setStart(items[0]?.firstChild as Node, "".length);
-        range.setEnd(items[1]?.firstChild as Node, "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(items[0]?.firstChild as Node, "".length, items[1]?.firstChild as Node, "second".length);
 
         const html = getSelectedHtml(getCursorPosition());
 
@@ -1423,10 +1222,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
@@ -1444,10 +1240,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
@@ -1465,10 +1258,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
@@ -1486,10 +1276,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
@@ -1507,10 +1294,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
@@ -1530,10 +1314,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<h1>first</h1><h1>second</h1>`, cursorPosition);
@@ -1550,10 +1331,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, cursorPosition);
@@ -1573,10 +1351,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p><blockquote>second</blockquote><h1>third</h1>`, getCursorPosition());
 
@@ -1593,10 +1368,7 @@ describe("Sanitize input", () => {
             <h2 class="start">zero</h2>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, getCursorPosition());
 
@@ -1612,10 +1384,7 @@ describe("Sanitize input", () => {
             <blockquote class="start">zero</blockquote>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<blockquote>first</blockquote><h1>second</h1>`, getCursorPosition());
 
@@ -1634,10 +1403,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, cursorPosition);
@@ -1658,16 +1424,10 @@ describe("Sanitize input", () => {
             <h1 class="start">second</h1>
         `);
 
-        const copyRange = new Range();
-        copyRange.setStart(getFirstChild(wrapper, ".from"), "ze".length);
-        copyRange.setEnd(getFirstChild(wrapper, ".to"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(copyRange);
+        selectRange(getFirstChild(wrapper, ".from"), "ze".length, getFirstChild(wrapper, ".to"), "fi".length);
         const copied = getSelectedHtml(getCursorPosition());
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".start"), "se".length);
         const cursorPosition = pasteHtml(wrapper, copied, getCursorPosition());
 
         expectHtml(wrapper.innerHTML, `
@@ -1686,10 +1446,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p><p>third</p>`, cursorPosition);
@@ -1708,10 +1465,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><h1>second</h1><p>third</p>`, cursorPosition);
@@ -1730,10 +1484,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<h1>first</h1><p>second</p>`, getCursorPosition());
 
@@ -1749,10 +1500,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p><h1>second</h1>`, getCursorPosition());
 
@@ -1770,10 +1518,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
 
@@ -1789,10 +1534,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
 
@@ -1809,10 +1551,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p><br></p><p>first</p>`, getCursorPosition());
 
@@ -1832,10 +1571,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>second</p><h1>third</h1><p>fourth</p>`, cursorPosition);
@@ -1860,10 +1596,7 @@ describe("Sanitize input", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><ul><li>second</li></ul><p>third</p>`, cursorPosition);
@@ -1886,10 +1619,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<p>first</p>`, cursorPosition);
@@ -1907,10 +1637,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p><br></p>`, cursorPosition);
@@ -1928,10 +1655,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, ` `, cursorPosition);
@@ -1949,10 +1673,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<meta charset="utf-8"> `, getCursorPosition());
 
@@ -1969,10 +1690,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p></p><p><br></p>`, cursorPosition);
@@ -1989,10 +1707,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
 
@@ -2007,10 +1722,7 @@ describe("Sanitize input", () => {
             <ul><li class="start">zero</li></ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
 
@@ -2025,10 +1737,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<p></p><p><br></p>`, getCursorPosition());
 
@@ -2044,10 +1753,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<br>`, getCursorPosition());
 
@@ -2063,10 +1769,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p><b><br></b></p>`, getCursorPosition());
 
@@ -2082,10 +1785,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<p><br></p>`, getCursorPosition());
 
@@ -2100,10 +1800,7 @@ describe("Sanitize input", () => {
             <ul><li class="start">zero</li></ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p><br></p>`, getCursorPosition());
 
@@ -2118,10 +1815,7 @@ describe("Sanitize input", () => {
             <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p><br></p>`, getCursorPosition());
 
@@ -2137,10 +1831,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<b> </b>`, cursorPosition);
@@ -2157,10 +1848,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<b>&nbsp;</b>`, getCursorPosition());
 
@@ -2175,10 +1863,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<b> </b><i> </i>`, getCursorPosition());
 
@@ -2194,10 +1879,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<b> a</b>`, getCursorPosition());
 
@@ -2212,10 +1894,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<b></b>`, getCursorPosition());
 
@@ -2234,10 +1913,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<b></b>`, getCursorPosition());
 
@@ -2252,10 +1928,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<p></p>`, getCursorPosition());
 
@@ -2270,10 +1943,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<p><b><i></i></b></p>`, getCursorPosition());
 
@@ -2288,10 +1958,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<p>a</p><b></b><p>b</p>`, getCursorPosition());
 
@@ -2307,10 +1974,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<table><tbody><tr><td>a</td><td></td></tr></tbody></table>`, getCursorPosition());
 
@@ -2325,10 +1989,7 @@ describe("Sanitize input", () => {
             <p><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<b> </b>`, getCursorPosition());
 
@@ -2344,10 +2005,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p><br></p><p><br></p>`, getCursorPosition());
 
@@ -2366,10 +2024,7 @@ describe("Sanitize input", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p>a<br></p>`, getCursorPosition());
 
@@ -2384,10 +2039,7 @@ describe("Sanitize input", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
@@ -2412,10 +2064,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>second</p><p>third</p>`, cursorPosition);
@@ -2437,10 +2086,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
@@ -2461,10 +2107,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
 
@@ -2485,10 +2128,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
 
@@ -2510,10 +2150,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p><ul><li>second</li></ul>`, getCursorPosition());
 
@@ -2534,10 +2171,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<h1>first</h1><h2>second</h2><blockquote>third</blockquote>`, getCursorPosition());
 
@@ -2557,10 +2191,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p><p><br></p><p>second</p>`, getCursorPosition());
 
@@ -2581,10 +2212,7 @@ describe("Paste lines into the line the cursor is on", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<b style="font-weight: normal"><p>first</p><p>second</p></b>`, getCursorPosition());
 
@@ -2601,10 +2229,7 @@ describe("Paste lines into the line the cursor is on", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = pasteHtml(wrapper, `<h2>first</h2>`, getCursorPosition());
 
@@ -2619,10 +2244,7 @@ describe("Paste lines into the line the cursor is on", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = pasteHtml(wrapper, `<h2>first</h2>`, getCursorPosition());
 
@@ -2637,10 +2259,7 @@ describe("Paste lines into the line the cursor is on", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p><p>third</p>`, cursorPosition);
@@ -2661,10 +2280,7 @@ describe("Paste lines into the line the cursor is on", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<blockquote>\n<p>first</p>\n<p>second</p>\n</blockquote>`, getCursorPosition());
 
@@ -2681,10 +2297,7 @@ describe("Paste lines into the line the cursor is on", () => {
             <p class="start">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<h1>first</h1>second`, getCursorPosition());
 
@@ -2700,10 +2313,7 @@ describe("Paste lines into the line the cursor is on", () => {
             <h1 class="start">zero</h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p><ul><li>second</li></ul><p>third</p>`, getCursorPosition());
 
@@ -2724,10 +2334,7 @@ describe("Paste lines into the line the cursor is on", () => {
             <h2><br></h2>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<h1>first</h1>`, getCursorPosition());
 
@@ -2742,10 +2349,7 @@ describe("Paste lines into the line the cursor is on", () => {
             <h1><br></h1>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, getCursorPosition());
 
@@ -2761,10 +2365,7 @@ describe("Paste an image", () => {
     const imageBlock = `<p class="be-image"><img src="${image}"></p>`;
 
     function select(wrapper: HTMLElement, selector: string, offset: number) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), offset);
-        range.setEnd(getFirstChild(wrapper, selector), offset);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, selector), offset, getFirstChild(wrapper, selector), offset);
 
         return getCursorPosition();
     }
@@ -2953,10 +2554,7 @@ describe("Paste a table", () => {
             <p class="start">fourth</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fou".length, getFirstChild(wrapper, ".start"), "fou".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, table, cursorPosition);
@@ -2976,10 +2574,7 @@ describe("Paste a table", () => {
             <p class="start"><br></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, table, cursorPosition);
@@ -2995,10 +2590,7 @@ describe("Paste a table", () => {
             <p class="start">fourth</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, table, cursorPosition);
@@ -3014,10 +2606,7 @@ describe("Paste a table", () => {
             <p class="start">fourth</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fourth".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fourth".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fourth".length, getFirstChild(wrapper, ".start"), "fourth".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, table, cursorPosition);
@@ -3039,10 +2628,7 @@ describe("Paste a table", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fou".length, getFirstChild(wrapper, ".start"), "fou".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, table, cursorPosition);
@@ -3071,10 +2657,7 @@ describe("Paste a table", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, table, cursorPosition);
@@ -3096,10 +2679,7 @@ describe("Paste a table", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fifth".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fifth".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fifth".length, getFirstChild(wrapper, ".start"), "fifth".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, table, cursorPosition);
@@ -3118,10 +2698,7 @@ describe("Paste a table", () => {
             <p class="start">fourth</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fou".length, getFirstChild(wrapper, ".start"), "fou".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<h1>fifth</h1>` + table + `<p>sixth</p>`, cursorPosition);
@@ -3140,10 +2717,7 @@ describe("Paste a table", () => {
             <p class="start">fourth</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fou".length, getFirstChild(wrapper, ".start"), "fou".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<div>fifth` + table + `sixth</div>`, cursorPosition);
@@ -3160,10 +2734,7 @@ describe("Paste a table", () => {
             <p class="start">fourth</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fou".length, getFirstChild(wrapper, ".start"), "fou".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<table><tbody><tr><td>second</td><td>third</td></tr></tbody></table>`, cursorPosition);
@@ -3182,10 +2753,7 @@ describe("Paste a table", () => {
             <p class="start">fourth</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fou".length, getFirstChild(wrapper, ".start"), "fou".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<table><thead><tr><th>zero</th><th>first</th></tr></thead></table>`, cursorPosition);
@@ -3203,10 +2771,7 @@ describe("Paste a table", () => {
             <p class="start">fourth</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fou".length, getFirstChild(wrapper, ".start"), "fou".length);
 
         const pasted = pasteHtml(wrapper, `<table><tbody><tr><td>second</td><td>third</td></tr>` +
             `<tr><td>fifth</td></tr></tbody></table>`, getCursorPosition());
@@ -3226,10 +2791,7 @@ describe("Paste a table", () => {
             <p class="start">fourth</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fou".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fou".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fou".length, getFirstChild(wrapper, ".start"), "fou".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<div><p>` + table + `</p></div>`, cursorPosition);
@@ -3250,10 +2812,7 @@ describe("Paste a table", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>fifth</p>` + table, cursorPosition);
@@ -3276,10 +2835,7 @@ describe("Paste a table", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, table + `<p>fifth</p>`, cursorPosition);
@@ -3301,10 +2857,7 @@ describe("Paste a table", () => {
             <p class="start">fourth</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fourth".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fourth".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fourth".length, getFirstChild(wrapper, ".start"), "fourth".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<ul><li>fifth</li><li>` + table + `</li><li>sixth</li></ul>`, cursorPosition);
@@ -3328,10 +2881,7 @@ describe("Paste into a table cell", () => {
             <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fo".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fo".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fo".length, getFirstChild(wrapper, ".start"), "fo".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<p>first</p><p>second</p>`, cursorPosition);
@@ -3349,10 +2899,7 @@ describe("Paste into a table cell", () => {
             <table><thead><tr><th class="start">zero</th><th>first</th></tr></thead></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<h1>second</h1>`, cursorPosition);
@@ -3370,10 +2917,7 @@ describe("Paste into a table cell", () => {
             <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "foo".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "foo".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "foo".length, getFirstChild(wrapper, ".start"), "foo".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<p><strong>first</strong> second</p>`, cursorPosition);
@@ -3389,10 +2933,7 @@ describe("Paste into a table cell", () => {
             <table><tbody><tr><td class="start">zero</td></tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<div>first</div>`, getCursorPosition());
 
@@ -3407,10 +2948,7 @@ describe("Paste into a table cell", () => {
             <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "foo".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "foo".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "foo".length, getFirstChild(wrapper, ".start"), "foo".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, cursorPosition);
@@ -3427,10 +2965,7 @@ describe("Paste into a table cell", () => {
             <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "foo".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "foo".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "foo".length, getFirstChild(wrapper, ".start"), "foo".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<table><tbody><tr><td>first</td><td>second</td></tr></tbody></table>`, cursorPosition);
@@ -3447,10 +2982,7 @@ describe("Paste into a table cell", () => {
             <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "foo".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "foo".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "foo".length, getFirstChild(wrapper, ".start"), "foo".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<p>first<img src="${image}"> second</p>`, cursorPosition);
@@ -3467,10 +2999,7 @@ describe("Paste into a table cell", () => {
             <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fo".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fo".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fo".length, getFirstChild(wrapper, ".start"), "fo".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<img src="${image}">`, cursorPosition);
@@ -3491,10 +3020,7 @@ describe("Paste into a table cell", () => {
             <table><tbody><tr><td class="start">foo</td><td>bar</td></tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fo".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fo".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fo".length, getFirstChild(wrapper, ".start"), "fo".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = pasteHtml(wrapper, `<b><img src="${image}"></b>`, cursorPosition);
@@ -3514,10 +3040,7 @@ describe("Paste into a table cell", () => {
             `<tr><td></td><td>fourth</td></tr></tbody></table>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const cursorPosition = getCursorPosition();
         const pasted = pasteHtml(wrapper, `<p>fifth</p>`, cursorPosition);
@@ -3538,10 +3061,7 @@ describe("Paste over whole items", () => {
         `<tbody><tr><td>second</td><td>third</td></tr></tbody></table>`;
 
     function selectItems(wrapper: HTMLElement) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getLastChild(wrapper, ".end"), getLastChild(wrapper, ".end").textContent?.length ?? 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getLastChild(wrapper, ".end"), getLastChild(wrapper, ".end").textContent?.length ?? 0);
 
         return getCursorPosition();
     }

@@ -1,6 +1,5 @@
-import {getRange} from "@/core/shared/range-util";
 import {getSelectedBlock, getSelectedBlocks, getSelectedSharedTags} from "@/core/selection/selection";
-import {createWrapper, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {createWrapper, getFirstChild, getLastChild, selectRange} from "@/core/shared/test-util";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -20,10 +19,7 @@ describe("Shared tags", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "se".length);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -42,10 +38,7 @@ describe("Shared tags", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -60,10 +53,7 @@ describe("Shared tags", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -75,10 +65,7 @@ describe("Shared tags", () => {
             <p class="start">zero<strong class="end">first</strong></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".end"), "first".length);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -91,10 +78,7 @@ describe("Shared tags", () => {
         `);
 
         const empty = wrapper.querySelector(".empty") as HTMLElement;
-        const range = new Range();
-        range.setStart(empty, 0);
-        range.setEnd(empty, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(empty, 0, empty, 0);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -107,10 +91,7 @@ describe("Shared tags", () => {
         `);
 
         const empty = wrapper.querySelector(".empty") as HTMLElement;
-        const range = new Range();
-        range.setStart(empty, 0);
-        range.setEnd(empty, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(empty, 0, empty, 0);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -123,10 +104,7 @@ describe("Shared tags", () => {
         `);
 
         const br = getFirstChild(wrapper, ".empty");
-        const range = new Range();
-        range.setStart(br, 0);
-        range.setEnd(br, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(br, 0, br, 0);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -141,10 +119,7 @@ describe("Shared tags", () => {
             <p><strong class="end">first</strong></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "first".length);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -158,10 +133,7 @@ describe("Shared tags", () => {
             <p><strong class="end">first</strong></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "first".length);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -174,10 +146,7 @@ describe("Shared tags", () => {
             <p class="be-image"><img src="image.png"></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(wrapper.querySelector(".be-image") as Node, 1);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, wrapper.querySelector(".be-image") as Node, 1);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -190,10 +159,7 @@ describe("Shared tags", () => {
             <p class="be-image"><img src="image.png"></p>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".be-image") as Node, 0);
-        range.setEnd(wrapper.querySelector(".be-image") as Node, 1);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector(".be-image") as Node, 0, wrapper.querySelector(".be-image") as Node, 1);
 
         const shared = getSelectedSharedTags(wrapper);
 
@@ -215,10 +181,7 @@ test("Should find first level elements arranged by selection", () => {
     const start = getFirstChild(startParagraph, "strong");
     const end = endParagraph.firstChild as Node;
 
-    const range = new Range();
-    range.setStart(start, "ze".length);
-    range.setEnd(end, "fi".length);
-    (getRange as jest.Mock).mockReturnValue(range);
+    selectRange(start, "ze".length, end, "fi".length);
 
     const blocks = getSelectedBlock(wrapper);
 
@@ -242,10 +205,7 @@ test("Should find list elements arranged by selection", () => {
     const start = getFirstChild(startUl, "li");
     const end = getFirstChild(endUl, "li");
 
-    const range = new Range();
-    range.setStart(start, "ze".length);
-    range.setEnd(end, "fi".length);
-    (getRange as jest.Mock).mockReturnValue(range);
+    selectRange(start, "ze".length, end, "fi".length);
 
     const blocks = getSelectedBlock(wrapper);
 
@@ -255,10 +215,7 @@ test("Should find list elements arranged by selection", () => {
 // selected whole, or on the editable element itself after a select-all. Both name the same leaves.
 describe("Selected blocks of an element-anchored selection", () => {
     function select(startContainer: Node, startOffset: number, endContainer: Node, endOffset: number) {
-        const range = new Range();
-        range.setStart(startContainer, startOffset);
-        range.setEnd(endContainer, endOffset);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(startContainer, startOffset, endContainer, endOffset);
     }
 
     test("Should find every item of a selection anchored on the items", () => {
@@ -294,10 +251,7 @@ describe("Selected paragraphs", () => {
             <p>third</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "sec".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "sec".length);
 
         const paragraphs = getSelectedBlocks(wrapper);
 
@@ -311,10 +265,7 @@ describe("Selected paragraphs", () => {
             <p>second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start strong"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start strong"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start strong"), "fi".length, getFirstChild(wrapper, ".start strong"), "fir".length);
 
         const paragraphs = getSelectedBlocks(wrapper);
 

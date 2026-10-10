@@ -163,10 +163,7 @@ describe("Should normalize tags", () => {
     test("Should preserve href property", () => {
         const wrapper = createWrapper(`<div><strong>zero<a href="https://www.briefeditor.io">first</a><a href="https://briefeditor.io">second</a>third<em>fourth</em></strong></div>`);
 
-        const range = new Range();
-        range.setStart(wrapper.firstChild as HTMLElement, "".length);
-        range.setEnd(wrapper.lastChild as HTMLElement, "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.firstChild as HTMLElement, "".length, wrapper.lastChild as HTMLElement, "".length);
 
         normalize(wrapper);
         expectHtml(wrapper.innerHTML, "<div><strong>zero</strong><a href=\"https://www.briefeditor.io\"><strong>first</strong></a><a href=\"https://briefeditor.io\"><strong>second</strong></a><strong>third<em>fourth</em></strong></div>");
@@ -267,10 +264,7 @@ describe("Should normalize tags", () => {
             <div class="start">zero<ul><li></li></ul></div>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.firstChild as HTMLElement, "".length);
-        range.setEnd(wrapper.lastChild as HTMLElement, "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.firstChild as HTMLElement, "".length, wrapper.lastChild as HTMLElement, "".length);
 
         normalize(wrapper);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "div"), "".length);
@@ -308,10 +302,7 @@ describe("Should remove tags", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start i"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start i"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start i"), "".length, getFirstChild(wrapper, ".start i"), "zero".length);
 
         removeTags(wrapper, ["STRONG"]);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "u > i"), "".length, getFirstChild(wrapper, "u > i"), "zero".length);
@@ -345,10 +336,7 @@ describe("Should remove tags", () => {
             </p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "second".length);
 
         removeTags(wrapper, ["STRONG"]);
         // The start stood on the boundary the div was lifted out over, so it is anchored on the text before it.
@@ -376,10 +364,7 @@ describe("Should append tags", () => {
             <p class="start">zero<strong>first</strong></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         appendTag(wrapper, "STRONG");
         // ToDo: Uncomment
@@ -571,10 +556,7 @@ describe("Should move first level elements out", () => {
         const p = document.querySelector("P") as HTMLElement;
         p.firstChild?.after(h1);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, "h1"), "".length);
-        range.setEnd(getFirstChild(wrapper, "h1"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, "h1"), "".length, getFirstChild(wrapper, "h1"), "first".length);
 
         normalize(wrapper);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "zero".length, getFirstChild(wrapper, "h1"), "first".length);
@@ -596,10 +578,7 @@ describe("Should move first level elements out", () => {
         const p = document.querySelector("P") as HTMLElement;
         p.firstChild?.after(h1);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, "h1"), "".length);
-        range.setEnd(getFirstChild(wrapper, "h1"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, "h1"), "".length, getFirstChild(wrapper, "h1"), "first".length);
 
         normalize(wrapper);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "zero".length, getFirstChild(wrapper, "h1"), "first".length);
@@ -619,10 +598,7 @@ describe("Should move first level elements out", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         normalize(wrapper);
         //expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "ze".length);
@@ -648,10 +624,7 @@ describe("Normalizer test", () => {
             <p class="end">second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "sec".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "sec".length);
 
         appendTag(wrapper, "STRONG");
 
@@ -668,10 +641,7 @@ describe("Normalizer test", () => {
             <p>first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, "strong"), "r".length);
-        range.setEnd(getFirstChild(wrapper, "p + p"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, "strong"), "r".length, getFirstChild(wrapper, "p + p"), "fi".length);
 
         appendTag(wrapper, "STRONG");
 
@@ -686,10 +656,7 @@ describe("Normalizer test", () => {
             <p><strong>zero</strong>first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, "strong"), "zero".length);
-        range.setEnd(getLastChild(wrapper, "p"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, "strong"), "zero".length, getLastChild(wrapper, "p"), "fi".length);
 
         appendTag(wrapper, "EM");
 

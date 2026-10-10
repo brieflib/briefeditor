@@ -1,4 +1,3 @@
-import {getRange} from "@/core/shared/range-util";
 import {
     changeListWrapper,
     exitList,
@@ -12,7 +11,7 @@ import {
 } from "@/core/list/list";
 import {parseList} from "@/core/list/type/list-class";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
-import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, getText} from "@/core/shared/test-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, getText, selectRange} from "@/core/shared/test-util";
 import {pasteHtml} from "@/core/clipboard/util/clipboard-util";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 
@@ -31,10 +30,7 @@ describe("Is plus indent enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         const isEnabled = isPlusIndentEnabled(wrapper);
 
@@ -50,10 +46,7 @@ describe("Is plus indent enabled", () => {
             <p class="end">second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         const isEnabled = isPlusIndentEnabled(wrapper);
 
@@ -72,10 +65,7 @@ describe("Is plus indent enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".start"), "second".length);
 
         const isEnabled = isPlusIndentEnabled(wrapper);
 
@@ -94,10 +84,7 @@ describe("Is plus indent enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const isEnabled = isPlusIndentEnabled(wrapper);
 
@@ -112,10 +99,7 @@ describe("Is plus indent enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const isEnabled = isPlusIndentEnabled(wrapper);
 
@@ -132,10 +116,7 @@ describe("Is plus indent enabled", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const isEnabled = isPlusIndentEnabled(wrapper);
 
@@ -157,10 +138,7 @@ describe("Plus indent", () => {
         `);
 
         const start = wrapper.querySelector(".start") as Node;
-        const range = new Range();
-        range.setStart(start, 0);
-        range.setEnd(start, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(start, 0, start, 0);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -195,10 +173,7 @@ describe("Plus indent", () => {
         `);
 
         const start = wrapper.querySelector(".start") as Node;
-        const range = new Range();
-        range.setStart(start, 0);
-        range.setEnd(start, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(start, 0, start, 0);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -233,10 +208,7 @@ describe("Plus indent", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -266,10 +238,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -295,10 +264,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "second".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "second".length, getFirstChild(wrapper, ".start"), "second".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -328,10 +294,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "rst".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "rst".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -367,10 +330,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "th".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "th".length, getFirstChild(wrapper, ".start"), "third".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -402,10 +362,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -436,10 +393,7 @@ describe("Plus indent", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -469,10 +423,7 @@ describe("Plus indent", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -501,10 +452,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -538,10 +486,7 @@ describe("Plus indent", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -575,10 +520,7 @@ describe("Plus indent", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".start"), "second".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -614,10 +556,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "third".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -651,10 +590,7 @@ describe("Is minus indent enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         const isEnabled = isMinusIndentEnabled(wrapper);
 
@@ -670,10 +606,7 @@ describe("Is minus indent enabled", () => {
             <p class="end">second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         const isEnabled = isMinusIndentEnabled(wrapper);
 
@@ -692,10 +625,7 @@ describe("Is minus indent enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".start"), "second".length);
 
         const isEnabled = isMinusIndentEnabled(wrapper);
 
@@ -714,10 +644,7 @@ describe("Is minus indent enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const isEnabled = isMinusIndentEnabled(wrapper);
 
@@ -736,10 +663,7 @@ describe("Is minus indent enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const isEnabled = isMinusIndentEnabled(wrapper);
 
@@ -761,10 +685,7 @@ describe("Is minus indent enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const isEnabled = isMinusIndentEnabled(wrapper);
 
@@ -788,10 +709,7 @@ describe("Is minus indent enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "third".length);
 
         const isEnabled = isMinusIndentEnabled(wrapper);
 
@@ -814,10 +732,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "third".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -850,10 +765,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "th".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "th".length, getFirstChild(wrapper, ".start"), "third".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -888,10 +800,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "th".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "th".length, getFirstChild(wrapper, ".start"), "third".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -925,10 +834,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "third".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -963,10 +869,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "th".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fourth".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "th".length, getFirstChild(wrapper, ".end"), "fourth".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1005,10 +908,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "third".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1042,10 +942,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1076,10 +973,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1110,10 +1004,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "th".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "th".length, getFirstChild(wrapper, ".start"), "third".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1158,10 +1049,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".start"), "second".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1202,10 +1090,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "third".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1247,10 +1132,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fourth".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "fourth".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1299,10 +1181,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fifth".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "fifth".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1348,10 +1227,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1393,10 +1269,7 @@ describe("Minus indent", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fourth".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "fourth".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1438,10 +1311,7 @@ describe("Minus indent", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "th".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "th".length, getFirstChild(wrapper, ".start"), "third".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1477,10 +1347,7 @@ describe("Minus indent", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "r".length);
-        range.setEnd(getLastChild(wrapper, ".start"), "rst".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "r".length, getLastChild(wrapper, ".start"), "rst".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1515,10 +1382,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "t".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "t".length, getFirstChild(wrapper, ".start"), "third".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1559,10 +1423,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "t".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "third".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "t".length, getFirstChild(wrapper, ".start"), "third".length);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1596,10 +1457,7 @@ describe("Minus indent", () => {
         `);
 
         const start = wrapper.querySelector(".start") as Node;
-        const range = new Range();
-        range.setStart(start, 0);
-        range.setEnd(start, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(start, 0, start, 0);
 
         const cursorPosition = minusIndent(wrapper);
 
@@ -1630,10 +1488,7 @@ describe("Exit list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
         const cursorPosition = exitList(wrapper, getCursorPosition());
 
@@ -1655,10 +1510,7 @@ describe("Exit list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
         const cursorPosition = exitList(wrapper, getCursorPosition());
 
@@ -1679,10 +1531,7 @@ describe("Exit list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
         const cursorPosition = exitList(wrapper, getCursorPosition());
 
@@ -1704,10 +1553,7 @@ describe("Exit list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
         const cursorPosition = exitList(wrapper, getCursorPosition());
 
@@ -1740,10 +1586,7 @@ describe("Exit list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
         const cursorPosition = exitList(wrapper, getCursorPosition());
 
@@ -1781,10 +1624,7 @@ describe("Exit list", () => {
 
         const br = getFirstChild(wrapper, ".start");
         const start = wrapper.querySelector(".start") as Node;
-        const range = new Range();
-        range.setStart(start, 0);
-        range.setEnd(start, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(start, 0, start, 0);
 
         const cursorPosition = exitList(wrapper, getCursorPosition());
 
@@ -1820,10 +1660,7 @@ describe("Exit list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
         const cursorPosition = exitList(wrapper, getCursorPosition());
 
@@ -1855,10 +1692,7 @@ describe("Exit list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
         const cursorPosition = exitList(wrapper, getCursorPosition());
 
@@ -1892,10 +1726,7 @@ describe("Exit list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
         const cursorPosition = exitList(wrapper, getCursorPosition());
 
@@ -1923,10 +1754,7 @@ describe("List side events", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"),  "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ol><li>first</li><li>second</li></ol>`, getCursorPosition());
 
@@ -1960,10 +1788,7 @@ describe("List side events", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"),  "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
 
@@ -1989,10 +1814,7 @@ describe("List side events", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".start") as Node, "".length);
-        range.setEnd(wrapper.querySelector(".start") as Node,  "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector(".start") as Node, "".length, wrapper.querySelector(".start") as Node, "".length);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
 
@@ -2022,10 +1844,7 @@ describe("Change list wrapper", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const cursorPosition = changeListWrapper(wrapper, "UL");
 
@@ -2063,10 +1882,7 @@ describe("Change list wrapper", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "second".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "second".length, getFirstChild(wrapper, ".start"), "second".length);
 
         const cursorPosition = changeListWrapper(wrapper, "UL");
 
@@ -2101,10 +1917,7 @@ describe("Change list wrapper", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "first".length);
 
         const cursorPosition = changeListWrapper(wrapper, "OL");
 
@@ -2131,10 +1944,7 @@ describe("Change list wrapper", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const cursorPosition = changeListWrapper(wrapper, "OL");
 
@@ -2156,10 +1966,7 @@ describe("Pasting a list into a list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ul><li>first</li><li>second</li></ul>`, getCursorPosition());
 
@@ -2180,10 +1987,7 @@ describe("Pasting a list into a list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
 
@@ -2208,10 +2012,7 @@ describe("Pasting a list into a list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "ze".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ol><li>first</li></ol>`, getCursorPosition());
 
@@ -2243,10 +2044,7 @@ describe("Pasting a list into a list", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ol><li>first</li><li>second</li></ol>`, getCursorPosition());
 
@@ -2279,10 +2077,7 @@ describe("Pasting a list into a list", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "nes".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "nes".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "nes".length, getFirstChild(wrapper, ".start"), "nes".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ol><li>first</li></ol>`, getCursorPosition());
 
@@ -2315,10 +2110,7 @@ describe("Pasting a list into a list", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "nes".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "nes".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "nes".length, getFirstChild(wrapper, ".start"), "nes".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ul><li>first</li></ul>`, getCursorPosition());
 
@@ -2351,10 +2143,7 @@ describe("Pasting a list into a list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "nested".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "nested".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "nested".length, getFirstChild(wrapper, ".start"), "nested".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
 
@@ -2387,10 +2176,7 @@ describe("Pasting a list into a list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         const cursorPosition = pasteHtml(wrapper, `<ul><li>first</li></ul>`, getCursorPosition());
 
@@ -2414,10 +2200,7 @@ describe("Normalize list", () => {
             <ul><li class="start">zero</li></ul><li>first</li><ul><li>second</li></ul><ul></ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = normalizeList(wrapper.querySelector("ul") as HTMLElement, getCursorPosition());
 
@@ -2443,10 +2226,7 @@ describe("Normalize list", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("br") as Node, 0);
-        range.setEnd(wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("br") as Node, 0, wrapper.querySelector("br") as Node, 0);
 
         // Read before parseList moves the br, which would carry the live range onto the item.
         const cursorPosition = getCursorPosition();
@@ -2475,10 +2255,7 @@ describe("Lists written apart from one another", () => {
     test("Should leave a list written below the text apart from the one being indented", () => {
         const wrapper = createWrapper(`<ul><li>zero</li><li class="start">one</li></ul>apart<ul><li>two</li></ul>`);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "on".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "one".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "on".length, getFirstChild(wrapper, ".start"), "one".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -2489,10 +2266,7 @@ describe("Lists written apart from one another", () => {
     test("Should join only the list the paste lands in", () => {
         const wrapper = createWrapper(`<ul><li class="start">zero</li></ul>apart<ul><li>two</li></ul>`);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = pasteHtml(wrapper, `<ul><li>first<ul><li>second</li></ul></li></ul>`, getCursorPosition());
 
@@ -2512,10 +2286,7 @@ describe("Lists written apart from one another", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "on".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "one".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "on".length, getFirstChild(wrapper, ".start"), "one".length);
 
         const cursorPosition = plusIndent(wrapper);
 
@@ -2557,10 +2328,7 @@ describe("Is leaving the list enabled", () => {
     function isEnabledAt(selector: string) {
         const wrapper = createWrapper(mixed);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), 1);
-        range.setEnd(getFirstChild(wrapper, selector), 1);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, selector), 1, getFirstChild(wrapper, selector), 1);
 
         return isLeavingListEnabled(wrapper, getCursorPosition());
     }
@@ -2585,10 +2353,7 @@ describe("Is leaving the list enabled", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 1);
-        range.setEnd(getFirstChild(wrapper, ".start"), 1);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 1, getFirstChild(wrapper, ".start"), 1);
 
         expect(isLeavingListEnabled(wrapper, getCursorPosition())).toBe(true);
     });
@@ -2596,10 +2361,7 @@ describe("Is leaving the list enabled", () => {
     test("Should allow a cursor standing outside any list", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 1);
-        range.setEnd(getFirstChild(wrapper, ".start"), 1);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 1, getFirstChild(wrapper, ".start"), 1);
 
         expect(isLeavingListEnabled(wrapper, getCursorPosition())).toBe(true);
     });

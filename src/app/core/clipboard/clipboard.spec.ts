@@ -1,6 +1,5 @@
 import {handleCutEvent, handleDragEvent, handleDragOverEvent} from "@/core/clipboard/clipboard";
-import {getRange} from "@/core/shared/range-util";
-import {createWrapper, expectHtml} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, selectRange} from "@/core/shared/test-util";
 import {ensureParagraph} from "@/core/shared/element-util";
 
 jest.mock("../shared/range-util", () => ({
@@ -65,10 +64,7 @@ describe("Cut", () => {
 
     test("Should leave an empty paragraph when cut empties whole document", () => {
         const wrapper = createWrapper(`<p>zero</p><p>first</p>`);
-        const range = new Range();
-        range.setStart(wrapper.firstChild?.firstChild as Node, 0);
-        range.setEnd(wrapper.lastChild?.firstChild as Node, "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.firstChild?.firstChild as Node, 0, wrapper.lastChild?.firstChild as Node, "first".length);
 
         let cursorPosition = handleCutEvent(wrapper, cutEvent());
         cursorPosition = ensureParagraph(wrapper, cursorPosition);
@@ -84,10 +80,7 @@ describe("Cut", () => {
     // joined into one line, not left as a line each.
     test("Should join the lines a cut ran between", () => {
         const wrapper = createWrapper(`<p>zero</p><p>first</p>`);
-        const range = new Range();
-        range.setStart(wrapper.firstChild?.firstChild as Node, "ze".length);
-        range.setEnd(wrapper.lastChild?.firstChild as Node, "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.firstChild?.firstChild as Node, "ze".length, wrapper.lastChild?.firstChild as Node, "fi".length);
 
         const cursorPosition = handleCutEvent(wrapper, cutEvent());
 
@@ -100,10 +93,7 @@ describe("Cut", () => {
 
     test("Should leave an empty heading when a cut runs from it into an empty nested item", () => {
         const wrapper = createWrapper(`<h3>Ordered List</h3><ol><li>First ordered item<ol><li class="empty"><br></li></ol></li></ol>`);
-        const range = new Range();
-        range.setStart(wrapper.firstChild?.firstChild as Node, 0);
-        range.setEnd(wrapper.querySelector(".empty") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.firstChild?.firstChild as Node, 0, wrapper.querySelector(".empty") as Node, 0);
 
         const cursorPosition = handleCutEvent(wrapper, cutEvent());
 
@@ -116,10 +106,7 @@ describe("Cut", () => {
 
     test("Should leave an empty paragraph when the whole document is cut", () => {
         const wrapper = createWrapper(`<p>zero</p><p>first</p>`);
-        const range = new Range();
-        range.setStart(wrapper, 0);
-        range.setEnd(wrapper, wrapper.childNodes.length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper, 0, wrapper, wrapper.childNodes.length);
 
         const cursorPosition = handleCutEvent(wrapper, cutEvent());
 

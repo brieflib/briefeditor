@@ -1,5 +1,4 @@
-import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
-import {getRange} from "@/core/shared/range-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, selectRange} from "@/core/shared/test-util";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 
 jest.mock("../shared/range-util", () => ({
@@ -13,10 +12,7 @@ describe("Keyboard events", () => {
             <p>zero</p><p class="start">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -32,10 +28,7 @@ describe("Keyboard events", () => {
             <p class="start">zero</p><p>first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -51,10 +44,7 @@ describe("Keyboard events", () => {
             <p class="start">zero</p><p>first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -72,10 +62,7 @@ describe("Keyboard events", () => {
             <p class="start">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -98,10 +85,7 @@ describe("Keyboard events", () => {
             <p>zero</p><p class="start"><br></p><p>first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -122,10 +106,7 @@ describe("Keyboard events", () => {
             <p class="start">zerofirstsecond</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zerofirst".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zerofirst".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -141,10 +122,7 @@ describe("Keyboard events", () => {
             <p>zero<strong class="start">first</strong>second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -166,10 +144,7 @@ describe("Keyboard events", () => {
             <p>zero<strong class="start">first</strong>second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "fir".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -185,10 +160,7 @@ describe("Keyboard events", () => {
             <p class="start">zero<strong>first</strong>second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -209,10 +181,7 @@ describe("Keyboard events", () => {
             <p class="start">zero<strong>first</strong>second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Enter", shiftKey: true});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -233,10 +202,7 @@ describe("Keyboard events", () => {
             <p class="start">first</p><p class="end">zero</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "zer".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "zer".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -257,10 +223,7 @@ describe("Keyboard events", () => {
     test("Press delete when selection covers a whole list followed by a paragraph", () => {
         const wrapper = createWrapper(`<ul><li class="start">zero</li><li>one</li><li class="end">two</li></ul><p>three</p>`);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".end"), "two".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".end"), "two".length);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
 
@@ -274,10 +237,7 @@ describe("Keyboard events", () => {
     test("Press delete when selection covers a whole list after a paragraph", () => {
         const wrapper = createWrapper(`<p>three</p><ul><li class="start">zero</li><li>one</li><li class="end">two</li></ul>`);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".end"), "two".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".end"), "two".length);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
 
@@ -291,10 +251,7 @@ describe("Keyboard events", () => {
     test("Press delete when selection covers two whole items of three", () => {
         const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end">one</li><li>two</li></ul>`);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".end"), "one".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".end"), "one".length);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
 
@@ -308,10 +265,7 @@ describe("Keyboard events", () => {
     test("Press delete when selection covers two whole paragraphs of three", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="end">one</p><p>two</p>`);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".end"), "one".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".end"), "one".length);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
 
@@ -327,10 +281,7 @@ describe("Keyboard events", () => {
             <p>zero</p><p><br></p><p><br></p><p class="start"><br></p><p>first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key: "Delete"});
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
@@ -345,10 +296,7 @@ describe("Keyboard events", () => {
 
 describe("Typing and deleting characters", () => {
     function selectText(node: Node, start: number, end: number) {
-        const range = new Range();
-        range.setStart(node, start);
-        range.setEnd(node, end);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(node, start, node, end);
     }
 
     test("Type a character in the middle of text", () => {
@@ -1341,10 +1289,7 @@ describe("Typing and deleting characters", () => {
         const wrapper = createWrapper(`
             <table><tbody><tr><td class="start">zero</td></tr></tbody></table><p class="end">first</p>
         `);
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
@@ -1400,10 +1345,7 @@ describe("Typing and deleting characters", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p><p class="end">first</p>
         `);
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         const keyboardEvent = new KeyboardEvent("keydown", {key});
         const preventDefault = jest.spyOn(keyboardEvent, "preventDefault");
@@ -1431,10 +1373,7 @@ describe("Editing over a selection ending on an empty nested item", () => {
     `;
 
     function selectTo(wrapper: HTMLElement, startOffset: number, caretOnItem: boolean) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), startOffset);
-        range.setEnd(caretOnItem ? wrapper.querySelector(".empty") as Node : wrapper.querySelector("br") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), startOffset, caretOnItem ? wrapper.querySelector(".empty") as Node : wrapper.querySelector("br") as Node, 0);
     }
 
     for (const caretOnItem of [false, true]) {
@@ -1490,10 +1429,7 @@ describe("Enter in an empty list item", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
 
@@ -1526,10 +1462,7 @@ describe("Enter in an empty list item", () => {
         `);
 
         const br = getFirstChild(wrapper, ".start");
-        const range = new Range();
-        range.setStart(br, 0);
-        range.setEnd(br, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(br, 0, br, 0);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
 
@@ -1557,10 +1490,7 @@ describe("Enter in an empty list item", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".start") as HTMLElement, 0);
-        range.setEnd(wrapper.querySelector(".start") as HTMLElement, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector(".start") as HTMLElement, 0, wrapper.querySelector(".start") as HTMLElement, 0);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
         expectCursor(cursorPosition, wrapper.querySelector("li + li br"), 0);
@@ -1581,10 +1511,7 @@ describe("Enter in an empty list item", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), 0);
-        range.setEnd(getFirstChild(wrapper, ".start"), 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter", shiftKey: true}));
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), 0);
@@ -1604,10 +1531,7 @@ describe("Enter in an empty list item", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter"}));
         expectCursor(cursorPosition, wrapper.querySelector("li + li br"), 0);
@@ -1625,10 +1549,7 @@ describe("Deleting next to an image block", () => {
     const imageBlock = `<p class="be-image"><img src="image.png"></p>`;
 
     function select(wrapper: HTMLElement, selector: string, offset: number) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), offset);
-        range.setEnd(getFirstChild(wrapper, selector), offset);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, selector), offset, getFirstChild(wrapper, selector), offset);
     }
 
     test("Backspace at the start of the line after an image block removes the image", () => {
@@ -1692,10 +1613,7 @@ describe("Deleting next to an image block", () => {
 // wrappers standing side by side; the run has to be rebuilt as one for them to join.
 describe("Removing the line two lists stand apart from one another by", () => {
     function select(wrapper: HTMLElement, selector: string, start: number, end = start) {
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, selector), start);
-        range.setEnd(getFirstChild(wrapper, selector), end);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, selector), start, getFirstChild(wrapper, selector), end);
     }
 
     test("Delete in the empty line between two lists joins them", () => {
@@ -1756,10 +1674,7 @@ describe("Removing the line two lists stand apart from one another by", () => {
 
     test("Deleting a selection covering the line written between two lists joins them", () => {
         const wrapper = createWrapper(`<ul><li class="start">zero</li></ul><p class="end">delete it</p><ul><li>first</li></ul>`);
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "delete it".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".end"), "delete it".length);
 
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
 

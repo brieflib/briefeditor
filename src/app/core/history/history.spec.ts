@@ -1,7 +1,6 @@
-import {getRange} from "@/core/shared/range-util";
 import execCommand from "@/core/command/exec-command";
 import {Action, Command} from "@/core/command/type/command";
-import {createWrapper, expectCursor, expectHtml, getFirstChild} from "@/core/shared/test-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild, selectRange} from "@/core/shared/test-util";
 import {GROUP_INTERVAL, History} from "@/core/history/history";
 import {Carrier} from "@/core/carrier/carrier";
 import {CursorPosition} from "@/core/shared/type/cursor-position";
@@ -19,10 +18,7 @@ function command(wrapper: HTMLElement, next: Command): CursorPosition {
 }
 
 function select(wrapper: HTMLElement, selector: string, start: number, end: number) {
-    const range = new Range();
-    range.setStart(getFirstChild(wrapper, selector), start);
-    range.setEnd(getFirstChild(wrapper, selector), end);
-    (getRange as jest.Mock).mockReturnValue(range);
+    selectRange(getFirstChild(wrapper, selector), start, getFirstChild(wrapper, selector), end);
 }
 
 function keydownEvent(key: string, options: KeyboardEventInit = {}): KeyboardEvent {
@@ -31,10 +27,7 @@ function keydownEvent(key: string, options: KeyboardEventInit = {}): KeyboardEve
 
 // Where a command left the cursor is where the editor puts it, so the next command starts from there.
 function selectCursor(cursorPosition: CursorPosition) {
-    const range = new Range();
-    range.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
-    range.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
-    (getRange as jest.Mock).mockReturnValue(range);
+    selectRange(cursorPosition.startContainer, cursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
 }
 
 // The image command hands its file to a FileReader, so the insert lands turns after the command is over.
@@ -92,10 +85,7 @@ describe("History undo/redo", () => {
         const wrapper = createWrapper(`<h3 class="start">Ordered List</h3><ol><li>First ordered item<ol><li class="empty"><br></li></ol></li></ol>`);
         const history = new History(wrapper);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(wrapper.querySelector(".empty") as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, wrapper.querySelector(".empty") as Node, 0);
         const typed = command(wrapper, {action: Action.Keyboard, event: keydownEvent("z")});
         expectCursor(typed, getFirstChild(wrapper, "h3"), "z".length);
         expectHtml(wrapper.innerHTML, `<h3>z</h3>`);
@@ -403,11 +393,8 @@ describe("History undo/redo", () => {
         const wrapper = createWrapper(`<p class="start">a<br>b</p>`);
         const history = new History(wrapper);
 
-        const range = new Range();
         const lastText = (wrapper.querySelector(".start") as HTMLElement).lastChild as Node;
-        range.setStart(lastText, 0);
-        range.setEnd(lastText, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(lastText, 0, lastText, 0);
 
         const deleted = command(wrapper, {action: Action.Keyboard, event: keydownEvent("Backspace")});
         expectCursor(deleted, getFirstChild(wrapper, "p"), "a".length);
@@ -463,10 +450,7 @@ describe("History undo/redo", () => {
         const history = new History(wrapper);
 
         const strongText = getFirstChild(wrapper, ".s");
-        const range = new Range();
-        range.setStart(strongText, "".length);
-        range.setEnd(strongText, "ro".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(strongText, "".length, strongText, "ro".length);
 
         const unwrapped = command(wrapper, {action: Action.Tag, tag: "STRONG"});
         expectCursor(unwrapped, getFirstChild(wrapper, "p"), "ze".length, getFirstChild(wrapper, "p"), "zero".length);
@@ -520,10 +504,7 @@ describe("History undo/redo", () => {
         expectCursor(split, wrapper.querySelector("p")?.childNodes[1], 0);
         expectHtml(wrapper.innerHTML, `<p><strong>ze</strong><strong>ro</strong></p>`);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector("p")?.childNodes[1] as Node, 0);
-        range.setEnd(wrapper.querySelector("p")?.childNodes[1] as Node, 0);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector("p")?.childNodes[1] as Node, 0, wrapper.querySelector("p")?.childNodes[1] as Node, 0);
         const typed = command(wrapper, {action: Action.Keyboard, event: keydownEvent("a")});
         expectCursor(typed, wrapper.querySelector("p")?.childNodes[1], "a".length);
         expectHtml(wrapper.innerHTML, `<p><strong>ze</strong>a<strong>ro</strong></p>`);

@@ -1,4 +1,4 @@
-import {createWrapper, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, getFirstChild, getLastChild, selectRange} from "@/core/shared/test-util";
 import {
     convertList,
     ListWrapper,
@@ -7,7 +7,6 @@ import {
     parseList,
     plusOrderNumbers
 } from "@/core/list/type/list-class";
-import {getRange} from "@/core/shared/range-util";
 import {getFirstSelectedRoot} from "@/core/selection/selection";
 import {getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {getListsOrderNumbers} from "@/core/list/util/list-util";
@@ -302,10 +301,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
@@ -330,10 +326,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
@@ -358,10 +351,7 @@ describe("Plus indent", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".start"), "".length);
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
@@ -387,10 +377,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
@@ -421,10 +408,7 @@ describe("Plus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "".length);
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
@@ -451,10 +435,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);
@@ -481,10 +462,7 @@ describe("Minus indent", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
         const cursorPosition = getCursorPosition();
         const rootWrapper = getFirstSelectedRoot(wrapper, cursorPosition);

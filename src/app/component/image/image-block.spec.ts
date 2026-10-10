@@ -1,5 +1,4 @@
-import {getRange} from "@/core/shared/range-util";
-import {createWrapper, expectHtml} from "@/core/shared/test-util";
+import {createWrapper, expectHtml, selectRange} from "@/core/shared/test-util";
 import ImageBlock from "@/component/image/image-block";
 
 jest.mock("@/component/image/asset/image-block.css", () => "");
@@ -25,10 +24,7 @@ function setup(html: string) {
     scroll.getBoundingClientRect = () => rect(0, 0, 500, 400);
     document.body.appendChild(scroll);
 
-    const range = new Range();
-    range.setStart(wrapper, 0);
-    range.setEnd(wrapper, 0);
-    (getRange as jest.Mock).mockReturnValue(range);
+    selectRange(wrapper, 0, wrapper, 0);
 
     new ImageBlock(wrapper);
     const image = wrapper.querySelector("img") as HTMLImageElement;

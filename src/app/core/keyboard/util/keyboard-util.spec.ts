@@ -1,5 +1,4 @@
-import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild} from "@/core/shared/test-util";
-import {getRange} from "@/core/shared/range-util";
+import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, selectRange} from "@/core/shared/test-util";
 import {newLine, mergeBlocks, mergeNextBlock, mergePreviousBlock} from "@/core/keyboard/util/keyboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
@@ -15,10 +14,7 @@ describe("Merge previous element", () => {
             <p><em class="start">first</em></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
@@ -40,10 +36,7 @@ describe("Merge previous element", () => {
             <h1 class="start">first <em>second</em></h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
@@ -65,10 +58,7 @@ describe("Merge previous element", () => {
             <h1 class="start">first <em>second</em></h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
@@ -92,10 +82,7 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
@@ -121,10 +108,7 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
@@ -151,10 +135,7 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
@@ -184,10 +165,7 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
@@ -218,10 +196,7 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = mergePreviousBlock(wrapper);
 
@@ -257,10 +232,7 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = mergeNextBlock(wrapper);
 
@@ -295,10 +267,7 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = mergeNextBlock(wrapper);
 
@@ -339,10 +308,7 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = mergeNextBlock(wrapper);
 
@@ -381,10 +347,7 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = mergeNextBlock(wrapper);
 
@@ -417,10 +380,7 @@ describe("Merge next element", () => {
             <p>second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = mergePreviousBlock(wrapper);
 
@@ -450,10 +410,7 @@ describe("Merge next element", () => {
             <p>second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = mergePreviousBlock(wrapper);
 
@@ -486,10 +443,7 @@ describe("Merge next element", () => {
             <p>third</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = mergePreviousBlock(wrapper);
 
@@ -524,10 +478,7 @@ describe("Merge next element", () => {
             <p>third</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         const cursorPosition = mergePreviousBlock(wrapper);
 
@@ -567,10 +518,7 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".end"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".end"), "".length, getFirstChild(wrapper, ".end"), "".length);
 
         const cursorPosition = mergePreviousBlock(wrapper);
 
@@ -611,10 +559,7 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".end"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".end"), "".length, getFirstChild(wrapper, ".end"), "".length);
 
         const cursorPosition = mergePreviousBlock(wrapper);
 
@@ -643,10 +588,7 @@ describe("Merge next element", () => {
             <h1>first <em>second</em></h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         const cursorPosition = mergeNextBlock(wrapper);
 
@@ -667,10 +609,7 @@ describe("Merge next element", () => {
             <h1><br></h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "zero".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "zero".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeNextBlock(wrapper, cursorPosition);
@@ -692,10 +631,7 @@ describe("Merge next element", () => {
             <p>zero</p>            
         `);
 
-        const range = new Range();
-        range.setStart(wrapper.querySelector(".start") as Node, "".length);
-        range.setEnd(wrapper.querySelector(".start") as Node, "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(wrapper.querySelector(".start") as Node, "".length, wrapper.querySelector(".start") as Node, "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeNextBlock(wrapper, cursorPosition);
@@ -720,10 +656,7 @@ describe("Merge next element", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
 
         const cursorPosition = mergeNextBlock(wrapper);
 
@@ -747,10 +680,7 @@ describe("Merge first levels", () => {
             <h1 class="end">first <em>second</em></h1>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -794,10 +724,7 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -847,10 +774,7 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -902,10 +826,7 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -940,10 +861,7 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -968,10 +886,7 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -995,10 +910,7 @@ describe("Merge P and List selections", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1024,10 +936,7 @@ describe("Merge P and List selections", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, "k");
@@ -1065,10 +974,7 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1104,10 +1010,7 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fir".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1133,10 +1036,7 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fir".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1173,10 +1073,7 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1210,10 +1107,7 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1251,10 +1145,7 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "th".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1294,10 +1185,7 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1325,10 +1213,7 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1366,10 +1251,7 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "th".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1400,10 +1282,7 @@ describe("Merge P and nested list selections", () => {
             <p class="end">second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1438,10 +1317,7 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "th".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1470,10 +1346,7 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1505,10 +1378,7 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1544,10 +1414,7 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1582,10 +1449,7 @@ describe("Merge P and nested list selections", () => {
             <p class="end">third</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "se".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "th".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1624,10 +1488,7 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "th".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "th".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1654,10 +1515,7 @@ describe("Merge complete list selections", () => {
             <p class="end">second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1684,10 +1542,7 @@ describe("Merge complete list selections", () => {
             <p class="end">second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1715,10 +1570,7 @@ describe("Merge mixed UL/OL selections", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "fi".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1747,10 +1599,7 @@ describe("Merge mixed UL/OL selections", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "ze".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1776,10 +1625,7 @@ describe("Cursor position after key press", () => {
             <p class="end">second</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1800,10 +1646,7 @@ describe("Cursor position after key press", () => {
             <p><strong class="end">second</strong></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fi".length);
-        range.setEnd(getFirstChild(wrapper, ".end"), "se".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "se".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeBlocks(wrapper, cursorPosition, " ");
@@ -1824,10 +1667,7 @@ describe("Cursor position after key press", () => {
             <p class="start"><br/></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergePreviousBlock(wrapper, cursorPosition);
@@ -1848,10 +1688,7 @@ describe("Cursor position after key press", () => {
             <p><br/></p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeNextBlock(wrapper, cursorPosition);
@@ -1872,10 +1709,7 @@ describe("Cursor position after key press", () => {
             <p class="end">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = mergeNextBlock(wrapper, cursorPosition);
@@ -1897,10 +1731,7 @@ describe("Insert break", () => {
             <p class="start">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fir".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fir".length, getFirstChild(wrapper, ".start"), "fir".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = newLine(wrapper, cursorPosition);
@@ -1917,10 +1748,7 @@ describe("Insert break", () => {
             <p class="start">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = newLine(wrapper, cursorPosition);
@@ -1937,10 +1765,7 @@ describe("Insert break", () => {
             <p class="start">first</p>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = newLine(wrapper, cursorPosition);
@@ -1958,10 +1783,7 @@ describe("Insert break", () => {
         `);
 
         const emText = (wrapper.querySelector(".start em") as HTMLElement).firstChild as Node;
-        const range = new Range();
-        range.setStart(emText, "s".length);
-        range.setEnd(emText, "s".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(emText, "s".length, emText, "s".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = newLine(wrapper, cursorPosition);
@@ -1979,10 +1801,7 @@ describe("Insert break", () => {
         `);
 
         const boldText = (wrapper.querySelector(".start strong") as HTMLElement).firstChild as Node;
-        const range = new Range();
-        range.setStart(boldText, "".length);
-        range.setEnd(boldText, "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(boldText, "".length, boldText, "".length);
 
         const cursorPosition = newLine(wrapper, getCursorPosition());
         expectCursor(cursorPosition, getFirstChild(wrapper, "p + p strong"), "".length);
@@ -1997,10 +1816,7 @@ describe("Insert break", () => {
             <p class="start"><em>ze</em>ro</p>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".start"), "".length);
 
         const cursorPosition = newLine(wrapper, getCursorPosition());
         expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
@@ -2019,10 +1835,7 @@ describe("Insert break", () => {
             <p class="start">fir<br>st</p>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".start"), "".length);
 
         const cursorPosition = newLine(wrapper, getCursorPosition());
         expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
@@ -2039,10 +1852,7 @@ describe("Insert break", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fir".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fir".length, getFirstChild(wrapper, ".start"), "fir".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = newLine(wrapper, cursorPosition);
@@ -2064,10 +1874,7 @@ describe("Insert break", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = newLine(wrapper, cursorPosition);
@@ -2093,10 +1900,7 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "first".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "first".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = newLine(wrapper, cursorPosition);
@@ -2126,10 +1930,7 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "fir".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "fir".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "fir".length, getFirstChild(wrapper, ".start"), "fir".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = newLine(wrapper, cursorPosition);
@@ -2159,10 +1960,7 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
 
         let cursorPosition = getCursorPosition();
         cursorPosition = newLine(wrapper, cursorPosition);
@@ -2196,10 +1994,7 @@ describe("Insert break", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getFirstChild(wrapper, ".start"), "second".length);
-        range.setEnd(getFirstChild(wrapper, ".start"), "second".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getFirstChild(wrapper, ".start"), "second".length, getFirstChild(wrapper, ".start"), "second".length);
 
         const cursorPosition = newLine(wrapper, getCursorPosition());
         expectCursor(cursorPosition, wrapper.querySelector("ul ul li + li br"), 0);

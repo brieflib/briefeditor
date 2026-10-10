@@ -1,4 +1,4 @@
-import {createWrapper, getLastChild} from "@/core/shared/test-util";
+import {createWrapper, getLastChild, selectRange} from "@/core/shared/test-util";
 import {
     getFirstListWrapper,
     getFirstOwnText,
@@ -6,7 +6,6 @@ import {
     getListsOrderNumbers,
     isListEmpty
 } from "@/core/list/util/list-util";
-import {getRange} from "@/core/shared/range-util";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -25,10 +24,7 @@ describe ("Calculate lists order numbers", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
         const orderNumbers: number[] = getListsOrderNumbers(wrapper);
         expect(orderNumbers[0]).toBe(1);
@@ -50,10 +46,7 @@ describe ("Calculate lists order numbers", () => {
             </ul>
         `);
 
-        const range = new Range();
-        range.setStart(getLastChild(wrapper, ".start"), "".length);
-        range.setEnd(getLastChild(wrapper, ".end"), "".length);
-        (getRange as jest.Mock).mockReturnValue(range);
+        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".end"), "".length);
 
         const orderNumbers: number[] = getListsOrderNumbers(wrapper);
         expect(orderNumbers[0]).toBe(1);

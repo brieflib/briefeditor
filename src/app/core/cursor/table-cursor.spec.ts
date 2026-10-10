@@ -16,10 +16,7 @@ const TABLE = `
 `;
 
 function select(container: Node, offset: number) {
-    const range = new Range();
-    range.setStart(container, offset);
-    range.setEnd(container, offset);
-    (getRange as jest.Mock).mockReturnValue(range);
+    selectRange(container, offset, container, offset);
 }
 
 function keydownEvent(key: string, options: KeyboardEventInit = {}) {
