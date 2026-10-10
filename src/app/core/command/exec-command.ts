@@ -1,8 +1,8 @@
 import {Action, Command} from "@/core/command/type/command";
 import {applyAttributes, isElementsEqualToTags, removeBlock, tag} from "@/core/command/util/command-util";
 import {
-    getFirstSelectedRoot, getListWrappers,
-    getSelectedBlock,
+    getFirstSelectedRoot,
+    getListWrappers,
     getSelectedBlocks,
     getSelectedLink,
     getSelectedSharedTags,

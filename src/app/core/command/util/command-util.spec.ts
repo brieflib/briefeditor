@@ -13,7 +13,7 @@ jest.mock("../../shared/range-util", () => ({
 
 beforeAll(() => {
     const availableClasses = AvailableClasses.getInstance();
-    availableClasses.setClasses(["start", "end"]);
+    availableClasses.setClasses(["start", "end", "be-image"]);
 });
 
 describe("Unwrap tag", () => {
@@ -39,13 +39,13 @@ describe("Unwrap tag", () => {
         expectHtml(wrapper.innerHTML, `
              <p>
                 <strong>
-                    <u>
-                        <i>ze</i>
+                    <u class="end">
+                        <i class="start">ze</i>
                     </u>
                 </strong>
-                <u><i>ro</i>fi</u>
+                <u class="end"><i class="start">ro</i>fi</u>
                 <strong>
-                    <u>rst</u>
+                    <u class="end">rst</u>
                 </strong>
                 second
             </p>
@@ -115,8 +115,8 @@ describe("Unwrap tag", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li><strong>ze</strong>ro</li>
-                <li>fi<strong>rst</strong></li>
+                <li><strong class="start">ze</strong>ro</li>
+                <li>fi<strong class="end">rst</strong></li>
             </ul>
         `);
     });
@@ -233,7 +233,7 @@ describe("Wrap in tag", () => {
         // expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "r".length, getFirstChild(wrapper, "p + p strong"), "fi".length);
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze<strong>ro</strong></p>
+            <p>ze<strong class="start">ro</strong></p>
             <p class="end"><strong>fi</strong>rst</p>
         `);
     });
@@ -263,9 +263,9 @@ describe("Wrap in tag", () => {
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
-                    <u>fi</u>
+                    <u class="start">fi</u>
                     <strong>
-                        <u>rst</u>
+                        <u class="start">rst</u>
                         <em>second</em>
                     </strong>
                 </li>
@@ -591,17 +591,17 @@ describe("Wrap in tag", () => {
         expectHtml(wrapper.innerHTML, `
              <p>
                 <strong>
-                    <u>
-                        <i>ze</i>
+                    <u class="end">
+                        <i class="start">ze</i>
                     </u>
                 </strong>
                 <a>
                     <strong>
-                        <u><i>ro</i>fi</u>
+                        <u class="end"><i class="start">ro</i>fi</u>
                     </strong>
                 </a>
                 <strong>
-                    <u>rst</u>
+                    <u class="end">rst</u>
                 </strong>
                 second
             </p>
@@ -645,7 +645,7 @@ describe("Change first level", () => {
 
         expectHtml(wrapper.innerHTML, `
             <h1>
-                <strong>zero</strong>
+                <strong class="start">zero</strong>
             </h1>
         `);
     });
@@ -668,7 +668,7 @@ describe("Change first level", () => {
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>
-                    <strong>zero</strong>
+                    <strong class="start">zero</strong>
                 </li>
             </ul>
         `);
@@ -700,7 +700,7 @@ describe("Change first level", () => {
                 <li>zero</li>
             </ul>
             <p>
-                <strong>first</strong>
+                <strong class="start">first</strong>
             </p>
         `);
     });
@@ -856,7 +856,7 @@ describe("Change first level", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>
-                <strong>zero<br>first</strong>
+                <strong class="start">zero<br>first</strong>
             </p>
         `);
     });
@@ -979,7 +979,7 @@ describe("Change first level", () => {
             <ul>
                 <li>zero
                     <ol>
-                        <li>first</li>
+                        <li class="start">first</li>
                     </ol>
                 </li>
             </ul>
@@ -1008,7 +1008,7 @@ describe("Change first level", () => {
                 <li>zero</li>
             </ul>
             <ol>
-                <li>first</li>
+                <li class="start">first</li>
             </ol>
         `);
     });
@@ -1040,7 +1040,7 @@ describe("Change first level", () => {
                         <li>first</li>
                     </ol>
                     <ul>
-                        <li>second</li>
+                        <li class="start">second</li>
                     </ul>
                 </li>
             </ul>
@@ -1068,7 +1068,7 @@ describe("Change first level", () => {
 
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>zero
+                <li class="start">zero
                     <ol>
                         <li>first</li>
                     </ol>

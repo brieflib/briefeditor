@@ -22,16 +22,16 @@ import {
     extractContents,
     getCursorPosition,
     getCursorPositionFrom,
+    getSelectedTexts,
+    insertNode,
     isCollapsed,
     isCursorPositionEqual,
-    wrapCursorPosition,
-    insertNode
+    wrapCursorPosition
 } from "@/core/shared/type/cursor-position";
 import {getFirstSelectedRoot, getSelectedBlock, getSelectedBlocks, getSelectedRoot} from "@/core/selection/selection";
 import {getNextListWrapper, getPreviousListWrapper} from "@/core/list/util/list-util";
 import {Attributes} from "@/core/command/type/command";
 import {Carrier} from "@/core/carrier/carrier";
-import {Merger} from "@/core/merger/type/merger-class";
 
 export class Normalizer {
     private readonly contentEditable: HTMLElement;
@@ -50,10 +50,6 @@ export class Normalizer {
         }
     }
 
-    /**
-     * Wraps the selected content in `tag` and merges it back into the DOM. The inserted nodes are then normalized once
-     * more together with their neighbours, so the new tag collapses into them.
-     */
     public appendTag(tag: string, attributes?: Attributes, cursorPosition = getCursorPosition()) {
         const carrier = Carrier.getInstance();
         if (carrier.isInsertAllowed(cursorPosition)) {
@@ -61,30 +57,18 @@ export class Normalizer {
             return;
         }
 
-        // const blocks = getSelectedBlocks(this.contentEditable, cursorPosition);
-        // const fragment = extractContents(cursorPosition);
-        // const wrapped = wrapInTagNew(fragment, tag, attributes);
-        // insertNode(cursorPosition, wrapped);
-        // const wrappedCursorPosition = wrapCursorPosition(blocks.at(0), blocks.at(-1));
-        // if (wrappedCursorPosition) {
-        //     const fragment = extractContents(wrappedCursorPosition);
-        //     insertNode(wrappedCursorPosition, normalizeNew(this.contentEditable, fragment));
-        // }
-
-        const merger = new Merger(this.contentEditable, cursorPosition);
-        const extracted = merger.extractContents();
-        const wrapped = wrapInTagNew(extracted, tag, attributes);
-        const normalized = normalizeNew(this.contentEditable, wrapped);
-        const {first, last} = merger.mergeIntoDom(normalized);
-
-        const involved = getInvolvedCursorPosition(first, last);
-        if (!involved) {
-            return;
+        const blocks = getSelectedBlocks(this.contentEditable, cursorPosition);
+        for (const textCursorPosition of getSelectedTexts(this.contentEditable, cursorPosition)) {
+            const fragment = extractContents(textCursorPosition);
+            const wrapped = wrapInTagNew(fragment, tag, attributes);
+            insertNode(textCursorPosition, wrapped);
         }
-        const involvedMerger = new Merger(this.contentEditable, involved);
-        const involvedExtracted = involvedMerger.extractContents();
-        const normalizedExtracted = normalizeNew(this.contentEditable, involvedExtracted);
-        involvedMerger.mergeIntoDom(normalizedExtracted);
+
+        const wrappedCursorPosition = wrapCursorPosition(blocks.at(0), blocks.at(-1));
+        if (wrappedCursorPosition) {
+            const fragment = extractContents(wrappedCursorPosition);
+            insertNode(wrappedCursorPosition, normalizeNew(this.contentEditable, fragment));
+        }
     }
 
     public removeTags(tags: string[], cursorPosition = getCursorPosition()) {
@@ -93,19 +77,20 @@ export class Normalizer {
             return;
         }
 
-        const merger = new Merger(this.contentEditable, cursorPosition);
-        const extracted = merger.extractContents();
-        const normalized = normalizeRemoveNew(this.contentEditable, extracted, [...tags]);
-        const {first, last} = merger.mergeIntoDom(normalized);
-
-        const involved = getInvolvedCursorPosition(first, last);
-        if (!involved) {
-            return;
+        const blocks = getSelectedBlocks(this.contentEditable, cursorPosition);
+        // Each selected piece of text becomes its own node, so only its tags are removed
+        const selectedTexts: Node[] = [];
+        for (const text of getSelectedTexts(this.contentEditable, cursorPosition)) {
+            const fragment = extractContents(text);
+            selectedTexts.push(...fragment.childNodes);
+            insertNode(text, fragment);
         }
-        const involvedMerger = new Merger(this.contentEditable, involved);
-        const involvedExtracted = involvedMerger.extractContents();
-        const normalizedExtracted = normalizeNew(this.contentEditable, involvedExtracted);
-        involvedMerger.mergeIntoDom(normalizedExtracted);
+
+        const wrappedCursorPosition = wrapCursorPosition(blocks.at(0), blocks.at(-1));
+        if (wrappedCursorPosition) {
+            const fragment = extractContents(wrappedCursorPosition);
+            insertNode(wrappedCursorPosition, normalizeRemoveNew(this.contentEditable, fragment, selectedTexts, tags));
+        }
     }
 
     /**

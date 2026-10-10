@@ -1,8 +1,8 @@
 import {getRange} from "@/core/shared/range-util";
 import {getFirstText, getLastText} from "@/core/shared/element-util";
-import {Command} from "@/core/command/type/command";
 import {getSelectedBlocks} from "@/core/selection/selection";
 import {anchorCursorOnLeaf, collapseLeaves, getLeafNodes, setLeafParents} from "@/core/normalize/util/normalize-util";
+import {getSelectedLeaves} from "@/core/selection/util/selection-util";
 
 export interface CursorPosition {
     readonly startContainer: Node,
@@ -53,6 +53,21 @@ export function getCursorPositionFrom(startContainer: Node, startOffset: number,
     };
 }
 
+/**
+ * Returns a cursor position on every selected text node: the first one from the cursor, the last one up to it and the
+ * rest whole.
+ */
+export function getSelectedTexts(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
+    return getSelectedLeaves(contentEditable, cursorPosition).map(text => {
+        const startOffset = text === cursorPosition.startContainer ? cursorPosition.startOffset : 0;
+        const endOffset = text === cursorPosition.endContainer ? cursorPosition.endOffset : text.textContent?.length ?? 0;
+
+        return getCursorPositionFrom(text, startOffset, text, endOffset);
+    });
+}
+
+
+
 export function wrapCursorPosition(first: Node | undefined, last: Node | undefined) {
     if (!first || !last) {
         return;
@@ -64,6 +79,26 @@ export function wrapCursorPosition(first: Node | undefined, last: Node | undefin
 
     return getCursorPositionFrom(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
 }
+
+/**
+ * Returns the part of the selection that lies inside `block`: from the cursor to the block's end for the first block,
+ * the whole block for a middle one, and from the block's start to the cursor for the last one.
+ */
+export function getBlockCursorPosition(block: HTMLElement, blocks: HTMLElement[], cursorPosition: CursorPosition) {
+    const isFirst = block === blocks.at(0);
+    const isLast = block === blocks.at(-1);
+
+    // The first block starts in the middle, at the cursor; every other block starts at its beginning
+    const startContainer = isFirst ? cursorPosition.startContainer : block;
+    const startOffset = isFirst ? cursorPosition.startOffset : 0;
+
+    // The last block ends in the middle, at the cursor; every other block ends at its end
+    const endContainer = isLast ? cursorPosition.endContainer : block;
+    const endOffset = isLast ? cursorPosition.endOffset : block.childNodes.length;
+
+    return getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset);
+}
+
 
 /**
  * Returns a cursor position standing around the selected blocks, so extracting it takes the blocks themselves.

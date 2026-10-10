@@ -1,7 +1,6 @@
 import {
     anchorCursorOnLeaf,
     collapseLeaves,
-    divideFirstLevels,
     filterLeafParents,
     getLeafNodes,
     getSameFirstParent,

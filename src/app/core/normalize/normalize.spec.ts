@@ -9,11 +9,17 @@ import {
 } from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {Carrier} from "@/core/carrier/carrier";
+import {AvailableClasses} from "@/core/shared/available-classes";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
     })
 );
+
+beforeAll(() => {
+    const availableClasses = AvailableClasses.getInstance();
+    availableClasses.setClasses(["start", "end", "be-image"]);
+});
 
 beforeEach(() => {
     const range = new Range();
@@ -270,7 +276,7 @@ describe("Should normalize tags", () => {
         //expectCursor(cursorPosition, getFirstChild(wrapper, "div"), "".length);
 
         expectHtml(wrapper.innerHTML, `
-            <div>zero</div>
+            <div class="start">zero</div>
         `);
     });
 
@@ -312,11 +318,11 @@ describe("Should remove tags", () => {
 
         expectHtml(wrapper.innerHTML, `
             <p>
-                <u>
+                <u class="start">
                     <i>zero</i>
                 </u>
                 <strong>
-                    <u>first</u>
+                    <u class="start">first</u>
                 </strong>
                 second
             </p>
@@ -356,7 +362,7 @@ describe("Should remove tags", () => {
                     </u>
                 </strong>
                 <em>
-                    <u><sup>first</sup>second</u>
+                    <u><sup class="start">first</sup>second</u>
                 </em>
                 third
             </p>
@@ -623,12 +629,12 @@ describe("Should move first level elements out", () => {
 
         expectHtml(wrapper.innerHTML, `
              <ul>
-                <li>ze</li>
+                <li class="start">ze</li>
              </ul>
              <h1>first</h1>
              <h2><strong><em>se</em>co</strong>nd</h2>
              <ul>
-                <li>ro</li>
+                <li class="start">ro</li>
              </ul>
         `);
     });

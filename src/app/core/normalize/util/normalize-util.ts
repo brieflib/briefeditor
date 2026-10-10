@@ -33,17 +33,33 @@ export function normalizeNew(contentEditable: Node,
     return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
 }
 
+/**
+ * Rebuilds a detached fragment into the schema like {@link normalizeNew}, dropping `tagsToRemove` only from the
+ * parents of `selectedTexts`.
+ */
 export function normalizeRemoveNew(contentEditable: Node,
                                    toNormalize: DocumentFragment,
-                                   tagsToRemove: string[] = []) {
+                                   selectedTexts: Node[],
+                                   tagsToRemove: string[]) {
     const leaves = getTextNodes(toNormalize)
         .map(textNode => toLeafWithParents(contentEditable, textNode))
+        .map(leaf => filterSelectedLeafParentsNew(selectedTexts, tagsToRemove, leaf))
+        .map(leaf => divideFirstLevels(leaf))
         .map(leaf => sortLeafParents(leaf))
-        .filter(leaf => filterLeafParentsNew(tagsToRemove, leaf))
         .map(leaf => removeSelfCloseInlines(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
     return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+}
+
+/** Drops `tagsToRemove` from the leaf's parents when its leaf node is one of `selectedTexts`; other leaves are left as is. */
+export function filterSelectedLeafParentsNew(selectedTexts: Node[], tagsToRemove: string[], leaf: Leaf) {
+    const leafNode = leaf.getParents().at(-1);
+    if (!leafNode || !selectedTexts.includes(leafNode)) {
+        return leaf;
+    }
+
+    return filterLeafParentsNew(tagsToRemove, leaf);
 }
 
 /**
@@ -459,6 +475,13 @@ function willElementsMerge(element: Node | undefined, compareTo: Node | undefine
     if (element?.nodeName === compareTo?.nodeName && isSchemaContain(element, [Display.Collapse])) {
         return true;
     }
+
+    // Links with the same href are one link, the ones pointing elsewhere stay apart
+    if (element && compareTo && isSchemaContain(element, [Display.Link]) &&
+        element.cloneNode(false).isEqualNode(compareTo.cloneNode(false))) {
+        return true;
+    }
+
 
     return false;
 }

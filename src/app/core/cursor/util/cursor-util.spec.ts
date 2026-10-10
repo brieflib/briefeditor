@@ -64,7 +64,7 @@ describe("Cursor as a place in the text", () => {
         const wrapper = createWrapper(`<p class="start">zero<strong>first</strong>second</p>`);
         const block = wrapper.querySelector("p") as HTMLElement;
 
-        expect(getOffsetInElement(block, getFirstChild(wrapper, ".start strong"), "fir".length))
+        expect(getOffsetInElement(block, getFirstChild(wrapper, ".start strong") as HTMLElement, "fir".length))
             .toBe("zerofir".length);
     });
 
@@ -72,7 +72,7 @@ describe("Cursor as a place in the text", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
         const block = wrapper.querySelector(".start") as HTMLElement;
 
-        expect(getOffsetInElement(block, getFirstChild(wrapper, ".end"), "fir".length)).toBe(0);
+        expect(getOffsetInElement(block, getFirstChild(wrapper, ".end") as HTMLElement, "fir".length)).toBe(0);
     });
 
     test("Should find the offset back across a tag boundary", () => {

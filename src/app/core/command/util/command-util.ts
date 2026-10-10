@@ -23,19 +23,6 @@ export function removeBlock(contentEditable: HTMLElement, block: HTMLElement, cu
     return next ? mergeLists(contentEditable, atStart(next)) : cursorPosition;
 }
 
-/**
- * Wraps the selection in `tag` or unwraps it, one block, item or cell at a time - a cell is
- * handled on its own the way a paragraph is, since extracting a range across cells would
- * clone the cells it cuts through. An item is tagged on its own line only: the items of a
- * list nested in it take their own turn, so no turn reaches past the selection's end.
- * An image block holds nothing inline to tag and is skipped.
- *
- * @remarks
- * The cursor is anchored on leaves first: an endpoint left on an element (the editor after
- * a select-all, an item selected whole) would otherwise have the extract clone the list
- * structure it cuts through. A selected image block is the exception - its selection is
- * handed back as it stands, so the image stays selected.
- */
 export function tag(contentEditable: HTMLElement, tag: string, action: Action, cursorPosition = getCursorPosition(), attributes?: Attributes) {
     const normalizer: Normalizer = new Normalizer(contentEditable);
     if (action === Action.Wrap) {
@@ -47,61 +34,6 @@ export function tag(contentEditable: HTMLElement, tag: string, action: Action, c
     }
 
     return cursorPosition;
-
-    // const selectedPosition = getCursorPosition();
-    // const cursorPosition = anchorCursorOnLeaf(selectedPosition);
-    // Carrier.setCursorCollapsed(isCollapsed(selectedPosition));
-    // let resultCursorPosition = cursorPosition;
-    //
-    // const containers = [Display.FirstLevel, Display.List, Display.Cell];
-    // const startContainer = getElement(contentEditable, cursorPosition.startContainer as HTMLElement, containers);
-    // const endContainer = getElement(contentEditable, cursorPosition.endContainer as HTMLElement, containers);
-    //
-    // if (startContainer === endContainer) {
-    //     if (isImageBlock(startContainer)) {
-    //         return selectedPosition;
-    //     }
-    //
-    //     return tagAction(contentEditable, cursorPosition, tag, action, attributes);
-    // }
-    //
-    // const length = getSelectedInlineContainer(contentEditable, cursorPosition).length;
-    // for (let i = 0; i < length; i++) {
-    //     const elements = getSelectedInlineContainer(contentEditable, resultCursorPosition);
-    //
-    //     // An empty cell has no br to anchor a tag on, and the rebuild keeps it as it is, so a
-    //     // tag written into it would be left there; a line without text has nothing to tag anyway.
-    //     const element = elements[i];
-    //     if (!element || isImageBlock(element) || !getLine(element).textContent) {
-    //         continue;
-    //     }
-    //
-    //     if (i === 0) {
-    //         const lastText = getLastOwnText(element);
-    //         const firstElementCursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, lastText, lastText.textContent.length);
-    //         resultCursorPosition = tagAction(contentEditable, firstElementCursorPosition, tag, action, attributes);
-    //         resultCursorPosition = getCursorPositionFrom(resultCursorPosition.startContainer, resultCursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
-    //         continue;
-    //     }
-    //
-    //     if (i === length - 1) {
-    //         const lastElementCursorPosition = getCursorPositionFrom(getFirstOwnText(element), 0, cursorPosition.endContainer, cursorPosition.endOffset);
-    //         const cursorStartContainer = resultCursorPosition.startContainer;
-    //         const cursorStartOffset = resultCursorPosition.startOffset;
-    //         resultCursorPosition = tagAction(contentEditable, lastElementCursorPosition, tag, action, attributes);
-    //         resultCursorPosition = getCursorPositionFrom(cursorStartContainer, cursorStartOffset, resultCursorPosition.endContainer, resultCursorPosition.endOffset);
-    //         continue;
-    //     }
-    //
-    //     const startContainer = getFirstOwnText(element);
-    //     const endContainer = getLastOwnText(element);
-    //     const middleElementCursorPosition = getCursorPositionFrom(startContainer,
-    //         0,
-    //         endContainer,
-    //         endContainer.textContent?.length ?? 0);
-    //     tagAction(contentEditable, middleElementCursorPosition, tag, action, attributes);
-    // }
-    // return resultCursorPosition;
 }
 
 export function applyAttributes(element: HTMLElement, attributes?: Attributes) {
