@@ -1,24 +1,22 @@
-import {
-    getFirstSelectedBlock,
-    getFirstSelectedRoot,
-    getSelectedBlock,
-    getSelectedBlocks
-} from "@/core/selection/selection";
+import {getFirstSelectedBlock, getFirstSelectedRoot, getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     appendBeforeAndDelete,
-    countListWrapperParents,
     getFirstListWrapper,
-    getListPosition,
     getListsOrderNumbers,
     getNextListWrapper,
     getPreviousListWrapper,
     isListEmpty
 } from "@/core/list/util/list-util";
-import {getFirstText, getRootElement, imageSelector} from "@/core/shared/element-util";
+import {
+    getBlockElement,
+    getChildFragment,
+    getFirstText,
+    getRootElement,
+    imageSelector
+} from "@/core/shared/element-util";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
-import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
 import {
     CursorPosition,
     getCursorPosition,
@@ -26,12 +24,7 @@ import {
     isCollapsed,
     splitAtCursor
 } from "@/core/shared/type/cursor-position";
-import {
-    convertList,
-    ListClass,
-    ListWrapper, minusLevel, normalizeLists,
-    parseList, plusLevel
-} from "@/core/list/type/list-class";
+import {convertList, ListClass, minusLevel, normalizeLists, parseList, plusLevel} from "@/core/list/type/list-class";
 
 /** A list nests five wrappers deep at most: one for the item's own level, one per level above it. */
 const deepestNestedLevel = 6;
@@ -159,7 +152,7 @@ function copyListRun(root: HTMLElement): HTMLElement {
 function cursorPositionOf(block: HTMLElement): CursorPosition {
     const firstText = getFirstText(block);
 
-    return getCursorPositionFrom(firstText, 0, firstText, 0, false);
+    return getCursorPositionFrom(firstText, 0, firstText, 0);
 }
 
 /**
@@ -230,64 +223,38 @@ export function rebuildList(root: HTMLElement, lists: ListClass[], cursorPositio
 }
 
 /**
- * Moves the line of `lastItem` to the end of the line of `firstItem` and rebuilds their run; what was nested in
- * `lastItem` or stood after it keeps its place in the run.
+ * Moves the line of `lastItem` to the end of the line of `firstBlock`, an item or a block outside a list, and rebuilds
+ * their run; what was nested in `lastItem` or stood after it keeps its place in the run.
  */
-export function mergeItems(contentEditable: HTMLElement,
-                           firstItem: HTMLElement,
-                           lastItem: HTMLElement,
-                           cursorPosition: CursorPosition): CursorPosition {
-    const root = getRootElement(contentEditable, firstItem);
-    const firstListWrapper = getFirstListWrapper(root);
-    // Read before the parse, which moves every line out of its item
-    const firstIndex = getListPosition(firstListWrapper, firstItem);
-    const lastIndex = getListPosition(firstListWrapper, lastItem);
+export function mergeItems(contentEditable: HTMLElement, firstBlock: HTMLElement, lastItem: HTMLElement) {
+    // A block outside a list has no run of its own, so the run rebuilt is the last item's one
+    const isFirstItem = isSchemaContain(firstBlock, [Display.List]);
+    const lastRoot = getBlockElement(contentEditable, lastItem);
+    const firstRoot = isFirstItem ? getBlockElement(contentEditable, firstBlock) : lastRoot;
 
-    const lists = parseList(root);
-    const firstList = lists[firstIndex];
-    const lastList = lists[lastIndex];
-    if (!firstList || !lastList) {
-        return cursorPosition;
+    // Each item's line is the one a cursor resting on it selects
+    const firstLists = isFirstItem ? parseList(firstRoot, cursorPositionOf(firstBlock)) : [];
+    const lastLists = parseList(lastRoot, cursorPositionOf(lastItem));
+    const firstIndex = firstLists.findIndex(list => list.selected);
+    const lastIndex = lastLists.findIndex(list => list.selected);
+    const firstLine = isFirstItem ? firstLists[firstIndex]?.listContent : firstBlock;
+    const lastList = lastLists[lastIndex];
+    if (!firstLine || !lastList) {
+        return;
     }
 
-    firstList.listContent.append(lastList.listContent);
+    firstLine.append(lastList.listContent);
 
-    // The emptied lines left by the deletion, such as an item whose own line was selected, are dropped by the rebuild
-    return rebuildList(root, lists, cursorPosition, lastList);
+    // The lines between the two blocks were deleted, so the merged run is what stands up to the first item and after the last one
+    const merged = [...firstLists.slice(0, firstIndex + 1), ...lastLists.slice(lastIndex + 1)];
+    const normalized = normalizeLists(merged);
+    const listWrappers = convertList(normalized);
+    appendBeforeAndDelete(firstRoot, listWrappers);
 }
 
 /** Reads `root`'s run and rebuilds it as is - the normalization pass on its own. */
 export function normalizeList(root: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
     return rebuildList(root, parseList(root), cursorPosition);
-}
-
-/**
- * Switches the selected items to `tagName`'s list type (UL/OL).
- *
- * @remarks
- * The type is stored per item, not per wrapper, so this changes the items and lets
- * `convertList` rebuild the wrappers around them - a selected item changing type inside an
- * unselected wrapper splits that wrapper around it.
- */
-export function changeListWrapper(contentEditable: HTMLElement, tagName: string): CursorPosition {
-    const cursorPosition = anchorCursorOnLeaf(getCursorPosition());
-    const root = getFirstSelectedRoot(contentEditable, cursorPosition);
-    if (!isSchemaContain(getFirstListWrapper(root), [Display.ListWrapper])) {
-        return cursorPosition;
-    }
-
-    // Read before parseList empties the items the order numbers need to count against.
-    const orderNumbers = getListsOrderNumbers(contentEditable, cursorPosition);
-    const listWrapper = tagName === ListWrapper.OL ? ListWrapper.OL : ListWrapper.UL;
-    const lists = parseList(root);
-    for (const orderNumber of orderNumbers) {
-        const list = lists[orderNumber];
-        if (list) {
-            list.listWrapper = listWrapper;
-        }
-    }
-
-    return rebuildList(root, lists, cursorPosition);
 }
 
 /** Backspace at the start of an item: merges it into the empty item above it (if any). */

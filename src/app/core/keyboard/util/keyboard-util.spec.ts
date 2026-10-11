@@ -761,7 +761,7 @@ describe("Merge P and List selections", () => {
         mergeBlocksNew(wrapper, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze rst</p>
+            <p class="start">ze rst</p>
         `);
 
         // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
@@ -781,7 +781,7 @@ describe("Merge P and List selections", () => {
         mergeBlocksNew(wrapper, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze cond</p>
+            <p class="start">ze cond</p>
         `);
 
         // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
@@ -1039,7 +1039,7 @@ describe("Merge P and nested list selections", () => {
         mergeBlocksNew(wrapper, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze cond</p>
+            <p class="start">ze cond</p>
         `);
 
         // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
@@ -1062,7 +1062,7 @@ describe("Merge P and nested list selections", () => {
         mergeBlocksNew(wrapper, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze rst</p>
+            <p class="start">ze rst</p>
             <ul>
                 <li>second</li>
             </ul>
@@ -1095,7 +1095,7 @@ describe("Merge P and nested list selections", () => {
         mergeBlocksNew(wrapper, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze ird</p>
+            <p class="start">ze ird</p>
             <ol>
                 <li>fourth</li>
             </ol>
@@ -1151,7 +1151,7 @@ describe("Merge P and nested list selections", () => {
         mergeBlocksNew(wrapper, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze ird</p>
+            <p class="start">ze ird</p>
         `);
 
         // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
@@ -1175,7 +1175,7 @@ describe("Merge P and nested list selections", () => {
         mergeBlocksNew(wrapper, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze cond</p>
+            <p class="start">ze cond</p>
             <ul>
                 <li>third</li>
             </ul>
@@ -1202,7 +1202,7 @@ describe("Merge P and nested list selections", () => {
         mergeBlocksNew(wrapper, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <h1>ze rst</h1>
+            <h1 class="start">ze rst</h1>
             <ul>
                 <li>second
                     <ul>
@@ -1233,7 +1233,7 @@ describe("Merge P and nested list selections", () => {
         mergeBlocksNew(wrapper, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <h1>ze cond</h1>
+            <h1 class="start">ze cond</h1>
             <ul>
                 <li>third</li>
             </ul>
@@ -1297,7 +1297,7 @@ describe("Merge P and nested list selections", () => {
         mergeBlocksNew(wrapper, " ");
 
         expectHtml(wrapper.innerHTML, `
-            <p>ze ird</p>
+            <p class="start">ze ird</p>
         `);
 
         // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);

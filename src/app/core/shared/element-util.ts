@@ -8,7 +8,7 @@ import {
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {getFirstListWrapper} from "@/core/list/util/list-util";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
-import {readSplitPoint, splitListAround} from "@/core/list/list";
+import {readSplitPoint} from "@/core/list/list";
 
 export function getChildFragment(child: Element) {
     const fragment = new DocumentFragment();
@@ -22,6 +22,10 @@ export function getChildFragment(child: Element) {
 }
 
 export function getBlockElement(findTill: HTMLElement, child: HTMLElement | Node) {
+    if (child === findTill) {
+        return findTill;
+    }
+
     while (child.parentElement && child.parentElement !== findTill) {
         child = child.parentElement;
     }

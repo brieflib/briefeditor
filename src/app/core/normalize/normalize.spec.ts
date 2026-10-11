@@ -795,6 +795,134 @@ describe("Should replace block tags", () => {
     });
 });
 
+describe("Change list wrapper", () => {
+    test("Should divide the wrapper around the lines that changed type", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ol>
+                        <li class="start">first</li>
+                        <li class="end">second</li>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "second".length);
+
+        replaceBlockTags(wrapper, ["UL", "LI"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero
+                    <ul>
+                        <li>first</li>
+                        <li>second</li>
+                    </ul>
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+        // expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "second"), "second".length);
+    });
+
+    test("Should change only selected list type", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>first
+                    <ol>
+                        <li class="start">second
+                            <ul>
+                                <li>third</li>
+                            </ul>
+                        </li>
+                    </ol>
+                    <ol>
+                        <li>fourth</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        selectRange(getFirstChild(wrapper, ".start"), "second".length, getFirstChild(wrapper, ".start"), "second".length);
+
+        replaceBlockTags(wrapper, ["UL", "LI"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>first
+                    <ul>
+                        <li>second
+                            <ul>
+                                <li>third</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <ol>
+                        <li>fourth</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+        // expectCursor(cursorPosition, getText(wrapper, "second"), "second".length, getText(wrapper, "second"), "second".length);
+    });
+
+    test("Should keep the nested list when the list holding it changes type", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+                <li class="end">first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "first".length);
+
+        replaceBlockTags(wrapper, ["OL", "LI"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first
+                    <ul>
+                        <li>second</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+        // expectCursor(cursorPosition, getText(wrapper, "zero"), "ze".length, getText(wrapper, "first"), "first".length);
+    });
+
+    test("Should join the list to the one beside it when both are written in the type asked for", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+            </ol>
+            <ul>
+                <li class="start">first</li>
+            </ul>
+        `);
+
+        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".start"), "first".length);
+
+        replaceBlockTags(wrapper, ["OL", "LI"]);
+
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+            </ol>
+        `);
+        // expectCursor(cursorPosition, getText(wrapper, "first"), "fi".length, getText(wrapper, "first"), "first".length);
+    });
+});
+
 function removeTags(wrapper: HTMLElement, tags: string[]) {
     const normalizer = new Normalizer(wrapper);
     normalizer.removeTags(tags);

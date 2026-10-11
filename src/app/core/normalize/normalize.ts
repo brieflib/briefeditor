@@ -17,15 +17,12 @@ import {
 } from "@/core/normalize/util/normalize-util";
 import {getRootElement} from "@/core/shared/element-util";
 import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
-import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {
     CursorPosition,
     extractContents,
     getCursorPosition,
-    getCursorPositionFrom,
     getSelectedTexts,
     insertNode,
-    isCollapsed,
     isCursorPositionEqual,
     wrapCursorPosition
 } from "@/core/shared/type/cursor-position";
@@ -244,23 +241,6 @@ export function mergeLists(contentEditable: HTMLElement, cursorPosition: CursorP
 
     return cursorPosition.startContainer.isConnected && cursorPosition.endContainer.isConnected
         ? cursorPosition : mergedCursorPosition;
-}
-
-/**
- * Moves a collapsed cursor off a self-close leaf (e.g. the `br` of an empty block) to just
- * before it, since a tag built inside that br would never be seen by the serializer or by
- * `getLeafNodes`. The br itself is left in place as the block's placeholder.
- */
-function anchorBeforeSelfClose(cursorPosition: CursorPosition): CursorPosition {
-    const container = cursorPosition.startContainer;
-    if (!isCollapsed(cursorPosition) || !isSchemaContain(container, [Display.SelfClose]) ||
-        !container.parentNode) {
-        return cursorPosition;
-    }
-
-    const offset = Array.prototype.indexOf.call(container.parentNode.childNodes, container);
-
-    return getCursorPositionFrom(container.parentNode, offset, container.parentNode, offset);
 }
 
 function buildElementsToReplace(replaceTo: string[]) {

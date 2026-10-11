@@ -60,10 +60,11 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         insertNode(cursorPosition, keyText);
     }
 
-    const isFirstItem = isSchemaContain(firstBlock, [Display.List]);
+    // The items left after a merged item take new levels, which only the list knows; a block merged onto an item
+    // just joins its line, which the normalization does
     const isLastItem = isSchemaContain(lastBlock, [Display.List]);
-    if (isFirstItem && isLastItem) {
-        mergeItems(contentEditable, firstBlock, lastBlock, cursorPosition);
+    if (isLastItem) {
+        mergeItems(contentEditable, firstBlock, lastBlock);
         return;
     }
 
