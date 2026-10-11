@@ -435,42 +435,30 @@ export function isCursorInEmptyList(contentEditable: HTMLElement, cursorPosition
 }
 
 /**
- * Enter on an empty item: unwraps it instead of adding one more empty item. A nested item is
- * lifted one level, the way minus-indent does (its former siblings become its children); an
- * item already on the first level leaves the list entirely, becoming a paragraph.
+ * Enter on an empty item: unwraps it instead of adding one more empty item. A nested item is lifted one level
+ * the way minus indent does, and an item on the first level leaves the list as a paragraph.
  */
-export function exitList(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorPosition {
-    // The browser anchors the cursor on the (empty) item itself, a node the rebuild discards;
-    // anchor on its br instead so the position survives.
-    cursorPosition = anchorCursorOnLeaf(cursorPosition);
-    const root = getFirstSelectedRoot(contentEditable, cursorPosition);
-    const orderNumber = getListsOrderNumbers(contentEditable, cursorPosition)[0] ?? 0;
-    const block = getSelectedBlock(contentEditable, cursorPosition)[0];
+export function exitList(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const block = getFirstSelectedBlock(contentEditable, cursorPosition);
+    const lists = parseList(block, cursorPosition);
+    const index = lists.findIndex(list => list.selected);
+    const list = lists[index];
+    if (!list) {
+        return;
+    }
 
-    if (block && countListWrapperParents(contentEditable, block) > 1) {
-        return minusIndentList(root, cursorPosition, orderNumber);
+    // A nested item is lifted one level
+    if (list.nestedLevel > 0) {
+        const minusedLists = minusLevel(lists);
+        const normalized = normalizeLists(minusedLists);
+        const listWrappers = convertList(normalized);
+        appendBeforeAndDelete(block, listWrappers);
+        return;
     }
 
     const paragraph = document.createElement("p");
     paragraph.appendChild(document.createElement("br"));
-    splitListAround(root, cursorPosition, paragraph, orderNumber);
-
-    const firstText = getFirstText(paragraph);
-    return getCursorPositionFrom(firstText, 0, firstText, 0);
-}
-
-/**
- * Lifts the item at `orderNumber` out one level along with everything nested inside it, so
- * none of it ends up two levels below the item it hangs from.
- */
-function minusIndentList(root: HTMLElement, cursorPosition: CursorPosition, orderNumber: number): CursorPosition {
-    // const lists = parseList(root);
-    // const minusLists = minusOrderNumbers(lists, withNested(lists, orderNumber));
-    // appendBeforeAndDelete(root, convertList(minusLists));
-    //
-    // return getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset,
-    //     cursorPosition.endContainer, cursorPosition.endOffset);
-    return cursorPosition;
+    splitListAround(block, paragraph, index);
 }
 
 /**
@@ -518,20 +506,25 @@ function withNested(lists: ListClass[], orderNumber: number): number[] {
 }
 
 /**
- * Splits a list at `splitIndex`, inserting `node` between the two halves as a sibling of the
- * list (a list wrapper holds only items, so `node` can't go inside one). Both halves are
- * renormalized; a blank split line is dropped rather than kept as an empty item.
+ * Splits a list at `splitIndex`, inserting `node` between the two halves as a sibling of the list.
+ * A blank line at the split is dropped rather than kept as an empty item.
  */
-export function splitListAround(root: HTMLElement, cursorPosition: CursorPosition, node: Node, splitIndex: number) {
-    //const lists = parseList(root);
-    // const splitAt = lists[splitIndex];
-    // const fragment = new DocumentFragment();
-    // fragment.append(convertList(normalizeLists(lists.slice(0, splitIndex), cursorPosition).lists));
-    // fragment.append(node);
-    // fragment.append(convertList(normalizeLists(lists.slice(splitIndex), cursorPosition,
-    //     isListClassEmpty(splitAt) ? splitAt : undefined).lists));
+export function splitListAround(root: HTMLElement, node: Node, splitIndex: number) {
+    const lists = parseList(root);
+    const before = lists.slice(0, splitIndex);
+    const after = lists.slice(splitIndex);
 
-    //appendBeforeAndDelete(root, fragment);
+    // normalizeLists keeps a line holding only a br, so the blank split line is dropped here
+    if (!after[0]?.listContent.textContent) {
+        after.shift();
+    }
+
+    const fragment = new DocumentFragment();
+    fragment.append(convertList(normalizeLists(before)));
+    fragment.append(node);
+    fragment.append(convertList(normalizeLists(after)));
+
+    appendBeforeAndDelete(root, fragment);
 }
 
 export interface SplitPoint {

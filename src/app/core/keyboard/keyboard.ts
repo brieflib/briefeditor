@@ -40,7 +40,7 @@ export function handleKeyboardEvent(contentEditable: HTMLElement, event: Keyboar
         // An empty item has nothing left to break, so a new line unwraps it instead of growing the list by
         // one more empty item. A break belongs inside the item and keeps to its own behaviour.
         if (!event.shiftKey && isCursorInEmptyList(contentEditable, cursorPosition)) {
-            cursorPosition = exitList(contentEditable, cursorPosition);
+            exitList(contentEditable, cursorPosition);
             setCursorPosition(cursorPosition);
             return cursorPosition;
         }

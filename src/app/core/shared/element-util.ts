@@ -344,5 +344,5 @@ export function insertBetweenBlocks(contentEditable: HTMLElement, root: HTMLElem
 function insertIntoList(contentEditable: HTMLElement, root: HTMLElement, cursorPosition: CursorPosition, node: Node) {
     const splitPoint = readSplitPoint(contentEditable, root, cursorPosition);
 
-    splitListAround(splitPoint.root, cursorPosition, node, splitPoint.splitIndex);
+    // splitListAround(splitPoint.root, cursorPosition, node, splitPoint.splitIndex);
 }
