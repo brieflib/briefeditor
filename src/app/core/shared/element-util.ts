@@ -109,19 +109,16 @@ export function getFirstText(node: Node) {
     return node as HTMLElement;
 }
 
-export function countPreviousSelfClose(findTill: HTMLElement, current: Node) {
+/** How many self-close tags stand from `current` back to the text before them, `current` included. */
+export function countPreviousSelfClose(findTill: HTMLElement, current: Node | null) {
     let count = 0;
-    if (isSchemaContain(current, [Display.SelfClose])) {
-        count = 1;
-    }
-    let maybeSelfClose: Node | null = getPreviousNode(findTill, current);
-
-    while (maybeSelfClose) {
-        if (isSchemaContain(maybeSelfClose, [Display.SelfClose])) {
+    // Empty texts stand between the tags without breaking the run.
+    while (current && !current.textContent) {
+        if (isSchemaContain(current, [Display.SelfClose])) {
             count++;
         }
 
-        maybeSelfClose = getPreviousNode(findTill, maybeSelfClose);
+        current = getLastNode(getPreviousNode(findTill, current));
     }
 
     return count;

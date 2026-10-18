@@ -369,6 +369,20 @@ describe("Cursor anchor after a keyboard edit", () => {
         expectCursor(cursorPosition, br, 0);
     });
 
+    // The emptied strong opened the item, so the caret stays at its start rather than the end of the item above.
+    test("Should keep the caret on the item when Backspace empties the strong opening it", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><strong>f</strong>second</li></ul>`);
+        const second = getLastChild(wrapper, ".start");
+        selectRange(second, "".length, second, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        wrapper.querySelector(".start strong")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
+    });
+
     // The merged text keeps its strong; the caret stays at the end of the line above, not inside it.
     test("Should leave the caret at the end of the item above when Backspace merges two items", () => {
         const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end"><strong>first</strong></li></ul>`);
@@ -420,6 +434,48 @@ describe("Cursor anchor after a keyboard edit", () => {
         expectCursor(cursorPosition, first, "".length);
     });
 
+    test("Should keep the offset when Backspace removes a line break that locates after another two line breaks", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br><br><br><br>first</p>`);
+        const thirdBr = wrapper.querySelectorAll(".start br")[2] as HTMLElement;
+        selectRange(thirdBr, "".length, thirdBr, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        thirdBr.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const secondBr = wrapper.querySelectorAll(".start br")[1] as HTMLElement;
+        expectCursor(cursorPosition, secondBr, "".length);
+    });
+
+    // The brs closing the strong stand between its text and the caret, so Backspace removes a br, not a character.
+    test("Should keep the caret on its line when Backspace removes a line break at the end of a strong", () => {
+        const wrapper = createWrapper(`<p class="start">zero<strong>first<br><br></strong>second</p>`);
+        const second = getLastChild(wrapper, ".start");
+        selectRange(second, "".length, second, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        wrapper.querySelectorAll(".start br")[1]?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getLastChild(wrapper, ".start"), "".length);
+    });
+
+    // Only the brs after the last text stand between it and the caret; the brs before the text are not counted.
+    test("Should keep the caret on its line when Backspace removes a line break after text standing below line breaks", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br><br>first<br><br>second</p>`);
+        const second = getLastChild(wrapper, ".start");
+        selectRange(second, "".length, second, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        wrapper.querySelectorAll(".start br")[3]?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getLastChild(wrapper, ".start"), "".length);
+    });
+
     test("Should set cursor at start of zero when Backspace removes a line break", () => {
         const wrapper = createWrapper(`<ul><li class="start"><br></li><li class="end">zero</li></ul>`);
         let zero = getFirstChild(wrapper, ".end");
@@ -442,6 +498,20 @@ describe("Cursor anchor after a keyboard edit", () => {
             {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
 
         wrapper.innerHTML = `<ul><li class="start"><br>zero</li></ul>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        zero = getLastChild(wrapper, ".start");
+        expectCursor(cursorPosition, zero, "".length);
+    });
+
+    test("Should set cursor at start of zero when Backspace removes third line break", () => {
+        const wrapper = createWrapper(`<p class="start"><br><br><br></p><p class="end">zero</p>`);
+        let zero = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, zero, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        wrapper.innerHTML = `<ul><li class="start"><br><br>zero</li></ul>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         zero = getLastChild(wrapper, ".start");

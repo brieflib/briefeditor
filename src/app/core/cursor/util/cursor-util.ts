@@ -12,6 +12,7 @@ import {
     getElement,
     getFirstText,
     getFirstTextNew,
+    getLastNode,
     getLastNonEmptyTextNew,
     getLastText,
     getNextNode,
@@ -350,51 +351,53 @@ function collapseAnchor(previousBlock: Node | null,
 function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: CursorAnchor, cursorPosition: CursorPosition) {
     const container = cursorPosition.startContainer;
     const offset = cursorPosition.startOffset;
-    if (!(container instanceof Text)) {
-        throw Error("Collapsed selection is not in text");
+    // A caret on a self-close tag stands before it, the same place as a text at its start.
+    if (!(container instanceof Text) && !isSchemaContain(container, [Display.SelfClose])) {
+        throw Error("Collapsed selection is not in text or on a self-close tag");
     }
 
-    // Removes character
-    if (offset !== 0) {
-        const deletedLength = charLengthBefore(container.data, offset);
-        const start = cursorAnchor.start - deletedLength;
-        // The emptied line and the end of the line above count to the same offset, so the caret steps after it.
-        const isAfterTag = start > 0 && isAtLineStart(contentEditable, container, offset - deletedLength);
-        return collapseAnchor(cursorAnchor.previousBlock, start, isAfterTag, isAfterTag);
+    // The character before the caret is in its own text.
+    if (container instanceof Text && offset !== 0) {
+        return removeCharacterBefore(contentEditable, cursorAnchor, container, offset);
     }
 
-    // Go to previous tag
     const previous = getPreviousNode(contentEditable, container);
-    const previousLastChild = getLastNonEmptyTextNew(previous);
-    if (previous && previousLastChild) {
-        const selfCloseBefore = countPreviousSelfClose(contentEditable, previousLastChild);
-        let start = cursorAnchor.start;
-        let previousBlock = cursorAnchor.previousBlock;
-        // Previous element is a block or li, so we are at the start.
-        if (isAtLineStart(contentEditable, container, 0)) {
-            const previousLineBlock = getBlockElement(contentEditable, previousLastChild);
-            previousBlock = previousLineBlock.previousSibling;
-            start = getOffsetFromBlock(previousLineBlock, previousLastChild, previousLastChild.textContent?.length ?? 0);
-        } else if (selfCloseBefore === 0 && previousLastChild instanceof Text) {
-            // There are no self closed element in previous tag, so we merge two tags.
-            const data = previousLastChild.data;
-            const deletedLength = charLengthBefore(data, data.length);
-            const block = getBlockElement(contentEditable, previousLastChild);
-            start = getOffsetInElement(previousLastChild, block, data.length - deletedLength);
-        }
-
-        return collapseAnchor(previousBlock,
-            start,
-            selfCloseBefore,
-            selfCloseBefore);
+    const previousText = getLastNonEmptyTextNew(previous);
+    // Nothing stands before the caret, so Backspace has nothing to remove.
+    if (!previous || !previousText) {
+        return collapseAnchor(cursorAnchor.previousBlock, 0, 0, 0);
     }
 
-    return collapseAnchor(cursorAnchor.previousBlock, 0, 0, 0);
+    const selfCloseBefore = countPreviousSelfClose(contentEditable, getLastNode(previous));
+
+    // Backspace joins the line into the line above, so the caret stands at the end of the line above.
+    if (isAtLineStart(contentEditable, container, 0)) {
+        const previousLineBlock = getBlockElement(contentEditable, previousText);
+        const start = getOffsetFromBlock(previousLineBlock, previousText, previousText.textContent?.length ?? 0);
+        return collapseAnchor(previousLineBlock.previousSibling, start, selfCloseBefore, selfCloseBefore);
+    }
+
+    // The character before the caret is the last one of the text before it.
+    if (selfCloseBefore === 0 && previousText instanceof Text) {
+        return removeCharacterBefore(contentEditable, cursorAnchor, previousText, previousText.data.length);
+    }
+
+    // A self-close tag holds no text, so removing it keeps the offset.
+    return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, selfCloseBefore, selfCloseBefore);
+}
+
+/** The anchor after Backspace removes the character before `offset` in `text`. */
+function removeCharacterBefore(contentEditable: HTMLElement, cursorAnchor: CursorAnchor, text: Text, offset: number) {
+    const deletedLength = charLengthBefore(text.data, offset);
+    const start = cursorAnchor.start - deletedLength;
+    // The emptied line and the end of the line above count to the same offset, so the caret steps after it.
+    const isAfterTag = start > 0 && isAtLineStart(contentEditable, text, offset - deletedLength);
+    return collapseAnchor(cursorAnchor.previousBlock, start, isAfterTag, isAfterTag);
 }
 
 /** Whether the point stands at the start of its line: the closest paragraph, heading or list item. */
-function isAtLineStart(contentEditable: HTMLElement, container: Text, offset: number) {
-    const line = getElement(contentEditable, container, [Display.Line, Display.List]);
+function isAtLineStart(contentEditable: HTMLElement, container: Node, offset: number) {
+    const line = getElement(contentEditable, container as HTMLElement, [Display.Line, Display.List]);
     return line !== null && getOffsetInElement(container, line, offset) === 0;
 }
 
@@ -466,6 +469,12 @@ function enterNextNode(block: HTMLElement,
                        nodeOffset: NodeOffset,
                        cursorAfterTagsCount: number | boolean): NodeOffset {
     if (cursorAfterTagsCount === 0 || !(nodeOffset.node instanceof Text)) {
+        return nodeOffset;
+    }
+
+    // Only a point at the end of its text has a node after it to enter.
+    const isAtNodeEnd = nodeOffset.offset === nodeOffset.node.data.length;
+    if (!isAtNodeEnd) {
         return nodeOffset;
     }
 
