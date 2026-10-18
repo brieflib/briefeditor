@@ -791,14 +791,14 @@ describe("Keyboard command that empties a list item", () => {
         const wrapper = createWrapper(`<ul><li>zero</li><li class="start">a<ul><li>child</li></ul></li></ul>`);
         const text = getFirstChild(wrapper, ".start");
         selectRange(text, "a".length, text, "a".length);
-        let cursorPosition = keyboard(wrapper, "Backspace");
+        const cursorPosition = keyboard(wrapper, "Backspace");
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br><ul><li>child</li></ul></li></ul>`);
 
         selectRange(cursorPosition.startContainer, cursorPosition.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
         keyboard(wrapper, "c");
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">c<ul><li>child</li></ul></li></ul>`);
-        //expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "c".length);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "c".length);
     });
 
     test("Should drop the placeholder when typing into a paragraph backspace emptied", () => {

@@ -24,6 +24,10 @@ export function getLastChild(wrapper: HTMLElement, querySelector: string) {
     return wrapper.querySelector(querySelector)?.lastChild as Node
 }
 
+export function querySelector(wrapper: HTMLElement, querySelector: string) {
+    return wrapper.querySelector(querySelector) as HTMLElement;
+}
+
 /** The first text node under `wrapper` holding exactly `content`. */
 export function getText(wrapper: HTMLElement, content: string) {
     const walker = document.createTreeWalker(wrapper, NodeFilter.SHOW_TEXT);

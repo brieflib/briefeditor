@@ -10,6 +10,8 @@ import {
     splitAtCursor
 } from "@/core/shared/type/cursor-position";
 import {
+    charLengthAfter,
+    charLengthBefore,
     getChildFragment,
     getElement,
     getFirstText,
@@ -21,7 +23,8 @@ import {
     getRootElement,
     hasSelfCloseDescendant,
     imageSelector,
-    isImageBlock
+    isImageBlock,
+    isPrintableKey
 } from "@/core/shared/element-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock, isCursorIntersectBlocks} from "@/core/cursor/cursor";
 import {anchorCursorOnLeaf} from "@/core/normalize/util/normalize-util";
@@ -411,10 +414,6 @@ export function newLine(contentEditable: HTMLElement, cursorPosition: CursorPosi
     return getCursorPositionFrom(firstText, 0, firstText, 0);
 }
 
-export function isPrintableKey(event: KeyboardEvent) {
-    return event.key.length === 1;
-}
-
 export function insertCharacter(contentEditable: HTMLElement, cursorPosition: CursorPosition, key: string): CursorPosition {
     if (!isCollapsed(cursorPosition)) {
         cursorPosition = deleteContents(cursorPosition);
@@ -435,12 +434,18 @@ export function insertCharacter(contentEditable: HTMLElement, cursorPosition: Cu
 }
 
 /** Writes `key` at the cursor and names the text node and offset right after it. */
-function insertText(cursorPosition: CursorPosition, key: string): { node: Text, offset: number } {
+function insertText(cursorPosition: CursorPosition, key: string): {
+    node: Text,
+    offset: number
+} {
     const container = cursorPosition.startContainer;
     if (container.nodeType === Node.TEXT_NODE) {
         const text = container as Text;
         text.insertData(cursorPosition.startOffset, key);
-        return {node: text, offset: cursorPosition.startOffset + key.length};
+        return {
+            node: text,
+            offset: cursorPosition.startOffset + key.length
+        };
     }
 
     const textNode = document.createTextNode(key);
@@ -451,7 +456,10 @@ function insertText(cursorPosition: CursorPosition, key: string): { node: Text, 
         insertNode(cursorPosition, textNode);
     }
 
-    return {node: textNode, offset: key.length};
+    return {
+        node: textNode,
+        offset: key.length
+    };
 }
 
 /**
@@ -587,28 +595,6 @@ function firstCandidate(block: HTMLElement, container: Node, offset: number, dir
     }
 
     return direction === Direction.Previous ? getPreviousNode(block, container) : getNextNode(block, container);
-}
-
-function charLengthBefore(data: string, offset: number) {
-    if (offset >= 2 && isLowSurrogate(data.charCodeAt(offset - 1)) && isHighSurrogate(data.charCodeAt(offset - 2))) {
-        return 2;
-    }
-    return 1;
-}
-
-function charLengthAfter(data: string, offset: number) {
-    if (offset + 1 < data.length && isHighSurrogate(data.charCodeAt(offset)) && isLowSurrogate(data.charCodeAt(offset + 1))) {
-        return 2;
-    }
-    return 1;
-}
-
-function isHighSurrogate(code: number) {
-    return code >= 0xD800 && code <= 0xDBFF;
-}
-
-function isLowSurrogate(code: number) {
-    return code >= 0xDC00 && code <= 0xDFFF;
 }
 
 function removeEmptyBlock(contentEditable: HTMLElement, node: Node) {

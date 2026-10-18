@@ -6,7 +6,6 @@ import {
     selectRange
 } from "@/core/shared/test-util";
 import {
-    mergeBlocks,
     mergeBlocksNew,
     mergeNextBlock,
     mergePreviousBlock,

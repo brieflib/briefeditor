@@ -1,4 +1,11 @@
-import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, selectRange} from "@/core/shared/test-util";
+import {
+    createWrapper,
+    expectCursor,
+    expectHtml,
+    getFirstChild,
+    getLastChild,
+    selectRange
+} from "@/core/shared/test-util";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 
 jest.mock("../shared/range-util", () => ({
@@ -133,10 +140,7 @@ describe("Keyboard events", () => {
 
         const expectedStart = wrapper.querySelectorAll("p")[1]?.firstChild;
         const expectedEnd = wrapper.querySelectorAll("p")[1]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedStart);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(expectedEnd);
-        expect(cursorPosition.endOffset).toBe("".length);
+        expectCursor(cursorPosition, expectedStart, "".length, expectedEnd, "".length);
     });
 
     test("Press enter when cursor spans selection of part of strong", () => {
@@ -170,10 +174,7 @@ describe("Keyboard events", () => {
         `);
 
         const expectedContainer = getFirstChild(wrapper, "strong");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, expectedContainer, 0);
     });
 
     test("Press shift+enter when cursor is at the beginning of tag", () => {
@@ -191,10 +192,7 @@ describe("Keyboard events", () => {
         `);
 
         const expectedContainer = getFirstChild(wrapper, "strong");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, expectedContainer, 0);
     });
 
     test("Press delete when selection spans two paragraphs", () => {
@@ -212,10 +210,7 @@ describe("Keyboard events", () => {
         `);
 
         expect((wrapper.querySelector("p") as HTMLElement).childNodes.length).toBe(1);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
-        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, "p"));
-        expect(cursorPosition.startOffset).toBe(2);
-        expect(cursorPosition.endOffset).toBe(2);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 2);
     });
 
     // Items selected whole are emptied into one item rather than dropped, the way a browser leaves an empty
@@ -228,10 +223,7 @@ describe("Keyboard events", () => {
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
 
         expectHtml(wrapper.innerHTML, `<ul><li><br></li></ul><p>three</p>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, wrapper.querySelector("br"), 0);
     });
 
     test("Press delete when selection covers a whole list after a paragraph", () => {
@@ -242,10 +234,7 @@ describe("Keyboard events", () => {
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
 
         expectHtml(wrapper.innerHTML, `<p>three</p><ul><li><br></li></ul>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, wrapper.querySelector("br"), 0);
     });
 
     test("Press delete when selection covers two whole items of three", () => {
@@ -256,10 +245,7 @@ describe("Keyboard events", () => {
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
 
         expectHtml(wrapper.innerHTML, `<ul><li><br></li><li>two</li></ul>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.querySelector("br"), 0);
     });
 
     test("Press delete when selection covers two whole paragraphs of three", () => {
@@ -270,10 +256,7 @@ describe("Keyboard events", () => {
         const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Delete"}));
 
         expectHtml(wrapper.innerHTML, `<p><br></p><p>two</p>`);
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("br"));
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, wrapper.querySelector("br"), 0);
     });
 
     test("After pressing delete when cursor is at the br cursor position should be at previous br", () => {
@@ -312,10 +295,7 @@ describe("Typing and deleting characters", () => {
             <p class="start">zexro</p>
         `);
         expect((wrapper.querySelector("p") as HTMLElement).childNodes.length).toBe(1);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("zex".length);
-        expect(cursorPosition.endOffset).toBe("zex".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zex".length);
     });
 
     test("Type a character in an empty paragraph", () => {
@@ -330,10 +310,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p class="start">a</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("a".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "a".length);
     });
 
     test("Type a character in an empty list item with the caret on the item", () => {
@@ -354,10 +331,7 @@ describe("Typing and deleting characters", () => {
                 <li>next</li>
             </ul>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("a".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "a".length);
     });
 
     test("Type a character in an empty list item holding a nested list", () => {
@@ -384,10 +358,7 @@ describe("Typing and deleting characters", () => {
                 </li>
             </ul>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("a".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "a".length);
     });
 
     test("Type a character in an empty list item keeps the placeholder of an empty nested item", () => {
@@ -414,10 +385,7 @@ describe("Typing and deleting characters", () => {
                 </li>
             </ul>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("a".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "a".length);
     });
 
     test("Press backspace in the middle of text", () => {
@@ -432,10 +400,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p class="start">zro</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("z".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "z".length);
     });
 
     test("Press delete in the middle of text", () => {
@@ -450,10 +415,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p class="start">zeo</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("ze".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length);
     });
 
     test("Press backspace at the start of text after an inline tag", () => {
@@ -468,10 +430,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze<strong>r</strong>tail</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "strong"));
-        expect(cursorPosition.startOffset).toBe("r".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), "r".length);
     });
 
     test("Press delete at the end of text before an inline tag", () => {
@@ -486,10 +445,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze<strong>o</strong></p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "strong"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "strong"), 0);
     });
 
     test("Press backspace on the last character of an inline tag", () => {
@@ -504,10 +460,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p>zetail</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
-        expect(cursorPosition.startOffset).toBe("ze".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "ze".length);
     });
 
     test("Press backspace on the last character of the only paragraph", () => {
@@ -540,10 +493,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p>ab</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
-        expect(cursorPosition.startOffset).toBe("a".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "a".length);
     });
 
     test("Press delete before a line break", () => {
@@ -558,10 +508,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p>ab</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
-        expect(cursorPosition.startOffset).toBe("a".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "a".length);
     });
 
     test("Should merge lists when pressing delete before br", () => {
@@ -588,10 +535,7 @@ describe("Typing and deleting characters", () => {
         `);
 
         const expectedContainer = wrapper.querySelector("ol li:last-child")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, expectedContainer, "".length);
     });
 
     test("Should merge lists of different types when pressing delete before br", () => {
@@ -616,10 +560,7 @@ describe("Typing and deleting characters", () => {
         `);
 
         const expectedContainer = wrapper.querySelector("ul li")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, expectedContainer, "".length);
     });
 
     test("Should merge lists of different types when pressing delete before br 2", () => {
@@ -646,10 +587,7 @@ describe("Typing and deleting characters", () => {
         `);
 
         const expectedContainer = wrapper.querySelector("ol li:last-child")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, expectedContainer, "".length);
     });
 
     test("Should merge lists when pressing backspace after br", () => {
@@ -681,10 +619,7 @@ describe("Typing and deleting characters", () => {
         `);
 
         const expectedContainer = wrapper.querySelector("ol li ol li:last-child")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, expectedContainer, "".length);
     });
 
     test("Should merge lists of different types when pressing backspace after br", () => {
@@ -720,10 +655,7 @@ describe("Typing and deleting characters", () => {
         `);
 
         const expectedContainer = wrapper.querySelector("ol li ul li:last-child")?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, expectedContainer, "".length);
     });
 
     test("Should merge lists of the same types when pressing delete before nested br", () => {
@@ -889,10 +821,7 @@ describe("Typing and deleting characters", () => {
                 <li>Unordered item one</li>
             </ul>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
-        expect(cursorPosition.startOffset).toBe("Unordered item one".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "Unordered item one".length);
     });
 
     test("Backspace on the br of an empty nested item drops the item", () => {
@@ -915,10 +844,7 @@ describe("Typing and deleting characters", () => {
                 <li>one</li>
             </ul>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
-        expect(cursorPosition.startOffset).toBe("one".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "one".length);
     });
 
     test("Backspace in an empty nested item lowers the items nested inside it", () => {
@@ -949,10 +875,7 @@ describe("Typing and deleting characters", () => {
                 </li>
             </ul>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
-        expect(cursorPosition.startOffset).toBe("one".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "one".length);
     });
 
     test("Backspace in an empty nested item keeps the item written below it", () => {
@@ -980,10 +903,7 @@ describe("Typing and deleting characters", () => {
                 </li>
             </ul>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
-        expect(cursorPosition.startOffset).toBe("one".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "one".length);
     });
 
     test("Backspace in an empty first level item drops it", () => {
@@ -1003,10 +923,7 @@ describe("Typing and deleting characters", () => {
                 <li>one</li>
             </ul>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
-        expect(cursorPosition.startOffset).toBe("one".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "one".length);
     });
 
     test("Backspace in an empty first level item holding a nested list drops it", () => {
@@ -1034,10 +951,7 @@ describe("Typing and deleting characters", () => {
                 </li>
             </ol>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
-        expect(cursorPosition.startOffset).toBe("First ordered item".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "First ordered item".length);
     });
 
     // Arriving at the end of the empty line, the browser anchors the cursor on the item after the br, which
@@ -1067,10 +981,7 @@ describe("Typing and deleting characters", () => {
                 </li>
             </ol>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "li"));
-        expect(cursorPosition.startOffset).toBe("First ordered item".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "First ordered item".length);
     });
 
     test("Backspace in the only empty item below a paragraph drops the list", () => {
@@ -1088,10 +999,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p>one</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
-        expect(cursorPosition.startOffset).toBe("one".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "one".length);
     });
 
     test("Backspace in the only empty item opening the document drops the list", () => {
@@ -1109,10 +1017,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p>one</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 0);
     });
 
     // The paragraph the editor is left with is written by the command once the keyboard is done.
@@ -1128,10 +1033,7 @@ describe("Typing and deleting characters", () => {
         const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
 
         expectHtml(wrapper.innerHTML, ``);
-        expect(cursorPosition.startContainer).toBe(wrapper);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, wrapper, 0);
     });
 
     test("Press backspace when selection is inside one paragraph", () => {
@@ -1146,10 +1048,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p class="start">zerst</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("ze".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length);
     });
 
     test("Type a character over a selection inside one paragraph", () => {
@@ -1164,10 +1063,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p class="start">zexrst</p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("zex".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zex".length);
     });
 
     test("Type a character over a fully selected inline tag", () => {
@@ -1182,10 +1078,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p>ze<strong class="start">x</strong></p>
         `);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("x".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "x".length);
     });
 
     test("Press backspace after an emoji", () => {
@@ -1200,10 +1093,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <p class="start">a</p>
         `);
-        expect(cursorPosition.startOffset).toBe("a".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "a".length);
     });
 
     test("After removing content and pressing delete next tag should merge", () => {
@@ -1244,10 +1134,7 @@ describe("Typing and deleting characters", () => {
         `);
         expect(cell.isConnected).toBe(true);
         expect(keyboardEvent.defaultPrevented).toBe(true);
-        expect(cursorPosition.startContainer).toBe(cell);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, cell, 0);
     });
 
     test("Enter in the middle of a cell leaves its text whole", () => {
@@ -1262,10 +1149,7 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
         `);
-        expect(cursorPosition.startContainer).toBe(text);
-        expect(cursorPosition.startOffset).toBe("ze".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, text, "ze".length);
     });
 
     // A break would grow the row instead of ending a line, so shift does not make an exception.
@@ -1275,7 +1159,10 @@ describe("Typing and deleting characters", () => {
         `);
         selectText(getFirstChild(wrapper, ".start"), "ze".length, "ze".length);
 
-        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter", shiftKey: true}));
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {
+            key: "Enter",
+            shiftKey: true
+        }));
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length);
 
         expectHtml(wrapper.innerHTML, `
@@ -1342,21 +1229,21 @@ describe("Typing and deleting characters", () => {
 
     test.each(["Home", "End", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "F1", "Tab", "Escape"])(
         "%s over a selection across blocks does not change the dom and is not prevented", (key) => {
-        const wrapper = createWrapper(`
+            const wrapper = createWrapper(`
             <p class="start">zero</p><p class="end">first</p>
         `);
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+            selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
-        const keyboardEvent = new KeyboardEvent("keydown", {key});
-        const preventDefault = jest.spyOn(keyboardEvent, "preventDefault");
-        const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
+            const keyboardEvent = new KeyboardEvent("keydown", {key});
+            const preventDefault = jest.spyOn(keyboardEvent, "preventDefault");
+            const cursorPosition = handleKeyboardEvent(wrapper, keyboardEvent);
 
-        expectHtml(wrapper.innerHTML, `
+            expectHtml(wrapper.innerHTML, `
             <p class="start">zero</p><p class="end">first</p>
         `);
-        expect(preventDefault).not.toHaveBeenCalled();
-        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
-    });
+            expect(preventDefault).not.toHaveBeenCalled();
+            expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+        });
 });
 // A browser leaves the caret in an empty item on the item itself rather than on its br; both must read
 // the same, so every case here runs with the caret in either place.
@@ -1386,12 +1273,9 @@ describe("Editing over a selection ending on an empty nested item", () => {
             const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "z"}));
 
             expectHtml(wrapper.innerHTML, `<h3>z</h3>`);
-            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h3")?.firstChild);
-            expect(cursorPosition.startOffset).toBe("z".length);
+            expectCursor(cursorPosition, wrapper.querySelector("h3")?.firstChild, "z".length);
             // The cursor must be one the selection can be set to, or the edit is never committed.
             expect(() => new Range().setStart(cursorPosition.startContainer, cursorPosition.startOffset)).not.toThrow();
-            expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-            expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
         });
 
         test(`Should keep the heading's words when typing over a selection starting inside it (${caret})`, () => {
@@ -1401,10 +1285,7 @@ describe("Editing over a selection ending on an empty nested item", () => {
             const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "z"}));
 
             expectHtml(wrapper.innerHTML, `<h3>Ordz</h3>`);
-            expect(cursorPosition.startContainer).toBe(wrapper.querySelector("h3")?.firstChild);
-            expect(cursorPosition.startOffset).toBe("Ordz".length);
-            expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-            expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+            expectCursor(cursorPosition, wrapper.querySelector("h3")?.firstChild, "Ordz".length);
         });
 
         test(`Should leave an empty heading after backspace over the selection (${caret})`, () => {
@@ -1443,10 +1324,7 @@ describe("Enter in an empty list item", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(wrapper.querySelector("p br"));
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, wrapper.querySelector("p br"), 0);
     });
 
     test("Enter in a nested empty item lifts it one level", () => {
@@ -1477,10 +1355,7 @@ describe("Enter in an empty list item", () => {
             </ul>
         `);
 
-        expect(cursorPosition.startContainer).toBe(br);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
-        expect(cursorPosition.startOffset).toBe(0);
+        expectCursor(cursorPosition, br, 0);
     });
 
     test("Enter in an item holding an image only inserts an item, the image being content of its own", () => {
@@ -1513,7 +1388,10 @@ describe("Enter in an empty list item", () => {
 
         selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".start"), 0);
 
-        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Enter", shiftKey: true}));
+        const cursorPosition = handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {
+            key: "Enter",
+            shiftKey: true
+        }));
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), 0);
 
         expectHtml(wrapper.innerHTML, `
@@ -1560,10 +1438,7 @@ describe("Deleting next to an image block", () => {
 
         expectHtml(wrapper.innerHTML, `<p>zero</p><p>first</p>`);
         const expectedContainer = getLastChild(wrapper, "p:last-child");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, expectedContainer, 0);
     });
 
     test("Delete at the end of the line before an image block removes the image", () => {
@@ -1574,10 +1449,7 @@ describe("Deleting next to an image block", () => {
 
         expectHtml(wrapper.innerHTML, `<p>zero</p><p>first</p>`);
         const expectedContainer = getFirstChild(wrapper, "p");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("zero".length);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, expectedContainer, "zero".length);
     });
 
     test("Backspace at the start of an item after an image block removes the image and keeps the list", () => {
@@ -1588,10 +1460,7 @@ describe("Deleting next to an image block", () => {
 
         expectHtml(wrapper.innerHTML, `<p>zero</p><ul><li>first</li><li>second</li></ul>`);
         const expectedContainer = getFirstChild(wrapper, "li");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, expectedContainer, 0);
     });
 
     test("Delete at the end of an empty line before an image block removes the image and keeps the line", () => {
@@ -1602,10 +1471,7 @@ describe("Deleting next to an image block", () => {
 
         expectHtml(wrapper.innerHTML, `<p><br></p><p>first</p>`);
         const expectedContainer = getFirstChild(wrapper, "p");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, expectedContainer, 0);
     });
 });
 
@@ -1624,10 +1490,7 @@ describe("Removing the line two lists stand apart from one another by", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
         const expectedContainer = getFirstChild(wrapper, "li");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("zero".length);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, expectedContainer, "zero".length);
     });
 
     test("Delete at the end of the list above the empty line joins them", () => {
@@ -1638,10 +1501,7 @@ describe("Removing the line two lists stand apart from one another by", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
         const expectedContainer = getFirstChild(wrapper, "li");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("zero".length);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, expectedContainer, "zero".length);
     });
 
     test("Backspace at the start of the list below the empty line joins them", () => {
@@ -1652,10 +1512,7 @@ describe("Removing the line two lists stand apart from one another by", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
         const expectedContainer = wrapper.querySelectorAll("li")[1]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, expectedContainer, 0);
     });
 
     test("Backspace at the start of a line written between two lists joins them", () => {
@@ -1666,10 +1523,7 @@ describe("Removing the line two lists stand apart from one another by", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zerodelete it</li><li>first</li></ul>`);
         const expectedContainer = getFirstChild(wrapper, "li");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("zero".length);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, expectedContainer, "zero".length);
     });
 
     test("Deleting a selection covering the line written between two lists joins them", () => {
@@ -1680,10 +1534,7 @@ describe("Removing the line two lists stand apart from one another by", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
         const expectedContainer = getFirstChild(wrapper, "li");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("zero".length);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, expectedContainer, "zero".length);
     });
 
     test("Should leave lists of different types apart when the line between them goes", () => {
@@ -1694,10 +1545,7 @@ describe("Removing the line two lists stand apart from one another by", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul><ol><li>first</li></ol>`);
         const expectedContainer = getFirstChild(wrapper, "li");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("zero".length);
-        expect(cursorPosition.endOffset).toBe("zero".length);
+        expectCursor(cursorPosition, expectedContainer, "zero".length);
     });
 
     test("Should leave the lists a line still stands between apart", () => {
@@ -1708,10 +1556,7 @@ describe("Removing the line two lists stand apart from one another by", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul><p class="start">apar</p><ul><li>first</li></ul>`);
         const expectedContainer = getFirstChild(wrapper, ".start");
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe("apar".length);
-        expect(cursorPosition.endOffset).toBe("apar".length);
+        expectCursor(cursorPosition, expectedContainer, "apar".length);
     });
 
     test("Backspace at the start of an item after an image block between two lists joins them", () => {
@@ -1722,10 +1567,7 @@ describe("Removing the line two lists stand apart from one another by", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
         const expectedContainer = wrapper.querySelectorAll("li")[1]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, expectedContainer, 0);
     });
 
     // The rebuild joins the run into the first wrapper, detaching the second; a cursor remapped by
@@ -1738,9 +1580,6 @@ describe("Removing the line two lists stand apart from one another by", () => {
 
         expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul><p>tail</p>`);
         const expectedContainer = wrapper.querySelectorAll("li")[1]?.firstChild;
-        expect(cursorPosition.startContainer).toBe(expectedContainer);
-        expect(cursorPosition.endContainer).toBe(expectedContainer);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, expectedContainer, 0);
     });
 });

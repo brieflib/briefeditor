@@ -1,13 +1,21 @@
-import {createWrapper, expectCursor, getFirstChild, selectRange} from "@/core/shared/test-util";
 import {
-    CursorAnchor,
+    createWrapper,
+    expectCursor,
+    getFirstChild,
+    getLastChild,
+    querySelector,
+    selectRange
+} from "@/core/shared/test-util";
+import {
     findNodeAndOffset,
     getCursorAnchor,
     getCursorPositionFromPoint,
-    getOffsetInElement, resolveCursorAnchor
+    getOffsetInElement,
+    resolveCursorAnchor
 } from "@/core/cursor/util/cursor-util";
-import {getCursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {Carrier} from "@/core/carrier/carrier";
+import {Action} from "@/core/command/type/command";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -20,7 +28,7 @@ describe("Cursor position from a point", () => {
         delete (document as Partial<Document>).caretPositionFromPoint;
     });
 
-    function mockCaretPosition(caretPosition: {offsetNode: Node, offset: number} | null) {
+    function mockCaretPosition(caretPosition: { offsetNode: Node, offset: number } | null) {
         document.caretPositionFromPoint = jest.fn().mockReturnValue(caretPosition);
     }
 
@@ -50,21 +58,11 @@ describe("Cursor as a place in the text", () => {
         Carrier.getInstance().removeCarrier();
     });
 
-    function anchor(wrapper: HTMLElement, startContainer: Node, startOffset: number,
-                    endContainer: Node = startContainer, endOffset: number = startOffset) {
-        return getCursorAnchor(wrapper,
-            getCursorPositionFrom(startContainer, startOffset, endContainer, endOffset));
-    }
-
-    function getAnchorCursorPosition(wrapper: HTMLElement, cursorAnchor: CursorAnchor) {
-        return resolveCursorAnchor(wrapper, cursorAnchor);
-    }
-
     test("Should count only the text written before the point", () => {
         const wrapper = createWrapper(`<p class="start">zero<strong>first</strong>second</p>`);
         const block = wrapper.querySelector("p") as HTMLElement;
 
-        expect(getOffsetInElement(block, getFirstChild(wrapper, ".start strong") as HTMLElement, "fir".length))
+        expect(getOffsetInElement(getFirstChild(wrapper, ".start strong") as HTMLElement, block, "fir".length))
             .toBe("zerofir".length);
     });
 
@@ -72,7 +70,7 @@ describe("Cursor as a place in the text", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
         const block = wrapper.querySelector(".start") as HTMLElement;
 
-        expect(getOffsetInElement(block, getFirstChild(wrapper, ".end") as HTMLElement, "fir".length)).toBe(0);
+        expect(getOffsetInElement(getFirstChild(wrapper, ".end"), block, "fir".length)).toBe(0);
     });
 
     test("Should find the offset back across a tag boundary", () => {
@@ -85,14 +83,62 @@ describe("Cursor as a place in the text", () => {
 
     test("Should resolve the end standing at the start of the next block into that block", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
-        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "".length,
-            getFirstChild(wrapper, ".end"), "".length);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "".length);
 
-        expect(cursorAnchor.isCursorEndInsideNextBlock).toBe(true);
+        const cursorAnchor = getCursorAnchor(wrapper);
+        expect(cursorAnchor.endIsAfter).toBe(true);
 
-        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
-
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "".length);
+    });
+
+    test("Should read a caret at the start of the second item as standing inside the next block", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">first</li></ul>`);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper);
+
+        expect(cursorAnchor.startIsAfter).toBe(true);
+    });
+
+    test("Should read a caret at the end of the first item as standing in its own block", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li>first</li></ul>`);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper);
+
+        expect(cursorAnchor.startIsAfter).toBe(false);
+    });
+
+    // Both carets count to the same offset; only the side read with the anchor puts them on different lines.
+    test("Should keep a caret at the end of the first item on that item", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li>first</li></ul>`);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
+    });
+
+    test("Should keep a caret at the start of the second item on that item", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">first</li></ul>`);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const cursorAnchor = getCursorAnchor(wrapper);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
+    });
+
+    // A selection start goes into the node after it, but a br is an empty line, not the end of a node.
+    test("Should keep a selection start on the br of an empty first paragraph", () => {
+        const wrapper = createWrapper(`<p class="start"><br></p><p class="end">first</p>`);
+        selectRange(getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".end"), "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), 0, getFirstChild(wrapper, ".end"), "first".length);
     });
 
     test("Should put the cursor on the br of a block holding no text", () => {
@@ -113,45 +159,41 @@ describe("Cursor as a place in the text", () => {
     // A select-all leaves both ends on the editable element rather than on text.
     test("Should anchor a selection standing on the editable element itself", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
-        const cursorAnchor = anchor(wrapper, wrapper, 0, wrapper, wrapper.childNodes.length);
+        selectRange(wrapper, 0, wrapper, wrapper.childNodes.length);
+        const cursorAnchor = getCursorAnchor(wrapper);
 
         // With the block it was read on removed, the editor has no text left to find the anchor in.
         wrapper.querySelector(".start")?.remove();
-        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         expectCursor(cursorPosition, wrapper, 0);
     });
 
     test("Should restore the selection onto the block rebuilt in place", () => {
         const wrapper = createWrapper(`<p>start</p><p class="start">zero</p><p>end</p>`);
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length,
-            getFirstChild(wrapper, ".start"), "zer".length);
-        const cursorAnchor = getCursorAnchor(wrapper);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "zer".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.Tag, tag: "STRONG"});
 
-        // What a command does: the block is rebuilt, so nothing the anchor was read from is left, and the
-        // position it hands back names nodes no longer in the document.
+        // What a command does: the block is rebuilt, so nothing the anchor was read from is left.
         (wrapper.childNodes[1] as HTMLElement).outerHTML = `<h1 class="start">ze<strong>r</strong>o</h1>`;
-        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start strong"));
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".start strong"));
-        expect(cursorPosition.endOffset).toBe("r".length);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start strong"), "".length,
+            getFirstChild(wrapper, ".start strong"), "r".length);
     });
 
     test("Should collapse after what was written when the text changed", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
-        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "ze".length);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
+        const cursorAnchor = getCursorAnchor(wrapper);
 
         wrapper.innerHTML = `<p class="start">zexro</p>`;
-        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("ze".length);
-        expect(cursorPosition.endOffset).toBe("ze".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length);
     });
 
+    // The carrier is an empty text, so its start and the end of the text before it count to the same offset.
     test("Should stand the cursor in the carrier", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
@@ -161,170 +203,93 @@ describe("Cursor as a place in the text", () => {
         strong.appendChild(carrier);
         getCursorPosition().range.insertNode(strong);
         Carrier.getInstance().setCarrier(carrier);
+        selectRange(carrier, 0, carrier, 0);
 
-        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start strong"), "".length);
-        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
+        const cursorAnchor = getCursorAnchor(wrapper);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expect(cursorPosition.startContainer).toBe(carrier);
-        expect(cursorPosition.endContainer).toBe(carrier);
-        expect(cursorPosition.startOffset).toBe(0);
-        expect(cursorPosition.endOffset).toBe(0);
+        expectCursor(cursorPosition, carrier, 0);
     });
 
-    test("Should send a caret standing where a line was written onto the line it opens", () => {
-        const wrapper = createWrapper(`<p class="start">zero<strong>first</strong></p>`);
-        let given = getCursorPositionFrom(getFirstChild(wrapper, ".start"), "zero".length,
-            getFirstChild(wrapper, ".start"), "zero".length);
-        let cursorAnchor = getCursorAnchor(wrapper, given);
+    // The carrier is inserted after the anchor is read, so only the command tells the caret goes into it.
+    test("Should take the caret into the tag a tag command inserts on it", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.Tag, tag: "STRONG"});
 
-        // A br holds no text, so both sides of it answer to the same offset and only the br says which is
-        // meant. Without it the caret belongs at the end of the text written before it.
-        wrapper.innerHTML = `<p class="start">zero<br><strong>first</strong></p>`;
-        const afterBreak = getAnchorCursorPosition(wrapper, cursorAnchor);
+        wrapper.innerHTML = `<p class="start">ze<strong></strong>ro</p>`;
+        const carrier = document.createTextNode("");
+        wrapper.querySelector("strong")?.appendChild(carrier);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expect(afterBreak.startContainer).toBe(getFirstChild(wrapper, ".start strong"));
-        expect(afterBreak.startOffset).toBe("".length);
-        expect(afterBreak.endContainer).toBe(afterBreak.startContainer);
-        expect(afterBreak.endOffset).toBe(afterBreak.startOffset);
-
-        wrapper.innerHTML = `<p class="start">zero<strong>first</strong></p>`;
-        given = getCursorPositionFrom(getFirstChild(wrapper, ".start"), "zero".length,
-            getFirstChild(wrapper, ".start"), "zero".length);
-        cursorAnchor = getCursorAnchor(wrapper, given);
-        const noBreak = getAnchorCursorPosition(wrapper, cursorAnchor);
-
-        expect(noBreak.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(noBreak.startOffset).toBe("zero".length);
-        expect(noBreak.endContainer).toBe(noBreak.startContainer);
-        expect(noBreak.endOffset).toBe(noBreak.startOffset);
+        expectCursor(cursorPosition, carrier, 0);
     });
 
     test("Should walk on to the block that follows when the block was divided", () => {
         const wrapper = createWrapper(`<p class="start">zerofirst</p>`);
-        const given = getCursorPositionFrom(getFirstChild(wrapper, ".start"), "zerofir".length,
-            getFirstChild(wrapper, ".start"), "zerofir".length);
-        const cursorAnchor = getCursorAnchor(wrapper, given);
+        selectRange(getFirstChild(wrapper, ".start"), "zerofir".length, getFirstChild(wrapper, ".start"), "zerofir".length);
+        const cursorAnchor = getCursorAnchor(wrapper);
 
         // The block the offset was measured against no longer holds that much text: what followed the
         // cursor is standing in a block of its own now, and the offset left over once this block's text
         // is spent counts into it.
-        wrapper.innerHTML = `<p class="start">zero</p><p>first</p>`;
-        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
+        wrapper.innerHTML = `<p class="start">zero</p><p class="end">first</p>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, "p + p"));
-        expect(cursorPosition.startOffset).toBe("fir".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".end"), "fir".length);
     });
 
     test("Should walk on across every block the divided one was written into", () => {
         const wrapper = createWrapper(`<p class="start">zerofirstsecond</p>`);
-        const given = getCursorPositionFrom(getFirstChild(wrapper, ".start"), "zerofirstsec".length,
+        selectRange(getFirstChild(wrapper, ".start"), "zerofirstsec".length,
             getFirstChild(wrapper, ".start"), "zerofirstsec".length);
-        const cursorAnchor = getCursorAnchor(wrapper, given);
+        const cursorAnchor = getCursorAnchor(wrapper);
 
         // The place is three blocks along, so the text of each one in between is spent in turn.
         wrapper.innerHTML = `<p class="start">zero</p><p>first</p><p class="end">second</p>`;
-        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".end"));
-        expect(cursorPosition.startOffset).toBe("sec".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".end"), "sec".length);
     });
 
-    test("Should leave the caret after the text written over a line selected up to the start of the next block", () => {
+    // A triple click selects a line from its start to the start of the block below it.
+    test("Should leave the caret after the text typed over a line selected up to the start of the next block", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
-        // A triple click selects a line from its start to the start of the block below it.
-        const given = getCursorPositionFrom(getFirstChild(wrapper, ".start"), "".length,
-            wrapper.querySelector(".end") as HTMLElement, 0);
-        const cursorAnchor = getCursorAnchor(wrapper, given);
+        const zero = getFirstChild(wrapper, ".start");
+        const end = wrapper.querySelector(".end") as HTMLElement
+        selectRange(zero, "".length, end, 0);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "k"})});
 
-        // What typing over the line does: the line is written over, and the block below keeps to itself. The
-        // end was measured at nothing into that block, and the caret does not belong there but after what
-        // was written in the block the start was read in.
-        wrapper.innerHTML = `<p class="start">k</p><p class="end">first</p>`;
-        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
+        wrapper.innerHTML = `<p class="start">z</p><p class="end">first</p>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("".length);
-        expect(cursorPosition.endContainer).toBe(getFirstChild(wrapper, ".end"));
-        expect(cursorPosition.endOffset).toBe("".length);
+        const z = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, z, "z".length);
     });
 
-    test("Should leave the caret after the text written over a selection reaching into the next block", () => {
+    // The two blocks are joined around what was typed, so the caret counts along the block the start was read in.
+    test("Should leave the caret after the text typed over a selection reaching into the next block", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p><p>second</p>`);
-        const given = getCursorPositionFrom(getFirstChild(wrapper, ".start"), "ze".length,
-            getFirstChild(wrapper, ".end"), "fi".length);
-        const cursorAnchor = getCursorAnchor(wrapper, given);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "k"})});
 
-        // The two blocks are joined around what was written, so the end of the selection is that much text
-        // along the block the start was read in - not two characters into whatever block stands second now.
         wrapper.innerHTML = `<p class="start">zekrst</p><p>second</p>`;
-        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("zek".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
-    });
-
-    test("Should keep a caret the command left on the br of an empty item", () => {
-        const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end"><br></li></ul>`);
-        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "zero".length);
-
-        // An item is measured against the whole list, and the empty line answers to the same offset as the
-        // end of the item above it. Only the caret the command handed back can tell the two apart.
-        const br = getFirstChild(wrapper, ".end");
-        const given = getCursorPositionFrom(br, 0, br, 0);
-
-        expect(getAnchorCursorPosition(wrapper, cursorAnchor)).toBe(given);
-    });
-
-    test("Should keep a caret the command left on the text node a deletion emptied", () => {
-        const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end"><br></li></ul>`);
-        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "zero".length);
-
-        const emptied = document.createTextNode("");
-        (wrapper.querySelector(".end") as HTMLElement).prepend(emptied);
-        const given = getCursorPositionFrom(emptied, 0, emptied, 0);
-
-        expect(getAnchorCursorPosition(wrapper, cursorAnchor)).toBe(given);
-    });
-
-    // A rebuild writes no text, so the position the command hands back is the resolved one, and it is the
-    // only one that can name the br an end of the selection stands on.
-    test("Should keep a selection the command handed back on nodes still in the document when no text was written", () => {
-        const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end"><br></li></ul>`);
-        const given = getCursorPositionFrom(getFirstChild(wrapper, ".start"), "ze".length,
-            getFirstChild(wrapper, ".end"), 0);
-        const cursorAnchor = getCursorAnchor(wrapper, given);
-
-        expect(getAnchorCursorPosition(wrapper, cursorAnchor)).toBe(given);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zek".length);
     });
 
     test("Should resolve the anchor when the br the command left the caret on is gone", () => {
         const wrapper = createWrapper(`<ul><li class="start">zero</li><li><br></li></ul>`);
-        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "zero".length);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper);
 
-        const br = wrapper.querySelector("br") as HTMLElement;
-        br.remove();
-        const cursorPosition = getAnchorCursorPosition(wrapper, cursorAnchor);
+        wrapper.querySelector("br")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expect(cursorPosition.startContainer).toBe(getFirstChild(wrapper, ".start"));
-        expect(cursorPosition.startOffset).toBe("zero".length);
-        expect(cursorPosition.endContainer).toBe(cursorPosition.startContainer);
-        expect(cursorPosition.endOffset).toBe(cursorPosition.startOffset);
-    });
-
-    test("Should hand back the given position when the block it was read in is gone", () => {
-        const wrapper = createWrapper(`<p class="start">zero</p>`);
-        const cursorAnchor = anchor(wrapper, getFirstChild(wrapper, ".start"), "ze".length);
-
-        wrapper.innerHTML = "";
-        const given = getCursorPositionFrom(wrapper, 0, wrapper, 0);
-
-        expect(getAnchorCursorPosition(wrapper, cursorAnchor)).toBe(given);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
     });
 
     test("Should keep a caret at the start of a nested item in one place after the list is rebuilt", () => {
@@ -339,7 +304,7 @@ describe("Cursor as a place in the text", () => {
             </ul>
         `);
         selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
-        const cursorAnchor = getCursorAnchor(wrapper) as CursorAnchor;
+        const cursorAnchor = getCursorAnchor(wrapper);
 
         wrapper.innerHTML = `<ul><li>zero<ol><li>first</li></ol><ul><li class="start">second</li></ul></li></ul>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -353,11 +318,250 @@ describe("Cursor as a place in the text", () => {
             <p class="end">first</p>
         `);
         selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "".length);
-        const cursorAnchor = getCursorAnchor(wrapper) as CursorAnchor;
+        const cursorAnchor = getCursorAnchor(wrapper);
 
         wrapper.innerHTML = `<ul><li class="start">zero</li><li class="end">first</li></ul>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "".length);
+    });
+});
+
+describe("Cursor anchor after a keyboard edit", () => {
+    test("Should stay the same", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        (wrapper.querySelector(".start") as HTMLElement).innerHTML = "<br>";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
+    });
+
+    // An emoji is two UTF-16 units; stepping back one would land between its halves.
+    test("Should step back over both units of an emoji Backspace removes", () => {
+        const wrapper = createWrapper(`<p class="start">zero😀first</p>`);
+        const text = getFirstChild(wrapper, ".start") as Text;
+        selectRange(text, "zero😀".length, text, "zero😀".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        text.data = "zerofirst";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, text, "zero".length);
+    });
+
+    // The emptied item and the end of the item above count to the same offset.
+    test("Should keep the caret on the item Backspace emptied", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">f</li></ul>`);
+        const f = getFirstChild(wrapper, ".start");
+        selectRange(f, "f".length, f, "f".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        (wrapper.querySelector(".start") as HTMLElement).innerHTML = "<br>";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const br = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, br, 0);
+    });
+
+    // The merged text keeps its strong; the caret stays at the end of the line above, not inside it.
+    test("Should leave the caret at the end of the item above when Backspace merges two items", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end"><strong>first</strong></li></ul>`);
+        const first = getFirstChild(wrapper, ".end strong");
+        selectRange(first, "".length, first, "".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        const start = querySelector(wrapper, ".start");
+        const strong = querySelector(wrapper, ".end strong");
+        start.append(strong);
+        const end = querySelector(wrapper, ".end");
+        end.remove();
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const zero = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    // A br holds no text, so nothing is subtracted for it.
+    test("Should keep the offset when Backspace removes a line break", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br>first</p>`);
+        const first = getLastChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        const br = querySelector(wrapper, ".start br");
+        br.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const zeroFirst = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, zeroFirst, "zero".length);
+    });
+
+    test("Should keep the offset when Backspace removes a line break that locates after another line break", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br><br>first</p>`);
+        const first = getLastChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        wrapper.querySelectorAll(".start br")[1]?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Should set cursor at start of zero when Backspace removes a line break", () => {
+        const wrapper = createWrapper(`<ul><li class="start"><br></li><li class="end">zero</li></ul>`);
+        let zero = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, zero, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        wrapper.innerHTML = `<ul><li class="start">zero</li></ul>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        zero = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, zero, "".length);
+    });
+
+    test("Should set cursor at start of zero when Backspace removes second line break", () => {
+        const wrapper = createWrapper(`<p class="start"><br><br></p><p class="end">zero</p>`);
+        let zero = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, zero, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        wrapper.innerHTML = `<ul><li class="start"><br>zero</li></ul>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        zero = getLastChild(wrapper, ".start");
+        expectCursor(cursorPosition, zero, "".length);
+    });
+
+    test("Should set cursor at start of zero when Backspace removes second line break at dedicated paragraph", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="middle"><br><br></p><p class="end">first</p><p>second</p>`);
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        wrapper.querySelectorAll(".middle br")[1]?.remove();
+        querySelector(wrapper, ".middle").append(first);
+        querySelector(wrapper, ".end").remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Should keep the offset when Backspace removes an inline image", () => {
+        const wrapper = createWrapper(`<p class="start">zero<img src="image.png">first</p>`);
+        const text = getLastChild(wrapper, ".start");
+        selectRange(text, 0, text, 0);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        wrapper.querySelector(".start img")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
+    });
+
+    // The anchor counts from the image block, which Backspace removes.
+    test("Should keep the caret on the line after the image block Backspace removed", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="be-image"><img src="image.png"></p><p class="start">first</p>`);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        wrapper.querySelector(".be-image")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, first, 0);
+    });
+
+    // The paragraph the anchor counts from absorbs the caret's paragraph.
+    test("Should count from the paragraph before when Backspace merges two paragraphs", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        (wrapper.querySelector(".start") as HTMLElement).append(first);
+        wrapper.querySelector(".end")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
+    });
+
+    // The nested item joins the item above; Backspace removes no text, so the offset stays.
+    test("Should keep the offset when Backspace merges a nested item into its parent", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero<ul><li class="end">first</li></ul></li></ul>`);
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        (wrapper.querySelector(".start") as HTMLElement).append(first);
+        wrapper.querySelector(".start ul")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
+    });
+
+    // An empty text holds nothing to remove; Backspace steps over it to the emoji before.
+    test("Should step over an empty text to the emoji Backspace removes", () => {
+        const wrapper = createWrapper(`<p><strong class="start">zero😀</strong>first</p>`);
+        (wrapper.querySelector(".start") as HTMLElement).append(document.createTextNode(""));
+        const first = getLastChild(wrapper, "p");
+        selectRange(first, "".length, first, "".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        (getFirstChild(wrapper, ".start") as Text).data = "zero";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
+    });
+
+    // The caret stands on the paragraph after the strong, so Backspace removes the strong's last character.
+    test("Should step back into the node before a caret placed on its parent", () => {
+        const wrapper = createWrapper(`<p>zero<strong class="start">first</strong>second</p>`);
+        const second = getLastChild(wrapper, "p");
+        selectRange(second, "".length, second, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        getFirstChild(wrapper, ".start").textContent = "firs";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "firs".length);
+    });
+
+    // The strong still stands before the caret on its line, so the caret stays on this item.
+    test("Should keep the caret on the item when Backspace empties the text after a strong", () => {
+        const wrapper = createWrapper(`<ul><li><strong class="start">zero</strong>f</li><li>second</li></ul>`);
+        const text = getLastChild(wrapper, "li");
+        selectRange(text, "f".length, text, "f".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
+            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+
+        (text as Text).remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
     });
 });

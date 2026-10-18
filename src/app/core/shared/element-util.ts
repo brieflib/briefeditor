@@ -21,6 +21,7 @@ export function getChildFragment(child: Element) {
     return fragment;
 }
 
+/** The child of `findTill` holding `child`. A point on `findTill` itself stands in no child, so `findTill` is returned instead of climbing past it. */
 export function getBlockElement(findTill: HTMLElement, child: HTMLElement | Node) {
     if (child === findTill) {
         return findTill;
@@ -47,7 +48,7 @@ export function getRootElement(findTill: HTMLElement, child: HTMLElement | Node)
 }
 
 /** The closest element of `display` holding `child`, below `findTill`. `findTill` itself is returned for a point on it, instead of climbing past it. */
-export function getElement(findTill: HTMLElement, child: HTMLElement, display: Display[]) {
+export function getElement(findTill: HTMLElement, child: HTMLElement | Text, display: Display[]) {
     if (child === findTill) {
         return findTill;
     }
@@ -60,7 +61,7 @@ export function getElement(findTill: HTMLElement, child: HTMLElement, display: D
         return null;
     }
 
-    return child;
+    return child as HTMLElement;
 }
 
 export function getElementByTagName(findTill: HTMLElement, tagName: string, cursorPosition = getCursorPosition()) {
@@ -92,12 +93,12 @@ export function getNextNotEmptyNode(findTill: HTMLElement, node: Node | null) {
     return node;
 }
 
-export function getPreviousNode(findTill: HTMLElement, node: Node) {
-    while (node.parentElement && node !== findTill && !node.previousSibling) {
-        node = node.parentElement;
+export function getPreviousNode(findTill: HTMLElement, current: Node) {
+    while (current.parentElement && current !== findTill && !current.previousSibling) {
+        current = current.parentElement;
     }
 
-    return node.previousSibling;
+    return current.previousSibling;
 }
 
 export function getFirstText(node: Node) {
@@ -106,6 +107,24 @@ export function getFirstText(node: Node) {
     }
 
     return node as HTMLElement;
+}
+
+export function countPreviousSelfClose(findTill: HTMLElement, current: Node) {
+    let count = 0;
+    if (isSchemaContain(current, [Display.SelfClose])) {
+        count = 1;
+    }
+    let maybeSelfClose: Node | null = getPreviousNode(findTill, current);
+
+    while (maybeSelfClose) {
+        if (isSchemaContain(maybeSelfClose, [Display.SelfClose])) {
+            count++;
+        }
+
+        maybeSelfClose = getPreviousNode(findTill, maybeSelfClose);
+    }
+
+    return count;
 }
 
 export function getLastText(node: Node) {
@@ -125,9 +144,47 @@ export function getLastText(node: Node) {
     return currentNode as HTMLElement;
 }
 
-export function getLastNonEmptyText(node: Node): HTMLElement {
-    if (node.nodeType === Node.TEXT_NODE && node.textContent) {
-        return node as HTMLElement;
+export function getFirstTextNew(node: Node | null) {
+    while (node && node.firstChild && !(node instanceof Text)) {
+        node = node.firstChild;
+    }
+
+    return node;
+}
+
+export function getLastNode(node: Node | null) {
+    let currentNode: Node | ChildNode | null = node;
+
+    while (currentNode && currentNode.lastChild) {
+        currentNode = currentNode.lastChild;
+    }
+
+    return currentNode;
+}
+
+export function getLastNonEmptyText(node: Node) {
+    if (node instanceof Text && node.data) {
+        return node;
+    }
+
+    const children = Array.from(node.childNodes);
+    for (let i = children.length - 1; i >= 0; i--) {
+        const child = children[i];
+        if (child && child.textContent) {
+            return getLastNonEmptyText(child);
+        }
+    }
+
+    return getLastText(node);
+}
+
+export function getLastNonEmptyTextNew(node: Node | null) {
+    if (node === null) {
+        return;
+    }
+
+    if (node instanceof Text && node.data) {
+        return node;
     }
 
     const children = Array.from(node.childNodes);
@@ -349,4 +406,30 @@ function insertIntoList(contentEditable: HTMLElement, root: HTMLElement, cursorP
     const splitPoint = readSplitPoint(contentEditable, root, cursorPosition);
 
     // splitListAround(splitPoint.root, cursorPosition, node, splitPoint.splitIndex);
+}
+
+export function isPrintableKey(event: KeyboardEvent) {
+    return event.key.length === 1;
+}
+
+export function charLengthBefore(data: string, offset: number) {
+    if (offset >= 2 && isLowSurrogate(data.charCodeAt(offset - 1)) && isHighSurrogate(data.charCodeAt(offset - 2))) {
+        return 2;
+    }
+    return 1;
+}
+
+export function charLengthAfter(data: string, offset: number) {
+    if (offset + 1 < data.length && isHighSurrogate(data.charCodeAt(offset)) && isLowSurrogate(data.charCodeAt(offset + 1))) {
+        return 2;
+    }
+    return 1;
+}
+
+function isHighSurrogate(code: number) {
+    return code >= 0xD800 && code <= 0xDBFF;
+}
+
+function isLowSurrogate(code: number) {
+    return code >= 0xDC00 && code <= 0xDFFF;
 }

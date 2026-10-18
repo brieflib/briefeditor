@@ -45,7 +45,7 @@ import {
  */
 export default function execCommand(contentEditable: HTMLElement, command: Command): CursorPosition {
     contentEditable.dispatchEvent(new CustomEvent(CommandEvent.HistoryStart));
-    const cursorAnchor = getCursorAnchor(contentEditable);
+    const cursorAnchor = getCursorAnchor(contentEditable, getCursorPosition(), command);
 
     switch (command.action)  {
         case Action.Attribute:
@@ -59,7 +59,6 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             break;
         case Action.Tag:
             applyTagCommand(contentEditable, command);
-            getCursorPosition();
             break;
         case Action.Unwrap:
             applyUnwrapCommand(contentEditable, command);
@@ -78,7 +77,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             break;
         case Action.Keyboard:
             if (command.event instanceof KeyboardEvent) {
-                handleKeyboardEvent(contentEditable, command.event as KeyboardEvent);
+                handleKeyboardEvent(contentEditable, command.event);
                 Carrier.getInstance().removeCarrier();
             }
             break;
