@@ -1766,7 +1766,8 @@ describe("List side events", () => {
             </ol>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const second = getFirstChild(wrapper, ".start");
+        selectRange(second, "".length, second, "".length);
 
         handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
 

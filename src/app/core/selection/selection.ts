@@ -80,6 +80,7 @@ export function getFirstSelectedRoot(contentEditable: HTMLElement, cursorPositio
     return firstSelectedRoot;
 }
 
+// ToDo: return first and last elements
 export function getSelectedBlock(findTill: HTMLElement, cursorPosition: CursorPosition = getCursorPosition()): HTMLElement[] {
     return getSelected(findTill, cursorPosition, SelectionType.Block);
 }

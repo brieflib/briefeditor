@@ -25,6 +25,7 @@ import {
     splitAtCursor
 } from "@/core/shared/type/cursor-position";
 import {convertList, ListClass, minusLevel, normalizeLists, parseList, plusLevel} from "@/core/list/type/list-class";
+import {normalizeNew} from "@/core/normalize/util/normalize-util";
 
 /** A list nests five wrappers deep at most: one for the item's own level, one per level above it. */
 const deepestNestedLevel = 6;
@@ -243,7 +244,10 @@ export function mergeItems(contentEditable: HTMLElement, firstBlock: HTMLElement
         return;
     }
 
-    firstLine.append(lastList.listContent);
+    // The two lines join into one: their neighbouring texts and inlines collapse together
+    const line = new DocumentFragment();
+    line.append(...firstLine.childNodes, lastList.listContent);
+    firstLine.append(normalizeNew(contentEditable, line));
 
     // The lines between the two blocks were deleted, so the merged run is what stands up to the first item and after the last one
     const merged = [...firstLists.slice(0, firstIndex + 1), ...lastLists.slice(lastIndex + 1)];

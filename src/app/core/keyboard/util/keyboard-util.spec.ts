@@ -1,17 +1,16 @@
 import {
     createWrapper,
+    expectCursor,
     expectHtml,
     getFirstChild,
     getLastChild,
+    keydown,
+    querySelector,
     selectRange
 } from "@/core/shared/test-util";
-import {
-    mergeBlocksNew,
-    mergeNextBlock,
-    mergePreviousBlock,
-    newLine
-} from "@/core/keyboard/util/keyboard-util";
+import {mergeBlocksNew, mergeNextBlock, mergePreviousBlock, newLine} from "@/core/keyboard/util/keyboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
+import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
 
 jest.mock("../../shared/range-util", () => ({
         getRange: jest.fn()
@@ -25,15 +24,18 @@ describe("Merge previous element", () => {
             <p><em class="start">first</em></p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        mergePreviousBlock(wrapper, getCursorPosition());
-
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p>zero<em>first</em></p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zero = getFirstChild(wrapper, "p");
+        expectCursor(cursorPosition, zero, 4);
     });
 
     test("When cursor is at the start should merge two elements", () => {
@@ -42,15 +44,17 @@ describe("Merge previous element", () => {
             <h1 class="start">first <em>second</em></h1>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        mergePreviousBlock(wrapper, getCursorPosition());
-
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p>zerofirst <em>second</em></p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
     });
 
     test("When cursor is at the start should remove previous empty element", () => {
@@ -59,15 +63,59 @@ describe("Merge previous element", () => {
             <h1 class="start">first <em>second</em></h1>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        mergePreviousBlock(wrapper, getCursorPosition());
-
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <h1>first <em>second</em></h1>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 0);
+    });
+
+    test("When cursor is at the start of empty element should remove a line break of previous empty element", () => {
+        const wrapper = createWrapper(`
+          <p><br/><br/></p>
+          <h1 class="start"><br/></h1>
+          <p>zero</p>
+      `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        mergeBlocksNew(wrapper);
+        expectHtml(wrapper.innerHTML, `
+          <p><br/></p>
+          <h1><br/></h1>
+          <p>zero</p>
+      `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 0);
+    });
+
+    test("When cursor is at the start should remove previous br element", () => {
+        const wrapper = createWrapper(`
+            <p><br/><br/><br/></p>
+            <h1 class="start">first <em>second</em></h1>
+        `);
+
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        mergeBlocksNew(wrapper);
+        expectHtml(wrapper.innerHTML, `
+            <p><br/><br/></p>
+            <h1>first <em>second</em></h1>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 0);
     });
 
     test("When cursor is at the start should merge li with li", () => {
@@ -78,17 +126,19 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        mergePreviousBlock(wrapper, getCursorPosition());
-
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zerofirst <em>second</em></li>
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 4);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 4);
     });
 
     test("When cursor is at the start should merge p and li", () => {
@@ -99,15 +149,17 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        mergePreviousBlock(wrapper, getCursorPosition());
-
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p>zerofirst <em>second</em></p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
     });
 
     test("When cursor is at the start of nested list should merge li with li", () => {
@@ -121,17 +173,19 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const third = getFirstChild(wrapper, ".start");
+        selectRange(third, "".length, third, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        mergePreviousBlock(wrapper, getCursorPosition());
-
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first<em>second</em>third</li>
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "em"), 6);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "em"), 6);
     });
 
     test("When cursor is at the start of the list containing nested list, merge li with li", () => {
@@ -146,10 +200,11 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const third = getFirstChild(wrapper, ".start");
+        selectRange(third, "".length, third, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        mergePreviousBlock(wrapper, getCursorPosition());
-
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first <em>second</em>third
@@ -160,7 +215,8 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li em"), 6);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li em"), 6);
     });
 
     test("Cursor is at the start and next element is a list. Should merge two elements", () => {
@@ -172,10 +228,11 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        mergePreviousBlock(wrapper);
-
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p>zerofirst</p>
             <ul>
@@ -183,7 +240,8 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
     });
 });
 
@@ -204,10 +262,10 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        selectRange(emptyText, "".length, emptyText, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeNextBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first</li>
@@ -215,7 +273,8 @@ describe("Merge next element", () => {
             <p>second</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
     });
 
     test("Should merge next first empty list with two other nested lists", () => {
@@ -235,10 +294,10 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        selectRange(emptyText, "".length, emptyText, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeNextBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first
@@ -250,7 +309,8 @@ describe("Merge next element", () => {
             <p>third</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
     });
 
     test("Should merge next first empty list with two other nested lists with different types", () => {
@@ -261,7 +321,7 @@ describe("Merge next element", () => {
                         <li>first</li>
                     </ul>
                     <ol>
-                        <li>second</li>                    
+                        <li>second</li>
                     </ol>
                 </li>
             </ul>
@@ -272,10 +332,10 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        selectRange(emptyText, "".length, emptyText, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeNextBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first
@@ -287,7 +347,8 @@ describe("Merge next element", () => {
             <p>second</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
     });
 
     test("Should merge next first empty list with different type", () => {
@@ -307,10 +368,10 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        selectRange(emptyText, "".length, emptyText, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeNextBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>first</li>
@@ -321,7 +382,8 @@ describe("Merge next element", () => {
             <p>third</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ol li"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ol li"), 0);
     });
 
     test("Should merge previous first empty list", () => {
@@ -336,10 +398,11 @@ describe("Merge next element", () => {
             <p>second</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         mergePreviousBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first</li>
@@ -347,7 +410,8 @@ describe("Merge next element", () => {
             <p>second</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
     });
 
     test("Should merge previous first empty list with different type", () => {
@@ -362,10 +426,11 @@ describe("Merge next element", () => {
             <p>second</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         mergePreviousBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>first</li>
@@ -373,7 +438,8 @@ describe("Merge next element", () => {
             <p>second</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ol li"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ol li"), 0);
     });
 
     test("Should merge previous first empty list with different type and keep other nested list", () => {
@@ -391,10 +457,11 @@ describe("Merge next element", () => {
             <p>third</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         mergePreviousBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>first
@@ -406,7 +473,8 @@ describe("Merge next element", () => {
             <p>third</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ol li"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ol li"), 0);
     });
 
     test("Should merge previous first empty list with different type and keep other nested lists", () => {
@@ -422,10 +490,11 @@ describe("Merge next element", () => {
             <p>third</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         mergePreviousBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first
@@ -437,7 +506,8 @@ describe("Merge next element", () => {
             <p>third</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
     });
 
     test("Should merge previous first empty list with different type and keep other nested lists and heading", () => {
@@ -458,10 +528,11 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        selectRange(getFirstChild(wrapper, ".end"), "".length, getFirstChild(wrapper, ".end"), "".length);
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(second, "".length, second, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         mergePreviousBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <h1>first</h1>
             <ol>
@@ -474,7 +545,8 @@ describe("Merge next element", () => {
             <p>fourth</p>
         `);
 
-        // expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 0);
     });
 
     test("Should merge previous first empty list (with br) with different type and keep other nested lists and heading", () => {
@@ -495,10 +567,11 @@ describe("Merge next element", () => {
         const start = wrapper.querySelector(".start") as Node;
         start.insertBefore(emptyText, start.firstChild);
 
-        selectRange(getFirstChild(wrapper, ".end"), "".length, getFirstChild(wrapper, ".end"), "".length);
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(second, "".length, second, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         mergePreviousBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <h1>first</h1>
             <ol>
@@ -511,7 +584,8 @@ describe("Merge next element", () => {
             <p>fourth</p>
         `);
 
-        // expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 0);
     });
 
     test("When cursor is at the end should merge two elements", () => {
@@ -520,15 +594,17 @@ describe("Merge next element", () => {
             <h1>first <em>second</em></h1>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeNextBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <p>zerofirst <em>second</em></p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
     });
 
     test("When cursor is at the end should merge empty H1", () => {
@@ -537,32 +613,36 @@ describe("Merge next element", () => {
             <h1><br></h1>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeNextBlock(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 4);
     });
 
     test("When cursor is at the empty element should remove it", () => {
         const wrapper = createWrapper(`
             <h1 class="start"></h1>
-            <p>zero</p>            
+            <p>zero</p>
         `);
 
-        selectRange(wrapper.querySelector(".start") as Node, "".length, wrapper.querySelector(".start") as Node, "".length);
+        const h1 = querySelector(wrapper, ".start");
+        selectRange(h1, "".length, h1, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeNextBlock(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 0);
     });
 
     test("When cursor is at the end and next element is list should merge two elements", () => {
@@ -574,16 +654,18 @@ describe("Merge next element", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "first".length, first, "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeNextBlock(wrapper);
-
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
             <h1>firstsecond</h1>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 5);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 5);
     });
 });
 
@@ -594,20 +676,22 @@ describe("Merge first levels", () => {
             <h1 class="end">first <em>second</em></h1>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p>ze rst <em>second</em></p>
         `);
 
-        //expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "ze ".length);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "ze ".length);
     });
 });
 
 describe("Merge P and List selections", () => {
-
     test("Merging two lists with P between them", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -633,10 +717,12 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const second = getFirstChild(wrapper, ".start");
+        const fifth = getFirstChild(wrapper, ".end");
+        selectRange(second, "se".length, fifth, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
              <ul>
                  <li>first
@@ -653,7 +739,8 @@ describe("Merge P and List selections", () => {
              </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ol li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ol li"), 3);
     });
 
     test("Merging two lists", () => {
@@ -678,10 +765,12 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const second = getFirstChild(wrapper, ".start");
+        const fifth = getFirstChild(wrapper, ".end");
+        selectRange(second, "se".length, fifth, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
              <ul>
                  <li>first
@@ -698,7 +787,8 @@ describe("Merge P and List selections", () => {
              </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ol li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ol li"), 3);
     });
 
     test("Merging lists when end list is at deeper nesting level that start", () => {
@@ -725,10 +815,12 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const second = getFirstChild(wrapper, ".start");
+        const fifth = getFirstChild(wrapper, ".end");
+        selectRange(second, "se".length, fifth, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first
@@ -744,7 +836,8 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ol li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ol li"), 3);
     });
 
     test("Selection from P into first LI should merge into P", () => {
@@ -755,15 +848,18 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze rst</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
     });
 
     test("Selection from P into multiple LIs should merge into P", () => {
@@ -775,15 +871,18 @@ describe("Merge P and List selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze cond</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
     });
 
     test("Selection from LI into following P should merge into LI", () => {
@@ -794,17 +893,20 @@ describe("Merge P and List selections", () => {
             <p class="end">first</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze rst</li>
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
     });
 
     test("Selection of entire list and following P should result in UL", () => {
@@ -815,17 +917,20 @@ describe("Merge P and List selections", () => {
             <p class="end">first</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, first, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("k"));
 
         mergeBlocksNew(wrapper, "k");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>krst</li>
             </ul>
         `);
 
-        // expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 1);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 1);
     });
 });
 
@@ -848,10 +953,12 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze rst
@@ -865,7 +972,8 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
     });
 
     test("Selection from start LI into nested LI should merge and flatten", () => {
@@ -879,17 +987,20 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fir".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fir".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze st</li>
             </ul>
         `);
 
-        //expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "ze ".length);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li"), "ze ".length);
     });
 
     test("Selection from start LI into nested LI with multiple LI should merge and flatten", () => {
@@ -904,10 +1015,12 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fir".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fir".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze st
@@ -918,7 +1031,8 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
     });
 
     test("Selection from start LI into nested LI with deeper LI should not merge", () => {
@@ -936,10 +1050,12 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze rst
@@ -950,7 +1066,8 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
     });
 
     test("Selection from nested LI to outer LI should merge preserving structure", () => {
@@ -965,10 +1082,12 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "se".length);
+        const first = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(first, "fi".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
@@ -979,7 +1098,8 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ul li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ul li"), 3);
     });
 
     test("Selection spanning 3 nesting levels should merge preserving structure", () => {
@@ -998,10 +1118,12 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "th".length);
+        const second = getFirstChild(wrapper, ".start");
+        const third = getFirstChild(wrapper, ".end");
+        selectRange(second, "se".length, third, "th".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
@@ -1016,7 +1138,8 @@ describe("Merge nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ul li ul li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ul li ul li"), 3);
     });
 });
 
@@ -1033,15 +1156,18 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze cond</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
     });
 
     test("Selection from P into nested LI containing nested LI should not merge into P", () => {
@@ -1056,10 +1182,12 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze rst</p>
             <ul>
@@ -1067,7 +1195,8 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
     });
 
     test("Selection from P into nested LI containing nested LI of other type should not merge into P", () => {
@@ -1089,10 +1218,12 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "th".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const third = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, third, "th".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze ird</p>
             <ol>
@@ -1100,7 +1231,8 @@ describe("Merge P and nested list selections", () => {
             </ol>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
     });
 
     test("Selection from nested LI into following P should merge into LI", () => {
@@ -1115,10 +1247,12 @@ describe("Merge P and nested list selections", () => {
             <p class="end">second</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "se".length);
+        const first = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(first, "fi".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
@@ -1129,7 +1263,8 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ul li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ul li"), 3);
     });
 
     test("Selection from P spanning outer and nested LI should merge into P", () => {
@@ -1145,15 +1280,18 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "th".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const third = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, third, "th".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze ird</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
     });
 
     test("Selection from P spanning outer and first nested LI should merge", () => {
@@ -1169,10 +1307,12 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze cond</p>
             <ul>
@@ -1180,7 +1320,8 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
     });
 
     test("Selection from H1 spanning outer and first nested LI should merge", () => {
@@ -1196,10 +1337,12 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <h1 class="start">ze rst</h1>
             <ul>
@@ -1211,7 +1354,8 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 3);
     });
 
     test("Selection from H1 spanning outer and second nested LI should merge", () => {
@@ -1227,10 +1371,12 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <h1 class="start">ze cond</h1>
             <ul>
@@ -1238,7 +1384,8 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 3);
     });
 
     test("Selection from deeply nested LI into P should merge into LI", () => {
@@ -1257,10 +1404,12 @@ describe("Merge P and nested list selections", () => {
             <p class="end">third</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "se".length, getFirstChild(wrapper, ".end"), "th".length);
+        const second = getFirstChild(wrapper, ".start");
+        const third = getFirstChild(wrapper, ".end");
+        selectRange(second, "se".length, third, "th".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
@@ -1275,7 +1424,8 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ul li ul li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li ul li ul li"), 3);
     });
 
     test("Selection from P through entire nested list structure should merge into P", () => {
@@ -1291,15 +1441,18 @@ describe("Merge P and nested list selections", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "th".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const third = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, third, "th".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">ze ird</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
     });
 });
 
@@ -1313,17 +1466,20 @@ describe("Merge complete list selections", () => {
             <p class="end">second</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".end"), "se".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li> cond</li>
             </ul>
         `);
 
-        // expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 1);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 1);
     });
 
     test("Selection from P through entire UL to following P should merge into first P", () => {
@@ -1335,15 +1491,18 @@ describe("Merge complete list selections", () => {
             <p class="end">second</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p>ze cond</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3);
     });
 });
 
@@ -1358,17 +1517,20 @@ describe("Merge mixed UL/OL selections", () => {
             </ol>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze rst</li>
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
     });
 
     test("Selection spanning UL, P, and OL should merge into UL", () => {
@@ -1382,17 +1544,20 @@ describe("Merge mixed UL/OL selections", () => {
             </ol>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "se".length);
+        const zero = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>ze cond</li>
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 3);
     });
 });
 
@@ -1403,15 +1568,18 @@ describe("Cursor position after key press", () => {
             <p class="end">second</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "se".length);
+        const first = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(first, "fi".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p>fi cond</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3, getLastChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3, getLastChild(wrapper, "p"), 3);
     });
 
     test("Cursor after merging block with nested element", () => {
@@ -1420,15 +1588,18 @@ describe("Cursor position after key press", () => {
             <p><strong class="end">second</strong></p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "fi".length, getFirstChild(wrapper, ".end"), "se".length);
+        const first = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(first, "fi".length, second, "se".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown(" "));
 
         mergeBlocksNew(wrapper, " ");
-
         expectHtml(wrapper.innerHTML, `
             <p>fi <strong>cond</strong></p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3, getFirstChild(wrapper, "p"), 3);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 3, getFirstChild(wrapper, "p"), 3);
     });
 
     test("When cursor is at the start of empty element should remove previous empty element", () => {
@@ -1437,15 +1608,17 @@ describe("Cursor position after key press", () => {
             <p class="start"><br/></p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         mergePreviousBlock(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <p><br/></p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 0, getLastChild(wrapper, "p"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 0, getLastChild(wrapper, "p"), 0);
     });
 
     test("When cursor is at the start of empty element should remove next empty element", () => {
@@ -1454,15 +1627,17 @@ describe("Cursor position after key press", () => {
             <p><br/></p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeNextBlock(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <p><br/></p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 0, getLastChild(wrapper, "p"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 0, getLastChild(wrapper, "p"), 0);
     });
 
     test("When cursor is at the start of empty element should remove start element", () => {
@@ -1471,15 +1646,17 @@ describe("Cursor position after key press", () => {
             <p class="end">first</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeNextBlock(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <p>first</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 0, getLastChild(wrapper, "p"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 0, getLastChild(wrapper, "p"), 0);
     });
 });
 
@@ -1489,15 +1666,17 @@ describe("Insert break", () => {
             <p class="start">first</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "fir".length, getFirstChild(wrapper, ".start"), "fir".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "fir".length, first, "fir".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">fir</p><p>st</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
     });
 
     test("Should insert p before start of p", () => {
@@ -1505,15 +1684,17 @@ describe("Insert break", () => {
             <p class="start">first</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <p><br></p><p class="start">first</p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
     });
 
     test("Should insert p after end of p", () => {
@@ -1521,15 +1702,17 @@ describe("Insert break", () => {
             <p class="start">first</p>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "first".length, first, "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">first</p><p><br></p>
         `);
 
-        // expectCursor(cursorPosition, wrapper.querySelector("p + p br"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, wrapper.querySelector("p + p br"), 0);
     });
 
     test("Should divide p between inline formatting", () => {
@@ -1537,16 +1720,17 @@ describe("Insert break", () => {
             <p class="start">fir<em>st</em></p>
         `);
 
-        const emText = (wrapper.querySelector(".start em") as HTMLElement).firstChild as Node;
-        selectRange(emText, "s".length, emText, "s".length);
+        const st = getFirstChild(wrapper, ".start em");
+        selectRange(st, "s".length, st, "s".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">fir<em>s</em></p><p><em>t</em></p>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p + p em"), "".length);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p em"), "".length);
     });
 
     test("Should not leave the emptied formatting behind when the line divides at its start", () => {
@@ -1554,15 +1738,17 @@ describe("Insert break", () => {
             <p class="start">zero<strong>bold</strong></p>
         `);
 
-        const boldText = (wrapper.querySelector(".start strong") as HTMLElement).firstChild as Node;
-        selectRange(boldText, "".length, boldText, "".length);
+        const bold = getFirstChild(wrapper, ".start strong");
+        selectRange(bold, "".length, bold, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p + p strong"), "".length);
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">zero</p><p><strong>bold</strong></p>
         `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p strong"), "".length);
     });
 
     test("Should not leave an empty text node behind when the line divides at the start of one", () => {
@@ -1570,11 +1756,11 @@ describe("Insert break", () => {
             <p class="start"><em>ze</em>ro</p>
         `);
 
-        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".start"), "".length);
+        const ro = getLastChild(wrapper, ".start");
+        selectRange(ro, "".length, ro, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
-
         expectHtml(wrapper.innerHTML, `
             <p class="start"><em>ze</em></p><p>ro</p>
         `);
@@ -1582,6 +1768,9 @@ describe("Insert break", () => {
         // The node the line was divided at is left holding nothing, and a node standing for no content is
         // not written back into either side. It shows in no markup, so it is counted instead.
         expect((wrapper.querySelector(".start") as HTMLElement).childNodes.length).toBe(1);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
     });
 
     test("Should keep the break whole on the side of the line it was written on", () => {
@@ -1589,14 +1778,17 @@ describe("Insert break", () => {
             <p class="start">fir<br>st</p>
         `);
 
-        selectRange(getLastChild(wrapper, ".start"), "".length, getLastChild(wrapper, ".start"), "".length);
+        const st = getLastChild(wrapper, ".start");
+        selectRange(st, "".length, st, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
-
         expectHtml(wrapper.innerHTML, `
             <p class="start">fir<br></p><p>st</p>
         `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
     });
 
     test("Should divide list item", () => {
@@ -1606,10 +1798,11 @@ describe("Insert break", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "fir".length, getFirstChild(wrapper, ".start"), "fir".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "fir".length, first, "fir".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>fir</li>
@@ -1617,7 +1810,8 @@ describe("Insert break", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "li + li"), "".length);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li + li"), "".length);
     });
 
     test("Should insert empty list item", () => {
@@ -1627,10 +1821,11 @@ describe("Insert break", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "first".length, first, "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first</li>
@@ -1638,7 +1833,8 @@ describe("Insert break", () => {
             </ul>
         `);
 
-        // expectCursor(cursorPosition, wrapper.querySelector("li + li br"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, wrapper.querySelector("li + li br"), 0);
     });
 
     test("Should insert empty list item before the nested list", () => {
@@ -1652,10 +1848,11 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "first".length, first, "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>first</li>
@@ -1667,7 +1864,8 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        // expectCursor(cursorPosition, wrapper.querySelector("li + li br"), 0);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, wrapper.querySelector("li + li br"), 0);
     });
 
     test("Should divide list item and move the nested list to the divided part", () => {
@@ -1681,10 +1879,11 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "fir".length, getFirstChild(wrapper, ".start"), "fir".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "fir".length, first, "fir".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>fir</li>
@@ -1696,7 +1895,8 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "li + li"), "".length);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li + li"), "".length);
     });
 
     test("Should keep the nested list when empty list item is inserted before", () => {
@@ -1710,10 +1910,11 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li><br></li>
@@ -1725,7 +1926,8 @@ describe("Insert break", () => {
             </ol>
         `);
 
-        // expectCursor(cursorPosition, getFirstChild(wrapper, "li + li"), "".length);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "li + li"), "".length);
     });
 
     test("Should insert the empty item on the level of the deeply nested one it follows", () => {
@@ -1743,11 +1945,11 @@ describe("Insert break", () => {
             </ul>
         `);
 
-        selectRange(getFirstChild(wrapper, ".start"), "second".length, getFirstChild(wrapper, ".start"), "second".length);
+        const second = getFirstChild(wrapper, ".start");
+        selectRange(second, "second".length, second, "second".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         newLine(wrapper, getCursorPosition());
-        // expectCursor(cursorPosition, wrapper.querySelector("ul ul li + li br"), 0);
-
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
@@ -1762,6 +1964,9 @@ describe("Insert break", () => {
                 </li>
             </ul>
         `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, wrapper.querySelector("ul ul li + li br"), 0);
     });
 
 });

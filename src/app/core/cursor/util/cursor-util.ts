@@ -315,7 +315,7 @@ export function getCursorAnchor(contentEditable: HTMLElement,
     if (command?.action === Action.Keyboard && event instanceof KeyboardEvent) {
         if (isPrintableKey(event)) {
             // The typed text replaces the selection and the caret stands right after it, on the same line.
-            return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start + event.key.length, 0, 0);
+            return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start + event.key.length, 0);
         }
 
         if (event.key === "Backspace") {
@@ -329,17 +329,15 @@ export function getCursorAnchor(contentEditable: HTMLElement,
 }
 
 /** The anchor as a caret at `start`, counted from the block after `previousBlock`. */
-// ToDo: change startIsAfterTagCount to boolean | number.
 function collapseAnchor(previousBlock: Node | null,
                         start: number,
-                        startIsAfter: number | boolean,
-                        endIsAfter: number | boolean): CursorAnchor {
+                        startIsAfter: number | boolean): CursorAnchor {
     return {
         previousBlock: previousBlock,
         start: start,
         end: start,
         startIsAfter: startIsAfter,
-        endIsAfter: endIsAfter,
+        endIsAfter: startIsAfter,
         length: 0
     };
 }
@@ -365,16 +363,30 @@ function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: Cursor
     const previousText = getLastNonEmptyTextNew(previous);
     // Nothing stands before the caret, so Backspace has nothing to remove.
     if (!previous || !previousText) {
-        return collapseAnchor(cursorAnchor.previousBlock, 0, 0, 0);
+        return collapseAnchor(cursorAnchor.previousBlock, 0, 0);
     }
 
     const selfCloseBefore = countPreviousSelfClose(contentEditable, getLastNode(previous));
 
     // Backspace joins the line into the line above, so the caret stands at the end of the line above.
+    // if (isAtLineStart(contentEditable, container, 0)) {
+    //     const previousLineBlock = getBlockElement(contentEditable, previousText);
+    //     const start = getOffsetFromBlock(previousLineBlock, previousText, previousText.textContent?.length ?? 0);
+    //     return collapseAnchor(previousLineBlock.previousSibling, start, selfCloseBefore);
+    // }
+
+    // Backspace joins the line into the line above, so the caret stands at the end of the line above.
     if (isAtLineStart(contentEditable, container, 0)) {
         const previousLineBlock = getBlockElement(contentEditable, previousText);
+        // An empty line of another kind only loses a br, so the caret counts from the block before its own,
+        // which falls back to the editor's start once the emptied line is gone.
+
+        if (isEmptyLine(previousLineBlock, getBlockElement(contentEditable, container))) {
+            return collapseAnchor(cursorAnchor.previousBlock, 0, false);
+        }
+
         const start = getOffsetFromBlock(previousLineBlock, previousText, previousText.textContent?.length ?? 0);
-        return collapseAnchor(previousLineBlock.previousSibling, start, selfCloseBefore, selfCloseBefore);
+        return collapseAnchor(previousLineBlock.previousSibling, start, selfCloseBefore);
     }
 
     // The character before the caret is the last one of the text before it.
@@ -383,8 +395,16 @@ function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: Cursor
     }
 
     // A self-close tag holds no text, so removing it keeps the offset.
-    return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, selfCloseBefore, selfCloseBefore);
+    return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, selfCloseBefore);
 }
+
+/** Whether `block` is an empty line other than `caretBlock`: Backspace removes one of its brs, not the block after it. */
+export function isEmptyLine(block: Node | null, caretBlock: Node) {
+    return block instanceof HTMLElement && block !== caretBlock && block.hasChildNodes() &&
+        Array.from(block.childNodes).every(child => child.nodeName === "BR");
+}
+
+
 
 /** The anchor after Backspace removes the character before `offset` in `text`. */
 function removeCharacterBefore(contentEditable: HTMLElement, cursorAnchor: CursorAnchor, text: Text, offset: number) {
@@ -392,7 +412,7 @@ function removeCharacterBefore(contentEditable: HTMLElement, cursorAnchor: Curso
     const start = cursorAnchor.start - deletedLength;
     // The emptied line and the end of the line above count to the same offset, so the caret steps after it.
     const isAfterTag = start > 0 && isAtLineStart(contentEditable, text, offset - deletedLength);
-    return collapseAnchor(cursorAnchor.previousBlock, start, isAfterTag, isAfterTag);
+    return collapseAnchor(cursorAnchor.previousBlock, start, isAfterTag);
 }
 
 /** Whether the point stands at the start of its line: the closest paragraph, heading or list item. */

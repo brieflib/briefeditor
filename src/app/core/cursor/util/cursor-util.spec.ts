@@ -2,7 +2,7 @@ import {
     createWrapper,
     expectCursor,
     getFirstChild,
-    getLastChild,
+    getLastChild, keydown,
     querySelector,
     selectRange
 } from "@/core/shared/test-util";
@@ -258,8 +258,7 @@ describe("Cursor as a place in the text", () => {
         const zero = getFirstChild(wrapper, ".start");
         const end = wrapper.querySelector(".end") as HTMLElement
         selectRange(zero, "".length, end, 0);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "k"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("K"));
 
         wrapper.innerHTML = `<p class="start">z</p><p class="end">first</p>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -272,8 +271,7 @@ describe("Cursor as a place in the text", () => {
     test("Should leave the caret after the text typed over a selection reaching into the next block", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p><p>second</p>`);
         selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "k"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("k"));
 
         wrapper.innerHTML = `<p class="start">zekrst</p><p>second</p>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -331,8 +329,7 @@ describe("Cursor anchor after a keyboard edit", () => {
     test("Should stay the same", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         (wrapper.querySelector(".start") as HTMLElement).innerHTML = "<br>";
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -345,8 +342,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<p class="start">zero😀first</p>`);
         const text = getFirstChild(wrapper, ".start") as Text;
         selectRange(text, "zero😀".length, text, "zero😀".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         text.data = "zerofirst";
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -359,8 +355,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<ul><li>zero</li><li class="start">f</li></ul>`);
         const f = getFirstChild(wrapper, ".start");
         selectRange(f, "f".length, f, "f".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         (wrapper.querySelector(".start") as HTMLElement).innerHTML = "<br>";
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -374,8 +369,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><strong>f</strong>second</li></ul>`);
         const second = getLastChild(wrapper, ".start");
         selectRange(second, "".length, second, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         wrapper.querySelector(".start strong")?.remove();
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -389,8 +383,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const first = getFirstChild(wrapper, ".end strong");
         selectRange(first, "".length, first, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         const start = querySelector(wrapper, ".start");
         const strong = querySelector(wrapper, ".end strong");
@@ -410,8 +403,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const first = getLastChild(wrapper, ".start");
         selectRange(first, "".length, first, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         const br = querySelector(wrapper, ".start br");
         br.remove();
@@ -425,8 +417,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<p class="start">zero<br><br>first</p>`);
         const first = getLastChild(wrapper, ".start");
         selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         wrapper.querySelectorAll(".start br")[1]?.remove();
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -438,8 +429,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<p class="start">zero<br><br><br><br>first</p>`);
         const thirdBr = wrapper.querySelectorAll(".start br")[2] as HTMLElement;
         selectRange(thirdBr, "".length, thirdBr, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         thirdBr.remove();
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -453,8 +443,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<p class="start">zero<strong>first<br><br></strong>second</p>`);
         const second = getLastChild(wrapper, ".start");
         selectRange(second, "".length, second, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         wrapper.querySelectorAll(".start br")[1]?.remove();
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -467,8 +456,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<p class="start">zero<br><br>first<br><br>second</p>`);
         const second = getLastChild(wrapper, ".start");
         selectRange(second, "".length, second, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         wrapper.querySelectorAll(".start br")[3]?.remove();
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -480,8 +468,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<ul><li class="start"><br></li><li class="end">zero</li></ul>`);
         let zero = getFirstChild(wrapper, ".end");
         selectRange(zero, "".length, zero, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         wrapper.innerHTML = `<ul><li class="start">zero</li></ul>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -490,12 +477,25 @@ describe("Cursor anchor after a keyboard edit", () => {
         expectCursor(cursorPosition, zero, "".length);
     });
 
+    // An empty line above only loses a br; the caret's paragraph stays where it is.
+    test("Should keep the caret at the start of its paragraph when Backspace removes a line break of the empty paragraph above", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="middle"><br><br></p><p 
+  class="end">first</p><p>second</p>`);
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        wrapper.querySelectorAll(".middle br")[1]?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, first, "".length);
+    });
+
     test("Should set cursor at start of zero when Backspace removes second line break", () => {
         const wrapper = createWrapper(`<p class="start"><br><br></p><p class="end">zero</p>`);
         let zero = getFirstChild(wrapper, ".end");
         selectRange(zero, "".length, zero, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         wrapper.innerHTML = `<ul><li class="start"><br>zero</li></ul>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -508,8 +508,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<p class="start"><br><br><br></p><p class="end">zero</p>`);
         let zero = getFirstChild(wrapper, ".end");
         selectRange(zero, "".length, zero, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         wrapper.innerHTML = `<ul><li class="start"><br><br>zero</li></ul>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -522,8 +521,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="middle"><br><br></p><p class="end">first</p><p>second</p>`);
         const first = getFirstChild(wrapper, ".end");
         selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         wrapper.querySelectorAll(".middle br")[1]?.remove();
         querySelector(wrapper, ".middle").append(first);
@@ -537,8 +535,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<p class="start">zero<img src="image.png">first</p>`);
         const text = getLastChild(wrapper, ".start");
         selectRange(text, 0, text, 0);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         wrapper.querySelector(".start img")?.remove();
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -552,8 +549,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const first = getFirstChild(wrapper, ".start");
         selectRange(first, "".length, first, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         wrapper.querySelector(".be-image")?.remove();
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -566,8 +562,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
         const first = getFirstChild(wrapper, ".end");
         selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         (wrapper.querySelector(".start") as HTMLElement).append(first);
         wrapper.querySelector(".end")?.remove();
@@ -581,8 +576,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<ul><li class="start">zero<ul><li class="end">first</li></ul></li></ul>`);
         const first = getFirstChild(wrapper, ".end");
         selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         (wrapper.querySelector(".start") as HTMLElement).append(first);
         wrapper.querySelector(".start ul")?.remove();
@@ -598,8 +592,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const first = getLastChild(wrapper, "p");
         selectRange(first, "".length, first, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         (getFirstChild(wrapper, ".start") as Text).data = "zero";
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -612,8 +605,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<p>zero<strong class="start">first</strong>second</p>`);
         const second = getLastChild(wrapper, "p");
         selectRange(second, "".length, second, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         getFirstChild(wrapper, ".start").textContent = "firs";
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -626,8 +618,7 @@ describe("Cursor anchor after a keyboard edit", () => {
         const wrapper = createWrapper(`<ul><li><strong class="start">zero</strong>f</li><li>second</li></ul>`);
         const text = getLastChild(wrapper, "li");
         selectRange(text, "f".length, text, "f".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(),
-            {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})});
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         (text as Text).remove();
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);

@@ -2,6 +2,7 @@ import {cleanElementWhitespace} from "@/core/shared/element-util";
 import {Normalizer} from "@/core/normalize/normalize";
 import {CursorPosition} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
+import {Action} from "@/core/command/type/command";
 
 export function createWrapper(html: string) {
     const wrapper = document.createElement("div");
@@ -74,6 +75,10 @@ export function expectCursor(cursorPosition: CursorPosition | null | undefined, 
     expect(cursorPosition?.startOffset).toBe(startOffset);
     expect(cursorPosition?.endContainer).toBe(endContainer);
     expect(cursorPosition?.endOffset).toBe(endOffset);
+}
+
+export function keydown(key: string) {
+    return {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: key})};
 }
 
 function getFirstText(node: Node) {
