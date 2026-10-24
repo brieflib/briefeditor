@@ -15,7 +15,7 @@ import {
     getLastNode,
     getLastNonEmptyTextNew,
     getLastText,
-    getNextNode,
+    getNextNode, getNextNodeNew,
     getPreviousNode,
     getRootElement,
     isImageBlock,
@@ -369,22 +369,8 @@ function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: Cursor
     const selfCloseBefore = countPreviousSelfClose(contentEditable, getLastNode(previous));
 
     // Backspace joins the line into the line above, so the caret stands at the end of the line above.
-    // if (isAtLineStart(contentEditable, container, 0)) {
-    //     const previousLineBlock = getBlockElement(contentEditable, previousText);
-    //     const start = getOffsetFromBlock(previousLineBlock, previousText, previousText.textContent?.length ?? 0);
-    //     return collapseAnchor(previousLineBlock.previousSibling, start, selfCloseBefore);
-    // }
-
-    // Backspace joins the line into the line above, so the caret stands at the end of the line above.
     if (isAtLineStart(contentEditable, container, 0)) {
         const previousLineBlock = getBlockElement(contentEditable, previousText);
-        // An empty line of another kind only loses a br, so the caret counts from the block before its own,
-        // which falls back to the editor's start once the emptied line is gone.
-
-        if (isEmptyLine(previousLineBlock, getBlockElement(contentEditable, container))) {
-            return collapseAnchor(cursorAnchor.previousBlock, 0, false);
-        }
-
         const start = getOffsetFromBlock(previousLineBlock, previousText, previousText.textContent?.length ?? 0);
         return collapseAnchor(previousLineBlock.previousSibling, start, selfCloseBefore);
     }
@@ -397,14 +383,6 @@ function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: Cursor
     // A self-close tag holds no text, so removing it keeps the offset.
     return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, selfCloseBefore);
 }
-
-/** Whether `block` is an empty line other than `caretBlock`: Backspace removes one of its brs, not the block after it. */
-export function isEmptyLine(block: Node | null, caretBlock: Node) {
-    return block instanceof HTMLElement && block !== caretBlock && block.hasChildNodes() &&
-        Array.from(block.childNodes).every(child => child.nodeName === "BR");
-}
-
-
 
 /** The anchor after Backspace removes the character before `offset` in `text`. */
 function removeCharacterBefore(contentEditable: HTMLElement, cursorAnchor: CursorAnchor, text: Text, offset: number) {
@@ -463,13 +441,12 @@ function resolveBlockOffset(contentEditable: HTMLElement,
         return {node: contentEditable, offset: 0};
     }
 
-    const blockOffset = maybeNextBlockAndOffset(block, offset);
-    return enterNextNode(blockOffset.node as HTMLElement, findNodeAndOffset(blockOffset.node, blockOffset.offset),
-        cursorAfterTagsCount);
+    const start = findStartBlock(block, offset);
+    return enterNextNode(start.node, findNodeAndOffset(start.node, start.offset), cursorAfterTagsCount);
 }
 
 /** Finds the block that holds the offset, walking on from `block` to the next blocks while the offset runs past them. */
-function maybeNextBlockAndOffset(block: Node, offset: number): NodeOffset {
+function findStartBlock(block: Node, offset: number): NodeOffset {
     let length = block.textContent?.length ?? 0;
     // A line start at the end of a block's text belongs to the next block; an empty block holds it already.
     while (offset > length && block.nextSibling) {
@@ -483,38 +460,29 @@ function maybeNextBlockAndOffset(block: Node, offset: number): NodeOffset {
 
 /**
  * Moves a point standing at the end of its text to the start of the node after it, climbing out of the node's
- * parents up to the block, so the next node may be the next block. A point on a br stays: it is an empty line.
+ * parents up to the block, so the next node may be the next block.
  */
-function enterNextNode(block: HTMLElement,
+function enterNextNode(block: Node,
                        nodeOffset: NodeOffset,
                        cursorAfterTagsCount: number | boolean): NodeOffset {
-    if (cursorAfterTagsCount === 0 || !(nodeOffset.node instanceof Text)) {
-        return nodeOffset;
-    }
-
-    // Only a point at the end of its text has a node after it to enter.
-    const isAtNodeEnd = nodeOffset.offset === nodeOffset.node.data.length;
-    if (!isAtNodeEnd) {
-        return nodeOffset;
-    }
-
     let offset = 0;
     let next: Node | null = nodeOffset.node;
-    if (cursorAfterTagsCount === true) {
-        next = getFirstTextNew(getNextNode(block, next));
+
+    if (cursorAfterTagsCount === true || cursorAfterTagsCount === 1) {
+        next = getFirstTextNew(getNextNodeNew(block, next));
     }
+
     if (typeof cursorAfterTagsCount === "number") {
-        const count = cursorAfterTagsCount === 1 ? 2 : cursorAfterTagsCount;
+        const isSelfClose = isSchemaContain(nodeOffset.node, [Display.SelfClose]);
+        const count = isSelfClose ? cursorAfterTagsCount - 1 : cursorAfterTagsCount;
         for (let i = 0; i < count && next; i++) {
-            next = getFirstTextNew(getNextNode(block, next));
+            next = getFirstTextNew(getNextNodeNew(block, next));
         }
     }
+
     if (cursorAfterTagsCount === false || cursorAfterTagsCount === 0) {
         offset = nodeOffset.offset;
     }
-    if (!next) {
-        return nodeOffset;
-    }
 
-    return {node: next, offset: offset};
+    return next ? {node: next, offset: offset} : nodeOffset;
 }

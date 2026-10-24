@@ -325,7 +325,7 @@ describe("Cursor as a place in the text", () => {
     });
 });
 
-describe("Cursor anchor after a keyboard edit", () => {
+describe("Cursor anchor after a Backspace", () => {
     test("Should stay the same", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
@@ -479,8 +479,7 @@ describe("Cursor anchor after a keyboard edit", () => {
 
     // An empty line above only loses a br; the caret's paragraph stays where it is.
     test("Should keep the caret at the start of its paragraph when Backspace removes a line break of the empty paragraph above", () => {
-        const wrapper = createWrapper(`<p class="start">zero</p><p class="middle"><br><br></p><p 
-  class="end">first</p><p>second</p>`);
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="middle"><br><br></p><p class="end">first</p><p>second</p>`);
         const first = getFirstChild(wrapper, ".end");
         selectRange(first, "".length, first, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
@@ -489,6 +488,18 @@ describe("Cursor anchor after a keyboard edit", () => {
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Should keep the caret at the start of its paragraph when Backspace removes a line break of the paragraph with mixed conent above", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="middle"><br>first<br><br></p><p class="end">second</p><p>third</p>`);
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(second, "".length, second, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        wrapper.querySelectorAll(".middle br")[1]?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, second, "".length);
     });
 
     test("Should set cursor at start of zero when Backspace removes second line break", () => {
@@ -624,5 +635,239 @@ describe("Cursor anchor after a keyboard edit", () => {
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
+    });
+});
+
+describe("Cursor anchor after a Delete", () => {
+    test("Should stay the same", () => {
+        const wrapper = createWrapper(`<p class="start">z</p>`);
+        selectRange(getFirstChild(wrapper, ".start"), "".length, getFirstChild(wrapper, ".start"), "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        (wrapper.querySelector(".start") as HTMLElement).innerHTML = "<br>";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
+    });
+
+    // Delete removes the text after the caret, so the caret keeps its offset whatever the removed length.
+    test("Should keep the offset when Delete removes both units of an emoji", () => {
+        const wrapper = createWrapper(`<p class="start">zero😀first</p>`);
+        const text = getFirstChild(wrapper, ".start") as Text;
+        selectRange(text, "zero".length, text, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        text.data = "zerofirst";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, text, "zero".length);
+    });
+
+    // The emptied item and the end of the item above count to the same offset.
+    test("Should keep the caret on the item Delete emptied", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">f</li></ul>`);
+        const f = getFirstChild(wrapper, ".start");
+        selectRange(f, "".length, f, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        (wrapper.querySelector(".start") as HTMLElement).innerHTML = "<br>";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const br = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, br, 0);
+    });
+
+    // The emptied strong opened the item, so the caret stays at its start rather than the end of the item above.
+    test("Should keep the caret on the item when Delete empties the strong opening it", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start"><strong>f</strong>second</li></ul>`);
+        const f = getFirstChild(wrapper, ".start strong");
+        selectRange(f, "".length, f, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        const strong = querySelector(wrapper, ".start strong");
+        strong.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
+    });
+
+    // The merged text keeps its strong; the caret stays at the end of its own line, not inside the strong.
+    test("Should leave the caret at the end of the item when Delete merges the item below", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li class="end"><strong>first</strong></li></ul>`);
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        const start = querySelector(wrapper, ".start");
+        const strong = querySelector(wrapper, ".end strong");
+        start.append(strong);
+        const end = querySelector(wrapper, ".end");
+        end.remove();
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    // A br holds no text, so nothing changes in the offset.
+    test("Should keep the offset when Delete removes a line break", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br>first</p>`);
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        const br = querySelector(wrapper, ".start br");
+        br.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    test("Should keep the offset when Delete removes a line break that locates before another line break", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br><br>first</p>`);
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        wrapper.querySelectorAll(".start br")[0]?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    test("Should keep the caret on its line break when Delete removes the line break after it", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br><br><br><br>first</p>`);
+        const secondBr = wrapper.querySelectorAll(".start br")[1] as HTMLElement;
+        selectRange(secondBr, "".length, secondBr, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        wrapper.querySelectorAll(".start br")[2]?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, secondBr, "".length);
+    });
+
+    // An empty line only loses a br; the caret stays on it.
+    test("Should keep the caret on the empty paragraph when Delete removes one of its line breaks", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="start"><br><br></p><p>first</p>`);
+        const firstBr = getFirstChild(wrapper, ".start");
+        selectRange(firstBr, "".length, firstBr, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        wrapper.querySelectorAll(".start br")[1]?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
+    });
+
+    test("Should keep the caret at the start of zero when Delete removes the empty item it stands on", () => {
+        const wrapper = createWrapper(`<ul><li class="start"><br></li><li class="end">zero</li></ul>`);
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        wrapper.innerHTML = `<ul><li class="start">zero</li></ul>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const zero = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, zero, "".length);
+    });
+
+    test("Should keep the offset when Delete removes an inline image", () => {
+        const wrapper = createWrapper(`<p class="start">zero<img src="image.png">first</p>`);
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        wrapper.querySelector(".start img")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    // The anchor counts from the block before the caret's line, which Delete leaves in place.
+    test("Should keep the caret on the line before the image block Delete removed", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="be-image"><img src="image.png"></p><p>first</p>`);
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        wrapper.querySelector(".be-image")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    // The caret's paragraph absorbs the paragraph after it.
+    test("Should keep the caret at the end of its paragraph when Delete merges two paragraphs", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        (wrapper.querySelector(".start") as HTMLElement).append(getFirstChild(wrapper, ".end"));
+        wrapper.querySelector(".end")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    // The nested item joins its parent; Delete removes no text, so the offset stays.
+    test("Should keep the offset when Delete merges a nested item into its parent", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero<ul><li class="end">first</li></ul></li></ul>`);
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        (wrapper.querySelector(".start") as HTMLElement).append(getFirstChild(wrapper, ".end"));
+        wrapper.querySelector(".start ul")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    // An empty text holds nothing to remove; Delete steps over it to the emoji after.
+    test("Should step over an empty text to the emoji Delete removes", () => {
+        const wrapper = createWrapper(`<p>zero<strong class="start">😀first</strong></p>`);
+        (wrapper.querySelector(".start") as HTMLElement).prepend(document.createTextNode(""));
+        const zero = getFirstChild(wrapper, "p");
+        selectRange(zero, "zero".length, zero, "zero".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        (getLastChild(wrapper, ".start") as Text).data = "first";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    // The caret stands at the end of the text before the strong, so Delete removes the strong's first character.
+    test("Should keep the caret before the node after it when Delete removes its first character", () => {
+        const wrapper = createWrapper(`<p>zero<strong class="start">first</strong>second</p>`);
+        const zero = getFirstChild(wrapper, "p");
+        selectRange(zero, "zero".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        getFirstChild(wrapper, ".start").textContent = "irst";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    // The strong still stands after the caret on its line, so the caret stays on this item.
+    test("Should keep the caret on the item when Delete empties the text before a strong", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li><li class="start">f<strong>second</strong></li></ul>`);
+        const f = getFirstChild(wrapper, ".start");
+        selectRange(f, "".length, f, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        (f as Text).remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const second = getFirstChild(wrapper, ".start strong")
+        expectCursor(cursorPosition, second, "".length);
     });
 });

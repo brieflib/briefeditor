@@ -69,7 +69,7 @@ describe("Merge previous element", () => {
 
         mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
-            <h1>first <em>second</em></h1>
+            <h1 class="start">first <em>second</em></h1>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -90,7 +90,7 @@ describe("Merge previous element", () => {
         mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
           <p><br/></p>
-          <h1><br/></h1>
+          <h1 class="start"><br/></h1>
           <p>zero</p>
       `);
 
@@ -111,7 +111,7 @@ describe("Merge previous element", () => {
         mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p><br/><br/></p>
-            <h1>first <em>second</em></h1>
+            <h1 class="start">first <em>second</em></h1>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
