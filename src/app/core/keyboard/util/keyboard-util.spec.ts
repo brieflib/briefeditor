@@ -8,7 +8,7 @@ import {
     querySelector,
     selectRange
 } from "@/core/shared/test-util";
-import {mergeBlocksNew, mergeNextBlock, mergePreviousBlock, newLine} from "@/core/keyboard/util/keyboard-util";
+import {mergeBlocksNew, mergePreviousBlock, newLine} from "@/core/keyboard/util/keyboard-util";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
 import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
 
@@ -59,7 +59,7 @@ describe("Merge previous element", () => {
 
     test("When cursor is at the start should remove previous empty element", () => {
         const wrapper = createWrapper(`
-            <p><br/></p>
+            <p><br></p>
             <h1 class="start">first <em>second</em></h1>
         `);
 
@@ -265,7 +265,7 @@ describe("Merge next element", () => {
         selectRange(emptyText, "".length, emptyText, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeNextBlock(wrapper);
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first</li>
@@ -297,7 +297,7 @@ describe("Merge next element", () => {
         selectRange(emptyText, "".length, emptyText, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeNextBlock(wrapper);
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first
@@ -335,7 +335,7 @@ describe("Merge next element", () => {
         selectRange(emptyText, "".length, emptyText, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeNextBlock(wrapper);
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>first
@@ -371,7 +371,7 @@ describe("Merge next element", () => {
         selectRange(emptyText, "".length, emptyText, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeNextBlock(wrapper);
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>first</li>
@@ -598,7 +598,7 @@ describe("Merge next element", () => {
         selectRange(zero, "zero".length, zero, "zero".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeNextBlock(wrapper);
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p>zerofirst <em>second</em></p>
         `);
@@ -617,7 +617,7 @@ describe("Merge next element", () => {
         selectRange(zero, "zero".length, zero, "zero".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeNextBlock(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
         `);
@@ -636,7 +636,7 @@ describe("Merge next element", () => {
         selectRange(h1, "".length, h1, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeNextBlock(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
         `);
@@ -658,7 +658,7 @@ describe("Merge next element", () => {
         selectRange(first, "first".length, first, "first".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeNextBlock(wrapper);
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
             <h1>firstsecond</h1>
@@ -1631,7 +1631,7 @@ describe("Cursor position after key press", () => {
         selectRange(br, "".length, br, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeNextBlock(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p><br/></p>
         `);
@@ -1650,7 +1650,7 @@ describe("Cursor position after key press", () => {
         selectRange(br, "".length, br, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeNextBlock(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
             <p>first</p>
         `);

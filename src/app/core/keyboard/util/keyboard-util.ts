@@ -53,8 +53,8 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     if (isCollapsed(cursorPosition)) {
         const backspace = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})};
         const start = resolveCursorAnchor(contentEditable, getCursorAnchor(contentEditable, cursorPosition, backspace));
-        const maybeSelfClose = start.startContainer;
 
+        const maybeSelfClose = start.startContainer;
         // Backspace removes the br before the caret, or its whole line with the last one; nothing is merged
         if (isSchemaContain(maybeSelfClose, [Display.SelfClose])) {
             // A line left without its last br is gone with it
@@ -69,7 +69,7 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
             return;
         }
 
-        cursorPosition = getCursorPositionFrom(maybeSelfClose, start.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
+        cursorPosition = getCursorPositionFrom(start.startContainer, start.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
     }
 
     // An item is merged on its own, not with its whole list; read before the deletion removes the blocks between

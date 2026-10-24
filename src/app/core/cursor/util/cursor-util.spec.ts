@@ -870,4 +870,42 @@ describe("Cursor anchor after a Delete", () => {
         const second = getFirstChild(wrapper, ".start strong")
         expectCursor(cursorPosition, second, "".length);
     });
+
+    // The caret stands after the br, so Delete removes the first character of the text after it.
+    test("Should keep the caret after the line break when Delete removes the first character after it", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br>first</p>`);
+        const first = getLastChild(wrapper, ".start") as Text;
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        first.data = "irst";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Should keep the caret after both line breaks when Delete removes the first character after them", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br><br>first</p>`);
+        const first = getLastChild(wrapper, ".start") as Text;
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        first.data = "irst";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    // No br stands before the strong, so the caret at its start and the end of the text before it are one place.
+    test("Should keep the offset when Delete removes the first character of a strong after text", () => {
+        const wrapper = createWrapper(`<p>zero<strong class="start">first</strong></p>`);
+        const first = getFirstChild(wrapper, ".start") as Text;
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        first.data = "irst";
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "zero".length);
+    });
 });
