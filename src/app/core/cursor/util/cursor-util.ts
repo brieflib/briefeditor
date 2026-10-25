@@ -296,7 +296,7 @@ export function getCursorAnchor(contentEditable: HTMLElement,
     const end = getOffsetFromBlock(block, cursorPosition.endContainer, cursorPosition.endOffset);
     const cursorAnchor = {
         // A start on the editor itself counts from the editor's start: the editor's own sibling is outside of it.
-        previousBlock: block === contentEditable ? null : block.previousSibling,
+        previousBlock: block,
         start: start,
         end: end,
         startIsAfter: cursorPosition.startOffset === 0 && !!cursorPosition.startContainer.parentElement?.previousSibling,
@@ -384,6 +384,11 @@ function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: Cursor
         return removeCharacterBefore(contentEditable, cursorAnchor, previousText, previousText.data.length);
     }
 
+    // Backspace removes selfClose.
+    if (selfCloseBefore === 1) {
+        return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, 0);
+    }
+
     // A self-close tag holds no text, so removing it keeps the offset.
     return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, selfCloseBefore);
 }
@@ -466,7 +471,8 @@ function resolveBlockOffset(contentEditable: HTMLElement,
                             offset: number,
                             cursorAfterTagsCount: number | boolean): NodeOffset {
     // FixMe: make previousBlock not null
-    const block = previousBlock?.isConnected ? previousBlock.nextSibling : contentEditable.firstChild;
+    // ToDo: change contentEditable.firstChild
+    const block = previousBlock?.isConnected ? previousBlock : contentEditable.firstChild;
     if (!block) {
         return {node: contentEditable, offset: 0};
     }
@@ -502,25 +508,15 @@ function enterNextNode(block: Node,
         next = getFirstTextNew(getNextNodeNew(block, next));
     }
 
-    // A number counts the caret's own place and the self-close tags before it, so the point passes one tag fewer.
     if (typeof cursorAfterTagsCount === "number") {
-        // A point at the end of its text stands on the self-close tag after it.
-        const node = nodeOffset.node;
-        const nodeAfter = getFirstTextNew(getNextNodeNew(block, node));
-        // ToDo: make nodeOffset.node Text.
-        const isAtTextEnd = node instanceof Text && nodeOffset.offset === node.data.length;
-        if (cursorAfterTagsCount > 1 && isAtTextEnd && isSchemaContain(nodeAfter, [Display.SelfClose])) {
-            next = nodeAfter;
-        }
-
-        // Only self-close tags are passed: a text holds the caret where it is.
-        for (let i = 0; i < cursorAfterTagsCount - 1 && next && isSchemaContain(next, [Display.SelfClose]); i++) {
+        const isSelfClose = isSchemaContain(nodeOffset.node, [Display.SelfClose]);
+        const count = isSelfClose ? cursorAfterTagsCount - 1 : cursorAfterTagsCount;
+        for (let i = 0; i < count && next; i++) {
             next = getFirstTextNew(getNextNodeNew(block, next));
         }
     }
 
-    // A point that didn't move keeps its offset.
-    if (next === nodeOffset.node) {
+    if (cursorAfterTagsCount === false || cursorAfterTagsCount === 0) {
         offset = nodeOffset.offset;
     }
 

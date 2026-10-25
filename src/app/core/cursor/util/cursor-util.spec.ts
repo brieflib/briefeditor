@@ -171,15 +171,16 @@ describe("Cursor as a place in the text", () => {
 
     test("Should restore the selection onto the block rebuilt in place", () => {
         const wrapper = createWrapper(`<p>start</p><p class="start">zero</p><p>end</p>`);
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "zer".length);
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "ze".length, zero, "zer".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.Tag, tag: "STRONG"});
 
         // What a command does: the block is rebuilt, so nothing the anchor was read from is left.
-        (wrapper.childNodes[1] as HTMLElement).outerHTML = `<h1 class="start">ze<strong>r</strong>o</h1>`;
+        querySelector(wrapper, ".start").innerHTML = "ze<strong>r</strong>o"
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expectCursor(cursorPosition, getFirstChild(wrapper, ".start strong"), "".length,
-            getFirstChild(wrapper, ".start strong"), "r".length);
+        const strong = getFirstChild(wrapper, ".start strong");
+        expectCursor(cursorPosition, strong, "".length, strong, "r".length);
     });
 
     test("Should collapse after what was written when the text changed", () => {
@@ -398,7 +399,7 @@ describe("Cursor anchor after a Backspace", () => {
     });
 
     // A br holds no text, so nothing is subtracted for it.
-    test("Should keep the offset when Backspace removes a line break", () => {
+    test("Should keep the offset when Backspace removes a line break1", () => {
         const wrapper = createWrapper(`<p class="start">zero<br>first</p>`);
         const first = getLastChild(wrapper, ".start");
         selectRange(first, "".length, first, "".length);
@@ -411,6 +412,21 @@ describe("Cursor anchor after a Backspace", () => {
 
         const zeroFirst = getFirstChild(wrapper, ".start");
         expectCursor(cursorPosition, zeroFirst, "zero".length);
+    });
+
+    // A br holds no text, so nothing is subtracted for it.
+    test("Should keep the offset when Backspace removes a line break", () => {
+        const wrapper = createWrapper(`<p class="start">zero<br>first</p><p>second</p>`);
+        const first = getLastChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        wrapper.innerHTML = `<p class="start">zerofirst</p><p>second</p>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const text = getLastChild(wrapper, ".start");
+        expectCursor(cursorPosition, text, "zero".length);
     });
 
     test("Should keep the offset when Backspace removes a line break that locates after another line break", () => {
@@ -906,6 +922,7 @@ describe("Cursor anchor after a Delete", () => {
         first.data = "irst";
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), "zero".length);
+        const irst = getFirstChild(wrapper, ".start")
+        expectCursor(cursorPosition, irst, "".length);
     });
 });

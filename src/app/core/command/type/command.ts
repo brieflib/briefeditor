@@ -2,6 +2,7 @@ export enum Action {
     Tag = "Tag",
     Link = "Link",
     Image = "Image",
+    // FixMe: ChangeBlock
     FirstLevel = "FirstLevel",
     List = "List",
     PlusIndent = "PlusIndent",

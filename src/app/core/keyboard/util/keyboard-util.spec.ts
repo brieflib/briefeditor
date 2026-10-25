@@ -59,6 +59,7 @@ describe("Merge previous element", () => {
 
     test("When cursor is at the start should remove previous empty element", () => {
         const wrapper = createWrapper(`
+            <p>zero</p>
             <p><br></p>
             <h1 class="start">first <em>second</em></h1>
         `);
@@ -69,6 +70,7 @@ describe("Merge previous element", () => {
 
         mergeBlocksNew(wrapper);
         expectHtml(wrapper.innerHTML, `
+            <p>zero</p>
             <h1 class="start">first <em>second</em></h1>
         `);
 
