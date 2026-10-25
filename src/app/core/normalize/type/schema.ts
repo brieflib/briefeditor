@@ -52,6 +52,7 @@ schema.set("SUB", [Display.Collapse, Display.Inline]);
 schema.set("A", [Display.Link, Display.Inline]);
 schema.set("#text", []);
 
+// ToDo: instanceOf
 export function isSchemaContain(element: Node | undefined | null, contains: Display[]) {
     if (!element) {
         return false;

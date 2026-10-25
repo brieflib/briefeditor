@@ -8,13 +8,7 @@ import {
     getPreviousListWrapper,
     isListEmpty
 } from "@/core/list/util/list-util";
-import {
-    getBlockElement,
-    getChildFragment,
-    getFirstText,
-    getRootElement,
-    imageSelector
-} from "@/core/shared/element-util";
+import {getBlockElement, getFirstText, getRootElement, imageSelector} from "@/core/shared/element-util";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {

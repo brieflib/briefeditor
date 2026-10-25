@@ -12,13 +12,14 @@ import {
 } from "@/core/shared/type/cursor-position";
 import {
     charLengthAfter,
-    charLengthBefore,
+    charLengthBefore, getBlockElement,
     getChildFragment,
     getElement,
-    getFirstText,
+    getFirstText, getLastNode,
     getLastNonEmptyText,
-    getLastText,
+    getLastText, getLastTextNew,
     getNextNode,
+    getNextNodeNew,
     getNextNotEmptyNode,
     getPreviousNode,
     getRootElement,
@@ -39,24 +40,25 @@ import {
     removeEmptyItem,
     splitItem
 } from "@/core/list/list";
-import {getDirectChildren, getLine, isListEmpty} from "@/core/list/util/list-util";
+import {appendBeforeAndDelete, getDirectChildren, getLine, isListEmpty} from "@/core/list/util/list-util";
 import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
-import {Action} from "@/core/command/type/command";
+import {Command} from "@/core/command/type/command";
+import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
 
 /**
  * Deletes a selection spanning blocks, typing `pressedKey` in its place, and merges the last selected block into the
  * first one.
  */
 export function mergeBlocksNew(contentEditable: HTMLElement,
-                               pressedKey = "",
+                               command: Command,
                                cursorPosition: CursorPosition = getCursorPosition()) {
-    if (isCollapsed(cursorPosition)) {
-        const backspace = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Backspace"})};
-        const start = resolveCursorAnchor(contentEditable, getCursorAnchor(contentEditable, cursorPosition, backspace));
+    const pressedKey = command.event instanceof KeyboardEvent ? command.event.key : "";
+    if (isCollapsed(cursorPosition) && pressedKey === "Backspace") {
+        const start = resolveCursorAnchor(contentEditable, getCursorAnchor(contentEditable, cursorPosition, command));
 
-        const maybeSelfClose = start.startContainer;
+        const maybeSelfClose = getLastNode(getPreviousNode(contentEditable, start.startContainer));
         // Backspace removes the br before the caret, or its whole line with the last one; nothing is merged
-        if (isSchemaContain(maybeSelfClose, [Display.SelfClose])) {
+        if (maybeSelfClose && isSchemaContain(maybeSelfClose, [Display.SelfClose])) {
             // A line left without its last br is gone with it
             const line = maybeSelfClose.parentElement;
             const brPosition = wrapCursorPosition(maybeSelfClose, maybeSelfClose);
@@ -66,7 +68,6 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
             if (line && !line.hasChildNodes()) {
                 line.remove();
             }
-            return;
         }
 
         cursorPosition = getCursorPositionFrom(start.startContainer, start.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);

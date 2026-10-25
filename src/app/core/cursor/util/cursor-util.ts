@@ -295,7 +295,6 @@ export function getCursorAnchor(contentEditable: HTMLElement,
     const start = getOffsetFromBlock(block, cursorPosition.startContainer, cursorPosition.startOffset);
     const end = getOffsetFromBlock(block, cursorPosition.endContainer, cursorPosition.endOffset);
     const cursorAnchor = {
-        // A start on the editor itself counts from the editor's start: the editor's own sibling is outside of it.
         previousBlock: block,
         start: start,
         end: end,
@@ -375,8 +374,12 @@ function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: Cursor
     // Backspace joins the line into the line above, so the caret stands at the end of the line above.
     if (isAtLineStart(contentEditable, container, 0)) {
         const previousLineBlock = getBlockElement(contentEditable, previousText);
+        // Last br of previousLineBlock has been removed.
+        if (isSchemaContain(previousLineBlock.firstChild, [Display.SelfClose])) {
+            return collapseAnchor(cursorAnchor.previousBlock, 0, 0);
+        }
         const start = getOffsetFromBlock(previousLineBlock, previousText, previousText.textContent?.length ?? 0);
-        return collapseAnchor(previousLineBlock.previousSibling, start, selfCloseBefore);
+        return collapseAnchor(previousLineBlock, start, selfCloseBefore === 0 ? 0 : selfCloseBefore - 1);
     }
 
     // The character before the caret is the last one of the text before it.
@@ -470,7 +473,7 @@ function resolveBlockOffset(contentEditable: HTMLElement,
                             previousBlock: Node | null,
                             offset: number,
                             cursorAfterTagsCount: number | boolean): NodeOffset {
-    // FixMe: make previousBlock not null
+    // FixMe: make previousBlock not null, rename to block
     // ToDo: change contentEditable.firstChild
     const block = previousBlock?.isConnected ? previousBlock : contentEditable.firstChild;
     if (!block) {
@@ -509,9 +512,7 @@ function enterNextNode(block: Node,
     }
 
     if (typeof cursorAfterTagsCount === "number") {
-        const isSelfClose = isSchemaContain(nodeOffset.node, [Display.SelfClose]);
-        const count = isSelfClose ? cursorAfterTagsCount - 1 : cursorAfterTagsCount;
-        for (let i = 0; i < count && next; i++) {
+        for (let i = 0; i < cursorAfterTagsCount && next; i++) {
             next = getFirstTextNew(getNextNodeNew(block, next));
         }
     }

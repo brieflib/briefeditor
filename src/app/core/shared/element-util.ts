@@ -149,6 +149,23 @@ export function getLastText(node: Node) {
     return currentNode as HTMLElement;
 }
 
+export function getLastTextNew(node: Node | null) {
+    let currentNode = node;
+
+    while (currentNode && !(currentNode instanceof Text)) {
+        const childNodes = currentNode.childNodes;
+        const lastChild = childNodes[childNodes.length - 1];
+
+        if (!lastChild) {
+            return currentNode;
+        }
+
+        currentNode = lastChild;
+    }
+
+    return currentNode;
+}
+
 export function getFirstTextNew(node: Node | null) {
     while (node && node.firstChild && !(node instanceof Text)) {
         node = node.firstChild;

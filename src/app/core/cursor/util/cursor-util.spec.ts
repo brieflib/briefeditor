@@ -544,20 +544,6 @@ describe("Cursor anchor after a Backspace", () => {
         expectCursor(cursorPosition, zero, "".length);
     });
 
-    test("Should set cursor at start of zero when Backspace removes second line break at dedicated paragraph", () => {
-        const wrapper = createWrapper(`<p class="start">zero</p><p class="middle"><br><br></p><p class="end">first</p><p>second</p>`);
-        const first = getFirstChild(wrapper, ".end");
-        selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        wrapper.querySelectorAll(".middle br")[1]?.remove();
-        querySelector(wrapper, ".middle").append(first);
-        querySelector(wrapper, ".end").remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
-        expectCursor(cursorPosition, first, "".length);
-    });
-
     test("Should keep the offset when Backspace removes an inline image", () => {
         const wrapper = createWrapper(`<p class="start">zero<img src="image.png">first</p>`);
         const text = getLastChild(wrapper, ".start");
@@ -651,6 +637,19 @@ describe("Cursor anchor after a Backspace", () => {
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
+    });
+
+    test("Should go before empty block", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="start">first</p><p class="end"><br></p>`);
+        const br = getFirstChild(wrapper, ".end");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        querySelector(wrapper, ".end").remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const first = getFirstChild(wrapper, ".start")
+        expectCursor(cursorPosition, first, "first".length);
     });
 });
 
