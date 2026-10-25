@@ -29,7 +29,8 @@ export interface NodeOffset {
 }
 
 export interface CursorAnchor {
-    readonly previousBlock: Node | null;
+    // The block the offsets count from with two blocks on each side: [previous.previous, previous, block, next, next.next].
+    readonly blocks: readonly (Node | null)[];
     readonly start: number;
     readonly end: number;
     readonly startIsAfter: number | boolean;
@@ -289,13 +290,18 @@ export function findNodeAndOffset(root: Node, targetPosition: number): NodeOffse
 export function getCursorAnchor(contentEditable: HTMLElement,
                                 cursorPosition = getCursorPosition(),
                                 command?: Command): CursorAnchor {
-    // Both ends count from the block the selection starts in: the command may rebuild it and every block after it,
-    // so only the block before it is sure to stay.
+    // Both ends count from the block the selection starts in. The command may rebuild or remove it and the blocks next
+    // to it, so the anchor keeps two blocks on each side to find the block standing in its place.
     const block = getBlockElement(contentEditable, cursorPosition.startContainer);
+    const previous = block.previousSibling;
+    const next = block.nextSibling;
+    const blocks = block === contentEditable
+        ? []
+        : [previous?.previousSibling ?? null, previous, block, next, next?.nextSibling ?? null];
     const start = getOffsetFromBlock(block, cursorPosition.startContainer, cursorPosition.startOffset);
     const end = getOffsetFromBlock(block, cursorPosition.endContainer, cursorPosition.endOffset);
     const cursorAnchor = {
-        previousBlock: block,
+        blocks: blocks,
         start: start,
         end: end,
         startIsAfter: cursorPosition.startOffset === 0 && !!cursorPosition.startContainer.parentElement?.previousSibling,
@@ -314,7 +320,7 @@ export function getCursorAnchor(contentEditable: HTMLElement,
     if (command?.action === Action.Keyboard && event instanceof KeyboardEvent) {
         if (isPrintableKey(event)) {
             // The typed text replaces the selection and the caret stands right after it, on the same line.
-            return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start + event.key.length, 0);
+            return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start + event.key.length, 0);
         }
 
         if (event.key === "Backspace") {
@@ -331,12 +337,12 @@ export function getCursorAnchor(contentEditable: HTMLElement,
     return cursorAnchor;
 }
 
-/** The anchor as a caret at `start`, counted from the block after `previousBlock`. */
-function collapseAnchor(previousBlock: Node | null,
+/** The anchor as a caret at `start`, counted from the middle block of `blocks`. */
+function collapseAnchor(blocks: readonly (Node | null)[],
                         start: number,
                         startIsAfter: number | boolean): CursorAnchor {
     return {
-        previousBlock: previousBlock,
+        blocks: blocks,
         start: start,
         end: start,
         startIsAfter: startIsAfter,
@@ -366,7 +372,7 @@ function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: Cursor
     const previousText = getLastNonEmptyTextNew(previous);
     // Nothing stands before the caret, so Backspace has nothing to remove.
     if (!previous || !previousText) {
-        return collapseAnchor(cursorAnchor.previousBlock, 0, 0);
+        return collapseAnchor(cursorAnchor.blocks, 0, 0);
     }
 
     const selfCloseBefore = countPreviousSelfClose(contentEditable, getLastNode(previous));
@@ -376,10 +382,14 @@ function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: Cursor
         const previousLineBlock = getBlockElement(contentEditable, previousText);
         // Last br of previousLineBlock has been removed.
         if (isSchemaContain(previousLineBlock.firstChild, [Display.SelfClose])) {
-            return collapseAnchor(cursorAnchor.previousBlock, 0, 0);
+            return collapseAnchor(cursorAnchor.blocks, 0, 0);
         }
+        // The caret's line joins previousLineBlock, so the anchor counts from it.
         const start = getOffsetFromBlock(previousLineBlock, previousText, previousText.textContent?.length ?? 0);
-        return collapseAnchor(previousLineBlock, start, selfCloseBefore === 0 ? 0 : selfCloseBefore - 1);
+        const previousLine = previousLineBlock.previousSibling;
+        const nextLine = previousLineBlock.nextSibling;
+        const blocks = [previousLine?.previousSibling ?? null, previousLine, previousLineBlock, nextLine, nextLine?.nextSibling ?? null];
+        return collapseAnchor(blocks, start, selfCloseBefore === 0 ? 0 : selfCloseBefore - 1);
     }
 
     // The character before the caret is the last one of the text before it.
@@ -389,11 +399,11 @@ function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: Cursor
 
     // Backspace removes selfClose.
     if (selfCloseBefore === 1) {
-        return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, 0);
+        return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, 0);
     }
 
     // A self-close tag holds no text, so removing it keeps the offset.
-    return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, selfCloseBefore);
+    return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, selfCloseBefore);
 }
 
 /**
@@ -405,21 +415,21 @@ function stayBeforeNextCharacter(contentEditable: HTMLElement, cursorAnchor: Cur
     const offset = cursorPosition.startOffset;
     // The start of the line and the end of the line above count to the same offset, so the caret steps after it.
     if (isAtLineStart(contentEditable, container, offset)) {
-        return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, cursorAnchor.start > 0);
+        return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, cursorAnchor.start > 0);
     }
 
     // The caret stands after a character of its own text.
     if (container instanceof Text && offset !== 0) {
-        return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, 0);
+        return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, 0);
     }
 
     // Self-close tags hold no text, so the caret counts them and its own place to stay after the ones before it.
     if (container instanceof Text) {
         const selfCloseBefore = countPreviousSelfClose(contentEditable, getLastNode(getPreviousNode(contentEditable, container)));
-        return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, selfCloseBefore + 1);
+        return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, selfCloseBefore + 1);
     }
 
-    return collapseAnchor(cursorAnchor.previousBlock, cursorAnchor.start, countPreviousSelfClose(contentEditable, container));
+    return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, countPreviousSelfClose(contentEditable, container));
 }
 
 /** The anchor after Backspace removes the character before `offset` in `text`. */
@@ -428,7 +438,7 @@ function removeCharacterBefore(contentEditable: HTMLElement, cursorAnchor: Curso
     const start = cursorAnchor.start - deletedLength;
     // The emptied line and the end of the line above count to the same offset, so the caret steps after it.
     const isAfterTag = start > 0 && isAtLineStart(contentEditable, text, offset - deletedLength);
-    return collapseAnchor(cursorAnchor.previousBlock, start, isAfterTag);
+    return collapseAnchor(cursorAnchor.blocks, start, isAfterTag);
 }
 
 /** Whether the point stands at the start of its line: the closest paragraph, heading or list item. */
@@ -453,35 +463,64 @@ function getOffsetFromBlock(block: Node, container: Node, offset: number) {
 
 export function resolveCursorAnchor(contentEditable: HTMLElement, cursorAnchor: CursorAnchor): CursorPosition {
     const start = resolveBlockOffset(contentEditable,
-        cursorAnchor.previousBlock,
+        cursorAnchor.blocks,
         cursorAnchor.start,
         cursorAnchor.startIsAfter);
     const end = resolveBlockOffset(contentEditable,
-        cursorAnchor.previousBlock,
+        cursorAnchor.blocks,
         cursorAnchor.end,
         cursorAnchor.endIsAfter);
     return getCursorPositionFrom(start.node, start.offset, end.node, end.offset);
 }
 
 /**
- * Finds the endpoint again by counting its offset from the block after `previousBlock`, walking on to the next
- * blocks while the offset runs past them. Without a previous block it counts from the start of contentEditable.
+ * Finds the endpoint again by counting its offset from the anchor's block, walking on to the next blocks while the
+ * offset runs past them. Without blocks it counts from the start of contentEditable.
  *
  * @param cursorAfterTagsCount - A point at the end of a node goes to the start of the node after it.
  */
 function resolveBlockOffset(contentEditable: HTMLElement,
-                            previousBlock: Node | null,
+                            blocks: readonly (Node | null)[],
                             offset: number,
                             cursorAfterTagsCount: number | boolean): NodeOffset {
     // FixMe: make previousBlock not null, rename to block
     // ToDo: change contentEditable.firstChild
-    const block = previousBlock?.isConnected ? previousBlock : contentEditable.firstChild;
+    const block = findAnchorBlock(contentEditable, blocks);
     if (!block) {
         return {node: contentEditable, offset: 0};
     }
 
     const start = findStartBlock(block, offset);
     return enterNextNode(start.node, findNodeAndOffset(start.node, start.offset), cursorAfterTagsCount);
+}
+
+/** The block standing in the place of the anchor's block: the block itself, or the one beside the nearest kept neighbour. */
+function findAnchorBlock(contentEditable: HTMLElement, blocks: readonly (Node | null)[]) {
+    const [previousPrevious, previous, current, next, nextNext] = blocks;
+    if (current?.isConnected) {
+        return current;
+    }
+
+    // The block was rebuilt or removed, so the one now in its place stands right after a kept block before it or
+    // right before a kept block after it.
+    if (previous?.isConnected) {
+        return previous.nextSibling;
+    }
+
+    if (next?.isConnected) {
+        return next.previousSibling;
+    }
+
+    if (previousPrevious?.isConnected) {
+        return previousPrevious.nextSibling;
+    }
+
+    if (nextNext?.isConnected) {
+        return nextNext.previousSibling;
+    }
+
+    // An anchor without blocks counts from the first block.
+    return contentEditable.firstChild;
 }
 
 /** Finds the block that holds the offset, walking on from `block` to the next blocks while the offset runs past them. */

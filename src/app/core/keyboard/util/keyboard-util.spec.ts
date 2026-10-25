@@ -380,9 +380,9 @@ describe("Merge previous element", () => {
         const wrapper = createWrapper(`
             <h1>first</h1>
             <ol>
-                <li class="start"><br>
+                <li><br>
                     <ol>
-                        <li class="end">second</li>
+                        <li class="start">second</li>
                         <li>third</li>
                     </ol>
                 </li>
@@ -390,11 +390,7 @@ describe("Merge previous element", () => {
             <p>fourth</p>
         `);
 
-        const emptyText = document.createTextNode("");
-        const start = wrapper.querySelector(".start") as Node;
-        start.insertBefore(emptyText, start.firstChild);
-
-        const second = getFirstChild(wrapper, ".end");
+        const second = getFirstChild(wrapper, ".start");
         selectRange(second, "".length, second, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 

@@ -238,10 +238,13 @@ export function mergeItems(contentEditable: HTMLElement, firstBlock: HTMLElement
         return;
     }
 
-    // The two lines join into one: their neighbouring texts and inlines collapse together
-    const line = new DocumentFragment();
-    line.append(...firstLine.childNodes, lastList.listContent);
-    firstLine.append(normalizeNew(contentEditable, line));
+    // An item merged with itself already holds its line; only its run is rebuilt
+    if (firstBlock !== lastItem) {
+        // The two lines join into one: their neighbouring texts and inlines collapse together
+        const line = new DocumentFragment();
+        line.append(...firstLine.childNodes, lastList.listContent);
+        firstLine.append(normalizeNew(contentEditable, line));
+    }
 
     // The lines between the two blocks were deleted, so the merged run is what stands up to the first item and after the last one
     const merged = [...firstLists.slice(0, firstIndex + 1), ...lastLists.slice(lastIndex + 1)];

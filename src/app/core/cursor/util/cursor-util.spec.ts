@@ -169,7 +169,7 @@ describe("Cursor as a place in the text", () => {
         expectCursor(cursorPosition, wrapper, 0);
     });
 
-    test("Should restore the selection onto the block rebuilt in place", () => {
+    test("Should restore the selection onto the block", () => {
         const wrapper = createWrapper(`<p>start</p><p class="start">zero</p><p>end</p>`);
         const zero = getFirstChild(wrapper, ".start");
         selectRange(zero, "ze".length, zero, "zer".length);
@@ -544,6 +544,32 @@ describe("Cursor anchor after a Backspace", () => {
         expectCursor(cursorPosition, zero, "".length);
     });
 
+    test("Should restore the selection onto the block rebuilt in place", () => {
+        const wrapper = createWrapper(`<p>start</p><p class="start">zero</p><p>end</p>`);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "zer".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.Tag, tag: "STRONG"});
+
+        // What a command does: the block is rebuilt, so nothing the anchor was read from is left.
+        (wrapper.childNodes[1] as HTMLElement).outerHTML = `<h1 class="start">ze<strong>r</strong>o</h1>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start strong"), "".length,
+            getFirstChild(wrapper, ".start strong"), "r".length);
+    });
+
+    test("Should restore the selection onto the rebuilt block when the block before it is removed", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="be-image"><img src="image.png"></p><p class="start">first</p><p>second</p>`);
+        selectRange(getFirstChild(wrapper, ".start"), "f".length, getFirstChild(wrapper, ".start"), "fir".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.Tag, tag: "STRONG"});
+
+        wrapper.querySelector(".be-image")?.remove();
+        (wrapper.childNodes[1] as HTMLElement).outerHTML = `<h1 class="start">f<strong>ir</strong>st</h1>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start strong"), "".length,
+            getFirstChild(wrapper, ".start strong"), "ir".length);
+    });
+
     test("Should keep the offset when Backspace removes an inline image", () => {
         const wrapper = createWrapper(`<p class="start">zero<img src="image.png">first</p>`);
         const text = getLastChild(wrapper, ".start");
@@ -568,6 +594,19 @@ describe("Cursor anchor after a Backspace", () => {
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         expectCursor(cursorPosition, first, 0);
+    });
+
+    test("Should keep the caret on its line when Backspace removes the image block after the first two lines", () => {
+        const wrapper = createWrapper(`<p>zero</p><p>first</p><p class="be-image"><img src="image.png"></p><p class="start">second</p>`);
+        const second = getFirstChild(wrapper, ".start");
+        selectRange(second, "".length, second, "".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        wrapper.querySelector(".be-image")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, second, "".length);
     });
 
     // The paragraph the anchor counts from absorbs the caret's paragraph.
