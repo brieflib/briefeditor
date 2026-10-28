@@ -248,10 +248,6 @@ export function getStrandedTable(cursorPosition: CursorPosition): StrandedTable 
 }
 
 export function findNodeAndOffset(root: Node, targetPosition: number): NodeOffset {
-    // if (targetPosition === 0) {
-    //     return {node: getFirstText(root), offset: 0};
-    // }
-
     let position = 0;
     const stack: Node[] = [root];
     while (stack.length > 0) {
@@ -391,7 +387,7 @@ function stepBackOneCharacter(contentEditable: HTMLElement, cursorAnchor: Cursor
 
     const selfCloseBefore = countPreviousSelfClose(contentEditable, getLastNode(previous));
 
-    // Backspace joins the line into the line above, so the caret stands at the end of the line above.
+    // Backspace joins the line into the line above, so the caret stands at the end of the line above
     if (isAtLineStart(contentEditable, container, 0)) {
         const previousLineBlock = getBlockElement(contentEditable, previousText);
         // Last br of previousLineBlock has been removed.
@@ -557,6 +553,11 @@ function findAnchorBlock(contentEditable: HTMLElement, blocks: readonly (Node | 
 
     if (previous?.isConnected) {
         return previous.nextSibling;
+    }
+
+    // The first block had no block before it, so its place starts at the start of contentEditable.
+    if (previous === null) {
+        return contentEditable.firstChild;
     }
 
     // The block was rebuilt or removed, so the one now in its place stands right before a kept block after it or

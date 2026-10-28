@@ -682,7 +682,7 @@ describe("Merge first levels", () => {
 
         mergeBlocksNew(wrapper, keydown(" "));
         expectHtml(wrapper.innerHTML, `
-            <p>ze rst <em>second</em></p>
+            <p class="start">ze rst <em>second</em></p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -900,7 +900,7 @@ describe("Merge P and List selections", () => {
         mergeBlocksNew(wrapper, keydown(" "));
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>ze rst</li>
+                <li class="start">ze rst</li>
             </ul>
         `);
 
@@ -924,7 +924,7 @@ describe("Merge P and List selections", () => {
         mergeBlocksNew(wrapper, keydown("k"));
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>krst</li>
+                <li class="start">krst</li>
             </ul>
         `);
 

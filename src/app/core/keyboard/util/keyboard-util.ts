@@ -12,14 +12,14 @@ import {
 } from "@/core/shared/type/cursor-position";
 import {
     charLengthAfter,
-    charLengthBefore, getBlockElement,
+    charLengthBefore,
     getChildFragment,
-    getElement, getFirstChild,
-    getFirstText, getFirstTextNew, getLastNode,
+    getElement,
+    getFirstText,
+    getLastNode,
     getLastNonEmptyText,
-    getLastText, getLastTextNew,
+    getLastText,
     getNextNode,
-    getNextNodeNew,
     getNextNotEmptyNode,
     getPreviousNode,
     getRootElement,
@@ -40,10 +40,9 @@ import {
     removeEmptyItem,
     splitItem
 } from "@/core/list/list";
-import {appendBeforeAndDelete, getDirectChildren, getLine, isListEmpty} from "@/core/list/util/list-util";
+import {getDirectChildren, getLine, isListEmpty} from "@/core/list/util/list-util";
 import {getCursorAnchor, getNextCharacterAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
 import {Command} from "@/core/command/type/command";
-import {convertList, normalizeLists, parseList} from "@/core/list/type/list-class";
 
 /**
  * Deletes a selection spanning blocks, typing `pressedKey` in its place, and merges the last selected block into the
@@ -70,7 +69,8 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         const end = resolveCursorAnchor(contentEditable, getNextCharacterAnchor(contentEditable, cursorPosition));
 
         // Delete removes the br right after the caret, or the whole line with its last one
-        //selfClose = cursorPosition.startContainer;
+        selfClose = isSchemaContain(cursorPosition.startContainer, [Display.SelfClose]) ?
+            cursorPosition.startContainer : end.startContainer;
 
         cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, end.endContainer, end.endOffset);
     }
@@ -84,8 +84,13 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         return;
     }
 
-    removeSelfClose(selfClose);
+    const isLineRemoved = removeSelfClose(selfClose);
     cursorPosition = deleteContents(cursorPosition);
+
+    // Delete removed the empty line itself, so no block is left to merge with
+    if (isLineRemoved) {
+        return;
+    }
 
     if (pressedKey && isKeyPrintable(pressedKey)) {
         const keyText = document.createTextNode(pressedKey);
@@ -103,10 +108,13 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     new Normalizer(contentEditable).mergeBlocks(firstBlock, lastBlock);
 }
 
-/** Removes `maybeSelfClose` if it is a self-close tag, together with its line once nothing else is left in it. */
+/**
+ * Removes `maybeSelfClose` if it is a self-close tag, together with its line once nothing else is left in it.
+ * Returns true when the line was removed.
+ */
 function removeSelfClose(maybeSelfClose: Node | null) {
     if (!maybeSelfClose || !isSchemaContain(maybeSelfClose, [Display.SelfClose])) {
-        return;
+        return false;
     }
 
     // A line left without its last br is gone with it
@@ -117,7 +125,10 @@ function removeSelfClose(maybeSelfClose: Node | null) {
     }
     if (line && !line.hasChildNodes()) {
         line.remove();
+        return true;
     }
+
+    return false;
 }
 
 /** Merges the current block into the one before it (backspace at the start of a line). */
