@@ -221,15 +221,15 @@ export function rebuildList(root: HTMLElement, lists: ListClass[], cursorPositio
  * Moves the line of `lastItem` to the end of the line of `firstBlock`, an item or a block outside a list, and rebuilds
  * their run; what was nested in `lastItem` or stood after it keeps its place in the run.
  */
-export function mergeItems(contentEditable: HTMLElement, firstBlock: HTMLElement, lastItem: HTMLElement) {
+export function mergeItems(contentEditable: HTMLElement, firstBlock: HTMLElement, lastBlock: HTMLElement) {
     // A block outside a list has no run of its own, so the run rebuilt is the last item's one
     const isFirstItem = isSchemaContain(firstBlock, [Display.List]);
-    const lastRoot = getBlockElement(contentEditable, lastItem);
+    const lastRoot = getBlockElement(contentEditable, lastBlock);
     const firstRoot = isFirstItem ? getBlockElement(contentEditable, firstBlock) : lastRoot;
 
     // Each item's line is the one a cursor resting on it selects
     const firstLists = isFirstItem ? parseList(firstRoot, cursorPositionOf(firstBlock)) : [];
-    const lastLists = parseList(lastRoot, cursorPositionOf(lastItem));
+    const lastLists = parseList(lastRoot, cursorPositionOf(lastBlock));
     const firstIndex = firstLists.findIndex(list => list.selected);
     const lastIndex = lastLists.findIndex(list => list.selected);
     const firstLine = isFirstItem ? firstLists[firstIndex]?.listContent : firstBlock;
@@ -238,8 +238,10 @@ export function mergeItems(contentEditable: HTMLElement, firstBlock: HTMLElement
         return;
     }
 
-    // An item merged with itself already holds its line; only its run is rebuilt
-    if (firstBlock !== lastItem) {
+    // An item merged with itself already holds its line; only its run is rebuilt. An item without a line of its own
+    // resolves to the line of its first nested item, so it merges with itself too.
+    const isSameLine = firstRoot === lastRoot && firstIndex === lastIndex;
+    if (!isSameLine) {
         // The two lines join into one: their neighbouring texts and inlines collapse together
         const line = new DocumentFragment();
         line.append(...firstLine.childNodes, lastList.listContent);

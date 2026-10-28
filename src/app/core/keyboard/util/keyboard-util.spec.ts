@@ -463,9 +463,9 @@ describe("Merge next element", () => {
         selectRange(zero, "zero".length, zero, "zero".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeBlocksNew(wrapper, keydown("Backspace"));
+        mergeBlocksNew(wrapper, keydown("Delete"));
         expectHtml(wrapper.innerHTML, `
-            <p>zerofirst <em>second</em></p>
+            <p class="start">zerofirst <em>second</em></p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -484,8 +484,8 @@ describe("Merge next element", () => {
             <p>second</p>
         `);
 
-        const start = getFirstChild(wrapper, ".start");
-        selectRange(start, "".length, start, "".length);
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, 0, br, 0);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeBlocksNew(wrapper, keydown("Delete"));
@@ -587,11 +587,8 @@ describe("Merge next element", () => {
             <p>third</p>
         `);
 
-        const emptyText = document.createTextNode("");
-        const start = wrapper.querySelector(".start") as Node;
-        start.insertBefore(emptyText, start.firstChild);
-
-        selectRange(emptyText, "".length, emptyText, "".length);
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeBlocksNew(wrapper, keydown("Delete"));
@@ -619,9 +616,9 @@ describe("Merge next element", () => {
         selectRange(zero, "zero".length, zero, "zero".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeBlocksNew(wrapper, keydown("Backspace"));
+        mergeBlocksNew(wrapper, keydown("Delete"));
         expectHtml(wrapper.innerHTML, `
-            <p>zero</p>
+            <p class="start">zero</p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -630,15 +627,15 @@ describe("Merge next element", () => {
 
     test("When cursor is at the empty element should remove it", () => {
         const wrapper = createWrapper(`
-            <h1 class="start"></h1>
+            <h1 class="start"><br></h1>
             <p>zero</p>
         `);
 
-        const h1 = querySelector(wrapper, ".start");
-        selectRange(h1, "".length, h1, "".length);
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeBlocksNew(wrapper, keydown("Backspace"));
+        mergeBlocksNew(wrapper, keydown("Delete"));
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
         `);
@@ -660,10 +657,10 @@ describe("Merge next element", () => {
         selectRange(first, "first".length, first, "first".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeBlocksNew(wrapper, keydown("Backspace"));
+        mergeBlocksNew(wrapper, keydown("Delete"));
         expectHtml(wrapper.innerHTML, `
             <p>zero</p>
-            <h1>firstsecond</h1>
+            <h1 class="start">firstsecond</h1>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);

@@ -2256,30 +2256,29 @@ describe("Merge items", () => {
                 </li>
                 <li>
                     <ol>
-                        <li class="end">third</li>
+                        <li class="end">second</li>
                     </ol>
                     <ul>
-                        <li>fourth</li>
+                        <li>third</li>
                     </ul>
                 </li>
             </ul>
         `);
 
-        const firstItem = wrapper.querySelector(".start") as HTMLElement;
-        // The item holding the last one has no line of its own, the way a deletion reaching into it leaves it
-        const lastItem = wrapper.querySelector(".end") as HTMLElement;
-        selectRange(getFirstChild(wrapper, ".start"), "first".length, getFirstChild(wrapper, ".start"), "first".length);
+        const first = getFirstChild(wrapper, ".start") as HTMLElement;
+        const second = getFirstChild(wrapper, ".end") as HTMLElement;
+        selectRange(first, "first".length, second, "".length);
 
-        mergeItems(wrapper, firstItem, lastItem);
+        mergeItems(wrapper, first, second);
 
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
-                        <li>firstthird</li>
+                        <li>firstsecond</li>
                     </ol>
                     <ul>
-                        <li>fourth</li>
+                        <li>third</li>
                     </ul>
                 </li>
             </ul>

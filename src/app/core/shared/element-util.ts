@@ -174,6 +174,14 @@ export function getFirstTextNew(node: Node | null) {
     return node;
 }
 
+export function getFirstChild(node: Node | null) {
+    while (node && node.firstChild ) {
+        node = node.firstChild;
+    }
+
+    return node;
+}
+
 export function getLastNode(node: Node | null) {
     let currentNode: Node | ChildNode | null = node;
 
