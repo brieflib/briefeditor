@@ -77,7 +77,7 @@ export default function execCommand(contentEditable: HTMLElement, command: Comma
             break;
         case Action.Keyboard:
             if (command.event instanceof KeyboardEvent) {
-                handleKeyboardEvent(contentEditable, command.event);
+                handleKeyboardEvent(contentEditable, command);
                 Carrier.getInstance().removeCarrier();
             }
             break;

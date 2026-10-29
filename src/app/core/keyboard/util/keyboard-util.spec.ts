@@ -1256,7 +1256,7 @@ describe("Merge P and nested list selections", () => {
             <ul>
                 <li>zero
                     <ul>
-                        <li>fi cond</li>
+                        <li class="start">fi cond</li>
                     </ul>
                 </li>
             </ul>
@@ -1415,7 +1415,7 @@ describe("Merge P and nested list selections", () => {
                     <ul>
                         <li>first
                             <ul>
-                                <li>se ird</li>
+                                <li class="start">se ird</li>
                             </ul>
                         </li>
                     </ul>
@@ -1473,7 +1473,7 @@ describe("Merge complete list selections", () => {
         mergeBlocksNew(wrapper, keydown(" "));
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li> cond</li>
+                <li class="start"> cond</li>
             </ul>
         `);
 
@@ -1497,7 +1497,7 @@ describe("Merge complete list selections", () => {
 
         mergeBlocksNew(wrapper, keydown(" "));
         expectHtml(wrapper.innerHTML, `
-            <p>ze cond</p>
+            <p class="start">ze cond</p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -1574,7 +1574,7 @@ describe("Cursor position after key press", () => {
 
         mergeBlocksNew(wrapper, keydown(" "));
         expectHtml(wrapper.innerHTML, `
-            <p>fi cond</p>
+            <p class="start">fi cond</p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -1594,7 +1594,7 @@ describe("Cursor position after key press", () => {
 
         mergeBlocksNew(wrapper, keydown(" "));
         expectHtml(wrapper.innerHTML, `
-            <p>fi <strong>cond</strong></p>
+            <p class="start">fi <strong class="end">cond</strong></p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -1630,7 +1630,7 @@ describe("Cursor position after key press", () => {
         selectRange(br, "".length, br, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeBlocksNew(wrapper, keydown("Backspace"));
+        mergeBlocksNew(wrapper, keydown("Delete"));
         expectHtml(wrapper.innerHTML, `
             <p><br/></p>
         `);
@@ -1649,9 +1649,9 @@ describe("Cursor position after key press", () => {
         selectRange(br, "".length, br, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
-        mergeBlocksNew(wrapper, keydown("Backspace"));
+        mergeBlocksNew(wrapper, keydown("Delete"));
         expectHtml(wrapper.innerHTML, `
-            <p>first</p>
+            <p class="end">first</p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
@@ -1669,7 +1669,7 @@ describe("Insert break", () => {
         selectRange(first, "fir".length, first, "fir".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <p class="start">fir</p><p>st</p>
         `);
@@ -1687,13 +1687,13 @@ describe("Insert break", () => {
         selectRange(first, "".length, first, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
-            <p><br></p><p class="start">first</p>
+            <p class="start"><br></p><p>first</p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p + p"), "".length);
     });
 
     test("Should insert p after end of p", () => {
@@ -1705,7 +1705,7 @@ describe("Insert break", () => {
         selectRange(first, "first".length, first, "first".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <p class="start">first</p><p><br></p>
         `);
@@ -1723,7 +1723,7 @@ describe("Insert break", () => {
         selectRange(st, "s".length, st, "s".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <p class="start">fir<em>s</em></p><p><em>t</em></p>
         `);
@@ -1741,7 +1741,7 @@ describe("Insert break", () => {
         selectRange(bold, "".length, bold, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <p class="start">zero</p><p><strong>bold</strong></p>
         `);
@@ -1759,7 +1759,7 @@ describe("Insert break", () => {
         selectRange(ro, "".length, ro, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <p class="start"><em>ze</em></p><p>ro</p>
         `);
@@ -1781,7 +1781,7 @@ describe("Insert break", () => {
         selectRange(st, "".length, st, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <p class="start">fir<br></p><p>st</p>
         `);
@@ -1801,10 +1801,10 @@ describe("Insert break", () => {
         selectRange(first, "fir".length, first, "fir".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>fir</li>
+                <li class="start">fir</li>
                 <li>st</li>
             </ul>
         `);
@@ -1824,10 +1824,10 @@ describe("Insert break", () => {
         selectRange(first, "first".length, first, "first".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <ul>
-                <li>first</li>
+                <li class="start">first</li>
                 <li><br></li>
             </ul>
         `);
@@ -1851,10 +1851,10 @@ describe("Insert break", () => {
         selectRange(first, "first".length, first, "first".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li>first</li>
+                <li class="start">first</li>
                 <li><br>
                     <ul>
                         <li>second</li>
@@ -1882,10 +1882,10 @@ describe("Insert break", () => {
         selectRange(first, "fir".length, first, "fir".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li>fir</li>
+                <li class="start">fir</li>
                 <li>st
                     <ul>
                         <li>second</li>
@@ -1913,10 +1913,10 @@ describe("Insert break", () => {
         selectRange(first, "".length, first, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li><br></li>
+                <li class="start"><br></li>
                 <li>first
                     <ul>
                         <li>second</li>
@@ -1948,14 +1948,14 @@ describe("Insert break", () => {
         selectRange(second, "second".length, second, "second".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
-        newLine(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Enter"));
         expectHtml(wrapper.innerHTML, `
             <ul>
                 <li>zero
                     <ol>
                         <li>first
                             <ul>
-                                <li>second</li>
+                                <li class="start">second</li>
                                 <li><br></li>
                             </ul>
                         </li>

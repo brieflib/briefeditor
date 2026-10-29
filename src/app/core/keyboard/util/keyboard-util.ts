@@ -41,12 +41,18 @@ import {
     splitItem
 } from "@/core/list/list";
 import {getDirectChildren, getLine, isListEmpty} from "@/core/list/util/list-util";
-import {getCursorAnchor, getNextCharacterAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
+import {
+    getCursorAnchor,
+    getNextCharacterAnchor,
+    isCursorOnWholeLines,
+    resolveCursorAnchor
+} from "@/core/cursor/util/cursor-util";
 import {Command} from "@/core/command/type/command";
 
 /**
  * Deletes a selection spanning blocks, typing `pressedKey` in its place, and merges the last selected block into the
- * first one. A collapsed Backspace or Delete first widens the selection by the character it removes.
+ * first one, or divides the first block at the cursor for Enter. A collapsed Backspace or Delete first widens the
+ * selection by the character it removes.
  */
 export function mergeBlocksNew(contentEditable: HTMLElement,
                                command: Command,
@@ -84,6 +90,9 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         return;
     }
 
+    // Read before the deletion moves the end onto the start
+    const isWholeLines = isCursorOnWholeLines(contentEditable, cursorPosition);
+
     const isLineRemoved = removeSelfClose(selfClose);
     cursorPosition = deleteContents(cursorPosition);
 
@@ -92,9 +101,22 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         return;
     }
 
+    // Enter divides the first block at the cursor, so the text after it opens a line of its own
+    if (pressedKey === "Enter") {
+        const breakText = document.createTextNode("");
+        insertNode(cursorPosition, breakText);
+        new Normalizer(contentEditable).insertBreak(firstBlock, breakText);
+        return;
+    }
+
     if (pressedKey && isKeyPrintable(pressedKey)) {
         const keyText = document.createTextNode(pressedKey);
         insertNode(cursorPosition, keyText);
+    }
+
+    // Whole lines deleted leave one empty line, which shows a br; the next thing typed or pasted fills it
+    if (!isKeyPrintable(pressedKey) && isWholeLines) {
+        insertNode(cursorPosition, document.createElement("br"));
     }
 
     // The items left after a merged item take new levels, which only the list knows; a block merged onto an item

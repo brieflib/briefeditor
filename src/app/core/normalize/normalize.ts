@@ -5,6 +5,7 @@ import {
     getInvolvedCursorPosition,
     getLeafNodes,
     maybeInsertCarrier,
+    normalizeBreakNew,
     normalizeMergeNew,
     normalizeNew,
     normalizeRemoveNew,
@@ -116,6 +117,16 @@ export class Normalizer {
         if (wrappedCursorPosition) {
             const fragment = extractContents(wrappedCursorPosition);
             insertNode(wrappedCursorPosition, normalizeMergeNew(this.contentEditable, fragment, firstBlock, lastBlock));
+        }
+    }
+
+    /** Divides `block` at `breakText`, moving the leaves after it into a new block of the same tag. */
+    public insertBreak(block: HTMLElement, breakText: Text) {
+        const root = getRootElement(this.contentEditable, block);
+        const wrappedCursorPosition = wrapCursorPosition(root, root);
+        if (wrappedCursorPosition) {
+            const fragment = extractContents(wrappedCursorPosition);
+            insertNode(wrappedCursorPosition, normalizeBreakNew(this.contentEditable, fragment, block, breakText));
         }
     }
 }

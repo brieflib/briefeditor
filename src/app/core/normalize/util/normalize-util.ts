@@ -53,7 +53,7 @@ export function normalizeRemoveNew(contentEditable: Node,
 }
 
 /** Drops `tagsToRemove` from the leaf's parents when its leaf node is one of `selectedTexts`; other leaves are left as is. */
-export function filterSelectedLeafParentsNew(selectedTexts: Node[], tagsToRemove: string[], leaf: Leaf) {
+function filterSelectedLeafParentsNew(selectedTexts: Node[], tagsToRemove: string[], leaf: Leaf) {
     const leafNode = leaf.getParents().at(-1);
     if (!leafNode || !selectedTexts.includes(leafNode)) {
         return leaf;
@@ -121,6 +121,68 @@ export function mergeLeafParentsNew(firstBlockParents: Node[], lastBlock: Node, 
 }
 
 /**
+ * Rebuilds a detached fragment into the schema, dividing `block` at `breakText`: the leaves after it go into a new
+ * block of the same tag. `block` must stand in `toNormalize`.
+ */
+export function normalizeBreakNew(contentEditable: Node,
+                                  toNormalize: DocumentFragment,
+                                  block: Node,
+                                  breakText: Text) {
+    addEmptyLinePlaceholders(block, breakText);
+
+    // A new element rather than a clone, so the block's attributes and classes stay with the first line only
+    const newBlock = document.createElement(block.nodeName);
+    const leaves = getTextNodes(toNormalize)
+        .map(textNode => toLeafWithParents(contentEditable, textNode))
+        .map(leaf => breakLeafParentsNew(block, newBlock, breakText, leaf))
+        .map(leaf => divideFirstLevels(leaf))
+        .map(leaf => sortLeafParents(leaf))
+        .map(leaf => removeSelfCloseInlines(leaf))
+        .map(leaf => removeConsecutiveDuplicates(leaf));
+
+    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+}
+
+/**
+ * Puts a br on each side of `breakText` holding no leaf of `block`, since an empty line shows a br. A nested list
+ * is a line of its own, so its leaves don't count.
+ */
+function addEmptyLinePlaceholders(block: Node, breakText: Text) {
+    const lineLeaves = Array.from(block.childNodes)
+        .filter(child => !isSchemaContain(child, [Display.ListWrapper]))
+        .flatMap(child => getTextNodes(child));
+
+    const hasLeafBefore = lineLeaves.some(leaf => breakText.compareDocumentPosition(leaf) & Node.DOCUMENT_POSITION_PRECEDING);
+    if (!hasLeafBefore) {
+        breakText.before(document.createElement("br"));
+    }
+
+    const hasLeafAfter = lineLeaves.some(leaf => breakText.compareDocumentPosition(leaf) & Node.DOCUMENT_POSITION_FOLLOWING);
+    if (!hasLeafAfter) {
+        breakText.after(document.createElement("br"));
+    }
+}
+
+/**
+ * Replaces `block` among the leaf's parents with `newBlock` when the leaf follows `breakText`. A leaf before the break
+ * or outside `block` is left as is.
+ */
+export function breakLeafParentsNew(block: Node, newBlock: HTMLElement, breakText: Text, leaf: Leaf) {
+    const parents = leaf.getParents();
+    const blockIndex = parents.indexOf(block);
+    const leafNode = parents.at(-1);
+    const isAfterBreak = !!leafNode && !!(breakText.compareDocumentPosition(leafNode) & Node.DOCUMENT_POSITION_FOLLOWING);
+    if (blockIndex < 0 || !isAfterBreak) {
+        return leaf;
+    }
+
+    // The same instance for every leaf after the break, so collapseLeavesNew groups them into one block
+    leaf.setParents([...parents.slice(0, blockIndex), newBlock, ...parents.slice(blockIndex + 1)]);
+
+    return leaf;
+}
+
+/**
  * Rebuilds the block holding the carrier, dropping `tagsToRemove` from the carrier's parents only. Self-closing
  * leaves keep their inline tags, so an empty line like <strong><br></strong> stays as it is.
  */
@@ -136,7 +198,6 @@ export function normalizeCarrierNew(contentEditable: Node,
 
     return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
 }
-
 
 /** Collects the text nodes and the empty elements, such as an empty cell, which have no text node to stand for them. */
 export function getTextNodes(element: Node, textNodes: Node[] = []) {

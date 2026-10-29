@@ -309,7 +309,9 @@ export function getCursorAnchor(contentEditable: HTMLElement,
     // A tag toggled on a caret takes the caret into the new tag.
     if (command?.action === Action.Tag) {
         const isCarrier = cursorAnchor.length === 0;
-        return {...cursorAnchor, startIsAfter: true, endIsAfter: isCarrier};
+        // At the start of the block no text stands before the new tag, so the point is in it already.
+        const isAfter = cursorAnchor.start > 0;
+        return {...cursorAnchor, startIsAfter: isAfter, endIsAfter: isCarrier || cursorAnchor.endIsAfter};
     }
 
     const event = command?.event;
@@ -327,10 +329,37 @@ export function getCursorAnchor(contentEditable: HTMLElement,
             return stayBeforeNextCharacter(contentEditable, cursorAnchor, cursorPosition);
         }
 
+        if (event.key === "Enter") {
+            // The caret stands at the start of the line the break opens.
+            return openNewLine(contentEditable, cursorAnchor, cursorPosition);
+        }
+
         return cursorAnchor;
     }
 
     return cursorAnchor;
+}
+
+/**
+ * Moves a collapsed cursor to the start of the line Enter opens. The self-close tags before the cursor stay on the
+ * first line, so the cursor steps over them and over the break.
+ */
+function openNewLine(contentEditable: HTMLElement, cursorAnchor: CursorAnchor, cursorPosition: CursorPosition) {
+    const container = cursorPosition.startContainer;
+    const offset = cursorPosition.startOffset;
+    // The line before the break gets a br, and the caret steps over it into the new line.
+    if (isAtLineStart(contentEditable, container, offset)) {
+        return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, true);
+    }
+
+    // The break divides the text, so the caret stands at the start of the text after it.
+    if (container instanceof Text && offset !== 0) {
+        return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, true);
+    }
+
+    // Text stands before the caret in its line, so the count stops inside the line.
+    const selfCloseBefore = countPreviousSelfClose(contentEditable, getLastNode(getPreviousNode(contentEditable, container)));
+    return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, selfCloseBefore + 1);
 }
 
 /**
@@ -598,6 +627,11 @@ function findStartBlock(block: Node, offset: number): NodeOffset {
 function enterNextNode(block: Node,
                        nodeOffset: NodeOffset,
                        cursorAfterTagsCount: number | boolean): NodeOffset {
+    // A point inside its text, or at its start, is not at the end of a node, so nothing after it is entered.
+    if (nodeOffset.node instanceof Text && nodeOffset.offset < nodeOffset.node.data.length) {
+        return nodeOffset;
+    }
+
     let offset = 0;
     let next: Node | null = nodeOffset.node;
 
@@ -617,3 +651,10 @@ function enterNextNode(block: Node,
 
     return next ? {node: next, offset: offset} : nodeOffset;
 }
+
+/** Whether the cursor spans whole lines: it starts at the start of its first line and ends at the end of its last one. */
+export function isCursorOnWholeLines(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    return isAtLineStart(contentEditable, cursorPosition.startContainer, cursorPosition.startOffset) &&
+        isAtLineEnd(contentEditable, cursorPosition.endContainer, cursorPosition.endOffset);
+}
+
