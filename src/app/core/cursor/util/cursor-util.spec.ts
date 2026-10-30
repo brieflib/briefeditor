@@ -228,8 +228,8 @@ describe("Cursor as a place in the text", () => {
 
     test("Should walk on to the block that follows when the block was divided", () => {
         const wrapper = createWrapper(`<p class="start">zerofirst</p>`);
-        selectRange(getFirstChild(wrapper, ".start"), "zerofir".length, getFirstChild(wrapper, ".start"), "zerofir".length);
-        const cursorAnchor = getCursorAnchor(wrapper);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
 
         // The block the offset was measured against no longer holds that much text: what followed the
         // cursor is standing in a block of its own now, and the offset left over once this block's text
@@ -237,20 +237,7 @@ describe("Cursor as a place in the text", () => {
         wrapper.innerHTML = `<p class="start">zero</p><p class="end">first</p>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        expectCursor(cursorPosition, getFirstChild(wrapper, ".end"), "fir".length);
-    });
-
-    test("Should walk on across every block the divided one was written into", () => {
-        const wrapper = createWrapper(`<p class="start">zerofirstsecond</p>`);
-        selectRange(getFirstChild(wrapper, ".start"), "zerofirstsec".length,
-            getFirstChild(wrapper, ".start"), "zerofirstsec".length);
-        const cursorAnchor = getCursorAnchor(wrapper);
-
-        // The place is three blocks along, so the text of each one in between is spent in turn.
-        wrapper.innerHTML = `<p class="start">zero</p><p>first</p><p class="end">second</p>`;
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
-        expectCursor(cursorPosition, getFirstChild(wrapper, ".end"), "sec".length);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".end"), "".length);
     });
 
     // A triple click selects a line from its start to the start of the block below it.

@@ -58,6 +58,7 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
                                command: Command,
                                cursorPosition: CursorPosition = getCursorPosition()) {
     const pressedKey = command.event instanceof KeyboardEvent ? command.event.key : "";
+    const isShiftKey = command.event instanceof KeyboardEvent && command.event.shiftKey;
 
     // The br a collapsed Backspace or Delete removes; it's removed after the blocks are read, since it may hold the cursor
     let selfClose: Node | null = null;
@@ -102,7 +103,7 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     }
 
     // Enter divides the first block at the cursor, so the text after it opens a line of its own
-    if (pressedKey === "Enter") {
+    if (pressedKey === "Enter" && !isShiftKey) {
         const breakText = document.createTextNode("");
         insertNode(cursorPosition, breakText);
         new Normalizer(contentEditable).insertBreak(firstBlock, breakText);
@@ -114,8 +115,10 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         insertNode(cursorPosition, keyText);
     }
 
-    // Whole lines deleted leave one empty line, which shows a br; the next thing typed or pasted fills it
-    if (!isKeyPrintable(pressedKey) && isWholeLines) {
+    const isLineBreak = pressedKey === "Enter" && isShiftKey;
+    // Shift+Enter breaks the line inside its block, so the br takes the selection's place like a typed character;
+    // whole lines deleted leave one empty line, which shows a br until the next thing typed or pasted fills it
+    if (isLineBreak || (!isKeyPrintable(pressedKey) && isWholeLines)) {
         insertNode(cursorPosition, document.createElement("br"));
     }
 
