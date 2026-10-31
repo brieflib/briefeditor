@@ -543,6 +543,13 @@ export function getNextCharacterAnchor(contentEditable: HTMLElement, cursorPosit
         return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start + charLengthAfter(container.data, offset), 0);
     }
 
+    // A self-close tag after the caret is what Delete removes; it holds no text, so the offset stays and the anchor
+    // steps onto the tag
+    const nextLeaf = getFirstTextNew(getNextNodeNew(contentEditable, container));
+    if (container instanceof Text && isSchemaContain(nextLeaf, [Display.SelfClose])) {
+        return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, 1);
+    }
+
     // The character after the caret opens the next text in the line, behind an inline tag.
     return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start + 1, 0);
 }

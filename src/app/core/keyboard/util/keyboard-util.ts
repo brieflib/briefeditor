@@ -84,11 +84,7 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
 
     // A character typed on a br is written before it; the br ending its line is spanned too, since the character takes
     // its place, while a br with text after it breaks the line and stays
-    let atCursor: Node | undefined = cursorPosition.startContainer;
-    if (atCursor.hasChildNodes()) {
-        atCursor = atCursor.childNodes[cursorPosition.startOffset];
-    }
-    const container = getFirstChild(atCursor);
+    const container = getLeafAtCursor(cursorPosition);
     if (container && isCollapsed(cursorPosition) && pressedKey && isKeyPrintable(pressedKey) && isSchemaContain(container, [Display.SelfClose])) {
         const nextSibling = container.nextSibling;
         if (nextSibling && !isSchemaContain(nextSibling, [Display.ListWrapper])) {
@@ -171,6 +167,19 @@ function removeSelfClose(maybeSelfClose: Node | null) {
     }
 
     return false;
+}
+
+/**
+ * The leaf the caret stands on: the br or text it's in, or the first leaf of the child at its offset, such as an
+ * empty item's br. Nothing when the offset points past the last child.
+ */
+function getLeafAtCursor(cursorPosition: CursorPosition) {
+    let atCursor: Node | undefined = cursorPosition.startContainer;
+    if (atCursor.hasChildNodes()) {
+        atCursor = atCursor.childNodes[cursorPosition.startOffset];
+    }
+
+    return getFirstChild(atCursor);
 }
 
 /** Merges the current block into the one before it (backspace at the start of a line). */
