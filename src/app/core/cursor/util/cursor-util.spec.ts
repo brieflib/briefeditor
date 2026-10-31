@@ -9,7 +9,7 @@ import {
 import {
     findNodeAndOffset,
     getCursorAnchor,
-    getCursorPositionFromPoint,
+    getCursorPositionFromPoint, getNextCharacterAnchor,
     getOffsetInElement,
     resolveCursorAnchor
 } from "@/core/cursor/util/cursor-util";
@@ -949,5 +949,41 @@ describe("Cursor anchor after a Delete", () => {
 
         const irst = getFirstChild(wrapper, ".start")
         expectCursor(cursorPosition, irst, "".length);
+    });
+});
+
+describe("Deletes range end from a caret on a br", () => {
+    // The offset counts from the list, so it lands on the end of the text above, one step before the caret's br.
+    test("Should end at the start of the nested line after an empty item below text", () => {
+        const wrapper = createWrapper(`
+              <ol>
+                  <li>zero</li>
+                  <li class="start"><br>
+                      <ol><li class="end">first</li></ol>
+                  </li>
+              </ol>
+          `);
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, getNextCharacterAnchor(wrapper, getCursorPosition()));
+
+        const first = getFirstChild(wrapper, ".end");
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    // Every br of the run before the caret holds no text, so the anchor steps over all of them.
+    test("Should end at the start of the next paragraph from an empty line after text", () => {
+        const wrapper = createWrapper(`
+              <p class="start">zero<br><br></p>
+              <p class="end">first</p>
+          `);
+        const br = getLastChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, getNextCharacterAnchor(wrapper, getCursorPosition()));
+
+        const first = getFirstChild(wrapper, ".end");
+        expectCursor(cursorPosition, first, "".length);
     });
 });

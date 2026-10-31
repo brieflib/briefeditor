@@ -535,6 +535,13 @@ export function getNextCharacterAnchor(contentEditable: HTMLElement, cursorPosit
 
     // The end of the line and the start of the next one count to the same offset, so the anchor steps after it.
     if (isAtLineEnd(contentEditable, container, offset)) {
+        // The caret on an empty line's br steps over the brs up to its own into the next line; past text the offset
+        // resolves onto that text's end, one step before the first br
+        if (isSchemaContain(container, [Display.SelfClose])) {
+            const selfCloseCount = countPreviousSelfClose(contentEditable, container);
+            return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, cursorAnchor.start > 0 ? selfCloseCount + 1 : selfCloseCount);
+        }
+
         return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, true);
     }
 
