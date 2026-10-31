@@ -107,18 +107,11 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     // Read before the deletion moves the end onto the start
     const isWholeLines = isCursorOnWholeLines(contentEditable, cursorPosition);
 
-    const removed = removeSelfClose(selfClose);
+    const isBlockRemoved = removeSelfClose(selfClose);
     cursorPosition = deleteContents(cursorPosition);
 
     // Backspace or Delete removed the empty line with its block, so no block is left to merge with
-    if (removed.isBlockRemoved) {
-        return;
-    }
-
-    // An item kept for its nested lists lost its line; its run is rebuilt, which drops it and leaves the nested items
-    // under the line above
-    if (removed.isLineRemoved) {
-        mergeItems(contentEditable, firstBlock, firstBlock);
+    if (isBlockRemoved) {
         return;
     }
 
@@ -154,13 +147,12 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
 }
 
 /**
- * Removes `maybeSelfClose` if it is a self-close tag, together with its line once nothing else is left in it. Tells
- * whether the line was removed, and whether its block went with it.
+ * Removes `maybeSelfClose` if it is a self-close tag, together with its line once nothing else is left in it.
+ * Returns true when the line was removed with its block.
  */
 function removeSelfClose(maybeSelfClose: Node | null) {
-    const removed = {isLineRemoved: false, isBlockRemoved: false};
     if (!maybeSelfClose || !isSchemaContain(maybeSelfClose, [Display.SelfClose])) {
-        return removed;
+        return false;
     }
 
     const line = maybeSelfClose.parentElement;
@@ -169,14 +161,13 @@ function removeSelfClose(maybeSelfClose: Node | null) {
         deleteContents(brPosition);
     }
 
-    // A line left without its last br is gone with it; the lists nested in an item stand after its line and stay
-    removed.isLineRemoved = !!line && (!line.firstChild || isSchemaContain(line.firstChild, [Display.ListWrapper]));
+    // A line left without its last br is gone with it
     if (line && !line.hasChildNodes()) {
         line.remove();
-        removed.isBlockRemoved = true;
+        return true;
     }
 
-    return removed;
+    return false;
 }
 
 /**

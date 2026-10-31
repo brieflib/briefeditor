@@ -593,17 +593,15 @@ describe("Merge next element", () => {
 
         mergeBlocksNew(wrapper, keydown("Delete"));
         expectHtml(wrapper.innerHTML, `
-            <ol>
-                <li>first</li>
-            </ol>
             <ul>
+                <li>first</li>
                 <li>second</li>
             </ul>
             <p>third</p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        expectCursor(cursorPosition, getFirstChild(wrapper, "ol li"), 0);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li"), 0);
     });
 
     test("When cursor is at the end should merge empty H1", () => {
@@ -665,6 +663,24 @@ describe("Merge next element", () => {
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 5);
+    });
+
+    test("When cursor is at the empty H1 before empty paragraph should remove paragraph", () => {
+        const wrapper = createWrapper(`                                                                                                                                                                               
+              <h1 class="start"><br></h1>                                                                                                                                                                               
+              <p><br></p>                                                                                                                                                                                               
+          `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        mergeBlocksNew(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `                                                                                                                                                                               
+             <h1 class="start"><br></h1>                                                                                                                                                                              
+         `);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 0);
     });
 });
 

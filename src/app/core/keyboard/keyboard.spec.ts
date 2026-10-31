@@ -1586,65 +1586,111 @@ describe("Editing over a selection ending on an empty nested item", () => {
         <ol>
             <li>first
                 <ol>
-                    <li class="empty"><br></li>
+                    <li class="end"><br></li>
                 </ol>
             </li>
         </ol>
     `;
 
-    for (const caretOnItem of [false, true]) {
-        const caret = caretOnItem ? "caret on the item" : "caret on the br";
+    test("Should type over the selection without leaving a break behind (caret on the br)", () => {
+        const wrapper = createWrapper(html);
 
-        test(`Should type over the selection without leaving a break behind (${caret})`, () => {
-            const wrapper = createWrapper(html);
+        const zero = getFirstChild(wrapper, ".start");
+        const end = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, end, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
 
-            const zero = getFirstChild(wrapper, ".start");
-            const empty = caretOnItem ? querySelector(wrapper, ".empty") : querySelector(wrapper, "br");
-            selectRange(zero, "".length, empty, "".length);
-            const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `<h3>x</h3>`);
 
-            handleKeyboardEvent(wrapper, keydown("x"));
-            expectHtml(wrapper.innerHTML, `<h3>x</h3>`);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const x = getFirstChild(wrapper, "h3");
+        expectCursor(cursorPosition, x, "x".length);
+        // The cursor must be one the selection can be set to, or the edit is never committed.
+        expect(() => new Range().setStart(cursorPosition.startContainer, cursorPosition.startOffset)).not.toThrow();
+    });
 
-            const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-            const x = getFirstChild(wrapper, "h3");
-            expectCursor(cursorPosition, x, "x".length);
-            // The cursor must be one the selection can be set to, or the edit is never committed.
-            expect(() => new Range().setStart(cursorPosition.startContainer, cursorPosition.startOffset)).not.toThrow();
-        });
+    test("Should type over the selection without leaving a break behind (caret on the item)", () => {
+        const wrapper = createWrapper(html);
 
-        test(`Should keep the heading's words when typing over a selection starting inside it (${caret})`, () => {
-            const wrapper = createWrapper(html);
+        const zero = getFirstChild(wrapper, ".start");
+        const end = querySelector(wrapper, ".end");
+        selectRange(zero, "".length, end, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
 
-            const zero = getFirstChild(wrapper, ".start");
-            const empty = caretOnItem ? querySelector(wrapper, ".empty") : querySelector(wrapper, "br");
-            selectRange(zero, "ze".length, empty, "".length);
-            const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `<h3>x</h3>`);
 
-            handleKeyboardEvent(wrapper, keydown("x"));
-            expectHtml(wrapper.innerHTML, `<h3>zex</h3>`);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const x = getFirstChild(wrapper, "h3");
+        expectCursor(cursorPosition, x, "x".length);
+        // The cursor must be one the selection can be set to, or the edit is never committed.
+        expect(() => new Range().setStart(cursorPosition.startContainer, cursorPosition.startOffset)).not.toThrow();
+    });
 
-            const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-            const zex = getFirstChild(wrapper, "h3");
-            expectCursor(cursorPosition, zex, "zex".length);
-        });
+    test("Should keep the heading's words when typing over a selection starting inside it (caret on the br)", () => {
+        const wrapper = createWrapper(html);
 
-        test(`Should leave an empty heading after backspace over the selection (${caret})`, () => {
-            const wrapper = createWrapper(html);
+        const zero = getFirstChild(wrapper, ".start");
+        const end = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, end, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
 
-            const zero = getFirstChild(wrapper, ".start");
-            const empty = caretOnItem ? querySelector(wrapper, ".empty") : querySelector(wrapper, "br");
-            selectRange(zero, "".length, empty, "".length);
-            const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `<h3>zex</h3>`);
 
-            handleKeyboardEvent(wrapper, keydown("Backspace"));
-            expectHtml(wrapper.innerHTML, `<h3><br></h3>`);
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zex = getFirstChild(wrapper, "h3");
+        expectCursor(cursorPosition, zex, "zex".length);
+    });
 
-            const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-            const br = getFirstChild(wrapper, "h3");
-            expectCursor(cursorPosition, br, "".length);
-        });
-    }
+    test("Should keep the heading's words when typing over a selection starting inside it (caret on the item)", () => {
+        const wrapper = createWrapper(html);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const end = querySelector(wrapper, ".end");
+        selectRange(zero, "ze".length, end, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `<h3>zex</h3>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zex = getFirstChild(wrapper, "h3");
+        expectCursor(cursorPosition, zex, "zex".length);
+    });
+
+    test("Should leave an empty heading after backspace over the selection (caret on the br)", () => {
+        const wrapper = createWrapper(html);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const end = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, end, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `<h3><br></h3>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, "h3");
+        expectCursor(cursorPosition, br, "".length);
+    });
+
+    test("Should leave an empty heading after backspace over the selection (caret on the item)", () => {
+        const wrapper = createWrapper(html);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const end = querySelector(wrapper, ".end");
+        selectRange(zero, "".length, end, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `<h3><br></h3>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, "h3");
+        expectCursor(cursorPosition, br, "".length);
+    });
 });
 
 describe("Enter in an empty list item", () => {
