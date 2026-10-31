@@ -174,7 +174,7 @@ export function getFirstTextNew(node: Node | null) {
     return node;
 }
 
-export function getFirstChild(node: Node | null) {
+export function getFirstChild(node: Node | undefined | null) {
     while (node && node.firstChild ) {
         node = node.firstChild;
     }

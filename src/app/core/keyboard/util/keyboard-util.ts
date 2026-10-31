@@ -12,9 +12,9 @@ import {
 } from "@/core/shared/type/cursor-position";
 import {
     charLengthAfter,
-    charLengthBefore,
+    charLengthBefore, countPreviousSelfClose,
     getChildFragment,
-    getElement,
+    getElement, getFirstChild,
     getFirstText,
     getLastNode,
     getLastNonEmptyText,
@@ -80,6 +80,23 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
             cursorPosition.startContainer : end.startContainer;
 
         cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, end.endContainer, end.endOffset);
+    }
+
+    // A character typed on a br is written before it; the br ending its line is spanned too, since the character takes
+    // its place, while a br with text after it breaks the line and stays
+    let atCursor: Node | undefined = cursorPosition.startContainer;
+    if (atCursor.hasChildNodes()) {
+        atCursor = atCursor.childNodes[cursorPosition.startOffset];
+    }
+    const container = getFirstChild(atCursor);
+    if (container && isCollapsed(cursorPosition) && pressedKey && isKeyPrintable(pressedKey) && isSchemaContain(container, [Display.SelfClose])) {
+        const nextSibling = container.nextSibling;
+        if (nextSibling && !isSchemaContain(nextSibling, [Display.ListWrapper])) {
+            const start = wrapCursorPosition(container, container) ?? cursorPosition;
+            cursorPosition = getCursorPositionFrom(start.startContainer, start.startOffset, start.startContainer, start.startOffset);
+        } else {
+            cursorPosition = wrapCursorPosition(container, container) ?? cursorPosition;
+        }
     }
 
     // An item is merged on its own, not with its whole list; read before the deletion removes the blocks between

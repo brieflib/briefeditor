@@ -418,6 +418,82 @@ describe("Typing and deleting characters", () => {
         expectCursor(cursorPosition, x, "x".length);
     });
 
+    test("Type a character on the br before a line break keeps the break", () => {
+        const wrapper = createWrapper(`
+            <p class="start"><br>zero</p>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">x<br>zero</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const x = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, x, "x".length);
+    });
+
+    test("Type a character in the empty line after a line break with the caret on the paragraph", () => {
+        const wrapper = createWrapper(`
+              <p class="start">zero<br><br></p>
+          `);
+
+        const paragraph = querySelector(wrapper, ".start");
+        selectRange(paragraph, 2, paragraph, 2);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `
+              <p class="start">zero<br>x</p>
+          `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const x = getLastChild(wrapper, ".start");
+        expectCursor(cursorPosition, x, "x".length);
+    });
+
+    test("Type a character between two line breaks with the caret on the paragraph", () => {
+        const wrapper = createWrapper(`
+              <p class="start"><br><br>zero</p>
+          `);
+
+        const paragraph = querySelector(wrapper, ".start");
+        selectRange(paragraph, 1, paragraph, 1);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `
+              <p class="start"><br>x<br>zero</p>
+          `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const x = querySelector(wrapper, ".start").childNodes[1];
+        expectCursor(cursorPosition, x, "x".length);
+    });
+
+    test("Type a character at the start of the line after a line break with the caret on the paragraph", () => {
+        const wrapper = createWrapper(`
+              <p class="start"><br>zero</p>
+          `);
+
+        const paragraph = querySelector(wrapper, ".start");
+        selectRange(paragraph, 1, paragraph, 1);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `
+              <p class="start"><br>xzero</p>
+          `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const xzero = getLastChild(wrapper, ".start");
+        expectCursor(cursorPosition, xzero, "x".length);
+    });
+
     test("Type a character in an empty list item with the caret on the item", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -439,7 +515,7 @@ describe("Typing and deleting characters", () => {
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const x = getFirstChild(wrapper, ".start");
+        const x = getFirstChild(wrapper, "li");
         expectCursor(cursorPosition, x, "x".length);
     });
 
@@ -470,7 +546,7 @@ describe("Typing and deleting characters", () => {
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const x = getFirstChild(wrapper, ".start");
+        const x = getFirstChild(wrapper, "li");
         expectCursor(cursorPosition, x, "x".length);
     });
 
@@ -501,7 +577,7 @@ describe("Typing and deleting characters", () => {
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const x = getFirstChild(wrapper, ".start");
+        const x = getFirstChild(wrapper, "li");
         expectCursor(cursorPosition, x, "x".length);
     });
 
