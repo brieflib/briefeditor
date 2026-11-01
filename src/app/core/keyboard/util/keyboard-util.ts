@@ -76,22 +76,19 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         const end = resolveCursorAnchor(contentEditable, getNextCharacterAnchor(contentEditable, cursorPosition));
 
         // Delete removes the br right after the caret, or the whole line with its last one
-        selfClose = isSchemaContain(cursorPosition.startContainer, [Display.SelfClose]) ?
-            cursorPosition.startContainer : end.startContainer;
+        selfClose = isSchemaContain(end.startContainer, [Display.SelfClose]) ?
+            end.startContainer : cursorPosition.startContainer;
 
         cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, end.endContainer, end.endOffset);
     }
 
-    // A character typed on a br is written before it; the br ending its line is spanned too, since the character takes
-    // its place, while a br with text after it breaks the line and stays
+    // A character typed on a br is written before it. A lone br and a br inside a list are gone.
     const container = getLeafAtCursor(cursorPosition);
     if (container && isCollapsed(cursorPosition) && pressedKey && isKeyPrintable(pressedKey) && isSchemaContain(container, [Display.SelfClose])) {
         const nextSibling = container.nextSibling;
+        cursorPosition = wrapCursorPosition(container, container) ?? cursorPosition;
         if (nextSibling && !isSchemaContain(nextSibling, [Display.ListWrapper])) {
-            const start = wrapCursorPosition(container, container) ?? cursorPosition;
-            cursorPosition = getCursorPositionFrom(start.startContainer, start.startOffset, start.startContainer, start.startOffset);
-        } else {
-            cursorPosition = wrapCursorPosition(container, container) ?? cursorPosition;
+            cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, cursorPosition.startContainer, cursorPosition.startOffset);
         }
     }
 

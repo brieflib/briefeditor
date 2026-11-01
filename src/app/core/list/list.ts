@@ -35,7 +35,7 @@ export function isNextListNested(contentEditable: HTMLElement, cursorPosition: C
     }
 
     // Only the last item of the selection is asked about, so anchor the parse there directly.
-    const parsed = parseSelectedList(contentEditable, cursorPositionOf(lastBlock));
+    const parsed = parseSelectedList(contentEditable, getCursorPositionFrom(lastBlock, 0, lastBlock, 0));
     if (!parsed) {
         return false;
     }
@@ -143,13 +143,6 @@ function copyListRun(root: HTMLElement): HTMLElement {
     return (container.firstElementChild ?? container) as HTMLElement;
 }
 
-/** A cursor position resting on `block`, as if the caret had landed on it directly. */
-function cursorPositionOf(block: HTMLElement): CursorPosition {
-    const firstText = getFirstText(block);
-
-    return getCursorPositionFrom(firstText, 0, firstText, 0);
-}
-
 /**
  * Indents the selected items one level deeper.
  *
@@ -227,9 +220,9 @@ export function mergeItems(contentEditable: HTMLElement, firstBlock: HTMLElement
     const lastRoot = getBlockElement(contentEditable, lastBlock);
     const firstRoot = isFirstItem ? getBlockElement(contentEditable, firstBlock) : lastRoot;
 
-    // Each item's line is the one a cursor resting on it selects
-    const firstLists = isFirstItem ? parseList(firstRoot, cursorPositionOf(firstBlock)) : [];
-    const lastLists = parseList(lastRoot, cursorPositionOf(lastBlock));
+    // A cursor at the start of an item selects only its own line, even when the item is empty
+    const firstLists = isFirstItem ? parseList(firstRoot, getCursorPositionFrom(firstBlock, 0, firstBlock, 0)) : [];
+    const lastLists = parseList(lastRoot, getCursorPositionFrom(lastBlock, 0, lastBlock, 0));
     const firstIndex = firstLists.findIndex(list => list.selected);
     const lastIndex = lastLists.findIndex(list => list.selected);
     const firstLine = isFirstItem ? firstLists[firstIndex]?.listContent : firstBlock;
@@ -238,8 +231,7 @@ export function mergeItems(contentEditable: HTMLElement, firstBlock: HTMLElement
         return;
     }
 
-    // An item merged with itself already holds its line; only its run is rebuilt. An item without a line of its own
-    // resolves to the line of its first nested item, so it merges with itself too.
+    // An item merged with itself already holds its line; only its run is rebuilt
     const isSameLine = firstRoot === lastRoot && firstIndex === lastIndex;
     if (!isSameLine) {
         // The two lines join into one: their neighbouring texts and inlines collapse together

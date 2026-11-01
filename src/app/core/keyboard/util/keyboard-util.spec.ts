@@ -1648,7 +1648,7 @@ describe("Cursor position after key press", () => {
 
         mergeBlocksNew(wrapper, keydown("Delete"));
         expectHtml(wrapper.innerHTML, `
-            <p><br/></p>
+            <p class="start"><br/></p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);

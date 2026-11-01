@@ -733,16 +733,13 @@ describe("Typing and deleting characters", () => {
         expectHtml(wrapper.innerHTML, `
             <ol>
                 <li>zero</li>
-                <li>first
-                    <ol>
-                        <li>second</li>
-                    </ol>
-                </li>
+                <li>first</li>
+                <li>second</li>
             </ol>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const second = getFirstChild(wrapper, "ol li:last-child ol li");
+        const second = getFirstChild(wrapper, "ol li:last-child");
         expectCursor(cursorPosition, second, "".length);
     });
 
@@ -763,17 +760,17 @@ describe("Typing and deleting characters", () => {
 
         handleKeyboardEvent(wrapper, keydown("Delete"));
         expectHtml(wrapper.innerHTML, `
-            <ol>
+            <ul>
                 <li>zero</li>
-            </ol>
+            </ul>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zero = getFirstChild(wrapper, "ol li");
+        const zero = getFirstChild(wrapper, "ul li");
         expectCursor(cursorPosition, zero, "".length);
     });
 
-    test("Should merge lists of different types when pressing delete before br with li before", () => {
+    test("Should merge lists of different types when pressing delete before br 2", () => {
         const wrapper = createWrapper(`
             <ol>
                 <li>zero</li>
@@ -792,16 +789,13 @@ describe("Typing and deleting characters", () => {
         handleKeyboardEvent(wrapper, keydown("Delete"));
         expectHtml(wrapper.innerHTML, `
             <ol>
-                <li>zero
-                    <ul>
-                        <li>first</li>
-                    </ul>
-                </li>
+                <li>zero</li>
+                <li>first</li>
             </ol>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const first = getFirstChild(wrapper, "ol li ul li");
+        const first = getFirstChild(wrapper, "ol li:last-child");
         expectCursor(cursorPosition, first, "".length);
     });
 

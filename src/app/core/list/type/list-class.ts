@@ -177,22 +177,25 @@ function toWrapperType(element: HTMLElement): ListWrapper {
     return element.nodeName === "UL" ? ListWrapper.UL : ListWrapper.OL;
 }
 
-/** Whether the cursor touches the item's own line; a nested list inside the item doesn't count. */
+/**
+ * Whether the cursor touches the item's own line; a nested list inside the item doesn't count.
+ * An item without a line of its own, such as an empty one, is selected by a cursor resting on the item before its nested list.
+ */
 function isLineSelected(item: HTMLElement, cursorPosition: CursorPosition): boolean {
     const childNodes = Array.from(item.childNodes);
+    const firstListIndex = childNodes.findIndex(node => isSchemaContain(node, [Display.ListWrapper]));
+    const lineEnd = firstListIndex === -1 ? childNodes.length : firstListIndex;
 
-    return childNodes.some((node, index) => {
+    // A cursor resting on the item itself, beside a br or in an item with no line of its own, intersects no node
+    for (let offset = 0; offset <= lineEnd; offset++) {
+        if (cursorPosition.range.isPointInRange(item, offset)) {
+            return true;
+        }
+    }
+
+    return childNodes.some(node => {
         if (isSchemaContain(node, [Display.ListWrapper])) {
             return false;
-        }
-
-        // A cursor in an empty item rests on the item beside its br, so it intersects no node
-        if (isSchemaContain(node, [Display.SelfClose])) {
-            const isBefore = cursorPosition.range.isPointInRange(item, index);
-            const isAfter = cursorPosition.range.isPointInRange(item, index + 1);
-            if (isBefore || isAfter) {
-                return true;
-            }
         }
 
         return intersectsNode(cursorPosition, node);
