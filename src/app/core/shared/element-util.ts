@@ -109,6 +109,14 @@ export function getPreviousNode(findTill: HTMLElement, current: Node) {
     return current.previousSibling;
 }
 
+export function getPreviousNodeNew(findTill: HTMLElement, current: Node) {
+    while (current.parentElement && current.parentElement !== findTill && !current.previousSibling) {
+        current = current.parentElement;
+    }
+
+    return current.previousSibling;
+}
+
 export function getFirstText(node: Node) {
     while (node && node.firstChild && node.nodeType !== Node.TEXT_NODE) {
         node = node.firstChild;
@@ -126,7 +134,7 @@ export function countPreviousSelfClose(findTill: HTMLElement, current: Node | nu
             count++;
         }
 
-        current = getLastNode(getPreviousNode(findTill, current));
+        current = getLastNode(getPreviousNodeNew(findTill, current));
     }
 
     return count;
@@ -182,6 +190,7 @@ export function getFirstChild(node: Node | undefined | null) {
     return node;
 }
 
+// ToDo: getLastChild
 export function getLastNode(node: Node | null) {
     let currentNode: Node | ChildNode | null = node;
 

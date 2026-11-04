@@ -12,9 +12,10 @@ import {
 } from "@/core/shared/type/cursor-position";
 import {
     charLengthAfter,
-    charLengthBefore, countPreviousSelfClose,
+    charLengthBefore,
     getChildFragment,
-    getElement, getFirstChild,
+    getElement,
+    getFirstChild,
     getFirstText,
     getLastNode,
     getLastNonEmptyText,
@@ -62,11 +63,19 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
 
     // The br a collapsed Backspace or Delete removes; it's removed after the blocks are read, since it may hold the cursor
     let selfClose: Node | null = null;
+    let currentSelfClose: Node | null = null;
+    let backspacedLine: HTMLElement | null | undefined = null;
 
     if (isCollapsed(cursorPosition) && pressedKey === "Backspace") {
         const start = resolveCursorAnchor(contentEditable, getCursorAnchor(contentEditable, cursorPosition, command));
         // Backspace removes the br before the caret, or its whole line with the last one; nothing is merged
         selfClose = getLastNode(getPreviousNode(contentEditable, start.startContainer));
+        if (!isSchemaContain(selfClose, [Display.SelfClose])) {
+            selfClose = start.startContainer;
+        }
+        if (isSchemaContain(selfClose, [Display.SelfClose])) {
+            backspacedLine = selfClose?.parentElement;
+        }
 
         cursorPosition = getCursorPositionFrom(start.startContainer, start.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
     }
@@ -78,6 +87,8 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         // Delete removes the br right after the caret, or the whole line with its last one
         selfClose = isSchemaContain(end.startContainer, [Display.SelfClose]) ?
             end.startContainer : cursorPosition.startContainer;
+        // The br the caret stands on is the empty line's own, not the next line's start
+        currentSelfClose = getLeafAtCursor(cursorPosition) ?? null;
 
         cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, end.endContainer, end.endOffset);
     }
@@ -94,10 +105,10 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
 
     // An item is merged on its own, not with its whole list; read before the deletion removes the blocks between
     const blocks = getSelectedBlock(contentEditable, cursorPosition);
-    const firstBlock = blocks.at(0);
-    const lastBlock = blocks.at(-1);
+    const firstLine = blocks.at(0);
+    const lastLine = blocks.at(-1);
 
-    if (!firstBlock || !lastBlock) {
+    if (!firstLine || !lastLine) {
         return;
     }
 
@@ -116,7 +127,7 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     if (pressedKey === "Enter" && !isShiftKey) {
         const breakText = document.createTextNode("");
         insertNode(cursorPosition, breakText);
-        new Normalizer(contentEditable).insertBreak(firstBlock, breakText);
+        new Normalizer(contentEditable).insertBreak(firstLine, breakText);
         return;
     }
 
@@ -134,13 +145,15 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
 
     // The items left after a merged item take new levels, which only the list knows; a block merged onto an item
     // just joins its line, which the normalization does
-    const isLastItem = isSchemaContain(lastBlock, [Display.List]);
-    if (isLastItem) {
-        mergeItems(contentEditable, firstBlock, lastBlock);
+    if (isSchemaContain(firstLine, [Display.List])) {
+        if (currentSelfClose && isSchemaContain(currentSelfClose, [Display.SelfClose])) {
+            (currentSelfClose as HTMLElement).remove();
+        }
+        mergeItems(contentEditable, firstLine, lastLine, backspacedLine);
         return;
     }
 
-    new Normalizer(contentEditable).mergeBlocks(firstBlock, lastBlock);
+    new Normalizer(contentEditable).mergeBlocks(firstLine, lastLine);
 }
 
 /**
@@ -153,10 +166,7 @@ function removeSelfClose(maybeSelfClose: Node | null) {
     }
 
     const line = maybeSelfClose.parentElement;
-    const brPosition = wrapCursorPosition(maybeSelfClose, maybeSelfClose);
-    if (brPosition) {
-        deleteContents(brPosition);
-    }
+    (maybeSelfClose as HTMLElement).remove();
 
     // A line left without its last br is gone with it
     if (line && !line.hasChildNodes()) {

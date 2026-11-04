@@ -2269,7 +2269,7 @@ describe("Merge items", () => {
         const second = getFirstChild(wrapper, ".end") as HTMLElement;
         selectRange(first, "first".length, second, "".length);
 
-        mergeItems(wrapper, first, second);
+        mergeItems(wrapper, first, second, null);
 
         expectHtml(wrapper.innerHTML, `
             <ul>

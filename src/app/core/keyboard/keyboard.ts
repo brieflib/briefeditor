@@ -1,6 +1,5 @@
 import {isSpecialKey, mergeBlocksNew} from "@/core/keyboard/util/keyboard-util";
 import {Command} from "@/core/command/type/command";
-import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 export function handleKeyboardEvent(contentEditable: HTMLElement, command: Command) {
     const event = command.event;
@@ -9,11 +8,9 @@ export function handleKeyboardEvent(contentEditable: HTMLElement, command: Comma
     }
 
     if (isSpecialKey(event)) {
-        return getCursorPosition();
+        return;
     }
 
     event.preventDefault();
     mergeBlocksNew(contentEditable, command);
-
-    return getCursorPosition();
 }

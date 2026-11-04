@@ -770,7 +770,7 @@ describe("Typing and deleting characters", () => {
         expectCursor(cursorPosition, zero, "".length);
     });
 
-    test("Should merge lists of different types when pressing delete before br 2", () => {
+    test("Should merge lists of different types when pressing delete before br with preceding li", () => {
         const wrapper = createWrapper(`
             <ol>
                 <li>zero</li>
@@ -833,6 +833,40 @@ describe("Typing and deleting characters", () => {
         expectCursor(cursorPosition, mergedSecond, "".length);
     });
 
+    test("Should merge lists when pressing backspace after double br", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                        <li><br><br></li>
+                    </ol>
+                </li>
+                <li class="start">second</li>
+            </ol>
+        `);
+
+        const second = getFirstChild(wrapper, ".start");
+        selectRange(second, "".length, second, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                        <li><br>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const mergedSecond = getFirstChild(wrapper, "ol li ol li:last-child");
+        expectCursor(cursorPosition, mergedSecond, "".length);
+    });
+
     test("Should merge lists of different types when pressing backspace after br", () => {
         const wrapper = createWrapper(`
             <ol>
@@ -858,16 +892,14 @@ describe("Typing and deleting characters", () => {
                 <li>zero
                     <ol>
                         <li>first</li>
-                    </ol>
-                    <ul>
                         <li>second</li>
-                    </ul>
+                    </ol>
                 </li>
             </ol>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const mergedSecond = getFirstChild(wrapper, "ol li ul li:last-child");
+        const mergedSecond = getFirstChild(wrapper, "ol li ol li:last-child");
         expectCursor(cursorPosition, mergedSecond, "".length);
     });
 

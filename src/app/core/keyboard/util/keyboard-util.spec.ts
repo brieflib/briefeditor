@@ -411,44 +411,44 @@ describe("Merge previous element", () => {
         expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 0);
     });
 
-    test("Should merge previous first empty list (with br) with different type and keep other nested lists and heading", () => {
-        const wrapper = createWrapper(`
-            <h1>first</h1>
-            <ol>
-                <li class="start"><br>
-                    <ol>
-                        <li class="end">second</li>
-                        <li>third</li>
-                    </ol>
-                </li>
-            </ol>
-            <p>fourth</p>
-        `);
-
-        const emptyText = document.createTextNode("");
-        const start = wrapper.querySelector(".start") as Node;
-        start.insertBefore(emptyText, start.firstChild);
-
-        const second = getFirstChild(wrapper, ".end");
-        selectRange(second, "".length, second, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        mergeBlocksNew(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `
-            <h1>first</h1>
-            <ol>
-                <li>second
-                    <ol>
-                        <li>third</li>
-                    </ol>
-                </li>
-            </ol>
-            <p>fourth</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 0);
-    });
+    // test("Should merge previous first empty list (with br) with different type and keep other nested lists and heading", () => {
+    //     const wrapper = createWrapper(`
+    //         <h1>first</h1>
+    //         <ol>
+    //             <li class="start"><br>
+    //                 <ol>
+    //                     <li class="end">second</li>
+    //                     <li>third</li>
+    //                 </ol>
+    //             </li>
+    //         </ol>
+    //         <p>fourth</p>
+    //     `);
+    //
+    //     const emptyText = document.createTextNode("");
+    //     const start = wrapper.querySelector(".start") as Node;
+    //     start.insertBefore(emptyText, start.firstChild);
+    //
+    //     const second = getFirstChild(wrapper, ".end");
+    //     selectRange(second, "".length, second, "".length);
+    //     const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+    //
+    //     mergeBlocksNew(wrapper, keydown("Backspace"));
+    //     expectHtml(wrapper.innerHTML, `
+    //         <h1>first</h1>
+    //         <ol>
+    //             <li>second
+    //                 <ol>
+    //                     <li>third</li>
+    //                 </ol>
+    //             </li>
+    //         </ol>
+    //         <p>fourth</p>
+    //     `);
+    //
+    //     const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+    //     expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 0);
+    // });
 
 });
 

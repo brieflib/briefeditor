@@ -2,14 +2,16 @@ import {
     createWrapper,
     expectCursor,
     getFirstChild,
-    getLastChild, keydown,
+    getLastChild,
+    keydown,
     querySelector,
     selectRange
 } from "@/core/shared/test-util";
 import {
     findNodeAndOffset,
     getCursorAnchor,
-    getCursorPositionFromPoint, getNextCharacterAnchor,
+    getCursorPositionFromPoint,
+    getNextCharacterAnchor,
     getOffsetInElement,
     resolveCursorAnchor
 } from "@/core/cursor/util/cursor-util";
@@ -393,8 +395,7 @@ describe("Cursor anchor after a Backspace", () => {
 
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        const br = querySelector(wrapper, ".start br");
-        br.remove();
+        querySelector(wrapper, ".start").innerHTML = `zerofirst`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         const zeroFirst = getFirstChild(wrapper, ".start");
@@ -507,11 +508,23 @@ describe("Cursor anchor after a Backspace", () => {
 
     test("Should set cursor at start of zero when Backspace removes second line break", () => {
         const wrapper = createWrapper(`<p class="start"><br><br></p><p class="end">zero</p>`);
-        let zero = getFirstChild(wrapper, ".end");
+        const zero = getFirstChild(wrapper, ".end");
         selectRange(zero, "".length, zero, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        wrapper.innerHTML = `<ul><li class="start"><br>zero</li></ul>`;
+        querySelector(wrapper, ".start br").remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, zero, "".length);
+    });
+
+    test("Should set cursor at start of zero when list changes block", () => {
+        const wrapper = createWrapper(`<p><br></p><ul><li class="start"><br><br>zero</li></ul>`);
+        let zero = getLastChild(wrapper, ".start");
+        selectRange(zero, "".length, zero, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.List});
+
+        querySelector(wrapper, "ul").outerHTML = `<ul><li class="start"><br><br>zero</li></ul>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         zero = getLastChild(wrapper, ".start");
@@ -520,14 +533,13 @@ describe("Cursor anchor after a Backspace", () => {
 
     test("Should set cursor at start of zero when Backspace removes third line break", () => {
         const wrapper = createWrapper(`<p class="start"><br><br><br></p><p class="end">zero</p>`);
-        let zero = getFirstChild(wrapper, ".end");
+        const zero = getFirstChild(wrapper, ".end");
         selectRange(zero, "".length, zero, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        wrapper.innerHTML = `<ul><li class="start"><br><br>zero</li></ul>`;
+        querySelector(wrapper, ".start br").remove();
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
-        zero = getLastChild(wrapper, ".start");
         expectCursor(cursorPosition, zero, "".length);
     });
 
@@ -563,7 +575,7 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(text, 0, text, 0);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        wrapper.querySelector(".start img")?.remove();
+        querySelector(wrapper, ".start").innerHTML = `zerofirst`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
@@ -985,5 +997,22 @@ describe("Deletes range end from a caret on a br", () => {
 
         const first = getFirstChild(wrapper, ".end");
         expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("When cursor is at the start of empty element should go to a line break of previous empty element", () => {
+        const wrapper = createWrapper(`
+          <p><br/><br/></p>
+          <h1 class="start"><br/></h1>
+          <p>zero</p>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        querySelector(wrapper, "p br").remove();
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), 0);
     });
 });

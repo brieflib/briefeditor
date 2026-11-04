@@ -211,40 +211,30 @@ export function rebuildList(root: HTMLElement, lists: ListClass[], cursorPositio
 }
 
 /**
- * Moves the line of `lastItem` to the end of the line of `firstBlock`, an item or a block outside a list, and rebuilds
- * their run; what was nested in `lastItem` or stood after it keeps its place in the run.
+ * Moves `lastLine` to the end of `firstLine` and rebuilds their run. When Backspace took the last thing `firstLine`
+ * held, there is nothing to merge into, so `lastLine` stays as it is and the rebuild drops the line above it.
  */
-export function mergeItems(contentEditable: HTMLElement, firstBlock: HTMLElement, lastBlock: HTMLElement) {
-    // A block outside a list has no run of its own, so the run rebuilt is the last item's one
-    const isFirstItem = isSchemaContain(firstBlock, [Display.List]);
-    const lastRoot = getBlockElement(contentEditable, lastBlock);
-    const firstRoot = isFirstItem ? getBlockElement(contentEditable, firstBlock) : lastRoot;
+export function mergeItems(contentEditable: HTMLElement, firstLine: HTMLElement, lastLine: HTMLElement,
+                           backspacedLine: HTMLElement | null | undefined) {
+    const firstBlock = getBlockElement(contentEditable, firstLine);
+    const lastBlock = getBlockElement(contentEditable, lastLine);
+    const isFirstLineGone = backspacedLine === firstLine && isSchemaContain(firstLine.firstChild, [Display.ListWrapper]);
 
-    // A cursor at the start of an item selects only its own line, even when the item is empty
-    const firstLists = isFirstItem ? parseList(firstRoot, getCursorPositionFrom(firstBlock, 0, firstBlock, 0)) : [];
-    const lastLists = parseList(lastRoot, getCursorPositionFrom(lastBlock, 0, lastBlock, 0));
+    if (firstBlock === lastBlock && !isFirstLineGone) {
+        firstLine.append(...lastLine.childNodes);
+    }
+
+    const firstLists = parseList(firstBlock);
+    const lastLists = parseList(lastBlock);
+
     const firstIndex = firstLists.findIndex(list => list.selected);
     const lastIndex = lastLists.findIndex(list => list.selected);
-    const firstLine = isFirstItem ? firstLists[firstIndex]?.listContent : firstBlock;
-    const lastList = lastLists[lastIndex];
-    if (!firstLine || !lastList) {
-        return;
-    }
 
-    // An item merged with itself already holds its line; only its run is rebuilt
-    const isSameLine = firstRoot === lastRoot && firstIndex === lastIndex;
-    if (!isSameLine) {
-        // The two lines join into one: their neighbouring texts and inlines collapse together
-        const line = new DocumentFragment();
-        line.append(...firstLine.childNodes, lastList.listContent);
-        firstLine.append(normalizeNew(contentEditable, line));
-    }
-
-    // The lines between the two blocks were deleted, so the merged run is what stands up to the first item and after the last one
     const merged = [...firstLists.slice(0, firstIndex + 1), ...lastLists.slice(lastIndex + 1)];
+
     const normalized = normalizeLists(merged);
     const listWrappers = convertList(normalized);
-    appendBeforeAndDelete(firstRoot, listWrappers);
+    appendBeforeAndDelete(lastBlock, listWrappers);
 }
 
 /** Reads `root`'s run and rebuilds it as is - the normalization pass on its own. */
