@@ -513,11 +513,8 @@ describe("Merge next element", () => {
             <p>third</p>
         `);
 
-        const emptyText = document.createTextNode("");
-        const start = wrapper.querySelector(".start") as Node;
-        start.insertBefore(emptyText, start.firstChild);
-
-        selectRange(emptyText, "".length, emptyText, "".length);
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, 0, br, 0);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeBlocksNew(wrapper, keydown("Delete"));
@@ -551,11 +548,8 @@ describe("Merge next element", () => {
             <p>second</p>
         `);
 
-        const emptyText = document.createTextNode("");
-        const start = wrapper.querySelector(".start") as Node;
-        start.insertBefore(emptyText, start.firstChild);
-
-        selectRange(emptyText, "".length, emptyText, "".length);
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, 0, br, 0);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeBlocksNew(wrapper, keydown("Delete"));
@@ -1627,9 +1621,9 @@ describe("Cursor position after key press", () => {
         selectRange(br, "".length, br, "".length);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        mergePreviousBlock(wrapper, getCursorPosition());
+        mergeBlocksNew(wrapper, keydown("Backspace"));
         expectHtml(wrapper.innerHTML, `
-            <p><br/></p>
+            <p class="start"><br/></p>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);

@@ -11,7 +11,16 @@ import {
 } from "@/core/list/list";
 import {convertList, normalizeLists, parseList, plusLevel} from "@/core/list/type/list-class";
 import {getCursorPosition} from "@/core/shared/type/cursor-position";
-import {createWrapper, expectCursor, expectHtml, getFirstChild, getLastChild, getText, selectRange} from "@/core/shared/test-util";
+import {
+    createWrapper,
+    expectCursor,
+    expectHtml,
+    getFirstChild,
+    getLastChild,
+    getText,
+    keydown, querySelector,
+    selectRange
+} from "@/core/shared/test-util";
 import {pasteHtml} from "@/core/clipboard/util/clipboard-util";
 import {handleKeyboardEvent} from "@/core/keyboard/keyboard";
 import {appendBeforeAndDelete} from "@/core/list/util/list-util";
@@ -1769,7 +1778,7 @@ describe("List side events", () => {
         const second = getFirstChild(wrapper, ".start");
         selectRange(second, "".length, second, "".length);
 
-        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -1795,7 +1804,7 @@ describe("List side events", () => {
 
         selectRange(wrapper.querySelector(".start") as Node, "".length, wrapper.querySelector(".start") as Node, "".length);
 
-        handleKeyboardEvent(wrapper, new KeyboardEvent("keydown", {key: "Backspace"}));
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
 
         expectHtml(wrapper.innerHTML, `
             <ol>
@@ -2269,7 +2278,7 @@ describe("Merge items", () => {
         const second = getFirstChild(wrapper, ".end") as HTMLElement;
         selectRange(first, "first".length, second, "".length);
 
-        mergeItems(wrapper, first, second, null);
+        mergeItems(wrapper, querySelector(wrapper, ".start"), querySelector(wrapper, ".end"), second);
 
         expectHtml(wrapper.innerHTML, `
             <ul>

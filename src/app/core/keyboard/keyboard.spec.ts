@@ -216,6 +216,27 @@ describe("Keyboard events", () => {
         expectCursor(cursorPosition, first, "".length);
     });
 
+    test("Press shift+enter when cursor spans multiple tags", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<strong>first</strong>second</p>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".start strong");
+        selectRange(zero, "ze".length, first, "fi".length);
+        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
+
+        handleKeyboardEvent(wrapper, shiftEnter);
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">ze<br><strong>rst</strong>second</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const rst = getFirstChild(wrapper, "strong");
+        expectCursor(cursorPosition, rst, "".length);
+    });
+
     test("Press shift+enter when cursor is in the middle of text", () => {
         const wrapper = createWrapper(`
             <p class="start">zerofirst</p>
@@ -241,7 +262,7 @@ describe("Keyboard events", () => {
             <p>zero</p><p class="start">first</p>
         `);
 
-        let first = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".start");
         selectRange(first, "".length, first, "first".length);
         const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
@@ -252,8 +273,8 @@ describe("Keyboard events", () => {
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        first = getLastChild(wrapper, ".start");
-        expectCursor(cursorPosition, first, "".length);
+        const br = getLastChild(wrapper, ".start");
+        expectCursor(cursorPosition, br, "".length);
     });
 
     test("Press delete when selection spans two paragraphs", () => {

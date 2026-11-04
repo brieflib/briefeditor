@@ -19,7 +19,6 @@ import {
     splitAtCursor
 } from "@/core/shared/type/cursor-position";
 import {convertList, ListClass, minusLevel, normalizeLists, parseList, plusLevel} from "@/core/list/type/list-class";
-import {normalizeNew} from "@/core/normalize/util/normalize-util";
 
 /** A list nests five wrappers deep at most: one for the item's own level, one per level above it. */
 const deepestNestedLevel = 6;
@@ -216,13 +215,14 @@ export function rebuildList(root: HTMLElement, lists: ListClass[], cursorPositio
  */
 export function mergeItems(contentEditable: HTMLElement, firstLine: HTMLElement, lastLine: HTMLElement,
                            backspacedLine: HTMLElement | null | undefined) {
+    const isFirstLineGone = backspacedLine === firstLine;
+    if (!isFirstLineGone) {
+        firstLine.append(...Array.from(lastLine.childNodes).filter(node => !isSchemaContain(node, [Display.ListWrapper])));
+        firstLine.normalize();
+    }
+
     const firstBlock = getBlockElement(contentEditable, firstLine);
     const lastBlock = getBlockElement(contentEditable, lastLine);
-    const isFirstLineGone = backspacedLine === firstLine && isSchemaContain(firstLine.firstChild, [Display.ListWrapper]);
-
-    if (firstBlock === lastBlock && !isFirstLineGone) {
-        firstLine.append(...lastLine.childNodes);
-    }
 
     const firstLists = parseList(firstBlock);
     const lastLists = parseList(lastBlock);
@@ -231,7 +231,6 @@ export function mergeItems(contentEditable: HTMLElement, firstLine: HTMLElement,
     const lastIndex = lastLists.findIndex(list => list.selected);
 
     const merged = [...firstLists.slice(0, firstIndex + 1), ...lastLists.slice(lastIndex + 1)];
-
     const normalized = normalizeLists(merged);
     const listWrappers = convertList(normalized);
     appendBeforeAndDelete(lastBlock, listWrappers);

@@ -301,6 +301,20 @@ export function findNodeAndOffset(root: Node, targetPosition: number): NodeOffse
 }
 
 
+function anchorAfterTag(cursorAnchor: {
+    blocks: (Node | null)[];
+    start: number;
+    end: number;
+    startIsAfter: boolean;
+    endIsAfter: boolean;
+    length: number
+}) {
+    const isCarrier = cursorAnchor.length === 0;
+    // At the start of the block no text stands before the new tag, so the point is in it already.
+    const isAfter = cursorAnchor.start > 0;
+    return {...cursorAnchor, startIsAfter: isAfter, endIsAfter: isCarrier || cursorAnchor.endIsAfter};
+}
+
 /**
  * Reads the cursor as a place in the text, moved to where `command` leaves the caret. Take it before the command
  * rebuilds the document.
@@ -328,10 +342,7 @@ export function getCursorAnchor(contentEditable: HTMLElement,
 
     // A tag toggled on a caret takes the caret into the new tag.
     if (command?.action === Action.Tag) {
-        const isCarrier = cursorAnchor.length === 0;
-        // At the start of the block no text stands before the new tag, so the point is in it already.
-        const isAfter = cursorAnchor.start > 0;
-        return {...cursorAnchor, startIsAfter: isAfter, endIsAfter: isCarrier || cursorAnchor.endIsAfter};
+        return anchorAfterTag(cursorAnchor);
     }
 
     const event = command?.event;
@@ -394,14 +405,9 @@ function openNewLine(contentEditable: HTMLElement, cursorAnchor: CursorAnchor, c
 function breakLine(contentEditable: HTMLElement, cursorAnchor: CursorAnchor, cursorPosition: CursorPosition) {
     const container = cursorPosition.startContainer;
     const offset = cursorPosition.startOffset;
-    // The offset resolves onto the first node of the line, which is the new br, so one step goes past it.
+    // The offset resolves onto the first node of the line, which is the new br.
     if (isAtLineStart(contentEditable, container, offset)) {
-        return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, 1);
-    }
-
-    // The offset resolves onto the end of the text before the br, so the caret steps over the br into the next node.
-    if (container instanceof Text && offset !== 0) {
-        return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, 2);
+        return collapseAnchor(cursorAnchor.blocks, cursorAnchor.start, 0);
     }
 
     // The self-close tags before the caret stand between that text end and the new br.
