@@ -48,7 +48,7 @@ export function getRootElement(findTill: HTMLElement, child: HTMLElement | Node)
 }
 
 /** The closest element of `display` holding `child`, below `findTill`. `findTill` itself is returned for a point on it, instead of climbing past it. */
-export function getElement(findTill: HTMLElement, child: HTMLElement | Text, display: Display[]) {
+export function getElement(findTill: HTMLElement, child: HTMLElement | Text | Node, display: Display[]) {
     if (child === findTill) {
         return findTill;
     }
@@ -62,6 +62,32 @@ export function getElement(findTill: HTMLElement, child: HTMLElement | Text, dis
     }
 
     return child as HTMLElement;
+}
+
+export function getPreviousLine(findTill: HTMLElement, child: Node | null | undefined) {
+    if (!child) {
+        return;
+    }
+
+    const previousNode = getPreviousNodeNew(findTill, child);
+    if (previousNode instanceof Text || previousNode instanceof HTMLElement) {
+        return getElement(findTill, previousNode, [Display.List, Display.FirstLevel]);
+    }
+
+    return;
+}
+
+export function getNextLine(findTill: HTMLElement, child: Node | null | undefined) {
+    if (!child) {
+        return;
+    }
+
+    const nextNode = getNextNode(findTill, child);
+    if (nextNode instanceof Text || nextNode instanceof HTMLElement) {
+        return getElement(findTill, nextNode, [Display.List, Display.FirstLevel]);
+    }
+
+    return;
 }
 
 export function getElementByTagName(findTill: HTMLElement, tagName: string, cursorPosition = getCursorPosition()) {
@@ -93,9 +119,33 @@ export function getNextNodeNew(findTill: Node, node: Node) {
     return node.nextSibling;
 }
 
+export function getPreviousNotBlankLeaf(findTill: HTMLElement, node: Node | null) {
+    while(node) {
+        node = getLastNode(getPreviousNodeNew(findTill, node));
+
+        if (node instanceof Text && node.data) {
+            return node;
+        }
+
+        if (isSchemaContain(node, [Display.SelfClose])) {
+            return node;
+        }
+    }
+
+    return node;
+}
+
 export function getNextNotEmptyNode(findTill: HTMLElement, node: Node | null) {
     while (node && !node.textContent) {
         node = getNextNode(findTill, node);
+    }
+
+    return node;
+}
+
+export function getPreviousTextNode(findTill: HTMLElement, node: Node | null) {
+    while (node && !(node instanceof Text)) {
+        node = getPreviousNodeNew(findTill, node);
     }
 
     return node;
@@ -126,10 +176,19 @@ export function getFirstText(node: Node) {
 }
 
 /** How many self-close tags stand from `current` back to the text before them, `current` included. */
-export function countPreviousSelfClose(findTill: HTMLElement, current: Node | null) {
+export function countSelfCloseBefore(findTill: HTMLElement, current: Node | null) {
     let count = 0;
-    // Empty texts stand between the tags without breaking the run.
+    if (!current) {
+        return 0;
+    }
+
+    const line = getElement(findTill, current as HTMLElement, [Display.List, Display.FirstLevel]);
     while (current && !current.textContent) {
+        const currentLine = getElement(findTill, current as HTMLElement, [Display.List, Display.FirstLevel]);
+        if (currentLine !== line) {
+            return count;
+        }
+
         if (isSchemaContain(current, [Display.SelfClose])) {
             count++;
         }
@@ -138,6 +197,26 @@ export function countPreviousSelfClose(findTill: HTMLElement, current: Node | nu
     }
 
     return count;
+}
+
+export function countNodesBefore(findTill: HTMLElement, current: Node | null) {
+    let count = 0;
+    if (!current) {
+        return 0;
+    }
+    const block = getBlockElement(findTill, current);
+    // Empty texts stand between the tags without breaking the run.
+    while (current) {
+        const currentBlock = getBlockElement(findTill, current);
+        if (currentBlock !== block) {
+            return count - 1;
+        }
+
+        count++;
+        current = getLastNode(getPreviousNodeNew(findTill, current));
+    }
+
+    return count === 0 ? 0 : count - 1;
 }
 
 export function getLastText(node: Node) {
@@ -157,7 +236,7 @@ export function getLastText(node: Node) {
     return currentNode as HTMLElement;
 }
 
-export function getLastTextNew(node: Node | null) {
+export function getLastTextNew(node: Node) {
     let currentNode = node;
 
     while (currentNode && !(currentNode instanceof Text)) {
@@ -187,7 +266,7 @@ export function getFirstChild(node: Node | undefined | null) {
         node = node.firstChild;
     }
 
-    return node;
+    return node ?? null;
 }
 
 // ToDo: getLastChild
@@ -209,32 +288,12 @@ export function getLastNonEmptyText(node: Node) {
     const children = Array.from(node.childNodes);
     for (let i = children.length - 1; i >= 0; i--) {
         const child = children[i];
-        if (child && child.textContent) {
+        if (child && !child.textContent) {
             return getLastNonEmptyText(child);
         }
     }
 
-    return getLastText(node);
-}
-
-export function getLastNonEmptyTextNew(node: Node | null) {
-    if (node === null) {
-        return;
-    }
-
-    if (node instanceof Text && node.data) {
-        return node;
-    }
-
-    const children = Array.from(node.childNodes);
-    for (let i = children.length - 1; i >= 0; i--) {
-        const child = children[i];
-        if (child && child.textContent) {
-            return getLastNonEmptyText(child);
-        }
-    }
-
-    return getLastText(node);
+    return getLastTextNew(node);
 }
 
 export function hasSelfCloseDescendant(node: Node): boolean {

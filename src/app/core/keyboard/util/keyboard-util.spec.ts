@@ -106,6 +106,26 @@ describe("Merge previous element", () => {
         expectCursor(cursorPosition, getFirstChild(wrapper, "h1"), 0);
     });
 
+    test("Should remove one of the multiple brs", () => {
+        const wrapper = createWrapper(`
+          <p class="start"><br/><br/><br/></p>
+          <p>zero</p>
+        `);
+
+        const br = wrapper.querySelectorAll("p br")[1] as HTMLElement;
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        mergeBlocksNew(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+          <p class="start"><br/><br/></p>
+          <p>zero</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, getLastChild(wrapper, "p"), 0);
+    });
+
     test("When cursor is at the start should remove previous br element", () => {
         const wrapper = createWrapper(`
             <p><br/><br/><br/></p>
@@ -411,44 +431,44 @@ describe("Merge previous element", () => {
         expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 0);
     });
 
-    // test("Should merge previous first empty list (with br) with different type and keep other nested lists and heading", () => {
-    //     const wrapper = createWrapper(`
-    //         <h1>first</h1>
-    //         <ol>
-    //             <li class="start"><br>
-    //                 <ol>
-    //                     <li class="end">second</li>
-    //                     <li>third</li>
-    //                 </ol>
-    //             </li>
-    //         </ol>
-    //         <p>fourth</p>
-    //     `);
-    //
-    //     const emptyText = document.createTextNode("");
-    //     const start = wrapper.querySelector(".start") as Node;
-    //     start.insertBefore(emptyText, start.firstChild);
-    //
-    //     const second = getFirstChild(wrapper, ".end");
-    //     selectRange(second, "".length, second, "".length);
-    //     const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-    //
-    //     mergeBlocksNew(wrapper, keydown("Backspace"));
-    //     expectHtml(wrapper.innerHTML, `
-    //         <h1>first</h1>
-    //         <ol>
-    //             <li>second
-    //                 <ol>
-    //                     <li>third</li>
-    //                 </ol>
-    //             </li>
-    //         </ol>
-    //         <p>fourth</p>
-    //     `);
-    //
-    //     const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-    //     expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 0);
-    // });
+    test("Should merge previous first empty list (with br) with different type and keep other nested lists and heading", () => {
+        const wrapper = createWrapper(`
+            <h1>first</h1>
+            <ol>
+                <li class="start"><br>
+                    <ol>
+                        <li class="end">second</li>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ol>
+            <p>fourth</p>
+        `);
+
+        const emptyText = document.createTextNode("");
+        const start = wrapper.querySelector(".start") as Node;
+        start.insertBefore(emptyText, start.firstChild);
+
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(second, "".length, second, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        mergeBlocksNew(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <h1>first</h1>
+            <ol>
+                <li>second
+                    <ol>
+                        <li>third</li>
+                    </ol>
+                </li>
+            </ol>
+            <p>fourth</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, wrapper.querySelector("li")?.firstChild, 0);
+    });
 
 });
 
@@ -582,7 +602,7 @@ describe("Merge next element", () => {
         `);
 
         const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
+        selectRange(br, 0, br, 0);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
 
         mergeBlocksNew(wrapper, keydown("Delete"));

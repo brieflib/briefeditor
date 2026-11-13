@@ -78,11 +78,15 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
 
     if (isCollapsed(cursorPosition) && pressedKey === "Delete") {
         const end = resolveCursorAnchor(contentEditable, getNextCharacterAnchor(contentEditable, cursorPosition));
-        selfClose = isSchemaContain(end.startContainer, [Display.SelfClose]) ?
-            end.startContainer : cursorPosition.startContainer;
+        selfClose = isSchemaContain(end.startContainer, [Display.SelfClose]) ? end.startContainer : cursorPosition.startContainer;
         if (!isSchemaContain(selfClose, [Display.SelfClose])) {
             selfClose = getLeafAtCursor(cursorPosition);
         }
+        cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, end.endContainer, end.endOffset);
+    }
+
+    if (pressedKey && isKeyPrintable(pressedKey)) {
+        const end = resolveCursorAnchor(contentEditable, getNextCharacterAnchor(contentEditable, cursorPosition));
         cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, end.endContainer, end.endOffset);
     }
 
