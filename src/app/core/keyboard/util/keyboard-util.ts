@@ -43,8 +43,8 @@ import {
 } from "@/core/list/list";
 import {getDirectChildren, getLine, isListEmpty} from "@/core/list/util/list-util";
 import {
-    getCursorAnchor,
     getNextCharacterAnchor,
+    getPreviousCharacterAnchor,
     isCursorOnWholeLines,
     resolveCursorAnchor
 } from "@/core/cursor/util/cursor-util";
@@ -65,7 +65,7 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     let backspacedLine: HTMLElement | null | undefined = null;
 
     if (isCollapsed(cursorPosition) && pressedKey === "Backspace") {
-        const start = resolveCursorAnchor(contentEditable, getCursorAnchor(contentEditable, cursorPosition, command));
+        const start = resolveCursorAnchor(contentEditable, getPreviousCharacterAnchor(contentEditable, cursorPosition));
         selfClose = getLastNode(getPreviousNode(contentEditable, start.startContainer));
         if (!isSchemaContain(selfClose, [Display.SelfClose])) {
             selfClose = start.startContainer;
@@ -110,7 +110,7 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     }
 
     // Read before the deletion moves the end onto the start
-    const isWholeLines = isCursorOnWholeLines(contentEditable, cursorPosition);
+    //const isWholeLines = isCursorOnWholeLines(contentEditable, cursorPosition);
 
     const isBlockRemoved = removeSelfClose(selfClose);
     cursorPosition = deleteContents(cursorPosition);
@@ -133,12 +133,12 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         insertNode(cursorPosition, keyText);
     }
 
-    const isLineBreak = pressedKey === "Enter" && isShiftKey;
-    // Shift+Enter breaks the line inside its block, so the br takes the selection's place like a typed character;
-    // whole lines deleted leave one empty line, which shows a br until the next thing typed or pasted fills it
-    if (isLineBreak || (!isKeyPrintable(pressedKey) && isWholeLines)) {
-        insertNode(cursorPosition, document.createElement("br"));
-    }
+    // const isLineBreak = pressedKey === "Enter" && isShiftKey;
+    // // Shift+Enter breaks the line inside its block, so the br takes the selection's place like a typed character;
+    // // whole lines deleted leave one empty line, which shows a br until the next thing typed or pasted fills it
+    // if (isLineBreak || (!isKeyPrintable(pressedKey) && isWholeLines)) {
+    //     insertNode(cursorPosition, document.createElement("br"));
+    // }
 
     if (isSchemaContain(lastLine, [Display.List])) {
         mergeItems(contentEditable, firstLine, lastLine, backspacedLine);

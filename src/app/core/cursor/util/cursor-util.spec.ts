@@ -574,19 +574,6 @@ describe("Cursor anchor after a Backspace", () => {
         expectCursor(cursorPosition, zero, "".length);
     });
 
-    test("Should set cursor at start of zero when list changes block", () => {
-        const wrapper = createWrapper(`<p><br></p><ul><li class="start"><br><br>zero</li></ul>`);
-        let zero = getLastChild(wrapper, ".start");
-        selectRange(zero, "".length, zero, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.List});
-
-        querySelector(wrapper, "ul").outerHTML = `<ul><li class="start"><br><br>zero</li></ul>`;
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
-        zero = getLastChild(wrapper, ".start");
-        expectCursor(cursorPosition, zero, "".length);
-    });
-
     test("Should set cursor at start of zero when Backspace removes third line break", () => {
         const wrapper = createWrapper(`<p class="start"><br><br><br></p><p class="end">zero</p>`);
         const zero = getFirstChild(wrapper, ".end");
@@ -1083,5 +1070,20 @@ describe("Deletes range end from a caret on a br", () => {
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), 0);
+    });
+});
+
+describe("List command", () => {
+    test("Should set cursor at start of zero when list changes block", () => {
+        const wrapper = createWrapper(`<p><br></p><ul><li class="start"><br><br>zero</li></ul>`);
+        let zero = getLastChild(wrapper, ".start");
+        selectRange(zero, "".length, zero, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.List});
+
+        querySelector(wrapper, "ul").outerHTML = `<ul><li class="start"><br><br>zero</li></ul>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        zero = getLastChild(wrapper, ".start");
+        expectCursor(cursorPosition, zero, "".length);
     });
 });

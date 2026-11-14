@@ -531,3 +531,25 @@ function isHighSurrogate(code: number) {
 function isLowSurrogate(code: number) {
     return code >= 0xDC00 && code <= 0xDFFF;
 }
+
+/** Whether `node` holds self-close tags and nothing else, the tags wrapping them aside. Empty texts don't count as content. */
+export function isOnlySelfClose(node: Node) {
+    let hasSelfClose = false;
+    const walker = document.createTreeWalker(node);
+
+    let current: Node | null = walker.currentNode;
+    while (current) {
+        const isEmptyText = current instanceof Text && !current.data;
+
+        if (isSchemaContain(current, [Display.SelfClose])) {
+            hasSelfClose = true;
+        } else if (!current.firstChild && !isEmptyText) {
+            // A leaf that is neither a self-close tag nor an empty text is content: a text or an empty tag.
+            return false;
+        }
+
+        current = walker.nextNode();
+    }
+
+    return hasSelfClose;
+}

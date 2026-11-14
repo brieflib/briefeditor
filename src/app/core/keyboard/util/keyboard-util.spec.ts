@@ -40,8 +40,7 @@ describe("Merge previous element", () => {
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zero = getFirstChild(wrapper, "p");
-        expectCursor(cursorPosition, zero, 4);
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "".length);
     });
 
     test("When cursor is at the start should merge two elements", () => {
