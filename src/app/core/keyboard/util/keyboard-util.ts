@@ -15,7 +15,6 @@ import {
     getChildFragment,
     getElement,
     getFirstText,
-    getLastNode,
     getLastNonEmptyText,
     getLastText,
     getNextNode,
@@ -65,12 +64,13 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
 
     if (isCollapsed(cursorPosition) && pressedKey === "Backspace") {
         const start = resolveCursorAnchor(contentEditable, getPreviousCharacterAnchor(contentEditable, cursorPosition));
-        removal = getBackspacedSelfClose(contentEditable, cursorPosition, start);
+        const removed = getCursorPositionFrom(start.startContainer, start.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
+        removal = getBackspacedSelfClose(contentEditable, cursorPosition, removed);
         // The tag's line is gone for the merge, unless it is kept to merge into.
         if (removal && !removal.isLineKept) {
             backspacedLine = removal.line;
         }
-        cursorPosition = getCursorPositionFrom(start.startContainer, start.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
+        cursorPosition = removed;
     }
 
     if (isCollapsed(cursorPosition) && pressedKey === "Delete") {
@@ -123,22 +123,20 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
 }
 
 /**
- * The self-close tag a collapsed Backspace removes, with what happens to its line. Nothing when Backspace removes a
- * character.
+ * The self-close tag a collapsed Backspace removes, with what happens to its line. `removed` is the range from the
+ * start of what Backspace removes to the caret.
  */
 function getBackspacedSelfClose(contentEditable: HTMLElement, cursorPosition: CursorPosition,
-                                start: CursorPosition): SelfCloseRemoval | null {
-    const before = getLastNode(getPreviousNode(contentEditable, start.startContainer));
+                                removed: CursorPosition): SelfCloseRemoval | null {
+    let selfClose = getNodesInRange(removed.range).find(node => isSchemaContain(node, [Display.SelfClose]));
 
-    const leaf = getLeafAtCursor(cursorPosition)?.node;
-    const leafLine = leaf ? getElement(contentEditable, leaf, [Display.List, Display.FirstLevel]) : null;
-    const next = leaf ? getNextNode(contentEditable, leaf) : null;
-    // Nothing follows the caret's leaf in its line, so a br there only holds the line open and Backspace takes it.
-    const isLeafLastInLine = !next || getElement(contentEditable, next, [Display.List, Display.FirstLevel]) !== leafLine;
+    // Special case: the caret stands before the br ending its line, so the range does not hold it. The br only
+    // holds the line open, and Backspace takes it with the line.
+    const caretLeaf = getLeafAtCursor(cursorPosition)?.node;
+    if (!selfClose && caretLeaf && isLastSelfCloseOnLine(contentEditable, caretLeaf)) {
+        selfClose = caretLeaf;
+    }
 
-    // In this order: the tag before the removed range, the tag the range starts on, the br holding the caret's line open.
-    const candidates = [before, start.startContainer, isLeafLastInLine ? leaf : null];
-    const selfClose = candidates.find(node => isSchemaContain(node, [Display.SelfClose]));
     if (!selfClose) {
         return null;
     }
@@ -149,6 +147,36 @@ function getBackspacedSelfClose(contentEditable: HTMLElement, cursorPosition: Cu
     const isLineKept = !!line && isSchemaContain(line, [Display.List]) && !line.contains(cursorPosition.startContainer);
 
     return new SelfCloseRemoval(selfClose, line, isLineKept);
+}
+
+/**
+ * Whether `leaf` is a self-close tag with nothing after it on its line, so it only holds the line open. A list nested
+ * in the line is not part of it.
+ */
+function isLastSelfCloseOnLine(contentEditable: HTMLElement, leaf: Node) {
+    if (!isSchemaContain(leaf, [Display.SelfClose])) {
+        return false;
+    }
+
+    const line = getElement(contentEditable, leaf, [Display.List, Display.FirstLevel]);
+    const next = getNextNode(contentEditable, leaf);
+
+    return !next || getElement(contentEditable, next, [Display.List, Display.FirstLevel]) !== line;
+}
+
+/** The nodes `range` touches, in document order. */
+function getNodesInRange(range: Range): Node[] {
+    const nodes: Node[] = [];
+    const walker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_ALL, {
+        // A node outside the range has nothing inside the range either, so its whole subtree is skipped.
+        acceptNode: node => range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+    });
+
+    while (walker.nextNode()) {
+        nodes.push(walker.currentNode);
+    }
+
+    return nodes;
 }
 
 /** The self-close tag a collapsed Delete removes: the one at `end`, or the one the caret stands on. */

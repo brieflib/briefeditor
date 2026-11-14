@@ -203,7 +203,10 @@ describe("Keyboard events", () => {
 
         const zero = getFirstChild(wrapper, ".start");
         selectRange(zero, "zero".length, zero, "zero".length);
-        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
+        const shiftEnter = {
+            action: Action.Keyboard,
+            event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})
+        };
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
 
         handleKeyboardEvent(wrapper, shiftEnter);
@@ -224,7 +227,10 @@ describe("Keyboard events", () => {
         const zero = getFirstChild(wrapper, ".start");
         const first = getFirstChild(wrapper, ".start strong");
         selectRange(zero, "ze".length, first, "fi".length);
-        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
+        const shiftEnter = {
+            action: Action.Keyboard,
+            event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})
+        };
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
 
         handleKeyboardEvent(wrapper, shiftEnter);
@@ -244,7 +250,10 @@ describe("Keyboard events", () => {
 
         const zeroFirst = getFirstChild(wrapper, ".start");
         selectRange(zeroFirst, "zero".length, zeroFirst, "zero".length);
-        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
+        const shiftEnter = {
+            action: Action.Keyboard,
+            event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})
+        };
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
 
         handleKeyboardEvent(wrapper, shiftEnter);
@@ -264,7 +273,10 @@ describe("Keyboard events", () => {
 
         const first = getFirstChild(wrapper, ".start");
         selectRange(first, "".length, first, "first".length);
-        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
+        const shiftEnter = {
+            action: Action.Keyboard,
+            event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})
+        };
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
 
         handleKeyboardEvent(wrapper, shiftEnter);
@@ -909,7 +921,10 @@ describe("Typing and deleting characters", () => {
 
         const zero = getFirstChild(wrapper, ".start");
         selectRange(zero, "ze".length, zero, "ze".length);
-        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
+        const shiftEnter = {
+            action: Action.Keyboard,
+            event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})
+        };
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
 
         handleKeyboardEvent(wrapper, shiftEnter);
@@ -1196,7 +1211,10 @@ describe("Enter in an empty list item", () => {
 
         const br = getFirstChild(wrapper, ".start");
         selectRange(br, "".length, br, "".length);
-        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
+        const shiftEnter = {
+            action: Action.Keyboard,
+            event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})
+        };
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
 
         handleKeyboardEvent(wrapper, shiftEnter);
@@ -1335,18 +1353,6 @@ describe("Removing the line two lists stand apart from one another by", () => {
 });
 
 describe("Backspace", () => {
-    // The selection ends on an empty nested item, where a browser leaves the caret on the item itself or on its br.
-    const html = `
-        <h3 class="start">zero</h3>
-        <ol>
-            <li>first
-                <ol>
-                    <li class="end"><br></li>
-                </ol>
-            </li>
-        </ol>
-    `;
-
     test("After removing content and pressing delete next tag should merge", () => {
         const wrapper = createWrapper(`
             <h1 class="start">zero</h1>
@@ -1564,7 +1570,7 @@ describe("Backspace", () => {
                 <li>zero
                     <ol>
                         <li>first</li>
-                        <li><br>second</li>
+                        <li class="start"><br>second</li>
                     </ol>
                 </li>
             </ol>
@@ -2035,7 +2041,16 @@ describe("Backspace", () => {
     });
 
     test("Should leave an empty heading after backspace over the selection (caret on the br)", () => {
-        const wrapper = createWrapper(html);
+        const wrapper = createWrapper(`
+            <h3 class="start">zero</h3>
+            <ol>
+                <li>first
+                    <ol>
+                        <li class="end"><br></li>
+                    </ol>
+                </li>
+            </ol>
+        `);
 
         const zero = getFirstChild(wrapper, ".start");
         const end = getFirstChild(wrapper, ".end");
@@ -2051,7 +2066,16 @@ describe("Backspace", () => {
     });
 
     test("Should leave an empty heading after backspace over the selection (caret on the item)", () => {
-        const wrapper = createWrapper(html);
+        const wrapper = createWrapper(`
+            <h3 class="start">zero</h3>
+            <ol>
+                <li>first
+                    <ol>
+                        <li class="end"><br></li>
+                    </ol>
+                </li>
+            </ol>
+        `);
 
         const zero = getFirstChild(wrapper, ".start");
         const end = querySelector(wrapper, ".end");
@@ -2094,5 +2118,27 @@ describe("Backspace", () => {
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const itemFirst = getFirstChild(wrapper, "li");
         expectCursor(cursorPosition, itemFirst, "".length);
+    });
+
+    test("Backspace at the start of a line keeps the empty line standing two lines above", () => {
+        const wrapper = createWrapper(`
+            <p><br></p>
+            <p>zero</p>
+            <p class="start">first</p>
+        `);
+
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <p><br></p>
+            <p>zerofirst</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zeroFirst = getFirstChild(wrapper, "p + p");
+        expectCursor(cursorPosition, zeroFirst, "zero".length);
     });
 });
