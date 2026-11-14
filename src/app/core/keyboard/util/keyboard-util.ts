@@ -7,15 +7,13 @@ import {
     getCursorPositionFromElement,
     insertNode,
     isCollapsed,
-    splitAtCursor,
-    wrapCursorPosition
+    splitAtCursor
 } from "@/core/shared/type/cursor-position";
 import {
     charLengthAfter,
-    charLengthBefore, getBlockElement,
+    charLengthBefore,
     getChildFragment,
     getElement,
-    getFirstChild,
     getFirstText,
     getLastNode,
     getLastNonEmptyText,
@@ -43,12 +41,13 @@ import {
 } from "@/core/list/list";
 import {getDirectChildren, getLine, isListEmpty} from "@/core/list/util/list-util";
 import {
+    getLeafAtCursor,
     getNextCharacterAnchor,
     getPreviousCharacterAnchor,
-    isCursorOnWholeLines,
     resolveCursorAnchor
 } from "@/core/cursor/util/cursor-util";
 import {Command} from "@/core/command/type/command";
+import {SelfCloseRemoval} from "@/core/keyboard/type/self-close-removal";
 
 /**
  * Deletes a selection spanning blocks, typing `pressedKey` in its place, and merges the last selected block into the
@@ -61,27 +60,22 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     const pressedKey = command.event instanceof KeyboardEvent ? command.event.key : "";
     const isShiftKey = command.event instanceof KeyboardEvent && command.event.shiftKey;
 
-    let selfClose: Node | null | undefined = null;
+    let removal: SelfCloseRemoval | null = null;
     let backspacedLine: HTMLElement | null | undefined = null;
 
     if (isCollapsed(cursorPosition) && pressedKey === "Backspace") {
         const start = resolveCursorAnchor(contentEditable, getPreviousCharacterAnchor(contentEditable, cursorPosition));
-        selfClose = getLastNode(getPreviousNode(contentEditable, start.startContainer));
-        if (!isSchemaContain(selfClose, [Display.SelfClose])) {
-            selfClose = start.startContainer;
-        }
-        if (isSchemaContain(selfClose, [Display.SelfClose])) {
-            backspacedLine = selfClose?.parentElement;
+        removal = getBackspacedSelfClose(contentEditable, cursorPosition, start);
+        // The tag's line is gone for the merge, unless it is kept to merge into.
+        if (removal && !removal.isLineKept) {
+            backspacedLine = removal.line;
         }
         cursorPosition = getCursorPositionFrom(start.startContainer, start.startOffset, cursorPosition.endContainer, cursorPosition.endOffset);
     }
 
     if (isCollapsed(cursorPosition) && pressedKey === "Delete") {
         const end = resolveCursorAnchor(contentEditable, getNextCharacterAnchor(contentEditable, cursorPosition));
-        selfClose = isSchemaContain(end.startContainer, [Display.SelfClose]) ? end.startContainer : cursorPosition.startContainer;
-        if (!isSchemaContain(selfClose, [Display.SelfClose])) {
-            selfClose = getLeafAtCursor(cursorPosition);
-        }
+        removal = getDeletedSelfClose(contentEditable, cursorPosition, end);
         cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, end.endContainer, end.endOffset);
     }
 
@@ -89,16 +83,6 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         const end = resolveCursorAnchor(contentEditable, getNextCharacterAnchor(contentEditable, cursorPosition));
         cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, end.endContainer, end.endOffset);
     }
-
-    // A character typed on a br is written before it. A lone br and a br inside a list are gone.
-    // const container = getLeafAtCursor(cursorPosition);
-    // if (container && isCollapsed(cursorPosition) && pressedKey && isKeyPrintable(pressedKey) && isSchemaContain(container, [Display.SelfClose])) {
-    //     const nextSibling = container.nextSibling;
-    //     cursorPosition = wrapCursorPosition(container, container) ?? cursorPosition;
-    //     if (nextSibling && !isSchemaContain(nextSibling, [Display.ListWrapper])) {
-    //         cursorPosition = getCursorPositionFrom(cursorPosition.startContainer, cursorPosition.startOffset, cursorPosition.startContainer, cursorPosition.startOffset);
-    //     }
-    // }
 
     // An item is merged on its own, not with its whole list; read before the deletion removes the blocks between
     const blocks = getSelectedBlock(contentEditable, cursorPosition);
@@ -109,10 +93,7 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         return;
     }
 
-    // Read before the deletion moves the end onto the start
-    //const isWholeLines = isCursorOnWholeLines(contentEditable, cursorPosition);
-
-    const isSelfCloseAllRemoved = removeSelfClose(selfClose);
+    const isSelfCloseAllRemoved = removal !== null && removeSelfClose(removal);
     cursorPosition = deleteContents(cursorPosition);
 
     // Backspace or Delete removed a self-close tag and its line is gone or still stands, so no block is left to merge
@@ -133,13 +114,6 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         insertNode(cursorPosition, keyText);
     }
 
-    // const isLineBreak = pressedKey === "Enter" && isShiftKey;
-    // // Shift+Enter breaks the line inside its block, so the br takes the selection's place like a typed character;
-    // // whole lines deleted leave one empty line, which shows a br until the next thing typed or pasted fills it
-    // if (isLineBreak || (!isKeyPrintable(pressedKey) && isWholeLines)) {
-    //     insertNode(cursorPosition, document.createElement("br"));
-    // }
-
     if (isSchemaContain(lastLine, [Display.List])) {
         mergeItems(contentEditable, firstLine, lastLine, backspacedLine);
         return;
@@ -149,42 +123,71 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
 }
 
 /**
- * Removes `maybeSelfClose` if it is a self-close tag, together with its line once nothing else is left in it.
- * Returns true when the tag was all there was to remove: its line is gone or another self-close tag still holds it.
+ * The self-close tag a collapsed Backspace removes, with what happens to its line. Nothing when Backspace removes a
+ * character.
  */
-function removeSelfClose(maybeSelfClose: Node | null | undefined) {
-    if (!maybeSelfClose || !isSchemaContain(maybeSelfClose, [Display.SelfClose])) {
-        return false;
+function getBackspacedSelfClose(contentEditable: HTMLElement, cursorPosition: CursorPosition,
+                                start: CursorPosition): SelfCloseRemoval | null {
+    const before = getLastNode(getPreviousNode(contentEditable, start.startContainer));
+
+    const leaf = getLeafAtCursor(cursorPosition)?.node;
+    const leafLine = leaf ? getElement(contentEditable, leaf, [Display.List, Display.FirstLevel]) : null;
+    const next = leaf ? getNextNode(contentEditable, leaf) : null;
+    // Nothing follows the caret's leaf in its line, so a br there only holds the line open and Backspace takes it.
+    const isLeafLastInLine = !next || getElement(contentEditable, next, [Display.List, Display.FirstLevel]) !== leafLine;
+
+    // In this order: the tag before the removed range, the tag the range starts on, the br holding the caret's line open.
+    const candidates = [before, start.startContainer, isLeafLastInLine ? leaf : null];
+    const selfClose = candidates.find(node => isSchemaContain(node, [Display.SelfClose]));
+    if (!selfClose) {
+        return null;
     }
 
-    const line = maybeSelfClose.parentElement;
-    (maybeSelfClose as HTMLElement).remove();
+    // A br may stand inside inline tags, so its line is looked up, not taken from its parent.
+    const line = getElement(contentEditable, selfClose, [Display.List, Display.FirstLevel]);
+    // An empty item above the caret's line is what that line is merged into, so it stays once its br is gone.
+    const isLineKept = !!line && isSchemaContain(line, [Display.List]) && !line.contains(cursorPosition.startContainer);
+
+    return new SelfCloseRemoval(selfClose, line, isLineKept);
+}
+
+/** The self-close tag a collapsed Delete removes: the one at `end`, or the one the caret stands on. */
+function getDeletedSelfClose(contentEditable: HTMLElement, cursorPosition: CursorPosition,
+                             end: CursorPosition): SelfCloseRemoval | null {
+    let selfClose: Node | null | undefined = isSchemaContain(end.startContainer, [Display.SelfClose]) ? end.startContainer : cursorPosition.startContainer;
+    if (!isSchemaContain(selfClose, [Display.SelfClose])) {
+        selfClose = getLeafAtCursor(cursorPosition)?.node;
+    }
+
+    if (!selfClose || !isSchemaContain(selfClose, [Display.SelfClose])) {
+        return null;
+    }
+
+    const line = getElement(contentEditable, selfClose, [Display.List, Display.FirstLevel]);
+
+    return new SelfCloseRemoval(selfClose, line, false);
+}
+
+/**
+ * Removes the self-close tag of `removal`, together with its line once nothing else is left in it and it is not kept.
+ * Returns true when the tag was all there was to remove: its line is gone or another self-close tag still holds it.
+ */
+function removeSelfClose(removal: SelfCloseRemoval) {
+    const line = removal.line;
+    (removal.node as HTMLElement).remove();
 
     if (!line) {
         return false;
     }
 
-    // A line left without its last br is gone with it
-    if (!line.hasChildNodes()) {
+    // A line left without its last br is gone with it, unless it is kept to merge into
+    if (!line.hasChildNodes() && !removal.isLineKept) {
         line.remove();
         return true;
     }
 
     // Another self-close tag still holds the line, so nothing is left to merge into it
     return Array.from(line.childNodes).some(child => isSchemaContain(child, [Display.SelfClose]));
-}
-
-/**
- * The leaf the caret stands on: the br or text it's in, or the first leaf of the child at its offset, such as an
- * empty item's br. Nothing when the offset points past the last child.
- */
-function getLeafAtCursor(cursorPosition: CursorPosition) {
-    let atCursor: Node | undefined = cursorPosition.startContainer;
-    if (atCursor.hasChildNodes()) {
-        atCursor = atCursor.childNodes[cursorPosition.startOffset];
-    }
-
-    return getFirstChild(atCursor);
 }
 
 /** Merges the current block into the one before it (backspace at the start of a line). */

@@ -327,6 +327,10 @@ export function getCursorAnchor(contentEditable: HTMLElement,
             return stepForthOneCharacter(contentEditable, cursorPosition);
         }
 
+        if (!isCollapsed(cursorPosition)) {
+            return stayAtSelectionStart(contentEditable, cursorPosition);
+        }
+
         if (event.key === "Backspace") {
             return stepBackOneCharacter(contentEditable, cursorPosition);
         }
@@ -465,18 +469,40 @@ function getAnchorBlocksNew(contentEditable: HTMLElement, block: Node): (Node | 
 // }
 
 /**
+ * The leaf the caret stands on and the caret's offset in it: the br or text it's in, or the start of the first leaf
+ * of the child at its offset, such as an empty item's br. Nothing when the offset points past the last child.
+ */
+export function getLeafAtCursor(cursorPosition: CursorPosition): NodeOffset | null {
+    const container = cursorPosition.startContainer;
+    // A text or a self-close tag holds the caret itself, at the caret's own offset.
+    if (!container.hasChildNodes()) {
+        return {node: container, offset: cursorPosition.startOffset};
+    }
+
+    // On an element the offset is a child index, and the caret stands before the first leaf of that child.
+    const leaf = getFirstChild(container.childNodes[cursorPosition.startOffset]);
+    if (!leaf) {
+        return null;
+    }
+
+    return {node: leaf, offset: 0};
+}
+
+/**
  * Steps back one character from a collapsed cursor the way Backspace does: within its text, then over the nodes
  * before it in its line. Once the line runs out of characters Backspace joins it into the previous line instead.
  */
 function stepBackOneCharacter(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    const start = cursorPosition.startContainer;
-    let current: Node | undefined | null = cursorPosition.startContainer;
-    let offset = cursorPosition.startOffset;
-    const isAtStartOfLine = isAtLineStart(contentEditable, current, offset);
-
-    if (!(current instanceof Text) && !isSchemaContain(current, [Display.SelfClose])) {
+    // A browser leaves the caret of an empty line on the line itself, so it is read from the leaf it stands on.
+    const leaf = getLeafAtCursor(cursorPosition);
+    if (!leaf || (!(leaf.node instanceof Text) && !isSchemaContain(leaf.node, [Display.SelfClose]))) {
         throw Error("Collapsed selection is not in text or on a self-close tag");
     }
+
+    const start = leaf.node;
+    let current: Node | undefined | null = leaf.node;
+    let offset = leaf.offset;
+    const isAtStartOfLine = isAtLineStart(contentEditable, current, offset);
 
     // We are at the start of the node, go one node back.
     if (offset === 0) {
@@ -686,6 +712,19 @@ function collapseAnchor(blocks: readonly (Node | null | undefined)[],
         length: 0
     };
 }
+
+/** Keeps the caret at the start of the selection Backspace removes: nothing before the selection goes. */
+function stayAtSelectionStart(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const container = cursorPosition.startContainer;
+    const offset = cursorPosition.startOffset;
+    const block = getBlockElement(contentEditable, container);
+    const start = getOffsetFromBlock(block, container, offset);
+    // The line start and the end of the line above count to the same offset, so the caret steps after it.
+    const isAfter = start > 0 && isAtLineStart(contentEditable, container, offset);
+
+    return collapseAnchor(getAnchorBlocks(contentEditable, block), start, isAfter);
+}
+
 
 /** Whether the point stands at the very start of its line: no text and no self-close tag before it. */
 function isAtLineStart(contentEditable: HTMLElement, container: Node, offset: number) {

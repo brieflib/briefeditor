@@ -1244,7 +1244,7 @@ describe("Typing and deleting characters", () => {
         `);
 
         const li = querySelector(wrapper, ".start");
-        selectRange(li, "".length, li, "".length);
+        selectRange(li, 0, li, 0);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         handleKeyboardEvent(wrapper, keydown("Backspace"));
@@ -1887,7 +1887,7 @@ describe("Deleting next to an image block", () => {
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<p>zero</p><p>first</p>`);
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p class="start">first</p>`);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const lastFirst = getLastChild(wrapper, "p:last-child");
@@ -1917,7 +1917,7 @@ describe("Deleting next to an image block", () => {
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<p>zero</p><ul><li>first</li><li>second</li></ul>`);
+        expectHtml(wrapper.innerHTML, `<p>zero</p><ul><li class="start">first</li><li>second</li></ul>`);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const itemFirst = getFirstChild(wrapper, "li");
