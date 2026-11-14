@@ -112,11 +112,11 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     // Read before the deletion moves the end onto the start
     //const isWholeLines = isCursorOnWholeLines(contentEditable, cursorPosition);
 
-    const isBlockRemoved = removeSelfClose(selfClose);
+    const isSelfCloseAllRemoved = removeSelfClose(selfClose);
     cursorPosition = deleteContents(cursorPosition);
 
-    // Backspace or Delete removed the empty line with its block, so no block is left to merge with
-    if (isBlockRemoved) {
+    // Backspace or Delete removed a self-close tag and its line is gone or still stands, so no block is left to merge
+    if (isSelfCloseAllRemoved) {
         return;
     }
 
@@ -150,7 +150,7 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
 
 /**
  * Removes `maybeSelfClose` if it is a self-close tag, together with its line once nothing else is left in it.
- * Returns true when the line was removed with its block.
+ * Returns true when the tag was all there was to remove: its line is gone or another self-close tag still holds it.
  */
 function removeSelfClose(maybeSelfClose: Node | null | undefined) {
     if (!maybeSelfClose || !isSchemaContain(maybeSelfClose, [Display.SelfClose])) {
@@ -160,13 +160,18 @@ function removeSelfClose(maybeSelfClose: Node | null | undefined) {
     const line = maybeSelfClose.parentElement;
     (maybeSelfClose as HTMLElement).remove();
 
+    if (!line) {
+        return false;
+    }
+
     // A line left without its last br is gone with it
-    if (line && !line.hasChildNodes()) {
+    if (!line.hasChildNodes()) {
         line.remove();
         return true;
     }
 
-    return false;
+    // Another self-close tag still holds the line, so nothing is left to merge into it
+    return Array.from(line.childNodes).some(child => isSchemaContain(child, [Display.SelfClose]));
 }
 
 /**
