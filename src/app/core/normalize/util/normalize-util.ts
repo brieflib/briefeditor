@@ -1,7 +1,12 @@
 import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
+import {
+    CursorPosition,
+    getCursorPosition,
+    getCursorPositionFrom,
+    getSelectedTexts, wrapCursorPosition
+} from "@/core/shared/type/cursor-position";
 import {
     getBlockElement,
     hasSelfCloseDescendant,
@@ -12,6 +17,7 @@ import {Carrier} from "@/core/carrier/carrier";
 import {Attributes} from "@/core/command/type/command";
 import {applyAttributes} from "@/core/command/util/command-util";
 import {AvailableClasses} from "@/core/shared/available-classes";
+import {getSelectedBlocks} from "@/core/selection/selection";
 
 /**
  * Rebuilds a detached fragment into the schema: every leaf is read with the tags that stood

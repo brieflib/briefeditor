@@ -96,8 +96,9 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     const isSelfCloseAllRemoved = removal !== null && removeSelfClose(removal);
     cursorPosition = deleteContents(cursorPosition);
 
-    // Backspace or Delete removed a self-close tag and its line is gone or still stands, so no block is left to merge
+    // Backspace or Delete removed a self-close tag, so no block is left to merge; the rebuild drops the emptied line
     if (isSelfCloseAllRemoved) {
+        new Normalizer(contentEditable).normalize(getCursorPositionFrom(firstLine, 0, lastLine, 0));
         return;
     }
 
@@ -197,8 +198,8 @@ function getDeletedSelfClose(contentEditable: HTMLElement, cursorPosition: Curso
 }
 
 /**
- * Removes the self-close tag of `removal`, together with its line once nothing else is left in it and it is not kept.
- * Returns true when the tag was all there was to remove: its line is gone or another self-close tag still holds it.
+ * Removes the self-close tag of `removal`. Returns true when the tag was all there was to remove: its line is left
+ * empty for the rebuild to drop, or another self-close tag still holds it.
  */
 function removeSelfClose(removal: SelfCloseRemoval) {
     const line = removal.line;
@@ -208,9 +209,8 @@ function removeSelfClose(removal: SelfCloseRemoval) {
         return false;
     }
 
-    // A line left without its last br is gone with it, unless it is kept to merge into
+    // A line left without its last br holds nothing, so the rebuild drops it, unless it is kept to merge into
     if (!line.hasChildNodes() && !removal.isLineKept) {
-        line.remove();
         return true;
     }
 

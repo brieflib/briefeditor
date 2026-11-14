@@ -25,7 +25,7 @@ import {
     getSelectedTexts,
     insertNode,
     isCursorPositionEqual,
-    wrapCursorPosition
+    wrapCursorPosition, wrapWithNeighbours
 } from "@/core/shared/type/cursor-position";
 import {getFirstSelectedRoot, getSelectedBlock, getSelectedBlocks, getSelectedRoot} from "@/core/selection/selection";
 import {getNextListWrapper, getPreviousListWrapper} from "@/core/list/util/list-util";
@@ -41,7 +41,7 @@ export class Normalizer {
 
     public normalize(cursorPosition = getCursorPosition()) {
         const blocks = getSelectedBlocks(this.contentEditable, cursorPosition);
-        const wrappedCursorPosition = wrapCursorPosition(blocks.at(0), blocks.at(-1));
+        const wrappedCursorPosition = wrapWithNeighbours(blocks.at(0), blocks.at(-1));
 
         if (wrappedCursorPosition) {
             const fragment = extractContents(wrappedCursorPosition);
@@ -109,11 +109,11 @@ export class Normalizer {
         involved.range.insertNode(normalized);
     }
 
-    /** Merges `lastBlock` into `firstBlock`, rebuilding every root from the one holding the first to the one holding the last. */
+    /** Merges `lastBlock` into `firstBlock`, rebuilding every root from the one before the first block's root to the one after the last block's. */
     public mergeBlocks(firstBlock: HTMLElement, lastBlock: HTMLElement) {
         const firstRoot = getRootElement(this.contentEditable, firstBlock);
         const lastRoot = getRootElement(this.contentEditable, lastBlock);
-        const wrappedCursorPosition = wrapCursorPosition(firstRoot, lastRoot);
+        const wrappedCursorPosition = wrapWithNeighbours(firstRoot, lastRoot);
         if (wrappedCursorPosition) {
             const fragment = extractContents(wrappedCursorPosition);
             insertNode(wrappedCursorPosition, normalizeMergeNew(this.contentEditable, fragment, firstBlock, lastBlock));

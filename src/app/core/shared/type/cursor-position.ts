@@ -80,6 +80,17 @@ export function wrapCursorPosition(first?: Node, last?: Node) {
 }
 
 /**
+ * A cursor position around the roots from `firstRoot` to `lastRoot` and the root on each side of them, so the
+ * rebuild joins lists a removed line stood between.
+ */
+export function wrapWithNeighbours(firstRoot: HTMLElement | undefined, lastRoot: HTMLElement | undefined) {
+    return wrapCursorPosition(
+        firstRoot?.previousElementSibling ?? firstRoot,
+        lastRoot?.nextElementSibling ?? lastRoot
+    );
+}
+
+/**
  * Returns the part of the selection that lies inside `block`: from the cursor to the block's end for the first block,
  * the whole block for a middle one, and from the block's start to the cursor for the last one.
  */

@@ -2058,7 +2058,7 @@ describe("Backspace", () => {
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<h3><br></h3>`);
+        expectHtml(wrapper.innerHTML, `<h3 class="start"><br></h3>`);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const br = getFirstChild(wrapper, "h3");
@@ -2083,7 +2083,7 @@ describe("Backspace", () => {
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<h3><br></h3>`);
+        expectHtml(wrapper.innerHTML, `<h3 class="start"><br></h3>`);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const br = getFirstChild(wrapper, "h3");
