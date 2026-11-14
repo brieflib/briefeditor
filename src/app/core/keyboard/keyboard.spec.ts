@@ -602,25 +602,6 @@ describe("Typing and deleting characters", () => {
         expectCursor(cursorPosition, x, "x".length);
     });
 
-    test("Press backspace in the middle of text", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zero</p>
-        `);
-
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "ze".length, zero, "ze".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `
-            <p class="start">zro</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zro = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, zro, "z".length);
-    });
-
     test("Press delete in the middle of text", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>
@@ -638,82 +619,6 @@ describe("Typing and deleting characters", () => {
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const zeo = getFirstChild(wrapper, ".start");
         expectCursor(cursorPosition, zeo, "ze".length);
-    });
-
-    test("Press backspace at the start of text after an inline tag", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zero<strong>first</strong>second</p>
-        `);
-
-        const second = getLastChild(wrapper, ".start");
-        selectRange(second, "".length, second, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `
-            <p class="start">zero<strong>firs</strong>second</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const firs = getFirstChild(wrapper, "strong");
-        expectCursor(cursorPosition, firs, "firs".length);
-    });
-
-    test("Press backspace on the last character of an inline tag", () => {
-        const wrapper = createWrapper(`
-            <p>zero<strong class="start">f</strong>second</p>
-        `);
-
-        const f = getFirstChild(wrapper, ".start");
-        selectRange(f, "f".length, f, "f".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `
-            <p>zerosecond</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zeroSecond = getFirstChild(wrapper, "p");
-        expectCursor(cursorPosition, zeroSecond, "zero".length);
-    });
-
-    test("Press backspace on the last character of the only paragraph", () => {
-        const wrapper = createWrapper(`
-            <p class="start">z</p>
-        `);
-
-        const z = getFirstChild(wrapper, ".start");
-        selectRange(z, "z".length, z, "z".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `
-            <p class="start"><br></p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const br = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, br, "".length);
-    });
-
-    test("Press backspace after a line break", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zero<br>first</p>
-        `);
-
-        const first = getLastChild(wrapper, ".start");
-        selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `
-            <p class="start">zerofirst</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zeroFirst = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, zeroFirst, "zero".length);
     });
 
     test("Press delete before a line break", () => {
@@ -820,6 +725,788 @@ describe("Typing and deleting characters", () => {
         expectCursor(cursorPosition, first, "".length);
     });
 
+    test("Should merge lists of the same types when pressing delete before nested br", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start"><br>
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+                <li>second</li>
+            </ol>
+        `);
+
+        const li = querySelector(wrapper, ".start");
+        selectRange(li, "".length, li, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const first = getFirstChild(wrapper, "li + li");
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Should merge lists of the same types when pressing delete before nested br 2", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li class="start"><br></li>
+                    </ol>
+                </li>
+                <li>first</li>
+            </ol>
+        `);
+
+        const li = querySelector(wrapper, ".start");
+        selectRange(li, "".length, li, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const first = getFirstChild(wrapper, "ol ol li");
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Delete over the text of an item holding a nested list leaves the placeholder above the list", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start">first
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li class="start"><br>
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, br, "".length);
+    });
+
+    test("Type a character over a selection inside one paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zerofirst</p>
+        `);
+
+        const zeroFirst = getFirstChild(wrapper, ".start");
+        selectRange(zeroFirst, "ze".length, zeroFirst, "zerofi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zexrst</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zexrst = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, zexrst, "zex".length);
+    });
+
+    test("Type a character over a fully selected inline tag", () => {
+        const wrapper = createWrapper(`
+            <p>zero<strong class="start">first</strong></p>
+        `);
+
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `
+            <p>zero<strong class="start">x</strong></p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const x = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, x, "x".length);
+    });
+
+    // A cell is no block, so enter has nothing to split and is dropped rather than left to the browser.
+    test("Enter inside a cell keeps a table of empty cells", () => {
+        const wrapper = createWrapper(`
+            <table><thead><tr><th class="start"></th><th></th></tr></thead>
+            <tbody><tr><td></td><td></td></tr></tbody></table>
+        `);
+
+        const th = querySelector(wrapper, ".start");
+        selectRange(th, "".length, th, "".length);
+        const enter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", cancelable: true})};
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), enter);
+
+        handleKeyboardEvent(wrapper, enter);
+        expectHtml(wrapper.innerHTML, `
+            <table><thead><tr><th class="start"></th><th></th></tr></thead>
+            <tbody><tr><td></td><td></td></tr></tbody></table>
+        `);
+        expect(th.isConnected).toBe(true);
+        expect(enter.event.defaultPrevented).toBe(true);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, th, "".length);
+    });
+
+    test("Enter in the middle of a cell leaves its text whole", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "ze".length, zero, "ze".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
+
+        handleKeyboardEvent(wrapper, keydown("Enter"));
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, zero, "ze".length);
+    });
+
+    // A break would grow the row instead of ending a line, so shift does not make an exception.
+    test("Shift and enter in the middle of a cell inserts no break", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "ze".length, zero, "ze".length);
+        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
+
+        handleKeyboardEvent(wrapper, shiftEnter);
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, zero, "ze".length);
+    });
+
+    // A selection reaching out of the table would take the split with it, so the cell it starts in is
+    // enough to drop the enter.
+    test("Enter over a selection running out of a cell keeps both blocks", () => {
+        const wrapper = createWrapper(`
+            <table><tbody><tr><td class="start">zero</td></tr></tbody></table><p class="end">first</p>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fi".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
+
+        handleKeyboardEvent(wrapper, keydown("Enter"));
+        expectHtml(wrapper.innerHTML, `
+            <table><tbody><tr><td class="start">zero</td></tr></tbody></table><p class="end">first</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, zero, "ze".length, first, "fi".length);
+    });
+
+    // The editor is a block of a page it knows nothing about, and that page may well be laid out in a
+    // table. Only the tables the editor holds itself count, so the search for one stops at the editor.
+    test("Enter splits a paragraph of an editor embedded in a table of the page", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+        const td = document.createElement("td");
+        wrapper.replaceWith(td);
+        td.appendChild(wrapper);
+        const tr = document.createElement("tr");
+        tr.appendChild(td);
+        const table = document.createElement("table");
+        table.appendChild(tr);
+        document.body.appendChild(table);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "ze".length, zero, "ze".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
+
+        handleKeyboardEvent(wrapper, keydown("Enter"));
+        expectHtml(wrapper.innerHTML, `
+            <p>ze</p><p>ro</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const ro = getFirstChild(wrapper, "p + p");
+        expectCursor(cursorPosition, ro, "".length);
+    });
+
+    test("Arrow keys do not change the dom and are not prevented", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "ze".length, zero, "ze".length);
+        const arrowLeft = keydown("ArrowLeft");
+        const preventDefault = jest.spyOn(arrowLeft.event, "preventDefault");
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), arrowLeft);
+
+        handleKeyboardEvent(wrapper, arrowLeft);
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zero</p>
+        `);
+        expect(preventDefault).not.toHaveBeenCalled();
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, zero, "ze".length);
+    });
+
+    test.each(["Home", "End", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "F1", "Tab", "Escape"])(
+        "%s over a selection across blocks does not change the dom and is not prevented", (key) => {
+            const wrapper = createWrapper(`
+                <p class="start">zero</p><p class="end">first</p>
+            `);
+
+            const zero = getFirstChild(wrapper, ".start");
+            const first = getFirstChild(wrapper, ".end");
+            selectRange(zero, "ze".length, first, "fi".length);
+            const pressedKey = keydown(key);
+            const preventDefault = jest.spyOn(pressedKey.event, "preventDefault");
+            const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), pressedKey);
+
+            handleKeyboardEvent(wrapper, pressedKey);
+            expectHtml(wrapper.innerHTML, `
+                <p class="start">zero</p><p class="end">first</p>
+            `);
+            expect(preventDefault).not.toHaveBeenCalled();
+
+            const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+            expectCursor(cursorPosition, zero, "ze".length, first, "fi".length);
+        });
+});
+
+// A browser leaves the caret in an empty item on the item itself rather than on its br; both must read
+// the same, so every case here runs with the caret in either place.
+describe("Editing over a selection ending on an empty nested item", () => {
+    const html = `
+        <h3 class="start">zero</h3>
+        <ol>
+            <li>first
+                <ol>
+                    <li class="end"><br></li>
+                </ol>
+            </li>
+        </ol>
+    `;
+
+    test("Should type over the selection without leaving a break behind (caret on the br)", () => {
+        const wrapper = createWrapper(html);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const end = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, end, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `<h3>x</h3>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const x = getFirstChild(wrapper, "h3");
+        expectCursor(cursorPosition, x, "x".length);
+        // The cursor must be one the selection can be set to, or the edit is never committed.
+        expect(() => new Range().setStart(cursorPosition.startContainer, cursorPosition.startOffset)).not.toThrow();
+    });
+
+    test("Should type over the selection without leaving a break behind (caret on the item)", () => {
+        const wrapper = createWrapper(html);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const end = querySelector(wrapper, ".end");
+        selectRange(zero, "".length, end, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `<h3>x</h3>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const x = getFirstChild(wrapper, "h3");
+        expectCursor(cursorPosition, x, "x".length);
+        // The cursor must be one the selection can be set to, or the edit is never committed.
+        expect(() => new Range().setStart(cursorPosition.startContainer, cursorPosition.startOffset)).not.toThrow();
+    });
+
+    test("Should keep the heading's words when typing over a selection starting inside it (caret on the br)", () => {
+        const wrapper = createWrapper(html);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const end = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, end, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `<h3>zex</h3>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zex = getFirstChild(wrapper, "h3");
+        expectCursor(cursorPosition, zex, "zex".length);
+    });
+
+    test("Should keep the heading's words when typing over a selection starting inside it (caret on the item)", () => {
+        const wrapper = createWrapper(html);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const end = querySelector(wrapper, ".end");
+        selectRange(zero, "ze".length, end, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
+
+        handleKeyboardEvent(wrapper, keydown("x"));
+        expectHtml(wrapper.innerHTML, `<h3>zex</h3>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zex = getFirstChild(wrapper, "h3");
+        expectCursor(cursorPosition, zex, "zex".length);
+    });
+
+});
+
+describe("Enter in an empty list item", () => {
+    test("Enter in an empty item at the first level leaves the list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start"><br></li>
+                <li>first</li>
+            </ul>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
+
+        handleKeyboardEvent(wrapper, keydown("Enter"));
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+            <p><br></p>
+            <ul>
+                <li>first</li>
+            </ul>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const pBr = getFirstChild(wrapper, "p");
+        expectCursor(cursorPosition, pBr, "".length);
+    });
+
+    test("Enter in a nested empty item lifts it one level", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero
+                    <ul>
+                        <li class="start"><br></li>
+                        <li>first</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
+
+        handleKeyboardEvent(wrapper, keydown("Enter"));
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li><br>
+                    <ul>
+                        <li>first</li>
+                    </ul>
+                </li>
+            </ul>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, br, "".length);
+    });
+
+    test("Enter in an item holding an image only inserts an item, the image being content of its own", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><img src="image.png"></li>
+            </ul>
+        `);
+
+        const li = querySelector(wrapper, ".start");
+        selectRange(li, "".length, li, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
+
+        handleKeyboardEvent(wrapper, keydown("Enter"));
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li><img src="image.png"></li>
+                <li><br></li>
+            </ul>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, "li + li");
+        expectCursor(cursorPosition, br, "".length);
+    });
+
+    test("Shift enter in an empty item keeps the item in the list", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li>zero</li>
+                <li class="start"><br></li>
+            </ul>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
+
+        handleKeyboardEvent(wrapper, shiftEnter);
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+                <li class="start"><br></li>
+            </ul>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        expectCursor(cursorPosition, br, "".length);
+    });
+
+    test("Enter over a selection emptying an item divides the item, the item not having been empty", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start">zero</li>
+            </ul>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
+
+        handleKeyboardEvent(wrapper, keydown("Enter"));
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li class="start"><br></li>
+                <li><br></li>
+            </ul>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, "li + li");
+        expectCursor(cursorPosition, br, "".length);
+    });
+});
+
+describe("Deleting next to an image block", () => {
+    const imageBlock = `<p class="be-image"><img src="image.png"></p>`;
+
+    test("Delete at the end of the line before an image block removes the image", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>${imageBlock}<p>first</p>`);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p>first</p>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const firstZero = getFirstChild(wrapper, "p");
+        expectCursor(cursorPosition, firstZero, "zero".length);
+    });
+
+    test("Delete at the end of an empty line before an image block removes the image and keeps the line", () => {
+        const wrapper = createWrapper(`<p class="start"><br></p>${imageBlock}<p>first</p>`);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `<p><br></p><p>first</p>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const firstBr = getFirstChild(wrapper, "p");
+        expectCursor(cursorPosition, firstBr, "".length);
+    });
+});
+
+// A list run ends at any line written between two wrappers, so removing that line leaves the
+// wrappers standing side by side; the run has to be rebuilt as one for them to join.
+describe("Removing the line two lists stand apart from one another by", () => {
+    test("Delete in the empty line between two lists joins them", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start"><br></p><ul><li>first</li></ul>`);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zero = getFirstChild(wrapper, "li");
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    test("Delete at the end of the list above the empty line joins them", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li></ul><p><br></p><ul><li>first</li></ul>`);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const joinedZero = getFirstChild(wrapper, "li");
+        expectCursor(cursorPosition, joinedZero, "zero".length);
+    });
+
+    test("Should leave lists of different types apart when the line between them goes", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start"><br></p><ol><li>first</li></ol>`);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul><ol><li>first</li></ol>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zero = getFirstChild(wrapper, "li");
+        expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    test("Should leave the lists a line still stands between apart", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start">first</p><ul><li>second</li></ul>`);
+
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "firs".length, first, "firs".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul><p class="start">firs</p><ul><li>second</li></ul>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const firs = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, firs, "firs".length);
+    });
+});
+
+describe("Backspace", () => {
+    // The selection ends on an empty nested item, where a browser leaves the caret on the item itself or on its br.
+    const html = `
+        <h3 class="start">zero</h3>
+        <ol>
+            <li>first
+                <ol>
+                    <li class="end"><br></li>
+                </ol>
+            </li>
+        </ol>
+    `;
+
+    test("After removing content and pressing delete next tag should merge", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start">zero</h1>
+            <p>first</p>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "".length, zero, "zero".length);
+        let cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <h1 class="start"><br></h1><p>first</p>
+        `);
+
+        let cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, br, "".length);
+
+        selectRange(br, "".length, br, "".length);
+        cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <p>first</p>
+        `);
+
+        cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const first = getFirstChild(wrapper, "p");
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Deleting a selection covering the line written between two lists joins them", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li></ul><p class="end">first</p><ul><li>second</li></ul>`);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "zero".length, first, "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `<ul><li class="start">zero</li><li>second</li></ul>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const joinedZero = getFirstChild(wrapper, "li");
+        expectCursor(cursorPosition, joinedZero, "zero".length);
+    });
+
+    // The rebuild joins the run into the first wrapper, detaching the second; a cursor remapped by
+    // its old position among the editor's children would land in the line after the run instead.
+    test("Should keep the cursor in the joined list when a line follows the run", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p><br></p><ul><li class="start">first</li></ul><p>second</p>`);
+
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul><p>second</p>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const joinedFirst = getFirstChild(wrapper, "li + li");
+        expectCursor(cursorPosition, joinedFirst, "".length);
+    });
+
+    test("Press backspace in the middle of text", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "ze".length, zero, "ze".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zro</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zro = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, zro, "z".length);
+    });
+
+    test("Press backspace at the start of text after an inline tag", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<strong>first</strong>second</p>
+        `);
+
+        const second = getLastChild(wrapper, ".start");
+        selectRange(second, "".length, second, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zero<strong>firs</strong>second</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const firs = getFirstChild(wrapper, "strong");
+        expectCursor(cursorPosition, firs, "firs".length);
+    });
+
+    test("Press backspace on the last character of an inline tag", () => {
+        const wrapper = createWrapper(`
+            <p>zero<strong class="start">f</strong>second</p>
+        `);
+
+        const f = getFirstChild(wrapper, ".start");
+        selectRange(f, "f".length, f, "f".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <p>zerosecond</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zeroSecond = getFirstChild(wrapper, "p");
+        expectCursor(cursorPosition, zeroSecond, "zero".length);
+    });
+
+    test("Press backspace on the last character of the only paragraph", () => {
+        const wrapper = createWrapper(`
+            <p class="start">z</p>
+        `);
+
+        const z = getFirstChild(wrapper, ".start");
+        selectRange(z, "z".length, z, "z".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start"><br></p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, br, "".length);
+    });
+
+    test("Press backspace after a line break", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<br>first</p>
+        `);
+
+        const first = getLastChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zerofirst</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zeroFirst = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, zeroFirst, "zero".length);
+    });
+
     test("Should merge lists when pressing backspace after br", () => {
         const wrapper = createWrapper(`
             <ol>
@@ -924,37 +1611,6 @@ describe("Typing and deleting characters", () => {
         expectCursor(cursorPosition, mergedSecond, "".length);
     });
 
-    test("Should merge lists of the same types when pressing delete before nested br", () => {
-        const wrapper = createWrapper(`
-            <ol>
-                <li>zero</li>
-                <li class="start"><br>
-                    <ol>
-                        <li>first</li>
-                    </ol>
-                </li>
-                <li>second</li>
-            </ol>
-        `);
-
-        const li = querySelector(wrapper, ".start");
-        selectRange(li, "".length, li, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ol>
-                <li>zero</li>
-                <li>first</li>
-                <li>second</li>
-            </ol>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const first = getFirstChild(wrapper, "li + li");
-        expectCursor(cursorPosition, first, "".length);
-    });
-
     test("Should merge lists of the same types when pressing backspace after nested br", () => {
         const wrapper = createWrapper(`
             <ol>
@@ -985,71 +1641,6 @@ describe("Typing and deleting characters", () => {
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const nestedFirst = getFirstChild(wrapper, "ol ol li");
         expectCursor(cursorPosition, nestedFirst, "".length);
-    });
-
-    test("Should merge lists of the same types when pressing delete before nested br 2", () => {
-        const wrapper = createWrapper(`
-            <ol>
-                <li>zero
-                    <ol>
-                        <li class="start"><br></li>
-                    </ol>
-                </li>
-                <li>first</li>
-            </ol>
-        `);
-
-        const li = querySelector(wrapper, ".start");
-        selectRange(li, "".length, li, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ol>
-                <li>zero
-                    <ol>
-                        <li>first</li>
-                    </ol>
-                </li>
-            </ol>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const first = getFirstChild(wrapper, "ol ol li");
-        expectCursor(cursorPosition, first, "".length);
-    });
-
-    test("Delete over the text of an item holding a nested list leaves the placeholder above the list", () => {
-        const wrapper = createWrapper(`
-            <ol>
-                <li>zero</li>
-                <li class="start">first
-                    <ol>
-                        <li>second</li>
-                    </ol>
-                </li>
-            </ol>
-        `);
-
-        const first = getFirstChild(wrapper, ".start");
-        selectRange(first, "".length, first, "first".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ol>
-                <li>zero</li>
-                <li class="start"><br>
-                    <ol>
-                        <li>second</li>
-                    </ol>
-                </li>
-            </ol>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const br = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, br, "".length);
     });
 
     test("Backspace over the text of an item holding a nested list leaves the placeholder above the list", () => {
@@ -1379,44 +1970,6 @@ describe("Typing and deleting characters", () => {
         expectCursor(cursorPosition, zerst, "ze".length);
     });
 
-    test("Type a character over a selection inside one paragraph", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zerofirst</p>
-        `);
-
-        const zeroFirst = getFirstChild(wrapper, ".start");
-        selectRange(zeroFirst, "ze".length, zeroFirst, "zerofi".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
-
-        handleKeyboardEvent(wrapper, keydown("x"));
-        expectHtml(wrapper.innerHTML, `
-            <p class="start">zexrst</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zexrst = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, zexrst, "zex".length);
-    });
-
-    test("Type a character over a fully selected inline tag", () => {
-        const wrapper = createWrapper(`
-            <p>zero<strong class="start">first</strong></p>
-        `);
-
-        const first = getFirstChild(wrapper, ".start");
-        selectRange(first, "".length, first, "first".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
-
-        handleKeyboardEvent(wrapper, keydown("x"));
-        expectHtml(wrapper.innerHTML, `
-            <p>zero<strong class="start">x</strong></p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const x = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, x, "x".length);
-    });
-
     test("Press backspace after an emoji", () => {
         const wrapper = createWrapper(`
             <p class="start">zero👍</p>
@@ -1436,275 +1989,49 @@ describe("Typing and deleting characters", () => {
         expectCursor(cursorPosition, zeroWithoutEmoji, "zero".length);
     });
 
-    test("After removing content and pressing delete next tag should merge", () => {
-        const wrapper = createWrapper(`
-            <h1 class="start">zero</h1>
-            <p>first</p>
-        `);
+    test("Backspace at the start of the list below the empty line joins them", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p><br></p><ul><li class="start">first</li></ul>`);
 
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "".length, zero, "zero".length);
-        let cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `
-            <h1 class="start"><br></h1><p>first</p>
-        `);
-
-        let cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const br = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, br, "".length);
-
-        selectRange(br, "".length, br, "".length);
-        cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <p>first</p>
-        `);
-
-        cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const first = getFirstChild(wrapper, "p");
-        expectCursor(cursorPosition, first, "".length);
-    });
-
-    // A cell is no block, so enter has nothing to split and is dropped rather than left to the browser.
-    test("Enter inside a cell keeps a table of empty cells", () => {
-        const wrapper = createWrapper(`
-            <table><thead><tr><th class="start"></th><th></th></tr></thead>
-            <tbody><tr><td></td><td></td></tr></tbody></table>
-        `);
-
-        const th = querySelector(wrapper, ".start");
-        selectRange(th, "".length, th, "".length);
-        const enter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", cancelable: true})};
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), enter);
-
-        handleKeyboardEvent(wrapper, enter);
-        expectHtml(wrapper.innerHTML, `
-            <table><thead><tr><th class="start"></th><th></th></tr></thead>
-            <tbody><tr><td></td><td></td></tr></tbody></table>
-        `);
-        expect(th.isConnected).toBe(true);
-        expect(enter.event.defaultPrevented).toBe(true);
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        expectCursor(cursorPosition, th, "".length);
+        const joinedFirst = getFirstChild(wrapper, "li + li");
+        expectCursor(cursorPosition, joinedFirst, "".length);
     });
 
-    test("Enter in the middle of a cell leaves its text whole", () => {
-        const wrapper = createWrapper(`
-            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
-        `);
+    test("Backspace at the start of a line written between two lists joins them", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start">first</p><ul><li>second</li></ul>`);
 
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "ze".length, zero, "ze".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        handleKeyboardEvent(wrapper, keydown("Enter"));
-        expectHtml(wrapper.innerHTML, `
-            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
-        `);
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `<ul><li>zerofirst</li><li>second</li></ul>`);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        expectCursor(cursorPosition, zero, "ze".length);
+        const zeroFirst = getFirstChild(wrapper, "li");
+        expectCursor(cursorPosition, zeroFirst, "zero".length);
     });
 
-    // A break would grow the row instead of ending a line, so shift does not make an exception.
-    test("Shift and enter in the middle of a cell inserts no break", () => {
-        const wrapper = createWrapper(`
-            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
-        `);
+    test("Backspace at the start of an item after an image block between two lists joins them", () => {
+        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="be-image"><img src="image.png"></p><ul><li class="start">first</li></ul>`);
 
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "ze".length, zero, "ze".length);
-        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        handleKeyboardEvent(wrapper, shiftEnter);
-        expectHtml(wrapper.innerHTML, `
-            <table><tbody><tr><td class="start">zero</td><td>first</td></tr></tbody></table>
-        `);
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        expectCursor(cursorPosition, zero, "ze".length);
-    });
-
-    // A selection reaching out of the table would take the split with it, so the cell it starts in is
-    // enough to drop the enter.
-    test("Enter over a selection running out of a cell keeps both blocks", () => {
-        const wrapper = createWrapper(`
-            <table><tbody><tr><td class="start">zero</td></tr></tbody></table><p class="end">first</p>
-        `);
-
-        const zero = getFirstChild(wrapper, ".start");
-        const first = getFirstChild(wrapper, ".end");
-        selectRange(zero, "ze".length, first, "fi".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
-
-        handleKeyboardEvent(wrapper, keydown("Enter"));
-        expectHtml(wrapper.innerHTML, `
-            <table><tbody><tr><td class="start">zero</td></tr></tbody></table><p class="end">first</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        expectCursor(cursorPosition, zero, "ze".length, first, "fi".length);
-    });
-
-    // The editor is a block of a page it knows nothing about, and that page may well be laid out in a
-    // table. Only the tables the editor holds itself count, so the search for one stops at the editor.
-    test("Enter splits a paragraph of an editor embedded in a table of the page", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zero</p>
-        `);
-        const td = document.createElement("td");
-        wrapper.replaceWith(td);
-        td.appendChild(wrapper);
-        const tr = document.createElement("tr");
-        tr.appendChild(td);
-        const table = document.createElement("table");
-        table.appendChild(tr);
-        document.body.appendChild(table);
-
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "ze".length, zero, "ze".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
-
-        handleKeyboardEvent(wrapper, keydown("Enter"));
-        expectHtml(wrapper.innerHTML, `
-            <p>ze</p><p>ro</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const ro = getFirstChild(wrapper, "p + p");
-        expectCursor(cursorPosition, ro, "".length);
-    });
-
-    test("Arrow keys do not change the dom and are not prevented", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zero</p>
-        `);
-
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "ze".length, zero, "ze".length);
-        const arrowLeft = keydown("ArrowLeft");
-        const preventDefault = jest.spyOn(arrowLeft.event, "preventDefault");
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), arrowLeft);
-
-        handleKeyboardEvent(wrapper, arrowLeft);
-        expectHtml(wrapper.innerHTML, `
-            <p class="start">zero</p>
-        `);
-        expect(preventDefault).not.toHaveBeenCalled();
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        expectCursor(cursorPosition, zero, "ze".length);
-    });
-
-    test.each(["Home", "End", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "F1", "Tab", "Escape"])(
-        "%s over a selection across blocks does not change the dom and is not prevented", (key) => {
-            const wrapper = createWrapper(`
-                <p class="start">zero</p><p class="end">first</p>
-            `);
-
-            const zero = getFirstChild(wrapper, ".start");
-            const first = getFirstChild(wrapper, ".end");
-            selectRange(zero, "ze".length, first, "fi".length);
-            const pressedKey = keydown(key);
-            const preventDefault = jest.spyOn(pressedKey.event, "preventDefault");
-            const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), pressedKey);
-
-            handleKeyboardEvent(wrapper, pressedKey);
-            expectHtml(wrapper.innerHTML, `
-                <p class="start">zero</p><p class="end">first</p>
-            `);
-            expect(preventDefault).not.toHaveBeenCalled();
-
-            const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-            expectCursor(cursorPosition, zero, "ze".length, first, "fi".length);
-        });
-});
-
-// A browser leaves the caret in an empty item on the item itself rather than on its br; both must read
-// the same, so every case here runs with the caret in either place.
-describe("Editing over a selection ending on an empty nested item", () => {
-    const html = `
-        <h3 class="start">zero</h3>
-        <ol>
-            <li>first
-                <ol>
-                    <li class="end"><br></li>
-                </ol>
-            </li>
-        </ol>
-    `;
-
-    test("Should type over the selection without leaving a break behind (caret on the br)", () => {
-        const wrapper = createWrapper(html);
-
-        const zero = getFirstChild(wrapper, ".start");
-        const end = getFirstChild(wrapper, ".end");
-        selectRange(zero, "".length, end, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
-
-        handleKeyboardEvent(wrapper, keydown("x"));
-        expectHtml(wrapper.innerHTML, `<h3>x</h3>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const x = getFirstChild(wrapper, "h3");
-        expectCursor(cursorPosition, x, "x".length);
-        // The cursor must be one the selection can be set to, or the edit is never committed.
-        expect(() => new Range().setStart(cursorPosition.startContainer, cursorPosition.startOffset)).not.toThrow();
-    });
-
-    test("Should type over the selection without leaving a break behind (caret on the item)", () => {
-        const wrapper = createWrapper(html);
-
-        const zero = getFirstChild(wrapper, ".start");
-        const end = querySelector(wrapper, ".end");
-        selectRange(zero, "".length, end, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
-
-        handleKeyboardEvent(wrapper, keydown("x"));
-        expectHtml(wrapper.innerHTML, `<h3>x</h3>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const x = getFirstChild(wrapper, "h3");
-        expectCursor(cursorPosition, x, "x".length);
-        // The cursor must be one the selection can be set to, or the edit is never committed.
-        expect(() => new Range().setStart(cursorPosition.startContainer, cursorPosition.startOffset)).not.toThrow();
-    });
-
-    test("Should keep the heading's words when typing over a selection starting inside it (caret on the br)", () => {
-        const wrapper = createWrapper(html);
-
-        const zero = getFirstChild(wrapper, ".start");
-        const end = getFirstChild(wrapper, ".end");
-        selectRange(zero, "ze".length, end, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
-
-        handleKeyboardEvent(wrapper, keydown("x"));
-        expectHtml(wrapper.innerHTML, `<h3>zex</h3>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zex = getFirstChild(wrapper, "h3");
-        expectCursor(cursorPosition, zex, "zex".length);
-    });
-
-    test("Should keep the heading's words when typing over a selection starting inside it (caret on the item)", () => {
-        const wrapper = createWrapper(html);
-
-        const zero = getFirstChild(wrapper, ".start");
-        const end = querySelector(wrapper, ".end");
-        selectRange(zero, "ze".length, end, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("x"));
-
-        handleKeyboardEvent(wrapper, keydown("x"));
-        expectHtml(wrapper.innerHTML, `<h3>zex</h3>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zex = getFirstChild(wrapper, "h3");
-        expectCursor(cursorPosition, zex, "zex".length);
+        const joinedFirst = getFirstChild(wrapper, "li + li");
+        expectCursor(cursorPosition, joinedFirst, "".length);
     });
 
     test("Should leave an empty heading after backspace over the selection (caret on the br)", () => {
@@ -1738,149 +2065,9 @@ describe("Editing over a selection ending on an empty nested item", () => {
         const br = getFirstChild(wrapper, "h3");
         expectCursor(cursorPosition, br, "".length);
     });
-});
-
-describe("Enter in an empty list item", () => {
-    test("Enter in an empty item at the first level leaves the list", () => {
-        const wrapper = createWrapper(`
-            <ul>
-                <li>zero</li>
-                <li class="start"><br></li>
-                <li>first</li>
-            </ul>
-        `);
-
-        const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
-
-        handleKeyboardEvent(wrapper, keydown("Enter"));
-        expectHtml(wrapper.innerHTML, `
-            <ul>
-                <li>zero</li>
-            </ul>
-            <p><br></p>
-            <ul>
-                <li>first</li>
-            </ul>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const pBr = getFirstChild(wrapper, "p");
-        expectCursor(cursorPosition, pBr, "".length);
-    });
-
-    test("Enter in a nested empty item lifts it one level", () => {
-        const wrapper = createWrapper(`
-            <ul>
-                <li>zero
-                    <ul>
-                        <li class="start"><br></li>
-                        <li>first</li>
-                    </ul>
-                </li>
-            </ul>
-        `);
-
-        const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
-
-        handleKeyboardEvent(wrapper, keydown("Enter"));
-        expectHtml(wrapper.innerHTML, `
-            <ul>
-                <li>zero</li>
-                <li><br>
-                    <ul>
-                        <li>first</li>
-                    </ul>
-                </li>
-            </ul>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        expectCursor(cursorPosition, br, "".length);
-    });
-
-    test("Enter in an item holding an image only inserts an item, the image being content of its own", () => {
-        const wrapper = createWrapper(`
-            <ul>
-                <li class="start"><img src="image.png"></li>
-            </ul>
-        `);
-
-        const li = querySelector(wrapper, ".start");
-        selectRange(li, "".length, li, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
-
-        handleKeyboardEvent(wrapper, keydown("Enter"));
-        expectHtml(wrapper.innerHTML, `
-            <ul>
-                <li><img src="image.png"></li>
-                <li><br></li>
-            </ul>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const br = getFirstChild(wrapper, "li + li");
-        expectCursor(cursorPosition, br, "".length);
-    });
-
-    test("Shift enter in an empty item keeps the item in the list", () => {
-        const wrapper = createWrapper(`
-            <ul>
-                <li>zero</li>
-                <li class="start"><br></li>
-            </ul>
-        `);
-
-        const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
-        const shiftEnter = {action: Action.Keyboard, event: new KeyboardEvent("keydown", {key: "Enter", shiftKey: true})};
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), shiftEnter);
-
-        handleKeyboardEvent(wrapper, shiftEnter);
-        expectHtml(wrapper.innerHTML, `
-            <ul>
-                <li>zero</li>
-                <li class="start"><br></li>
-            </ul>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        expectCursor(cursorPosition, br, "".length);
-    });
-
-    test("Enter over a selection emptying an item divides the item, the item not having been empty", () => {
-        const wrapper = createWrapper(`
-            <ul>
-                <li class="start">zero</li>
-            </ul>
-        `);
-
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "".length, zero, "zero".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Enter"));
-
-        handleKeyboardEvent(wrapper, keydown("Enter"));
-        expectHtml(wrapper.innerHTML, `
-            <ul>
-                <li class="start"><br></li>
-                <li><br></li>
-            </ul>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const br = getFirstChild(wrapper, "li + li");
-        expectCursor(cursorPosition, br, "".length);
-    });
-});
-
-describe("Deleting next to an image block", () => {
-    const imageBlock = `<p class="be-image"><img src="image.png"></p>`;
 
     test("Backspace at the start of the line after an image block removes the image", () => {
-        const wrapper = createWrapper(`<p>zero</p>${imageBlock}<p class="start">first</p>`);
+        const wrapper = createWrapper(`<p>zero</p><p class="be-image"><img src="image.png"></p><p class="start">first</p>`);
 
         const first = getFirstChild(wrapper, ".start");
         selectRange(first, "".length, first, "".length);
@@ -1894,23 +2081,8 @@ describe("Deleting next to an image block", () => {
         expectCursor(cursorPosition, lastFirst, "".length);
     });
 
-    test("Delete at the end of the line before an image block removes the image", () => {
-        const wrapper = createWrapper(`<p class="start">zero</p>${imageBlock}<p>first</p>`);
-
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "zero".length, zero, "zero".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `<p>zero</p><p>first</p>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const firstZero = getFirstChild(wrapper, "p");
-        expectCursor(cursorPosition, firstZero, "zero".length);
-    });
-
     test("Backspace at the start of an item after an image block removes the image and keeps the list", () => {
-        const wrapper = createWrapper(`<p>zero</p>${imageBlock}<ul><li class="start">first</li><li>second</li></ul>`);
+        const wrapper = createWrapper(`<p>zero</p><p class="be-image"><img src="image.png"></p><ul><li class="start">first</li><li>second</li></ul>`);
 
         const first = getFirstChild(wrapper, ".start");
         selectRange(first, "".length, first, "".length);
@@ -1922,162 +2094,5 @@ describe("Deleting next to an image block", () => {
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const itemFirst = getFirstChild(wrapper, "li");
         expectCursor(cursorPosition, itemFirst, "".length);
-    });
-
-    test("Delete at the end of an empty line before an image block removes the image and keeps the line", () => {
-        const wrapper = createWrapper(`<p class="start"><br></p>${imageBlock}<p>first</p>`);
-
-        const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `<p><br></p><p>first</p>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const firstBr = getFirstChild(wrapper, "p");
-        expectCursor(cursorPosition, firstBr, "".length);
-    });
-});
-
-// A list run ends at any line written between two wrappers, so removing that line leaves the
-// wrappers standing side by side; the run has to be rebuilt as one for them to join.
-describe("Removing the line two lists stand apart from one another by", () => {
-    test("Delete in the empty line between two lists joins them", () => {
-        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start"><br></p><ul><li>first</li></ul>`);
-
-        const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zero = getFirstChild(wrapper, "li");
-        expectCursor(cursorPosition, zero, "zero".length);
-    });
-
-    test("Delete at the end of the list above the empty line joins them", () => {
-        const wrapper = createWrapper(`<ul><li class="start">zero</li></ul><p><br></p><ul><li>first</li></ul>`);
-
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "zero".length, zero, "zero".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const joinedZero = getFirstChild(wrapper, "li");
-        expectCursor(cursorPosition, joinedZero, "zero".length);
-    });
-
-    test("Backspace at the start of the list below the empty line joins them", () => {
-        const wrapper = createWrapper(`<ul><li>zero</li></ul><p><br></p><ul><li class="start">first</li></ul>`);
-
-        const first = getFirstChild(wrapper, ".start");
-        selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const joinedFirst = getFirstChild(wrapper, "li + li");
-        expectCursor(cursorPosition, joinedFirst, "".length);
-    });
-
-    test("Backspace at the start of a line written between two lists joins them", () => {
-        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start">first</p><ul><li>second</li></ul>`);
-
-        const first = getFirstChild(wrapper, ".start");
-        selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zerofirst</li><li>second</li></ul>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zeroFirst = getFirstChild(wrapper, "li");
-        expectCursor(cursorPosition, zeroFirst, "zero".length);
-    });
-
-    test("Deleting a selection covering the line written between two lists joins them", () => {
-        const wrapper = createWrapper(`<ul><li class="start">zero</li></ul><p class="end">first</p><ul><li>second</li></ul>`);
-
-        const zero = getFirstChild(wrapper, ".start");
-        const first = getFirstChild(wrapper, ".end");
-        selectRange(zero, "zero".length, first, "first".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>second</li></ul>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const joinedZero = getFirstChild(wrapper, "li");
-        expectCursor(cursorPosition, joinedZero, "zero".length);
-    });
-
-    test("Should leave lists of different types apart when the line between them goes", () => {
-        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start"><br></p><ol><li>first</li></ol>`);
-
-        const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul><ol><li>first</li></ol>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zero = getFirstChild(wrapper, "li");
-        expectCursor(cursorPosition, zero, "zero".length);
-    });
-
-    test("Should leave the lists a line still stands between apart", () => {
-        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start">first</p><ul><li>second</li></ul>`);
-
-        const first = getFirstChild(wrapper, ".start");
-        selectRange(first, "firs".length, first, "firs".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul><p class="start">firs</p><ul><li>second</li></ul>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const firs = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, firs, "firs".length);
-    });
-
-    test("Backspace at the start of an item after an image block between two lists joins them", () => {
-        const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="be-image"><img src="image.png"></p><ul><li class="start">first</li></ul>`);
-
-        const first = getFirstChild(wrapper, ".start");
-        selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const joinedFirst = getFirstChild(wrapper, "li + li");
-        expectCursor(cursorPosition, joinedFirst, "".length);
-    });
-
-    // The rebuild joins the run into the first wrapper, detaching the second; a cursor remapped by
-    // its old position among the editor's children would land in the line after the run instead.
-    test("Should keep the cursor in the joined list when a line follows the run", () => {
-        const wrapper = createWrapper(`<ul><li>zero</li></ul><p><br></p><ul><li class="start">first</li></ul><p>second</p>`);
-
-        const first = getFirstChild(wrapper, ".start");
-        selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-
-        handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul><p>second</p>`);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const joinedFirst = getFirstChild(wrapper, "li + li");
-        expectCursor(cursorPosition, joinedFirst, "".length);
     });
 });
