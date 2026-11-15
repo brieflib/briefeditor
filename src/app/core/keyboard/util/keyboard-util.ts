@@ -106,6 +106,13 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         return;
     }
 
+    // Backspace deleted the line's content, but the line itself stays: give it its br back.
+    if (!removalResult && pressedKey === "Backspace" && firstLine === lastLine && isHollow(firstLine)) {
+        addPlaceholder(firstLine);
+        new Normalizer(contentEditable).normalize(getCursorPositionFrom(firstLine, 0, lastLine, 0));
+        return;
+    }
+
     // Enter divides the first block at the cursor, so the text after it opens a line of its own
     if (pressedKey === "Enter" && !isShiftKey) {
         const breakText = document.createTextNode("");
@@ -422,9 +429,10 @@ export function mergeBlocks(contentEditable: HTMLElement, cursorPosition: Cursor
 
 /** Whether a block's own line holds nothing at all - no text, no image, not even a placeholder br. */
 function isHollow(block: HTMLElement) {
-    const line = getLine(block);
+    const ownNodes = Array.from(block.childNodes)
+        .filter(node => !isSchemaContain(node, [Display.ListWrapper]));
 
-    return !line.textContent && !hasSelfCloseDescendant(line);
+    return !ownNodes.some(node => !!node.textContent || hasSelfCloseDescendant(node));
 }
 
 /**

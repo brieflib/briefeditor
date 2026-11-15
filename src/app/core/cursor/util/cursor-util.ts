@@ -283,8 +283,7 @@ export function findNodeAndOffset(root: Node, targetPosition: number): NodeOffse
                 if (position === targetPosition) {
                     return {node: current, offset: 0};
                 }
-            }
-            else {
+            } else {
                 for (let i = current.childNodes.length - 1; i >= 0; i--) {
                     const child = current.childNodes[i];
                     if (child) {
@@ -524,6 +523,16 @@ function stepBackOneCharacter(contentEditable: HTMLElement,
     let current: Node | undefined | null = leaf.node;
     let offset = leaf.offset;
     const isAtStartOfLine = isAtLineStart(contentEditable, current, offset);
+
+    // The caret is on the only placeholder of an empty first-level line. Backspace removes the whole line, so the
+    // caret counts from the start of that line's place: the next block takes it once the line is gone.
+    if (isAtStartOfLine && isSchemaContain(leaf.node, [Display.SelfClose])) {
+        const line = getElement(contentEditable, leaf.node, [Display.List, Display.FirstLevel]);
+        if (line && isSchemaContain(line, [Display.Line]) && isOnlySelfClose(line) &&
+            countSelfCloseBefore(contentEditable, leaf.node) === 1) {
+            return collapseAnchor(getAnchorBlocks(contentEditable, line), 0, 0);
+        }
+    }
 
     // We are at the start of the node, go one node back.
     if (offset === 0) {

@@ -1353,6 +1353,39 @@ describe("Removing the line two lists stand apart from one another by", () => {
 });
 
 describe("Backspace", () => {
+    test("After removing content and pressing delete with first p element next tag should merge", () => {
+        const wrapper = createWrapper(`
+            <p>zero</p>
+            <h1 class="start">first</h1>
+            <p>second</p>
+        `);
+
+        let first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "first".length);
+        let cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p><h1 class="start"><br></h1><p>second</p>
+        `);
+
+        let cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, br, "".length);
+
+        selectRange(br, "".length, br, "".length);
+        cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p><p>second</p>
+        `);
+
+        cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        first = getFirstChild(wrapper, "p + p")
+        expectCursor(cursorPosition, first, "".length);
+    });
+
     test("After removing content and pressing delete next tag should merge", () => {
         const wrapper = createWrapper(`
             <h1 class="start">zero</h1>
@@ -1373,9 +1406,9 @@ describe("Backspace", () => {
         expectCursor(cursorPosition, br, "".length);
 
         selectRange(br, "".length, br, "".length);
-        cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+        cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        handleKeyboardEvent(wrapper, keydown("Delete"));
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
         expectHtml(wrapper.innerHTML, `
             <p>first</p>
         `);
