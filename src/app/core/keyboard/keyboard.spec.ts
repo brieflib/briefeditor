@@ -1411,7 +1411,7 @@ describe("Backspace", () => {
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul><p>second</p>`);
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">first</li></ul><p>second</p>`);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const joinedFirst = getFirstChild(wrapper, "li + li");
@@ -1570,14 +1570,14 @@ describe("Backspace", () => {
                 <li>zero
                     <ol>
                         <li>first</li>
-                        <li class="start"><br>second</li>
+                        <li><br>second</li>
                     </ol>
                 </li>
             </ol>
         `);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const mergedSecond = getFirstChild(wrapper, "ol li ol li:last-child");
+        const mergedSecond = getLastChild(wrapper, "ol li ol li:last-child");
         expectCursor(cursorPosition, mergedSecond, "".length);
     });
 
@@ -1894,6 +1894,73 @@ describe("Backspace", () => {
         expectCursor(cursorPosition, zero, "zero".length);
     });
 
+    test("Backspace after the last br of an empty item holding a nested list keeps the caret on the remaining br", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start"><br><br>
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const li = querySelector(wrapper, ".start");
+        selectRange(li, 2, li, 2);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li><br>
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, "li:nth-child(2)");
+        expectCursor(cursorPosition, br, "".length);
+    });
+
+    test("Backspace after the last br of an empty item keeps the caret on the last of two remaining brs", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start"><br><br><br>
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const li = querySelector(wrapper, ".start");
+        selectRange(li, 3, li, 3);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li><br><br>
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const brs = querySelector(wrapper, "li:nth-child(2)").querySelectorAll("br");
+        const lastBr = brs[1] as Node;
+        expectCursor(cursorPosition, lastBr, "".length);
+    });
+
     test("Backspace in the only empty item below a paragraph drops the list", () => {
         const wrapper = createWrapper(`
             <p>zero</p>
@@ -2003,7 +2070,7 @@ describe("Backspace", () => {
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">first</li></ul>`);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const joinedFirst = getFirstChild(wrapper, "li + li");
@@ -2033,7 +2100,22 @@ describe("Backspace", () => {
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         handleKeyboardEvent(wrapper, keydown("Backspace"));
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li>first</li></ul>`);
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">first</li></ul>`);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const joinedFirst = getFirstChild(wrapper, "li + li");
+        expectCursor(cursorPosition, joinedFirst, "".length);
+    });
+
+    test("Backspace at the start of an item after an image block between two lists (first with single br) joins them", () => {
+        const wrapper = createWrapper(`<ul><li><br></li></ul><p class="be-image"><img src="image.png"></p><ul><li class="start">first</li></ul>`);
+
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `<ul><li><br></li><li class="start">first</li></ul>`);
 
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const joinedFirst = getFirstChild(wrapper, "li + li");

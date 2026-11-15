@@ -26,7 +26,7 @@ import {
     isPrintableKey
 } from "@/core/shared/element-util";
 import {Action, Command} from "@/core/command/type/command";
-import {getLine} from "@/core/list/util/list-util";
+import {getLastOwnText, getLine} from "@/core/list/util/list-util";
 
 export interface NodeOffset {
     readonly node: Node;
@@ -332,7 +332,7 @@ export function getCursorAnchor(contentEditable: HTMLElement,
         }
 
         if (event.key === "Backspace") {
-            return stepBackOneCharacter(contentEditable, cursorPosition);
+            return stepBackOneCharacter(contentEditable, cursorPosition, getLineEndLeafAtCursor(cursorPosition));
         }
 
         // if (event.key === "Delete") {
@@ -489,12 +489,33 @@ export function getLeafAtCursor(cursorPosition: CursorPosition): NodeOffset | nu
 }
 
 /**
+ * The leaf a caret standing at the end of an item's line rests on when a nested list follows it. An empty
+ * line is held open by its last self-close placeholder; every other caret keeps the regular reading.
+ */
+function getLineEndLeafAtCursor(cursorPosition: CursorPosition): NodeOffset | null {
+    const container = cursorPosition.startContainer;
+
+    if (container instanceof HTMLElement && isSchemaContain(container, [Display.List])) {
+        const child = container.childNodes[cursorPosition.startOffset];
+        const hasOwnText = Array.from(container.childNodes)
+            .some(node => !isSchemaContain(node, [Display.ListWrapper]) && node.textContent?.length);
+
+        if (child && !hasOwnText && isSchemaContain(child, [Display.ListWrapper]) &&
+            isSchemaContain(child.previousSibling, [Display.SelfClose])) {
+            return {node: child.previousSibling as Node, offset: 0};
+        }
+    }
+
+    return getLeafAtCursor(cursorPosition);
+}
+
+/**
  * Steps back one character from a collapsed cursor the way Backspace does: within its text, then over the nodes
  * before it in its line. Once the line runs out of characters Backspace joins it into the previous line instead.
  */
-function stepBackOneCharacter(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
-    // A browser leaves the caret of an empty line on the line itself, so it is read from the leaf it stands on.
-    const leaf = getLeafAtCursor(cursorPosition);
+function stepBackOneCharacter(contentEditable: HTMLElement,
+                              cursorPosition: CursorPosition,
+                              leaf: NodeOffset | null = getLeafAtCursor(cursorPosition)) {
     if (!leaf || (!(leaf.node instanceof Text) && !isSchemaContain(leaf.node, [Display.SelfClose]))) {
         throw Error("Collapsed selection is not in text or on a self-close tag");
     }
@@ -544,12 +565,25 @@ function getAnchorAfterSelfClosed(contentEditable: HTMLElement,
     const block = getBlockElement(contentEditable, first);
     const blocks = getAnchorBlocks(contentEditable, block);
     const start = getOffsetFromBlock(block, first, offset);
+    const firstLine = getElement(contentEditable, first, [Display.List, Display.FirstLevel]);
     const lastLine = getElement(contentEditable, last, [Display.List, Display.FirstLevel]);
     const selfCloseBefore = countSelfCloseBefore(contentEditable, first);
 
     // The emptied line is dropped and `first` stays, so the caret stands on it.
     if (isAtStartOfLine && lastLine && isOnlySelfClose(lastLine)) {
         return collapseAnchor(blocks, start, selfCloseBefore);
+    }
+
+    // The line above holds only the self-close tag Backspace removes, so it goes with the tag. The caret counts
+    // from the end of the line before it and steps into the line the join leaves.
+    if (isAtStartOfLine && firstLine && selfCloseBefore === 1 && isOnlySelfClose(firstLine)) {
+        const previousLine = getPreviousLine(contentEditable, firstLine);
+        const previousText = previousLine ? getLastOwnText(previousLine) : null;
+        if (previousText) {
+            const previousBlock = getBlockElement(contentEditable, previousText);
+            const previousOffset = getOffsetFromBlock(previousBlock, previousText, previousText.textContent.length);
+            return collapseAnchor(getAnchorBlocks(contentEditable, previousBlock), previousOffset, true);
+        }
     }
 
     // A text ending the line above stays, so the caret steps past it into the joined line.

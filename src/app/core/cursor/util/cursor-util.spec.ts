@@ -624,7 +624,7 @@ describe("Cursor anchor after a Backspace", () => {
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
     });
 
-    // The anchor counts from the image block, which Backspace removes.
+    // The anchor counts from the line before the image block, which Backspace removes.
     test("Should keep the caret on the line after the image block Backspace removed", () => {
         const wrapper = createWrapper(`<p>zero</p><p class="be-image"><img src="image.png"></p><p class="start">first</p>`);
         const first = getFirstChild(wrapper, ".start");
@@ -649,6 +649,21 @@ describe("Cursor anchor after a Backspace", () => {
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
         expectCursor(cursorPosition, second, "".length);
+    });
+
+    // The item has text of its own, so its line keeps the regular reading rather than the empty-line one.
+    test("Should keep the caret at the end of the item's text when Backspace removes the br before its nested list", () => {
+        const wrapper = createWrapper(`<ol><li>zero</li><li class="start">first<br><ol><li>second</li></ol></li></ol>`);
+        const first = getFirstChild(wrapper, ".start");
+        const li = querySelector(wrapper, ".start");
+        selectRange(li, 2, li, 2);
+
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        querySelector(wrapper, ".start br").remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, first, "first".length);
     });
 
     // The paragraph the anchor counts from absorbs the caret's paragraph.

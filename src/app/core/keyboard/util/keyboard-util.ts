@@ -46,7 +46,7 @@ import {
     resolveCursorAnchor
 } from "@/core/cursor/util/cursor-util";
 import {Command} from "@/core/command/type/command";
-import {SelfCloseRemoval} from "@/core/keyboard/type/self-close-removal";
+import {SelfCloseRemoval, SelfCloseRemovalResult} from "@/core/keyboard/type/self-close-removal";
 
 /**
  * Deletes a selection spanning blocks, typing `pressedKey` in its place, and merges the last selected block into the
@@ -93,11 +93,15 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         return;
     }
 
-    const isSelfCloseAllRemoved = removal !== null && removeSelfClose(removal);
+    const removalResult = removeSelfClose(removal);
+    // A line another br still holds stands for the next item to merge into, so it is not gone for the merge.
+    if (removalResult?.isLineHeldBySelfClose && pressedKey === "Backspace") {
+        backspacedLine = null;
+    }
     cursorPosition = deleteContents(cursorPosition);
 
-    // Backspace or Delete removed a self-close tag, so no block is left to merge; the rebuild drops the emptied line
-    if (isSelfCloseAllRemoved) {
+    // The self-close tag emptied its line, so no block is left to merge; the rebuild drops the emptied line
+    if (removalResult?.isLineEmptied) {
         new Normalizer(contentEditable).normalize(getCursorPositionFrom(firstLine, 0, lastLine, 0));
         return;
     }
@@ -197,25 +201,24 @@ function getDeletedSelfClose(contentEditable: HTMLElement, cursorPosition: Curso
     return new SelfCloseRemoval(selfClose, line, false);
 }
 
-/**
- * Removes the self-close tag of `removal`. Returns true when the tag was all there was to remove: its line is left
- * empty for the rebuild to drop, or another self-close tag still holds it.
- */
-function removeSelfClose(removal: SelfCloseRemoval) {
+/** Removes the self-close tag of `removal` and reports what remains on its line. */
+function removeSelfClose(removal: SelfCloseRemoval | null): SelfCloseRemovalResult | undefined {
+    if (removal === null) {
+        return;
+    }
+
     const line = removal.line;
     (removal.node as HTMLElement).remove();
 
     if (!line) {
-        return false;
+        return {isLineEmptied: false, isLineHeldBySelfClose: false};
     }
 
-    // A line left without its last br holds nothing, so the rebuild drops it, unless it is kept to merge into
-    if (!line.hasChildNodes() && !removal.isLineKept) {
-        return true;
-    }
-
-    // Another self-close tag still holds the line, so nothing is left to merge into it
-    return Array.from(line.childNodes).some(child => isSchemaContain(child, [Display.SelfClose]));
+    return {
+        isLineEmptied: !line.hasChildNodes() && !removal.isLineKept,
+        isLineHeldBySelfClose: Array.from(line.childNodes)
+            .some(child => isSchemaContain(child, [Display.SelfClose])),
+    };
 }
 
 /** Merges the current block into the one before it (backspace at the start of a line). */
