@@ -339,12 +339,12 @@ export function getCursorAnchor(contentEditable: HTMLElement,
         }
 
         if (event.key === "Backspace") {
-            return stepBackOneCharacter(contentEditable, cursorPosition, getLineEndLeafAtCursor(cursorPosition));
+            return stepBackForCaret(contentEditable, cursorPosition);
         }
 
-        // if (event.key === "Delete") {
-        //     return stayBeforeNextCharacter(contentEditable, cursorAnchor, cursorPosition);
-        // }
+        if (event.key === "Delete") {
+            //return stayBeforeNextCharacter(contentEditable, cursorPosition);
+        }
         //
         // if (event.key === "Enter" && event.shiftKey) {
         //     // The caret stands right after the br the break puts in its line.
@@ -516,13 +516,23 @@ function getLineEndLeafAtCursor(cursorPosition: CursorPosition): NodeOffset | nu
     return getLeafAtCursor(cursorPosition);
 }
 
+/** Start of the character that Backspace is about to remove. */
+function stepBackForRemoval(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorAnchor {
+    return stepBackOneCharacter(contentEditable, cursorPosition, getLeafAtCursor(cursorPosition));
+}
+
+/** Where the caret should end up after the Backspace. */
+function stepBackForCaret(contentEditable: HTMLElement, cursorPosition: CursorPosition): CursorAnchor {
+    return stepBackOneCharacter(contentEditable, cursorPosition, getLineEndLeafAtCursor(cursorPosition));
+}
+
 /**
  * Steps back one character from a collapsed cursor the way Backspace does: within its text, then over the nodes
  * before it in its line. Once the line runs out of characters Backspace joins it into the previous line instead.
  */
 function stepBackOneCharacter(contentEditable: HTMLElement,
                               cursorPosition: CursorPosition,
-                              leaf: NodeOffset | null = getLeafAtCursor(cursorPosition)) {
+                              leaf: NodeOffset | null) {
     if (!leaf || (!(leaf.node instanceof Text) && !isSchemaContain(leaf.node, [Display.SelfClose]))) {
         throw Error("Collapsed selection is not in text or on a self-close tag");
     }
@@ -739,7 +749,7 @@ export function getPreviousCharacterAnchor(contentEditable: HTMLElement, cursorP
     }
 
     // Everywhere else the range starts where Backspace leaves the caret.
-    return stepBackOneCharacter(contentEditable, cursorPosition);
+    return stepBackForRemoval(contentEditable, cursorPosition);
 }
 
 /** The anchor at the end of `text`, with nothing after it stepped over. */
