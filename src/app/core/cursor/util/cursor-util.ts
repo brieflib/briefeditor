@@ -33,6 +33,12 @@ export interface NodeOffset {
     readonly offset: number;
 }
 
+/** Where the caret goes when the block it was anchored to was removed. */
+export interface RemovedLineFallback {
+    readonly blocks: readonly (Node | null | undefined)[];
+    readonly offset: number;
+}
+
 export interface CursorAnchor {
     // The block the offsets count from with two blocks on each side: [previous.previous, previous, block, next, next.next].
     readonly startBlocks: readonly (Node | null | undefined)[];
@@ -43,6 +49,8 @@ export interface CursorAnchor {
     readonly endIsAfter: number | boolean;
     // FixMe: return start === end
     readonly length: number;
+    /** The place to resolve instead when the anchor's block is removed. */
+    readonly removedLineFallback?: RemovedLineFallback;
 }
 
 export interface StrandedTable {
@@ -524,13 +532,10 @@ function stepBackOneCharacter(contentEditable: HTMLElement,
     let offset = leaf.offset;
     const isAtStartOfLine = isAtLineStart(contentEditable, current, offset);
 
-    // The caret is on the only placeholder of an empty first-level line. Backspace removes the whole line, so the
-    // caret counts from the start of that line's place: the next block takes it once the line is gone.
-    if (isAtStartOfLine && isSchemaContain(leaf.node, [Display.SelfClose])) {
-        const line = getElement(contentEditable, leaf.node, [Display.List, Display.FirstLevel]);
-        if (line && isSchemaContain(line, [Display.Line]) && isOnlySelfClose(line) &&
-            countSelfCloseBefore(contentEditable, leaf.node) === 1) {
-            return collapseAnchor(getAnchorBlocks(contentEditable, line), 0, 0);
+    if (isAtStartOfLine) {
+        const removedLineAnchor = getRemovedLineAnchor(contentEditable, leaf);
+        if (removedLineAnchor) {
+            return removedLineAnchor;
         }
     }
 
@@ -560,6 +565,43 @@ function stepBackOneCharacter(contentEditable: HTMLElement,
     }
 
     return getInitialCursorAnchor(contentEditable, cursorPosition);
+}
+
+/**
+ * The caret anchor for an empty first-level line whose only leaf is the self-close tag Backspace removes.
+ * The caret counts from the end of the line before it, or from the removed line's place when there is none.
+ */
+function getRemovedLineAnchor(contentEditable: HTMLElement, leaf: NodeOffset): CursorAnchor | null {
+    if (!isSchemaContain(leaf.node, [Display.SelfClose])) {
+        return null;
+    }
+
+    const line = getElement(contentEditable, leaf.node, [Display.List, Display.FirstLevel]);
+    if (!line || !isSchemaContain(line, [Display.Line]) || !isOnlySelfClose(line)) {
+        return null;
+    }
+
+    // Several placeholders mean Backspace leaves the line standing, so only one removes it.
+    if (countSelfCloseBefore(contentEditable, leaf.node) !== 1) {
+        return null;
+    }
+
+    const anchor = collapseAnchor(getAnchorBlocks(contentEditable, line), 0, 0);
+    const previousLine = getPreviousLine(contentEditable, line);
+    const previousText = previousLine ? getLastOwnText(previousLine) : null;
+    if (!previousText) {
+        return anchor;
+    }
+
+    // The line is gone after Backspace, so the caret goes to the end of the line before it.
+    const previousBlock = getBlockElement(contentEditable, previousText);
+    return {
+        ...anchor,
+        removedLineFallback: {
+            blocks: getAnchorBlocks(contentEditable, previousBlock),
+            offset: getOffsetFromBlock(previousBlock, previousText, previousText.textContent.length),
+        },
+    };
 }
 
 /**
@@ -826,11 +868,13 @@ export function resolveCursorAnchor(contentEditable: HTMLElement, cursorAnchor: 
     const start = resolveBlockOffset(contentEditable,
         cursorAnchor.startBlocks,
         cursorAnchor.start,
-        cursorAnchor.startIsAfter);
+        cursorAnchor.startIsAfter,
+        cursorAnchor.removedLineFallback);
     const end = resolveBlockOffset(contentEditable,
         cursorAnchor.endBlocks,
         cursorAnchor.end,
-        cursorAnchor.endIsAfter);
+        cursorAnchor.endIsAfter,
+        cursorAnchor.removedLineFallback);
     return getCursorPositionFrom(start.node, start.offset, end.node, end.offset);
 }
 
@@ -843,7 +887,13 @@ export function resolveCursorAnchor(contentEditable: HTMLElement, cursorAnchor: 
 function resolveBlockOffset(contentEditable: HTMLElement,
                             blocks: readonly (Node | null | undefined)[],
                             offset: number,
-                            cursorAfterTagsCount: number | boolean): NodeOffset {
+                            cursorAfterTagsCount: number | boolean,
+                            removedLineFallback?: RemovedLineFallback): NodeOffset {
+    // The anchored line was removed, so the caret takes the fallback place instead.
+    if (removedLineFallback && !blocks[2]?.isConnected) {
+        return resolveBlockOffset(contentEditable, removedLineFallback.blocks, removedLineFallback.offset, 0);
+    }
+
     // FixMe: make previousBlock not null, rename to block
     // ToDo: change contentEditable.firstChild
     const block = findAnchorBlock(contentEditable, blocks);

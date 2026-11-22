@@ -1382,8 +1382,8 @@ describe("Backspace", () => {
         `);
 
         cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        first = getFirstChild(wrapper, "p + p")
-        expectCursor(cursorPosition, first, "".length);
+        first = getFirstChild(wrapper, "p");
+        expectCursor(cursorPosition, first, "zero".length);
     });
 
     test("After removing content and pressing delete next tag should merge", () => {

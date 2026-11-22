@@ -747,6 +747,32 @@ describe("Cursor anchor after a Backspace", () => {
         const first = getFirstChild(wrapper, ".start")
         expectCursor(cursorPosition, first, "first".length);
     });
+
+    test("Should go before empty block. Last block is filled", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="start">first</p><p class="end"><br></p><p>third</p>`);
+        const br = getFirstChild(wrapper, ".end");
+        selectRange(br, 0, br, 0);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        querySelector(wrapper, ".end").remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const first = getFirstChild(wrapper, ".start")
+        expectCursor(cursorPosition, first, "first".length);
+    });
+
+    test("Should go before empty block. Last block is empty ", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="start">first</p><p class="end"><br></p><p><br></p>`);
+        const br = getFirstChild(wrapper, ".end");
+        selectRange(br, 0, br, 0);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        querySelector(wrapper, ".end").remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        const first = getFirstChild(wrapper, ".start")
+        expectCursor(cursorPosition, first, "first".length);
+    });
 });
 
 describe("Cursor anchor after a Delete", () => {
