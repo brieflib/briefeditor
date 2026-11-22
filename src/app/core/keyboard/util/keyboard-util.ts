@@ -113,6 +113,12 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
         return;
     }
 
+    // Another br still holds the line above, so only that br goes; the caret's block keeps its own line.
+    if (removalResult?.isLineHeldBySelfClose && pressedKey === "Backspace" &&
+        firstLine !== lastLine && !isSchemaContain(lastLine, [Display.List])) {
+        return;
+    }
+
     // Enter divides the first block at the cursor, so the text after it opens a line of its own
     if (pressedKey === "Enter" && !isShiftKey) {
         const breakText = document.createTextNode("");

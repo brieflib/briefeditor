@@ -1403,9 +1403,9 @@ describe("Backspace", () => {
 
         let cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const br = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, br, "".length);
+        expectCursor(cursorPosition, br, 0);
 
-        selectRange(br, "".length, br, "".length);
+        selectRange(br, 0, br, 0);
         cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         handleKeyboardEvent(wrapper, keydown("Backspace"));
@@ -1416,6 +1416,27 @@ describe("Backspace", () => {
         cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const first = getFirstChild(wrapper, "p");
         expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Backspace on a br of a heading holding multiple brs removes one br", () => {
+        const wrapper = createWrapper(`
+            <h1 class="start"><br><br><br></h1>
+            <p>first</p>
+        `);
+
+        const br = querySelector(wrapper, ".start").querySelectorAll("br")[2] as HTMLElement;
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+
+        handleKeyboardEvent(wrapper, keydown("Backspace"));
+        expectHtml(wrapper.innerHTML, `
+            <h1 class="start"><br><br></h1>
+            <p>first</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const remainingBr = getLastChild(wrapper, ".start");
+        expectCursor(cursorPosition, remainingBr, "".length);
     });
 
     test("Deleting a selection covering the line written between two lists joins them", () => {
