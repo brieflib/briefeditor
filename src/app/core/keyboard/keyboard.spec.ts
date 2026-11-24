@@ -288,130 +288,9 @@ describe("Keyboard events", () => {
         const br = getLastChild(wrapper, ".start");
         expectCursor(cursorPosition, br, "".length);
     });
-
-    test("Press delete when selection spans two paragraphs", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zero</p><p class="end">first</p>
-        `);
-
-        const zero = getFirstChild(wrapper, ".start");
-        const first = getFirstChild(wrapper, ".end");
-        selectRange(zero, "ze".length, first, "fir".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <p class="start">zest</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zest = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, zest, "ze".length);
-    });
-
-    // Items selected whole are emptied into one item rather than dropped, the way a browser leaves an empty
-    // line for a selection of whole blocks; the next thing typed or pasted fills it.
-    test("Press delete when selection covers a whole list followed by a paragraph", () => {
-        const wrapper = createWrapper(`
-            <ul><li class="start">zero</li><li>first</li><li class="end">second</li></ul><p>third</p>
-        `);
-
-        const zero = getFirstChild(wrapper, ".start");
-        const second = getFirstChild(wrapper, ".end");
-        selectRange(zero, "".length, second, "second".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ul><li><br></li></ul><p>third</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const br = getFirstChild(wrapper, "li");
-        expectCursor(cursorPosition, br, "".length);
-    });
-
-    test("Press delete when selection covers a whole list after a paragraph", () => {
-        const wrapper = createWrapper(`
-            <p>zero</p><ul><li class="start">first</li><li>second</li><li class="end">third</li></ul>
-        `);
-
-        const first = getFirstChild(wrapper, ".start");
-        const third = getFirstChild(wrapper, ".end");
-        selectRange(first, "".length, third, "third".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <p>zero</p><ul><li><br></li></ul>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const br = getFirstChild(wrapper, "li");
-        expectCursor(cursorPosition, br, "".length);
-    });
-
-    test("Press delete when selection covers two whole items of three", () => {
-        const wrapper = createWrapper(`
-            <ul><li class="start">zero</li><li class="end">first</li><li>second</li></ul>
-        `);
-
-        const zero = getFirstChild(wrapper, ".start");
-        const first = getFirstChild(wrapper, ".end");
-        selectRange(zero, "".length, first, "first".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ul><li><br></li><li>second</li></ul>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const br = getFirstChild(wrapper, "li");
-        expectCursor(cursorPosition, br, 0);
-    });
-
-    test("Press delete when selection covers two whole paragraphs of three", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zero</p><p class="end">first</p><p>second</p>
-        `);
-
-        const zero = getFirstChild(wrapper, ".start");
-        const first = getFirstChild(wrapper, ".end");
-        selectRange(zero, "".length, first, "first".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <p class="start"><br></p><p>second</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const br = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, br, "".length);
-    });
-
-    test("After pressing delete when cursor is at the br cursor position should be at previous br", () => {
-        const wrapper = createWrapper(`
-            <p>zero</p><p><br></p><p><br></p><p class="start"><br></p><p>first</p>
-        `);
-
-        const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <p>zero</p><p><br></p><p><br></p><p>first</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const first = getFirstChild(wrapper, "p:nth-child(4)");
-        expectCursor(cursorPosition, first, "".length);
-    });
 });
 
-describe("Typing and deleting characters", () => {
+describe("Typing characters", () => {
     test("Type a character in the middle of text", () => {
         const wrapper = createWrapper(`
             <p class="start">zero</p>
@@ -612,225 +491,6 @@ describe("Typing and deleting characters", () => {
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
         const x = getFirstChild(wrapper, "li");
         expectCursor(cursorPosition, x, "x".length);
-    });
-
-    test("Press delete in the middle of text", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zero</p>
-        `);
-
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "ze".length, zero, "ze".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <p class="start">zeo</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zeo = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, zeo, "ze".length);
-    });
-
-    test("Press delete before a line break", () => {
-        const wrapper = createWrapper(`
-            <p class="start">zero<br>first</p>
-        `);
-
-        const zero = getFirstChild(wrapper, ".start");
-        selectRange(zero, "zero".length, zero, "zero".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <p class="start">zerofirst</p>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zeroFirst = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, zeroFirst, "zero".length);
-    });
-
-    test("Should merge lists when pressing delete before br", () => {
-        const wrapper = createWrapper(`
-            <ol>
-                <li>zero</li>
-                <li>first</li>
-                <li class="start"><br>
-                    <ol><li>second</li></ol>
-                </li>
-            </ol>
-        `);
-
-        const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ol>
-                <li>zero</li>
-                <li>first</li>
-                <li>second</li>
-            </ol>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const second = getFirstChild(wrapper, "ol li:last-child");
-        expectCursor(cursorPosition, second, "".length);
-    });
-
-    test("Should merge lists of different types when pressing delete before br", () => {
-        const wrapper = createWrapper(`
-            <ul>
-                <li class="start"><br>
-                    <ol>
-                        <li>zero</li>
-                    </ol>
-                </li>
-            </ul>
-        `);
-
-        const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ul>
-                <li>zero</li>
-            </ul>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const zero = getFirstChild(wrapper, "ul li");
-        expectCursor(cursorPosition, zero, "".length);
-    });
-
-    test("Should merge lists of different types when pressing delete before br with preceding li", () => {
-        const wrapper = createWrapper(`
-            <ol>
-                <li>zero</li>
-                <li class="start"><br>
-                    <ul>
-                        <li>first</li>
-                    </ul>
-                </li>
-            </ol>
-        `);
-
-        const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ol>
-                <li>zero</li>
-                <li>first</li>
-            </ol>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const first = getFirstChild(wrapper, "ol li:last-child");
-        expectCursor(cursorPosition, first, "".length);
-    });
-
-    test("Should merge lists of the same types when pressing delete before nested br", () => {
-        const wrapper = createWrapper(`
-            <ol>
-                <li>zero</li>
-                <li class="start"><br>
-                    <ol>
-                        <li>first</li>
-                    </ol>
-                </li>
-                <li>second</li>
-            </ol>
-        `);
-
-        const li = querySelector(wrapper, ".start");
-        selectRange(li, "".length, li, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ol>
-                <li>zero</li>
-                <li>first</li>
-                <li>second</li>
-            </ol>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const first = getFirstChild(wrapper, "li + li");
-        expectCursor(cursorPosition, first, "".length);
-    });
-
-    test("Should merge lists of the same types when pressing delete before nested br 2", () => {
-        const wrapper = createWrapper(`
-            <ol>
-                <li>zero
-                    <ol>
-                        <li class="start"><br></li>
-                    </ol>
-                </li>
-                <li>first</li>
-            </ol>
-        `);
-
-        const li = querySelector(wrapper, ".start");
-        selectRange(li, "".length, li, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ol>
-                <li>zero
-                    <ol>
-                        <li>first</li>
-                    </ol>
-                </li>
-            </ol>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const first = getFirstChild(wrapper, "ol ol li");
-        expectCursor(cursorPosition, first, "".length);
-    });
-
-    test("Delete over the text of an item holding a nested list leaves the placeholder above the list", () => {
-        const wrapper = createWrapper(`
-            <ol>
-                <li>zero</li>
-                <li class="start">first
-                    <ol>
-                        <li>second</li>
-                    </ol>
-                </li>
-            </ol>
-        `);
-
-        const first = getFirstChild(wrapper, ".start");
-        selectRange(first, "".length, first, "first".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
-
-        handleKeyboardEvent(wrapper, keydown("Delete"));
-        expectHtml(wrapper.innerHTML, `
-            <ol>
-                <li>zero</li>
-                <li class="start"><br>
-                    <ol>
-                        <li>second</li>
-                    </ol>
-                </li>
-            </ol>
-        `);
-
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-        const br = getFirstChild(wrapper, ".start");
-        expectCursor(cursorPosition, br, "".length);
     });
 
     test("Type a character over a selection inside one paragraph", () => {
@@ -1254,7 +914,346 @@ describe("Enter in an empty list item", () => {
     });
 });
 
-describe("Deleting next to an image block", () => {
+describe("Delete", () => {
+    test("Press delete when selection spans two paragraphs", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p><p class="end">first</p>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "ze".length, first, "fir".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zest</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zest = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, zest, "ze".length);
+    });
+
+    // Items selected whole are emptied into one item rather than dropped, the way a browser leaves an empty
+    // line for a selection of whole blocks; the next thing typed or pasted fills it.
+    test("Press delete when selection covers a whole list followed by a paragraph", () => {
+        const wrapper = createWrapper(`
+            <ul><li class="start">zero</li><li>first</li><li class="end">second</li></ul><p>third</p>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const second = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, second, "second".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ul><li><br></li></ul><p>third</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, "li");
+        expectCursor(cursorPosition, br, "".length);
+    });
+
+    test("Press delete when selection covers a whole list after a paragraph", () => {
+        const wrapper = createWrapper(`
+            <p>zero</p><ul><li class="start">first</li><li>second</li><li class="end">third</li></ul>
+        `);
+
+        const first = getFirstChild(wrapper, ".start");
+        const third = getFirstChild(wrapper, ".end");
+        selectRange(first, "".length, third, "third".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p><ul><li><br></li></ul>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, "li");
+        expectCursor(cursorPosition, br, "".length);
+    });
+
+    test("Press delete when selection covers two whole items of three", () => {
+        const wrapper = createWrapper(`
+            <ul><li class="start">zero</li><li class="end">first</li><li>second</li></ul>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, first, "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ul><li><br></li><li>second</li></ul>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, "li");
+        expectCursor(cursorPosition, br, 0);
+    });
+
+    test("Press delete when selection covers two whole paragraphs of three", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p><p class="end">first</p><p>second</p>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        const first = getFirstChild(wrapper, ".end");
+        selectRange(zero, "".length, first, "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start"><br></p><p>second</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, br, "".length);
+    });
+
+    test("After pressing delete when cursor is at the br cursor position should be at previous br", () => {
+        const wrapper = createWrapper(`
+            <p>zero</p><p><br></p><p><br></p><p class="start"><br></p><p>first</p>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <p>zero</p><p><br></p><p><br></p><p>first</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const first = getFirstChild(wrapper, "p:nth-child(4)");
+        expectCursor(cursorPosition, first, "".length);
+    });
+    test("Press delete in the middle of text", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "ze".length, zero, "ze".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zeo</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zeo = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, zeo, "ze".length);
+    });
+
+    test("Press delete before a line break", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero<br>first</p>
+        `);
+
+        const zero = getFirstChild(wrapper, ".start");
+        selectRange(zero, "zero".length, zero, "zero".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <p class="start">zerofirst</p>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zeroFirst = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, zeroFirst, "zero".length);
+    });
+
+    test("Should merge lists when pressing delete before br", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+                <li class="start"><br>
+                    <ol><li>second</li></ol>
+                </li>
+            </ol>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, 0, br, 0);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const second = getFirstChild(wrapper, "ol li:last-child");
+        expectCursor(cursorPosition, second, "".length);
+    });
+
+    test("Should merge lists of different types when pressing delete before br", () => {
+        const wrapper = createWrapper(`
+            <ul>
+                <li class="start"><br>
+                    <ol>
+                        <li>zero</li>
+                    </ol>
+                </li>
+            </ul>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ul>
+                <li>zero</li>
+            </ul>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const zero = getFirstChild(wrapper, "ul li");
+        expectCursor(cursorPosition, zero, "".length);
+    });
+
+    test("Should merge lists of different types when pressing delete before br with preceding li", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start"><br>
+                    <ul>
+                        <li>first</li>
+                    </ul>
+                </li>
+            </ol>
+        `);
+
+        const br = getFirstChild(wrapper, ".start");
+        selectRange(br, "".length, br, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const first = getFirstChild(wrapper, "ol li:last-child");
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Should merge lists of the same types when pressing delete before nested br", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start"><br>
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+                <li>second</li>
+            </ol>
+        `);
+
+        const li = querySelector(wrapper, ".start");
+        selectRange(li, "".length, li, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li>first</li>
+                <li>second</li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const first = getFirstChild(wrapper, "li + li");
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Should merge lists of the same types when pressing delete before nested br 2", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero
+                    <ol>
+                        <li class="start"><br></li>
+                    </ol>
+                </li>
+                <li>first</li>
+            </ol>
+        `);
+
+        const li = querySelector(wrapper, ".start");
+        selectRange(li, "".length, li, "".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero
+                    <ol>
+                        <li>first</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const first = getFirstChild(wrapper, "ol ol li");
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Delete over the text of an item holding a nested list leaves the placeholder above the list", () => {
+        const wrapper = createWrapper(`
+            <ol>
+                <li>zero</li>
+                <li class="start">first
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const first = getFirstChild(wrapper, ".start");
+        selectRange(first, "".length, first, "first".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Delete"));
+
+        handleKeyboardEvent(wrapper, keydown("Delete"));
+        expectHtml(wrapper.innerHTML, `
+            <ol>
+                <li>zero</li>
+                <li class="start"><br>
+                    <ol>
+                        <li>second</li>
+                    </ol>
+                </li>
+            </ol>
+        `);
+
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const br = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, br, "".length);
+    });
+
     const imageBlock = `<p class="be-image"><img src="image.png"></p>`;
 
     test("Delete at the end of the line before an image block removes the image", () => {
@@ -1286,11 +1285,9 @@ describe("Deleting next to an image block", () => {
         const firstBr = getFirstChild(wrapper, "p");
         expectCursor(cursorPosition, firstBr, "".length);
     });
-});
 
-// A list run ends at any line written between two wrappers, so removing that line leaves the
-// wrappers standing side by side; the run has to be rebuilt as one for them to join.
-describe("Removing the line two lists stand apart from one another by", () => {
+    // A list run ends at any line written between two wrappers, so removing that line leaves the
+    // wrappers standing side by side; the run has to be rebuilt as one for them to join.
     test("Delete in the empty line between two lists joins them", () => {
         const wrapper = createWrapper(`<ul><li>zero</li></ul><p class="start"><br></p><ul><li>first</li></ul>`);
 

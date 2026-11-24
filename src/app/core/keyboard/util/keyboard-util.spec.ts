@@ -91,7 +91,7 @@ describe("Merge previous element", () => {
         `);
 
         const br = getFirstChild(wrapper, ".start");
-        selectRange(br, "".length, br, "".length);
+        selectRange(br, 0, br, 0);
         const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
         mergeBlocksNew(wrapper, keydown("Backspace"));
