@@ -1,4 +1,5 @@
 import {
+    CollapsedLeaves,
     collapseLeaves,
     extractFirstLevel,
     filterLeafParents,
@@ -22,6 +23,7 @@ import {
     CursorPosition,
     extractContents,
     getCursorPosition,
+    getCursorPositionFrom,
     getSelectedTexts,
     insertNode,
     isCursorPositionEqual,
@@ -39,21 +41,26 @@ export class Normalizer {
         this.contentEditable = contentEditable;
     }
 
-    public normalize(cursorPosition = getCursorPosition()) {
+    public normalize(cursorPosition = getCursorPosition()): CursorPosition | undefined {
         const blocks = getSelectedBlocks(this.contentEditable, cursorPosition);
         const wrappedCursorPosition = wrapWithNeighbours(blocks.at(0), blocks.at(-1));
 
-        if (wrappedCursorPosition) {
-            const fragment = extractContents(wrappedCursorPosition);
-            insertNode(wrappedCursorPosition, normalizeNew(this.contentEditable, fragment));
+        if (!wrappedCursorPosition) {
+            return cursorPosition;
         }
+
+        const fragment = extractContents(wrappedCursorPosition);
+        const normalized = normalizeNew(this.contentEditable, fragment, cursorPosition);
+        insertNode(wrappedCursorPosition, normalized.node);
+
+        return getNormalizedCursorPosition(normalized);
     }
 
-    public appendTag(tag: string, attributes?: Attributes, cursorPosition = getCursorPosition()) {
+    public appendTag(tag: string, attributes?: Attributes, cursorPosition = getCursorPosition()): CursorPosition | undefined {
         const carrier = Carrier.getInstance();
         if (carrier.isInsertAllowed(cursorPosition)) {
             carrier.insertCarrier(cursorPosition, tag);
-            return;
+            return getCursorPosition();
         }
 
         const blocks = getSelectedBlocks(this.contentEditable, cursorPosition);
@@ -63,17 +70,23 @@ export class Normalizer {
             insertNode(textCursorPosition, wrapped);
         }
 
+        cursorPosition = getCursorPosition();
         const wrappedCursorPosition = wrapCursorPosition(blocks.at(0), blocks.at(-1));
-        if (wrappedCursorPosition) {
-            const fragment = extractContents(wrappedCursorPosition);
-            insertNode(wrappedCursorPosition, normalizeNew(this.contentEditable, fragment));
+        if (!wrappedCursorPosition) {
+            return cursorPosition;
         }
+
+        const fragment = extractContents(wrappedCursorPosition);
+        const normalized = normalizeNew(this.contentEditable, fragment, cursorPosition);
+        insertNode(wrappedCursorPosition, normalized.node);
+
+        return getNormalizedCursorPosition(normalized);
     }
 
-    public removeTags(tags: string[], cursorPosition = getCursorPosition()) {
+    public removeTags(tags: string[], cursorPosition = getCursorPosition()): CursorPosition | undefined {
         const isCarrierInserted = maybeInsertCarrier(this.contentEditable, tags, cursorPosition);
         if (isCarrierInserted) {
-            return;
+            return getCursorPosition();
         }
 
         const blocks = getSelectedBlocks(this.contentEditable, cursorPosition);
@@ -85,50 +98,77 @@ export class Normalizer {
             insertNode(text, fragment);
         }
 
+        cursorPosition = getCursorPosition();
         const wrappedCursorPosition = wrapCursorPosition(blocks.at(0), blocks.at(-1));
-        if (wrappedCursorPosition) {
-            const fragment = extractContents(wrappedCursorPosition);
-            insertNode(wrappedCursorPosition, normalizeRemoveNew(this.contentEditable, fragment, selectedTexts, tags));
+        if (!wrappedCursorPosition) {
+            return cursorPosition;
         }
+
+        const fragment = extractContents(wrappedCursorPosition);
+        const normalized = normalizeRemoveNew(this.contentEditable, fragment, selectedTexts, tags, cursorPosition);
+        insertNode(wrappedCursorPosition, normalized.node);
+
+        return getNormalizedCursorPosition(normalized);
     }
 
     /**
      * Replaces every selected list item or line with `targetTags`: a lone wrapper changes only the item's wrapper,
      * anything else replaces the item with its wrapper, or the line.
      */
-    public replaceBlockTags(targetTags: string[], cursorPosition = getCursorPosition()) {
+    public replaceBlockTags(targetTags: string[], cursorPosition = getCursorPosition()): CursorPosition | undefined {
         // Read before the extraction, which moves the blocks into the fragment as they are
         const blocks = getSelectedBlock(this.contentEditable, cursorPosition);
         const roots = getSelectedBlocks(this.contentEditable, cursorPosition);
         const involved = getInvolvedCursorPosition(roots.at(0), roots.at(-1));
         if (!involved) {
-            return;
+            return cursorPosition;
         }
-        const fragment = involved.range.extractContents();
-        const normalized = normalizeReplaceBlockNew(this.contentEditable, fragment, blocks, targetTags);
-        involved.range.insertNode(normalized);
+
+        const fragment = extractContents(involved);
+        const normalized = normalizeReplaceBlockNew(this.contentEditable, fragment, blocks, targetTags, cursorPosition);
+        involved.range.insertNode(normalized.node);
+
+        return getNormalizedCursorPosition(normalized);
     }
 
     /** Merges `lastBlock` into `firstBlock`, rebuilding every root from the one before the first block's root to the one after the last block's. */
-    public mergeBlocks(firstBlock: HTMLElement, lastBlock: HTMLElement) {
+    public mergeBlocks(firstBlock: HTMLElement, lastBlock: HTMLElement, cursorPosition = getCursorPosition()): CursorPosition | undefined {
         const firstRoot = getRootElement(this.contentEditable, firstBlock);
         const lastRoot = getRootElement(this.contentEditable, lastBlock);
         const wrappedCursorPosition = wrapWithNeighbours(firstRoot, lastRoot);
-        if (wrappedCursorPosition) {
-            const fragment = extractContents(wrappedCursorPosition);
-            insertNode(wrappedCursorPosition, normalizeMergeNew(this.contentEditable, fragment, firstBlock, lastBlock));
+        if (!wrappedCursorPosition) {
+            return cursorPosition;
         }
+
+        const fragment = extractContents(wrappedCursorPosition);
+        const normalized = normalizeMergeNew(this.contentEditable, fragment, firstBlock, lastBlock, cursorPosition);
+        insertNode(wrappedCursorPosition, normalized.node);
+
+        return getNormalizedCursorPosition(normalized);
     }
 
     /** Divides `block` at `breakText`, moving the leaves after it into a new block of the same tag. */
-    public insertBreak(block: HTMLElement, breakText: Text) {
+    public insertBreak(block: HTMLElement, breakText: Text, cursorPosition = getCursorPosition()): CursorPosition | undefined {
         const root = getRootElement(this.contentEditable, block);
         const wrappedCursorPosition = wrapCursorPosition(root, root);
-        if (wrappedCursorPosition) {
-            const fragment = extractContents(wrappedCursorPosition);
-            insertNode(wrappedCursorPosition, normalizeBreakNew(this.contentEditable, fragment, block, breakText));
+        if (!wrappedCursorPosition) {
+            return cursorPosition;
         }
+
+        const fragment = extractContents(wrappedCursorPosition);
+        const normalized = normalizeBreakNew(this.contentEditable, fragment, block, breakText, cursorPosition);
+        insertNode(wrappedCursorPosition, normalized.node);
+
+        return getNormalizedCursorPosition(normalized);
     }
+}
+
+function getNormalizedCursorPosition(normalized: CollapsedLeaves) {
+    const {start, end} = normalized;
+
+    return start && end
+        ? getCursorPositionFrom(start.node, start.offset, end.node, end.offset)
+        : undefined;
 }
 
 export function normalize(contentEditable: HTMLElement, ...cursorPosition: CursorPosition[]) {

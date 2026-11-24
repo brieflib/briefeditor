@@ -1,9 +1,11 @@
 import {Normalizer, replaceTags} from "@/core/normalize/normalize";
 import {
     createWrapper,
+    expectCursor,
     expectHtml,
     getFirstChild,
     getLastChild,
+    getText,
     selectRange,
     testNormalize
 } from "@/core/shared/test-util";
@@ -663,6 +665,31 @@ describe("Normalizer test", () => {
         expectHtml(wrapper.innerHTML, `
             <p><strong>zero</strong><em>fi</em>rst</p>
         `);
+    });
+
+    test("Should return the cursor after rebuilding the block", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
+
+        const cursorPosition = new Normalizer(wrapper).normalize();
+
+        expectCursor(cursorPosition, getText(wrapper, "zero"), "ze".length);
+    });
+
+    test("Should return the cursor after merging texts", () => {
+        const wrapper = createWrapper(`
+            <p class="start">zero</p>
+            <p class="end">first</p>
+        `);
+        const first = wrapper.querySelector(".start") as HTMLElement;
+        const last = wrapper.querySelector(".end") as HTMLElement;
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
+
+        const cursorPosition = new Normalizer(wrapper).mergeBlocks(first, last);
+
+        expectHtml(wrapper.innerHTML, `<p class="start">zerofirst</p>`);
+        expectCursor(cursorPosition, getText(wrapper, "zerofirst"), "ze".length,
+            getText(wrapper, "zerofirst"), "zerofi".length);
     });
 })
 

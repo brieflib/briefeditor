@@ -1,12 +1,7 @@
 import {Leaf, LeafGroup} from "@/core/normalize/type/leaf";
 import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
-import {
-    CursorPosition,
-    getCursorPosition,
-    getCursorPositionFrom,
-    getSelectedTexts, wrapCursorPosition
-} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {
     getBlockElement,
     hasSelfCloseDescendant,
@@ -17,7 +12,19 @@ import {Carrier} from "@/core/carrier/carrier";
 import {Attributes} from "@/core/command/type/command";
 import {applyAttributes} from "@/core/command/util/command-util";
 import {AvailableClasses} from "@/core/shared/available-classes";
-import {getSelectedBlocks} from "@/core/selection/selection";
+
+/** A node and offset in a rebuilt fragment. */
+export interface LeafPosition {
+    readonly node: Node;
+    readonly offset: number;
+}
+
+/** A rebuilt fragment together with the cursor endpoints mapped through the rebuild. */
+export interface CollapsedLeaves {
+    readonly node: Node;
+    readonly start: LeafPosition | undefined;
+    readonly end: LeafPosition | undefined;
+}
 
 /**
  * Rebuilds a detached fragment into the schema: every leaf is read with the tags that stood
@@ -25,10 +32,11 @@ import {getSelectedBlocks} from "@/core/selection/selection";
  * consecutive duplicates removed.
  *
  * @returns A new fragment built of cloned elements around the leaves themselves, which are
- * moved out of `toNormalize`.
+ * moved out of `toNormalize`, and the cursor endpoints mapped onto those leaves.
  */
 export function normalizeNew(contentEditable: Node,
-                             block: DocumentFragment) {
+                             block: DocumentFragment,
+                             cursorPosition: CursorPosition): CollapsedLeaves {
     const leaves = getTextNodes(block)
         .map(textNode => toLeafWithParents(contentEditable, textNode))
         .map(leaf => divideFirstLevels(leaf))
@@ -36,7 +44,7 @@ export function normalizeNew(contentEditable: Node,
         .map(leaf => removeSelfCloseInlines(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+    return collapseLeavesNew(leaves, cursorPosition);
 }
 
 /**
@@ -46,7 +54,8 @@ export function normalizeNew(contentEditable: Node,
 export function normalizeRemoveNew(contentEditable: Node,
                                    toNormalize: DocumentFragment,
                                    selectedTexts: Node[],
-                                   tagsToRemove: string[]) {
+                                   tagsToRemove: string[],
+                                   cursorPosition: CursorPosition): CollapsedLeaves {
     const leaves = getTextNodes(toNormalize)
         .map(textNode => toLeafWithParents(contentEditable, textNode))
         .map(leaf => filterSelectedLeafParentsNew(selectedTexts, tagsToRemove, leaf))
@@ -55,7 +64,7 @@ export function normalizeRemoveNew(contentEditable: Node,
         .map(leaf => removeSelfCloseInlines(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+    return collapseLeavesNew(leaves, cursorPosition);
 }
 
 /** Drops `tagsToRemove` from the leaf's parents when its leaf node is one of `selectedTexts`; other leaves are left as is. */
@@ -75,7 +84,8 @@ function filterSelectedLeafParentsNew(selectedTexts: Node[], tagsToRemove: strin
 export function normalizeReplaceBlockNew(contentEditable: Node,
                                          toNormalize: DocumentFragment,
                                          blocks: Node[],
-                                         targetTags: string[]) {
+                                         targetTags: string[],
+                                         cursorPosition: CursorPosition): CollapsedLeaves {
     // Leaves under the same block share its replacement, so they collapse into one block again
     const replacements = new Map<Node, HTMLElement[]>();
     const leaves = getTextNodes(toNormalize)
@@ -85,7 +95,7 @@ export function normalizeReplaceBlockNew(contentEditable: Node,
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+    return collapseLeavesNew(leaves, cursorPosition);
 }
 
 /**
@@ -95,7 +105,8 @@ export function normalizeReplaceBlockNew(contentEditable: Node,
 export function normalizeMergeNew(contentEditable: Node,
                                   toNormalize: DocumentFragment,
                                   firstBlock: Node,
-                                  lastBlock: Node) {
+                                  lastBlock: Node,
+                                  cursorPosition: CursorPosition): CollapsedLeaves {
     // Inside the fragment the chain stops at the fragment, so it holds only the first block and its wrappers
     const firstBlockParents = toLeafWithParents(contentEditable, firstBlock).getParents();
     const leaves = getTextNodes(toNormalize)
@@ -106,7 +117,7 @@ export function normalizeMergeNew(contentEditable: Node,
         .map(leaf => removeSelfCloseInlines(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+    return collapseLeavesNew(leaves, cursorPosition);
 }
 
 /**
@@ -133,7 +144,8 @@ export function mergeLeafParentsNew(firstBlockParents: Node[], lastBlock: Node, 
 export function normalizeBreakNew(contentEditable: Node,
                                   toNormalize: DocumentFragment,
                                   block: Node,
-                                  breakText: Text) {
+                                  breakText: Text,
+                                  cursorPosition: CursorPosition): CollapsedLeaves {
     addEmptyLinePlaceholders(block, breakText);
 
     // A new element rather than a clone, so the block's attributes and classes stay with the first line only
@@ -146,7 +158,7 @@ export function normalizeBreakNew(contentEditable: Node,
         .map(leaf => removeSelfCloseInlines(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+    return collapseLeavesNew(leaves, cursorPosition);
 }
 
 /**
@@ -195,14 +207,15 @@ export function breakLeafParentsNew(block: Node, newBlock: HTMLElement, breakTex
 export function normalizeCarrierNew(contentEditable: Node,
                                     toNormalize: DocumentFragment,
                                     carrierText: Text,
-                                    tagsToRemove: string[]) {
+                                    tagsToRemove: string[],
+                                    cursorPosition: CursorPosition): CollapsedLeaves {
     const leaves = getTextNodes(toNormalize)
         .map(textNode => toLeafWithParents(contentEditable, textNode))
         .map(leaf => leaf.getParents().at(-1) === carrierText ? filterLeafParentsNew(tagsToRemove, leaf) : leaf)
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
-    return collapseLeavesNew(leaves, document.createDocumentFragment()) as DocumentFragment;
+    return collapseLeavesNew(leaves, cursorPosition);
 }
 
 /** Collects the text nodes and the empty elements, such as an empty cell, which have no text node to stand for them. */
@@ -236,7 +249,8 @@ export function maybeInsertCarrier(contentEditable: HTMLElement, tags: string[],
         if (carrierText instanceof Text) {
             const range = new Range();
             range.selectNodeContents(getBlockElement(contentEditable, carrierText));
-            range.insertNode(normalizeCarrierNew(contentEditable, range.extractContents(), carrierText, tags));
+            const normalized = normalizeCarrierNew(contentEditable, range.extractContents(), carrierText, tags, cursorPosition);
+            range.insertNode(normalized.node);
         }
         return true;
     }
@@ -357,8 +371,44 @@ export function removeSelfCloseInlines(leaf: Leaf) {
     return leaf;
 }
 
+interface EndpointState {
+    readonly startLeaf: Node;
+    readonly endLeaf: Node;
+    start?: LeafPosition;
+    end?: LeafPosition;
+}
+
+/**
+ * Rebuilds the leaves into the markup they were written in and maps the cursor endpoints through the
+ * rebuild. A leaf keeps its identity unless it is merged into the text before it, where its position
+ * becomes that text plus the length it had before the merge.
+ */
 export function collapseLeavesNew(leaves: Leaf[],
-                                  container: Node = document.createDocumentFragment()): Node {
+                                  cursorPosition: CursorPosition,
+                                  container: Node = document.createDocumentFragment()): CollapsedLeaves {
+    const state: EndpointState = {
+        startLeaf: cursorPosition.startContainer,
+        endLeaf: cursorPosition.endContainer
+    };
+    const node = collapseLeafGroups(leaves, container, state);
+
+    return {
+        node,
+        start: applyCursorOffset(state.start, cursorPosition.startContainer, cursorPosition.startOffset),
+        end: applyCursorOffset(state.end, cursorPosition.endContainer, cursorPosition.endOffset)
+    };
+}
+
+/** Adds the cursor's own offset when its endpoint is text; a self-close leaf or cell stands at offset zero. */
+function applyCursorOffset(position: LeafPosition | undefined, container: Node, offset: number) {
+    if (!position || container.nodeType !== Node.TEXT_NODE) {
+        return position;
+    }
+
+    return {node: position.node, offset: position.offset + offset};
+}
+
+function collapseLeafGroups(leaves: Leaf[], container: Node, state: EndpointState): Node {
     const parent = getSameFirstParent(leaves);
 
     for (const leafGroup of parent) {
@@ -368,10 +418,19 @@ export function collapseLeavesNew(leaves: Leaf[],
         if (!firstParentElement) {
             return container;
         }
-        insertToContainer(container, collapseLeavesNew(leafGroup.leaves, firstParentElement));
+        insertToContainer(container, collapseLeafGroups(leafGroup.leaves, firstParentElement, state), state);
     }
 
     return container;
+}
+
+function recordEndpoint(state: EndpointState, leaf: Node, node: Node, offset: number) {
+    if (leaf === state.startLeaf && !state.start) {
+        state.start = {node, offset};
+    }
+    if (leaf === state.endLeaf && !state.end) {
+        state.end = {node, offset};
+    }
 }
 
 /**
@@ -445,14 +504,16 @@ function getSiblingWithContent(node: Node, next: (node: Node) => Node | null) {
  * Appends the collapsed content to the container it belongs in, joining it with the leaf before
  * it when both are text.
  */
-function insertToContainer(container: Node, insert: Node) {
+function insertToContainer(container: Node, insert: Node, state: EndpointState) {
     const previousText = container.lastChild;
 
     if (previousText instanceof Text && insert instanceof Text) {
+        recordEndpoint(state, insert, previousText, previousText.data.length);
         previousText.appendData(insert.data);
         return;
     }
 
+    recordEndpoint(state, insert, insert, 0);
     container.appendChild(insert);
 }
 

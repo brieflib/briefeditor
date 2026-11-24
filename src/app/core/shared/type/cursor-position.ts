@@ -66,7 +66,6 @@ export function getSelectedTexts(contentEditable: HTMLElement, cursorPosition = 
     });
 }
 
-
 export function wrapCursorPosition(first?: Node, last?: Node) {
     if (!first || !last) {
         return;
@@ -151,8 +150,226 @@ export function getCursorPositionFromElement(element: Node, isRange = true): Cur
     };
 }
 
-export function extractContents(cursorPosition: CursorPosition) {
-    return cursorPosition.range.extractContents();
+/**
+ * Extracts the range contents, keeping the original nodes for everything the selection touches: a fully
+ * selected node is moved as is, a partly selected element is split in two and the original keeps the
+ * selected children, and a partly selected text node keeps the selected slice. The unselected remainder
+ * stays in the DOM as a clone.
+ */
+export function extractContents(cursorPosition: CursorPosition): DocumentFragment {
+    const {range} = cursorPosition;
+    if (range.collapsed) {
+        return new DocumentFragment();
+    }
+
+    const context: ExtractContext = {
+        states: getSelectionStates(range.commonAncestorContainer, range),
+        startContainer: range.startContainer,
+        startOffset: range.startOffset,
+        endContainer: range.endContainer,
+        endOffset: range.endOffset,
+        seam: {
+            after: null,
+            before: null,
+            fallbackParent: null,
+            fallbackOffset: 0
+        }
+    };
+
+    const fragment = document.createDocumentFragment();
+    if (range.commonAncestorContainer.nodeType === Node.TEXT_NODE) {
+        extractText(range.commonAncestorContainer as Text, context, fragment);
+    } else {
+        extractChildren(range.commonAncestorContainer, context, fragment, true);
+    }
+
+    setRangeToSeam(range, context);
+    return fragment;
+}
+
+enum SelectionState {
+    Full,
+    Partial,
+    None
+}
+
+interface ExtractSeam {
+    after: Node | null;
+    before: Node | null;
+    fallbackParent: Node | null;
+    fallbackOffset: number;
+}
+
+interface ExtractContext {
+    readonly states: Map<Node, SelectionState>;
+    readonly startContainer: Node;
+    readonly startOffset: number;
+    readonly endContainer: Node;
+    readonly endOffset: number;
+    readonly seam: ExtractSeam;
+}
+
+/** Reads every node's relation to the range before any mutation changes the tree. */
+function getSelectionStates(commonAncestor: Node, range: Range) {
+    const states = new Map<Node, SelectionState>();
+    const pending = Array.from(commonAncestor.childNodes);
+
+    while (pending.length > 0) {
+        const node = pending.pop() as Node;
+        const nodeRange = new Range();
+        nodeRange.selectNode(node);
+
+        if (range.intersectsNode(node)) {
+            const startsInside = range.compareBoundaryPoints(Range.START_TO_START, nodeRange) <= 0;
+            const endsInside = range.compareBoundaryPoints(Range.END_TO_END, nodeRange) >= 0;
+            states.set(node, startsInside && endsInside ? SelectionState.Full : SelectionState.Partial);
+        } else {
+            states.set(node, SelectionState.None);
+        }
+
+        pending.push(...Array.from(node.childNodes));
+    }
+
+    return states;
+}
+
+function extractChildren(parent: Node, context: ExtractContext, fragment: DocumentFragment, isRoot: boolean) {
+    const children = Array.from(parent.childNodes);
+    let seenSelected = false;
+
+    children.forEach((child, index) => {
+        const state = context.states.get(child) ?? SelectionState.None;
+
+        if (state === SelectionState.None) {
+            if (!seenSelected) {
+                context.seam.after = child;
+            } else if (!context.seam.before) {
+                context.seam.before = child;
+            }
+            return;
+        }
+
+        if (!seenSelected) {
+            seenSelected = true;
+            if (isRoot) {
+                context.seam.fallbackParent = parent;
+                context.seam.fallbackOffset = index;
+            }
+        }
+
+        if (state === SelectionState.Full) {
+            fragment.append(child);
+            return;
+        }
+
+        if (child.nodeType === Node.TEXT_NODE) {
+            extractText(child as Text, context, fragment);
+            return;
+        }
+
+        if (child.nodeType === Node.ELEMENT_NODE) {
+            extractElement(child as Element, context, fragment);
+            return;
+        }
+
+        fragment.append(child);
+    });
+}
+
+/** Moves the original element into the fragment with the selected children and leaves a clone holding the rest. */
+function extractElement(element: Element, context: ExtractContext, fragment: DocumentFragment) {
+    const isStartSide = element.contains(context.startContainer);
+    const isEndSide = element.contains(context.endContainer);
+    const selected = document.createDocumentFragment();
+
+    extractChildren(element, context, selected, false);
+    if (!selected.hasChildNodes()) {
+        return;
+    }
+
+    const remainder = element.cloneNode(false) as Element;
+    while (element.firstChild) {
+        remainder.appendChild(element.firstChild);
+    }
+
+    if (remainder.hasChildNodes()) {
+        element.before(remainder);
+        if (isStartSide) {
+            context.seam.after = remainder;
+        }
+        if (isEndSide && !context.seam.before) {
+            context.seam.before = remainder;
+        }
+    }
+
+    element.appendChild(selected);
+    fragment.append(element);
+}
+
+/** Keeps the original text node as the selected slice and leaves the unselected prefix and suffix in the DOM. */
+function extractText(text: Text, context: ExtractContext, fragment: DocumentFragment) {
+    const data = text.data;
+    const start = text === context.startContainer ? context.startOffset : 0;
+    const end = text === context.endContainer ? context.endOffset : data.length;
+
+    if (start >= end) {
+        if (text === context.endContainer && context.endOffset === 0) {
+            if (!context.seam.before) {
+                context.seam.before = text;
+            }
+        } else if (text === context.startContainer) {
+            context.seam.after = text;
+        }
+        return;
+    }
+
+    if (start === 0 && end === data.length) {
+        if (text.parentNode) {
+            context.seam.fallbackParent = text.parentNode;
+            context.seam.fallbackOffset = getChildIndex(text);
+        }
+        fragment.append(text);
+        return;
+    }
+
+    if (start > 0) {
+        const prefix = document.createTextNode(data.slice(0, start));
+        text.before(prefix);
+        context.seam.after = prefix;
+    }
+
+    if (end < data.length) {
+        const suffix = document.createTextNode(data.slice(end));
+        text.after(suffix);
+        if (!context.seam.before) {
+            context.seam.before = suffix;
+        }
+    }
+
+    text.data = data.slice(start, end);
+    fragment.append(text);
+}
+
+/** Collapses the range where the extracted content stood, so a following insertion lands in its place. */
+function setRangeToSeam(range: Range, context: ExtractContext) {
+    const {after, before, fallbackParent, fallbackOffset} = context.seam;
+
+    if (after?.parentNode) {
+        range.setStart(after.parentNode, getChildIndex(after) + 1);
+    } else if (before?.parentNode) {
+        range.setStart(before.parentNode, getChildIndex(before));
+    } else if (fallbackParent) {
+        range.setStart(fallbackParent, fallbackOffset);
+    } else if (context.startContainer.isConnected) {
+        range.setStart(context.startContainer, context.startOffset);
+    }
+
+    range.collapse(true);
+}
+
+function getChildIndex(node: Node) {
+    const parent = node.parentNode;
+    return parent ? Array.prototype.indexOf.call(parent.childNodes, node) : -1;
 }
 
 /**
