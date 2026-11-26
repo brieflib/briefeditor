@@ -5,13 +5,14 @@ import {
     expectHtml,
     getFirstChild,
     getLastChild,
-    getText,
+    getText, querySelector,
     selectRange,
     testNormalize
 } from "@/core/shared/test-util";
 import {getRange} from "@/core/shared/range-util";
 import {Carrier} from "@/core/carrier/carrier";
 import {AvailableClasses} from "@/core/shared/available-classes";
+import {getCursorPosition} from "@/core/shared/type/cursor-position";
 
 jest.mock("../shared/range-util", () => ({
         getRange: jest.fn()
@@ -681,15 +682,49 @@ describe("Normalizer test", () => {
             <p class="start">zero</p>
             <p class="end">first</p>
         `);
-        const first = wrapper.querySelector(".start") as HTMLElement;
-        const last = wrapper.querySelector(".end") as HTMLElement;
         selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".end"), "fi".length);
 
-        const cursorPosition = new Normalizer(wrapper).mergeBlocks(first, last);
+        const cursorPosition = new Normalizer(wrapper).mergeBlocks();
 
         expectHtml(wrapper.innerHTML, `<p class="start">zerofirst</p>`);
         expectCursor(cursorPosition, getText(wrapper, "zerofirst"), "ze".length,
             getText(wrapper, "zerofirst"), "zerofi".length);
+    });
+
+    test("Should merge empty lines", () => {
+        const wrapper = createWrapper(`
+            <p class="start"></p>
+            <p class="end"></p>
+        `);
+        const first = wrapper.querySelector(".start") as HTMLElement;
+        const last = wrapper.querySelector(".end") as HTMLElement;
+        selectRange(first, 0, last, 0);
+
+        const cursorPosition = new Normalizer(wrapper).mergeBlocks();
+
+        expectHtml(wrapper.innerHTML, `<p class="start"><br></p>`);
+        const br = getFirstChild(wrapper, ".start");
+        expectCursor(cursorPosition, br, 0);
+    });
+
+    test("Should merge lines with empty tags", () => {
+        const wrapper = createWrapper(`
+            <p class="end"><em></em><strong></strong></p>
+            <p class="start"><strong><em></em></strong></p>
+        `);
+        const first = wrapper.querySelector(".start") as HTMLElement;
+        const last = wrapper.querySelector(".end") as HTMLElement;
+        selectRange(first, 0, last, 0);
+
+        const carrier = document.createTextNode("");
+        querySelector(wrapper, ".start em").appendChild(carrier);
+        Carrier.getInstance().setCarrier(carrier);
+
+        const cursorPosition = new Normalizer(wrapper).mergeBlocks();
+
+        expectHtml(wrapper.innerHTML, `<p class="start"><strong><em><br></em></strong></p>`);
+        const br = querySelector(wrapper, "br");
+        expectCursor(cursorPosition, br, 0);
     });
 })
 

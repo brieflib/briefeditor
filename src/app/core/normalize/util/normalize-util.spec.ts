@@ -59,7 +59,7 @@ test("Should find all leaf's parents", () => {
     const node = getFirstChild(wrapper, ".start");
     const leaf = setLeafParents(wrapper, node as Node);
 
-    expect(leaf?.getParents()[leaf?.getParents().length - 1]?.textContent).toBe("first");
+    expect(leaf?.getNode()?.textContent).toBe("first");
     expect(leaf?.getParents().map(parent => parent.nodeName)).toStrictEqual(["EM", "STRONG", "#text"]);
 });
 

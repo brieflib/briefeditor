@@ -3,10 +3,12 @@ import tagHierarchy, {TagHierarchy} from "@/core/normalize/type/tag-hierarchy";
 import {Display, isSchemaContain, isSchemaContainNodeName} from "@/core/normalize/type/schema";
 import {CursorPosition, getCursorPositionFrom} from "@/core/shared/type/cursor-position";
 import {
+    charLengthBefore,
     getBlockElement,
     hasSelfCloseDescendant,
     imageBlockClass,
-    imageSizeClasses
+    imageSizeClasses,
+    isOnlySelfClose
 } from "@/core/shared/element-util";
 import {Carrier} from "@/core/carrier/carrier";
 import {Attributes} from "@/core/command/type/command";
@@ -69,7 +71,7 @@ export function normalizeRemoveNew(contentEditable: Node,
 
 /** Drops `tagsToRemove` from the leaf's parents when its leaf node is one of `selectedTexts`; other leaves are left as is. */
 function filterSelectedLeafParentsNew(selectedTexts: Node[], tagsToRemove: string[], leaf: Leaf) {
-    const leafNode = leaf.getParents().at(-1);
+    const leafNode = leaf.getNode();
     if (!leafNode || !selectedTexts.includes(leafNode)) {
         return leaf;
     }
@@ -108,16 +110,44 @@ export function normalizeMergeNew(contentEditable: Node,
                                   lastBlock: Node,
                                   cursorPosition: CursorPosition): CollapsedLeaves {
     // Inside the fragment the chain stops at the fragment, so it holds only the first block and its wrappers
-    const firstBlockParents = toLeafWithParents(contentEditable, firstBlock).getParents();
-    const leaves = getTextNodes(toNormalize)
-        .map(textNode => toLeafWithParents(contentEditable, textNode))
+    const firstBlockLeaf = toLeafWithParents(contentEditable, firstBlock);
+    const firstBlockParents = firstBlockLeaf.getParents();
+
+    let leaves = getTextNodes(toNormalize).map(textNode => toLeafWithParents(contentEditable, textNode));
+    // Two empty blocks have no text node to stand for them, so the first block keeps its own chain
+    if (leaves.length === 0) {
+        leaves.push(firstBlockLeaf);
+    }
+    leaves = leaves
         .map(leaf => mergeLeafParentsNew(firstBlockParents, lastBlock, leaf))
         .map(leaf => divideFirstLevels(leaf))
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeSelfCloseInlines(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
+    const leaf = leaves.at(0);
+    if (leaf && !leaf.hasContent()) {
+        const br = addPlaceholderBr(leaf);
+        return collapseLeavesNew(leaves, getCursorPositionFrom(br, 0, br, 0));
+    }
+
     return collapseLeavesNew(leaves, cursorPosition);
+}
+
+/**
+ * Puts a br in place of `leaf`, inside it when the leaf itself stands for a block, and returns it.
+ */
+function addPlaceholderBr(leaf: Leaf) {
+    const br = document.createElement("br");
+    if (leaf.getNode() instanceof Text) {
+        // The br takes the text's place, so every inline tag above it stays its parent
+        leaf.replaceNode(br);
+    } else {
+        // The leaf is the block itself, so the br becomes the block's child
+        leaf.addParent(br);
+    }
+
+    return br;
 }
 
 /**
@@ -188,7 +218,7 @@ function addEmptyLinePlaceholders(block: Node, breakText: Text) {
 export function breakLeafParentsNew(block: Node, newBlock: HTMLElement, breakText: Text, leaf: Leaf) {
     const parents = leaf.getParents();
     const blockIndex = parents.indexOf(block);
-    const leafNode = parents.at(-1);
+    const leafNode = leaf.getNode();
     const isAfterBreak = !!leafNode && !!(breakText.compareDocumentPosition(leafNode) & Node.DOCUMENT_POSITION_FOLLOWING);
     if (blockIndex < 0 || !isAfterBreak) {
         return leaf;
@@ -211,12 +241,381 @@ export function normalizeCarrierNew(contentEditable: Node,
                                     cursorPosition: CursorPosition): CollapsedLeaves {
     const leaves = getTextNodes(toNormalize)
         .map(textNode => toLeafWithParents(contentEditable, textNode))
-        .map(leaf => leaf.getParents().at(-1) === carrierText ? filterLeafParentsNew(tagsToRemove, leaf) : leaf)
+        .map(leaf => leaf.getNode() === carrierText ? filterLeafParentsNew(tagsToRemove, leaf) : leaf)
         .map(leaf => sortLeafParents(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
     return collapseLeavesNew(leaves, cursorPosition);
 }
+
+// interface BackspaceContext {
+//     readonly contentEditable: HTMLElement;
+//     readonly cursorPosition: CursorPosition;
+//     readonly isWholeBlockSelected: boolean | undefined;
+//     readonly br: HTMLElement;
+//     cursor: CursorPosition;
+//     cursorLeaf?: Leaf;
+//     previousLeaf?: Leaf;
+//     nextLeaf?: Leaf;
+//     block?: Node;
+//     previousBlock?: Node;
+//     blockParents?: Node[];
+//     previousBlockParents?: Node[];
+// }
+// /** Whether `node` is a block Backspace may merge or replace. */
+// function isBackspaceBlock(node: Node) {
+//     return isSchemaContain(node, [Display.FirstLevel, Display.List]) &&
+//         !isSchemaContain(node, [Display.ListWrapper]);
+// }
+//
+// /** Records the cursor leaf, the previous leaf and the blocks they belong to. */
+// function backspaceFindLeafNew(leaf: Leaf, context: BackspaceContext) {
+//     if (context.cursorLeaf) {
+//         if (!context.nextLeaf) {
+//             context.nextLeaf = leaf;
+//         }
+//
+//         return leaf;
+//     }
+//
+//     if (leaf.getParents().at(-1) === context.cursorPosition.startContainer) {
+//         context.cursorLeaf = leaf;
+//         const parents = leaf.getParents();
+//         const blockIndex = parents.findLastIndex(isBackspaceBlock);
+//         const block = parents[blockIndex];
+//
+//         if (block) {
+//             context.block = block;
+//         }
+//
+//         if (context.isWholeBlockSelected === true) {
+//             context.blockParents = blockIndex >= 0 ? parents.slice(0, blockIndex + 1) : parents;
+//         } else if (context.cursorPosition.startOffset === 0 && context.previousLeaf) {
+//             const previousParents = context.previousLeaf.getParents();
+//             const previousBlockIndex = previousParents.findLastIndex(isBackspaceBlock);
+//             const previousBlock = previousParents[previousBlockIndex];
+//
+//             if (previousBlock) {
+//                 context.previousBlock = previousBlock;
+//                 context.previousBlockParents = previousParents.slice(0, previousBlockIndex + 1);
+//             }
+//         }
+//
+//         return leaf;
+//     }
+//
+//     context.previousLeaf = leaf;
+//     return leaf;
+// }
+//
+// /** Maps every leaf of a whole-block selection to the same br leaf under the first block's parents. */
+// function backspaceSelectionNew(leaf: Leaf, context: BackspaceContext) {
+//     if (context.isWholeBlockSelected !== true) {
+//         return leaf;
+//     }
+//
+//     context.cursor = getCursorPositionFrom(context.br, 0, context.br, 0);
+//
+//     return new Leaf([...(context.blockParents ?? leaf.getParents()), context.br]);
+// }
+//
+// /** Deletes the br Backspace removes when the cursor stands on one or right after one. */
+// function backspaceSelfCloseNew(leaf: Leaf, context: BackspaceContext) {
+//     if (context.isWholeBlockSelected !== undefined) {
+//         return leaf;
+//     }
+//
+//     const cursorLeaf = context.cursorLeaf;
+//     const previousLeaf = context.previousLeaf;
+//     if (!cursorLeaf || !previousLeaf) {
+//         return leaf;
+//     }
+//
+//     const previousNode = previousLeaf.getParents().at(-1);
+//     const cursor = context.cursorPosition.startContainer;
+//
+//     if (!isSchemaContain(cursor, [Display.SelfClose])) {
+//         if (isSchemaContain(previousNode, [Display.SelfClose]) && leaf === previousLeaf) {
+//             leaf.setParents([...cursorLeaf.getParents()]);
+//         }
+//
+//         return leaf;
+//     }
+//
+//     const isSameBlock = context.block && context.previousBlock &&
+//         context.block === context.previousBlock;
+//
+//     // Another br stands before the cursor br: drop the previous br and keep the cursor on its own br.
+//     if (isSameBlock && isSchemaContain(previousNode, [Display.SelfClose])) {
+//         if (leaf === previousLeaf) {
+//             leaf.setParents([...cursorLeaf.getParents()]);
+//         }
+//
+//         return leaf;
+//     }
+//
+//     // The br is all its block holds: drop the block and move the caret onto the previous leaf.
+//     if (leaf === cursorLeaf && context.block && isOnlySelfClose(context.block)) {
+//         leaf.setParents([...previousLeaf.getParents()]);
+//         context.cursor = previousNode instanceof Text
+//             ? getCursorPositionFrom(previousNode, previousNode.data.length, previousNode, previousNode.data.length)
+//             : getCursorPositionFrom(previousNode as Node, 0, previousNode as Node, 0);
+//     }
+//
+//     return leaf;
+// }
+//
+// /** Edits the cursor leaf or the previous leaf, or merges the block into the one before it. */
+// function backspaceCharacterNew(leaf: Leaf, context: BackspaceContext) {
+//     if (context.isWholeBlockSelected !== undefined) {
+//         return leaf;
+//     }
+//
+//     const text = context.cursorPosition.startContainer;
+//     if (!(text instanceof Text) || !context.cursorLeaf) {
+//         return leaf;
+//     }
+//
+//     if (context.cursorPosition.startOffset > 0) {
+//         if (leaf === context.cursorLeaf) {
+//             const length = charLengthBefore(text.data, context.cursorPosition.startOffset);
+//             text.deleteData(context.cursorPosition.startOffset - length, length);
+//
+//             const ownContent = context.block
+//                 ? Array.from(context.block.childNodes)
+//                     .filter(node => !isSchemaContain(node, [Display.ListWrapper]))
+//                     .some(node => !!node.textContent || hasSelfCloseDescendant(node))
+//                 : true;
+//
+//             if (!text.data && !ownContent) {
+//                 const br = document.createElement("br");
+//                 leaf.setParents([...leaf.getParents().slice(0, -1), br]);
+//                 context.cursor = getCursorPositionFrom(br, 0, br, 0);
+//             } else if (!text.data) {
+//                 const nextLeaf = context.nextLeaf;
+//                 const nextBlock = nextLeaf?.getParents().findLast(isBackspaceBlock);
+//                 const previousLeaf = context.previousLeaf;
+//                 const previousBlock = previousLeaf?.getParents().findLast(isBackspaceBlock);
+//
+//                 if (nextLeaf && nextBlock === context.block) {
+//                     leaf.setParents([...nextLeaf.getParents()]);
+//                     const nextNode = nextLeaf.getParents().at(-1);
+//                     context.cursor = nextNode instanceof Text
+//                         ? getCursorPositionFrom(nextNode, 0, nextNode, 0)
+//                         : getCursorPositionFrom(nextNode as Node, 0, nextNode as Node, 0);
+//                 } else if (previousLeaf && previousBlock === context.block) {
+//                     leaf.setParents([...previousLeaf.getParents()]);
+//                     const previousNode = previousLeaf.getParents().at(-1);
+//                     context.cursor = previousNode instanceof Text
+//                         ? getCursorPositionFrom(previousNode, previousNode.data.length,
+//                             previousNode, previousNode.data.length)
+//                         : getCursorPositionFrom(previousNode as Node, 0, previousNode as Node, 0);
+//                 } else {
+//                     context.cursor = getCursorPositionFrom(text, 0, text, 0);
+//                 }
+//             } else {
+//                 context.cursor = getCursorPositionFrom(
+//                     text,
+//                     context.cursorPosition.startOffset - length,
+//                     text,
+//                     context.cursorPosition.endOffset - length);
+//             }
+//         }
+//
+//         return leaf;
+//     }
+//
+//     const previousLeaf = context.previousLeaf;
+//     const previousText = previousLeaf?.getParents().at(-1);
+//     if (!previousLeaf || (!(previousText instanceof Text) && !isSchemaContain(previousText, [Display.SelfClose]))) {
+//         return leaf;
+//     }
+//
+//     if (previousText instanceof Text) {
+//         if (context.block && context.previousBlock &&
+//             context.block !== context.previousBlock && context.previousBlockParents) {
+//             return mergeLeafParentsNew(context.previousBlockParents, context.block, leaf);
+//         }
+//
+//         if (leaf === previousLeaf) {
+//             const length = charLengthBefore(previousText.data, previousText.data.length);
+//             previousText.deleteData(previousText.data.length - length, length);
+//
+//             if (!previousText.data && context.cursorLeaf) {
+//                 leaf.setParents([...context.cursorLeaf.getParents()]);
+//             }
+//         }
+//     }
+//
+//     return leaf;
+// }
+
+/** Rebuilds `toNormalize` after Backspace through the Backspace mapper passes. */
+export function normalizeBackspaceNew(contentEditable: HTMLElement,
+                                      toNormalize: DocumentFragment,
+                                      cursorPosition: CursorPosition): CollapsedLeaves {
+    let leaves = getTextNodes(toNormalize)
+        .map(textNode => toLeafWithParents(contentEditable, textNode));
+
+    cursorPosition = backspaceCharacterNew(leaves, cursorPosition);
+    cursorPosition = backspaceSelfCloseNew(leaves, cursorPosition);
+    cursorPosition = backspaceEmptyLineNew(leaves, cursorPosition);
+
+    leaves = leaves.filter(leaf => {
+        const node = leaf.getNode();
+        return !(node instanceof Text && !node.data && leaf.hasContent());
+    });
+
+    return collapseLeavesNew(leaves, cursorPosition);
+}
+
+/** Gives a line Backspace emptied a br to stand on, moving the cursor onto it. */
+function backspaceEmptyLineNew(leaves: Leaf[], cursorPosition: CursorPosition) {
+    const leaf = leaves.find(leaf => leaf.getNode() === cursorPosition.startContainer);
+    if (!leaf) {
+        return cursorPosition;
+    }
+
+    if (!leaf.hasContent()) {
+        const br = addPlaceholderBr(leaf);
+        return getCursorPositionFrom(br, 0, br, 0);
+    }
+
+    return cursorPosition;
+}
+
+/**
+ * Removes the character before the cursor, stepping back over both units of an emoji. With the
+ * cursor at the start of its text, the character goes from the closest text before it, found by
+ * walking up the leaf's parents.
+ */
+function backspaceCharacterNew(leaves: Leaf[], cursorPosition: CursorPosition) {
+    const leafIndex = leaves.findIndex(leaf => leaf.getNode() === cursorPosition.startContainer);
+    const leaf = leaves[leafIndex];
+    const text = leaf?.getNode();
+    if (!leaf || !(text instanceof Text)) {
+        return cursorPosition;
+    }
+
+    if (cursorPosition.startOffset > 0) {
+        const offset = removeCharacterBefore(text, cursorPosition.startOffset);
+        return getCursorPositionFrom(text, offset, text, offset);
+    }
+
+    const previousText = getPreviousText(leaf, leaves[leafIndex - 1]);
+    if (!previousText) {
+        return cursorPosition;
+    }
+
+    const offset = removeCharacterBefore(previousText, previousText.data.length);
+    if (!previousText.data) {
+        return getCursorPositionFrom(text, 0, text, 0);
+    }
+    return getCursorPositionFrom(previousText, offset, previousText, offset);
+}
+
+/** Removes the br at the caret, or the br before it, keeping the caret's own br when one still holds it. */
+function backspaceSelfCloseNew(leaves: Leaf[], cursorPosition: CursorPosition) {
+    const leafIndex = leaves.findIndex(leaf => leaf.getNode() === cursorPosition.startContainer);
+    const leaf = leaves[leafIndex];
+    const node = leaf?.getNode();
+    if (!leaf || !node || cursorPosition.startOffset > 0) {
+        return cursorPosition;
+    }
+
+    const previousLeaf = leaves[leafIndex - 1];
+    const previousNode = previousLeaf?.getNode();
+
+    // A br stands before the caret: remove it, the caret keeps its own br.
+    if (previousLeaf?.getFirstLine() === leaf.getFirstLine() &&
+        isSchemaContain(previousNode, [Display.SelfClose])) {
+        leaves.splice(leafIndex - 1, 1);
+        return cursorPosition;
+    }
+
+    // The caret is not on a br, so there is no current br to remove.
+    if (!isSchemaContain(node, [Display.SelfClose]) || !previousNode) {
+        return cursorPosition;
+    }
+
+    // The caret br opens its line: remove it and step back to the line above.
+    leaves.splice(leafIndex, 1);
+    const offset = previousNode instanceof Text ? previousNode.data.length : 0;
+    return getCursorPositionFrom(previousNode, offset, previousNode, offset);
+}
+
+/** Deletes the character before `offset` and returns the offset it now stands at. */
+function removeCharacterBefore(text: Text, offset: number) {
+    const length = charLengthBefore(text.data, offset);
+    text.deleteData(offset - length, length);
+
+    return offset - length;
+}
+
+/**
+ * The text holding the character before `leaf`: the previous leaf's text, when it stands on the
+ * same line. A br, an image or a text of another line has no character to take.
+ */
+function getPreviousText(leaf: Leaf, previousLeaf: Leaf | undefined) {
+    if (!previousLeaf || previousLeaf.getFirstLine() !== leaf.getFirstLine()) {
+        return;
+    }
+
+    const text = previousLeaf.getNode();
+    return text instanceof Text && text.data ? text : undefined;
+}
+
+function replaceWithBr(leaf: Leaf, replaceable: Node, isReplace: boolean) {
+    const firstLine = leaf.getFirstLine();
+    if (!firstLine) {
+        leaf.setParents([document.createElement(replaceable.nodeName), document.createElement("br")]);
+        return leaf;
+    }
+
+    if (!isReplace || !firstLine.contains(replaceable)) {
+        return leaf;
+    }
+
+    const parents = leaf.getParents();
+    const upper = parents.slice(0, parents.indexOf(firstLine));
+    leaf.setParents([...upper, firstLine, document.createElement("br")]);
+
+    return leaf;
+}
+
+// /** Rebuilds `toNormalize` after Backspace through the Backspace mapper passes. */
+// export function normalizeBackspaceNew(contentEditable: HTMLElement,
+//                                       toNormalize: DocumentFragment,
+//                                       cursorPosition: CursorPosition,
+//                                       isWholeBlockSelected?: boolean): CollapsedLeaves {
+//     const context: BackspaceContext = {
+//         contentEditable,
+//         cursorPosition,
+//         isWholeBlockSelected,
+//         br: document.createElement("br"),
+//         cursor: cursorPosition
+//     };
+//     const leaves = getTextNodes(toNormalize)
+//         .map(textNode => toLeafWithParents(contentEditable, textNode));
+//
+//     // A whole-block selection can leave the fragment without any leaf, but the mapper still needs one to turn into br.
+//     if (!leaves.some(leaf => leaf.getParents().at(-1) === cursorPosition.startContainer)) {
+//         leaves.push(toLeafWithParents(contentEditable, cursorPosition.startContainer));
+//     }
+//
+//     return collapseLeavesNew(
+//         leaves
+//             .map(leaf => backspaceFindLeafNew(leaf, context))
+//             .map(leaf => backspaceSelectionNew(leaf, context))
+//             .map(leaf => backspaceSelfCloseNew(leaf, context))
+//             .map(leaf => backspaceCharacterNew(leaf, context))
+//             .map(leaf => divideFirstLevels(leaf))
+//             .map(leaf => sortLeafParents(leaf))
+//             .map(leaf => removeSelfCloseInlines(leaf))
+//             .map(leaf => removeConsecutiveDuplicates(leaf)),
+//         context.cursor
+//     );
+// }
 
 /** Collects the text nodes and the empty elements, such as an empty cell, which have no text node to stand for them. */
 export function getTextNodes(element: Node, textNodes: Node[] = []) {
@@ -357,7 +756,7 @@ export function removeSelfCloseInlines(leaf: Leaf) {
     const parents = leaf.getParents();
 
     // The last parent is the leaf itself
-    const leafNode = parents.at(-1);
+    const leafNode = leaf.getNode();
     const isSelfClose = isSchemaContain(leafNode, [Display.SelfClose]);
     if (!isSelfClose) {
         return leaf;

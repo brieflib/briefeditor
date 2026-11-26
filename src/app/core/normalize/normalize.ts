@@ -5,7 +5,7 @@ import {
     filterLeafParents,
     getInvolvedCursorPosition,
     getLeafNodes,
-    maybeInsertCarrier,
+    maybeInsertCarrier, normalizeBackspaceNew,
     normalizeBreakNew,
     normalizeMergeNew,
     normalizeNew,
@@ -17,22 +17,28 @@ import {
     sortLeafParents,
     wrapInTagNew
 } from "@/core/normalize/util/normalize-util";
-import {getRootElement} from "@/core/shared/element-util";
+import {getElement, getPreviousLine, getRootElement} from "@/core/shared/element-util";
 import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
 import {
     CursorPosition,
+    deleteContents,
     extractContents,
     getCursorPosition,
     getCursorPositionFrom,
     getSelectedTexts,
     insertNode,
+    isCollapsed,
     isCursorPositionEqual,
-    wrapCursorPosition, wrapWithNeighbours
+    wrapCursorPosition,
+    wrapWithNeighbours
 } from "@/core/shared/type/cursor-position";
 import {getFirstSelectedRoot, getSelectedBlock, getSelectedBlocks, getSelectedRoot} from "@/core/selection/selection";
 import {getNextListWrapper, getPreviousListWrapper} from "@/core/list/util/list-util";
 import {Attributes} from "@/core/command/type/command";
 import {Carrier} from "@/core/carrier/carrier";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+import {isCursorAtStartOfBlock} from "@/core/cursor/cursor";
+import {mergeItems} from "@/core/list/list";
 
 export class Normalizer {
     private readonly contentEditable: HTMLElement;
@@ -70,7 +76,6 @@ export class Normalizer {
             insertNode(textCursorPosition, wrapped);
         }
 
-        cursorPosition = getCursorPosition();
         const wrappedCursorPosition = wrapCursorPosition(blocks.at(0), blocks.at(-1));
         if (!wrappedCursorPosition) {
             return cursorPosition;
@@ -98,7 +103,6 @@ export class Normalizer {
             insertNode(text, fragment);
         }
 
-        cursorPosition = getCursorPosition();
         const wrappedCursorPosition = wrapCursorPosition(blocks.at(0), blocks.at(-1));
         if (!wrappedCursorPosition) {
             return cursorPosition;
@@ -132,11 +136,17 @@ export class Normalizer {
     }
 
     /** Merges `lastBlock` into `firstBlock`, rebuilding every root from the one before the first block's root to the one after the last block's. */
-    public mergeBlocks(firstBlock: HTMLElement, lastBlock: HTMLElement, cursorPosition = getCursorPosition()): CursorPosition | undefined {
-        const firstRoot = getRootElement(this.contentEditable, firstBlock);
-        const lastRoot = getRootElement(this.contentEditable, lastBlock);
+    public mergeBlocks(cursorPosition = getCursorPosition()): CursorPosition | undefined {
+        const firstRoot = getRootElement(this.contentEditable, cursorPosition.startContainer);
+        const lastRoot = getRootElement(this.contentEditable, cursorPosition.endContainer);
         const wrappedCursorPosition = wrapWithNeighbours(firstRoot, lastRoot);
         if (!wrappedCursorPosition) {
+            return cursorPosition;
+        }
+
+        const firstBlock = getElement(this.contentEditable, cursorPosition.startContainer, [Display.FirstLevel, Display.List]);
+        const lastBlock = getElement(this.contentEditable, cursorPosition.endContainer, [Display.FirstLevel, Display.List]);
+        if (!firstBlock || !lastBlock) {
             return cursorPosition;
         }
 
@@ -158,6 +168,38 @@ export class Normalizer {
         const fragment = extractContents(wrappedCursorPosition);
         const normalized = normalizeBreakNew(this.contentEditable, fragment, block, breakText, cursorPosition);
         insertNode(wrappedCursorPosition, normalized.node);
+
+        return getNormalizedCursorPosition(normalized);
+    }
+
+    /**
+     * Deletes the character before the cursor, merging the block into the one before it at a block boundary. A
+     * selection spanning whole blocks is replaced by one empty block holding a br.
+     */
+    public backspace(cursorPosition = getCursorPosition()): CursorPosition | undefined {
+        if (isCollapsed(cursorPosition) && isCursorAtStartOfBlock(this.contentEditable, cursorPosition)) {
+            const lastLine = getElement(this.contentEditable, cursorPosition.startContainer, [Display.List]);
+            const firstLine = getPreviousLine(this.contentEditable, lastLine);
+            if (firstLine && lastLine && isSchemaContain(firstLine, [Display.List])) {
+                mergeItems(this.contentEditable, firstLine, lastLine);
+                return cursorPosition;
+            }
+        }
+
+        if (!isCollapsed(cursorPosition)) {
+            deleteContents(cursorPosition);
+            return this.mergeBlocks(cursorPosition);
+        }
+
+        const current = getRootElement(this.contentEditable, cursorPosition.endContainer);
+        const involved = wrapCursorPosition(current.previousElementSibling ?? current, current);
+        if (!involved) {
+            return cursorPosition;
+        }
+
+        const fragment = extractContents(involved);
+        const normalized = normalizeBackspaceNew(this.contentEditable, fragment, cursorPosition);
+        insertNode(involved, normalized.node);
 
         return getNormalizedCursorPosition(normalized);
     }

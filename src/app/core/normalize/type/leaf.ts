@@ -1,3 +1,5 @@
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
+
 export class Leaf {
     constructor(parent: Node[] = []) {
         this.parents = parent;
@@ -7,10 +9,6 @@ export class Leaf {
 
     public addParent(parent: Node) {
         this.parents.push(parent);
-    }
-
-    public addParents(parent: Node[]) {
-        this.parents.push(...parent);
     }
 
     public unshiftParent(parent: Node) {
@@ -25,8 +23,29 @@ export class Leaf {
         this.parents = parents;
     }
 
-    public getFirstParent(){
-        return this.parents[0];
+    /** The node the leaf stands for, which is the last of its parents. */
+    public getNode() {
+        return this.parents.at(-1);
+    }
+
+    /** Replaces the node the leaf stands for, keeping the tags that stood above it. */
+    public replaceNode(node: Node) {
+        this.parents[this.parents.length - 1] = node;
+    }
+
+    public getFirstLine() {
+        return this.parents
+            .filter(parent => isSchemaContain(parent, [Display.List, Display.FirstLevel]))
+            .at(-1);
+    }
+
+    public hasContent() {
+        const line = this.getFirstLine();
+        if (!(line instanceof HTMLElement)) {
+            return false;
+        }
+
+        return !!line.textContent || line.querySelectorAll("br").length > 1;
     }
 }
 

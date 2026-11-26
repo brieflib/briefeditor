@@ -178,11 +178,11 @@ export function mergeBlocksNew(contentEditable: HTMLElement,
     }
 
     if (isSchemaContain(lastLine, [Display.List])) {
-        mergeItems(contentEditable, firstLine, lastLine, backspacedLine);
+        mergeItems(contentEditable, firstLine, lastLine);
         return;
     }
 
-    new Normalizer(contentEditable).mergeBlocks(firstLine, lastLine);
+    //new Normalizer(contentEditable).mergeBlocks(firstLine, lastLine);
 }
 
 /** The self-close tag a collapsed Delete removes: the one at `end`, or the one the caret stands on. */

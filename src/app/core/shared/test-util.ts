@@ -1,6 +1,6 @@
 import {cleanElementWhitespace} from "@/core/shared/element-util";
 import {Normalizer} from "@/core/normalize/normalize";
-import {CursorPosition} from "@/core/shared/type/cursor-position";
+import {CursorPosition, getCursorPosition} from "@/core/shared/type/cursor-position";
 import {getRange} from "@/core/shared/range-util";
 import {Action} from "@/core/command/type/command";
 
@@ -66,6 +66,15 @@ export function testNormalize(initial: string, result: string) {
 
     expectHtml(wrapper.innerHTML, result);
 }
+
+export function testCursorPosition(wrapper: HTMLElement, cursorPosition = getCursorPosition()) {
+    return new Normalizer(wrapper).normalize(cursorPosition);
+}
+
+export function testBackspace(wrapper: HTMLElement, cursorPosition = getCursorPosition()) {
+    return new Normalizer(wrapper).backspace(cursorPosition);
+}
+
 
 /** Asserts all four ends of `cursorPosition`; a collapsed cursor names only its start. */
 export function expectCursor(cursorPosition: CursorPosition | null | undefined, startContainer: Node | null | undefined,

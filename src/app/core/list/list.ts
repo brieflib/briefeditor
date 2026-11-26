@@ -8,7 +8,7 @@ import {
     getPreviousListWrapper,
     isListEmpty
 } from "@/core/list/util/list-util";
-import {getBlockElement, getFirstText, getRootElement, imageSelector} from "@/core/shared/element-util";
+import {getBlockElement, getElement, getFirstText, getRootElement, imageSelector} from "@/core/shared/element-util";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {
@@ -210,22 +210,23 @@ export function rebuildList(root: HTMLElement, lists: ListClass[], cursorPositio
 }
 
 /**
- * Moves `lastLine` to the end of `firstLine` and rebuilds their run. When Backspace took the last thing `firstLine`
- * held, there is nothing to merge into, so `lastLine` stays as it is and the rebuild drops the line above it.
+ * Moves `lastLine` to the end of `firstLine` and rebuilds their run.
  */
-export function mergeItems(contentEditable: HTMLElement, firstLine: HTMLElement, lastLine: HTMLElement,
-                           backspacedLine: HTMLElement | null | undefined) {
-    const isFirstLineGone = backspacedLine === firstLine;
-    if (!isFirstLineGone) {
-        firstLine.append(...Array.from(lastLine.childNodes).filter(node => !isSchemaContain(node, [Display.ListWrapper])));
-        firstLine.normalize();
-    }
+export function mergeItems(contentEditable: HTMLElement,
+                           firstLine: HTMLElement,
+                           lastLine: HTMLElement) {
+    firstLine.append(...Array.from(lastLine.childNodes).filter(node => !isSchemaContain(node, [Display.ListWrapper])));
+    //firstLine.normalize();
 
     const firstBlock = getBlockElement(contentEditable, firstLine);
     const lastBlock = getBlockElement(contentEditable, lastLine);
+    const isSameRun = isInSameListRun(firstBlock, lastBlock);
 
-    const firstLists = parseList(firstBlock);
-    const lastLists = parseList(lastBlock);
+    // const firstLists = parseList(firstBlock);
+    // const lastLists = parseList(lastBlock);
+
+    const firstLists = parseList(firstBlock, getCursorPosition(), false);
+    const lastLists = isSameRun ? firstLists : parseList(lastBlock, getCursorPosition(), false);
 
     const firstIndex = firstLists.findIndex(list => list.selected);
     const lastIndex = lastLists.findIndex(list => list.selected);
@@ -234,6 +235,16 @@ export function mergeItems(contentEditable: HTMLElement, firstLine: HTMLElement,
     const normalized = normalizeLists(merged);
     const listWrappers = convertList(normalized);
     appendBeforeAndDelete(lastBlock, listWrappers);
+}
+
+/** Whether `last` is one of the list wrappers in the run that `first` belongs to. */
+function isInSameListRun(first: HTMLElement, last: HTMLElement) {
+    let current: HTMLElement | null = first;
+    while (current && current !== last) {
+        current = getNextListWrapper(current);
+    }
+
+    return current === last;
 }
 
 /** Reads `root`'s run and rebuilds it as is - the normalization pass on its own. */
@@ -354,6 +365,7 @@ function newList(current: ListClass, listContent: DocumentFragment): ListClass {
     const list = new ListClass();
     list.nestedLevel = current.nestedLevel;
     list.listWrapper = current.listWrapper;
+    list.attributes = current.attributes;
     list.listContent = listContent;
 
     return list;

@@ -10,17 +10,19 @@ export class ListClass {
     nestedLevel!: number;
     listWrapper!: ListWrapper;
     listContent!: DocumentFragment;
-    selected!: boolean
+    selected!: boolean;
+    attributes!: [string, string][];
 }
 
 /**
- * Flattens the run of list wrappers that `listWrapper` belongs to, in order, into one `ListClass` per line.
+ * Flattens the run of list wrappers that `listWrapper` belongs to into one `ListClass` per line.
+ * Each item's line is moved into its `ListClass`, leaving the item empty, unless `isClone` asks for a copy.
  */
-export function parseList(listWrapper: HTMLElement, cursorPosition = getCursorPosition()): ListClass[] {
+export function parseList(listWrapper: HTMLElement, cursorPosition = getCursorPosition(), isClone = false): ListClass[] {
     const result: ListClass[] = [];
 
     for (const wrapper of getListWrappers(listWrapper)) {
-        parseListWrapper(wrapper, 0, result, cursorPosition);
+        parseListWrapper(wrapper, 0, result, cursorPosition, isClone);
     }
 
     return result;
@@ -71,6 +73,9 @@ export function convertList(lists: ListClass[]): DocumentFragment {
         }
 
         const li = document.createElement("li");
+        for (const [name, value] of list.attributes) {
+            li.setAttribute(name, value);
+        }
         li.appendChild(list.listContent);
         wrappers[list.nestedLevel]?.appendChild(li);
     }
@@ -142,29 +147,34 @@ function isWithoutContent(list: ListClass): boolean {
     return !list.listContent.textContent && !list.listContent.firstElementChild;
 }
 
-function parseListWrapper(wrapper: HTMLElement, level: number, result: ListClass[], cursorPosition: CursorPosition) {
+function parseListWrapper(wrapper: HTMLElement, level: number, result: ListClass[], cursorPosition: CursorPosition,
+                          isClone: boolean) {
     const wrapperType = toWrapperType(wrapper);
     for (const child of Array.from(wrapper.children) as HTMLElement[]) {
         if (isList(child)) {
-            parseListItem(child, wrapperType, level, result, cursorPosition);
+            parseListItem(child, wrapperType, level, result, cursorPosition, isClone);
         } else if (isSchemaContain(child, [Display.ListWrapper])) {
-            parseListWrapper(child, level + 1, result, cursorPosition);
+            parseListWrapper(child, level + 1, result, cursorPosition, isClone);
         }
     }
 }
 
 /** Reads an item's own line, then walks into any lists nested in it, each a level deeper. */
-function parseListItem(item: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[], cursorPosition: CursorPosition) {
+function parseListItem(item: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[],
+                       cursorPosition: CursorPosition, isClone: boolean) {
     const listClass = new ListClass();
     listClass.nestedLevel = level;
     listClass.listWrapper = wrapperType;
-    listClass.listContent = getChildFragment(item);
+    listClass.attributes = Array.from(item.attributes)
+        .map(attribute => [attribute.name, attribute.value] as [string, string]);
+    // Read before the line is moved out, since the cursor's nodes leave the item with it
     listClass.selected = isLineSelected(item, cursorPosition);
+    listClass.listContent = getChildFragment(item, isClone);
     result.push(listClass);
 
     for (const child of Array.from(item.children) as HTMLElement[]) {
         if (isSchemaContain(child, [Display.ListWrapper])) {
-            parseListWrapper(child, level + 1, result, cursorPosition);
+            parseListWrapper(child, level + 1, result, cursorPosition, isClone);
         }
     }
 }
@@ -203,11 +213,12 @@ function isLineSelected(item: HTMLElement, cursorPosition: CursorPosition): bool
 }
 
 
-function getChildFragment(child: Element) {
+/** Moves the item's own line (everything but nested list wrappers) into a fragment, or copies it when `isClone` is set. */
+function getChildFragment(child: Element, isClone: boolean) {
     const fragment = new DocumentFragment();
     for (const node of Array.from(child.childNodes)) {
         if (!isSchemaContain(node, [Display.ListWrapper])) {
-            fragment.appendChild(node.cloneNode(true));
+            fragment.appendChild(isClone ? node.cloneNode(true) : node);
         }
     }
 
