@@ -220,16 +220,13 @@ export function mergeItems(contentEditable: HTMLElement,
     const firstBlock = getBlockElement(contentEditable, firstLine);
     const lastBlock = getBlockElement(contentEditable, lastLine);
 
-    if (isInSameListWrapper(firstBlock, lastBlock)) {
-        const lastChild = firstLine.lastChild;
-        if (lastChild instanceof Node && isSchemaContain(lastChild, [Display.SelfClose])) {
-            lastChild.remove();
-        }
+    const isSameRun = isInSameListWrapper(firstBlock, lastBlock);
+    if (isSameRun) {
         firstLine.append(...Array.from(lastLine.childNodes).filter(node => !isSchemaContain(node, [Display.ListWrapper])));
     }
 
     const firstLists = parseList(firstBlock);
-    const lastLists = parseList(lastBlock);
+    const lastLists = isSameRun ? firstLists : parseList(lastBlock);
 
     const firstIndex = firstLists.findIndex(list => list.selected);
     const lastIndex = lastLists.findIndex(list => list.selected);

@@ -25,6 +25,18 @@ export function ensureEditorContent(contentEditable: HTMLElement,
     return getCursorPositionFrom(br, 0, br, 0);
 }
 
+/** Removes the preceding br or image before the cursor's block, if any. */
+export function removePrecedingElement(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const previous = getLastNode(getPreviousNode(contentEditable, cursorPosition.startContainer));
+    if (!previous) {
+        return;
+    }
+
+    if (previous instanceof HTMLElement && isSchemaContain(previous, [Display.SelfClose])) {
+        previous.remove();
+    }
+}
+
 /** Removes the current block when it holds only self-close content, returning the cursor on the block before it. */
 export function removeCurrentEmptyBlock(contentEditable: HTMLElement,
                                  cursorPosition: CursorPosition): CursorPosition | undefined {
@@ -446,7 +458,7 @@ export const imageBlockClass = "be-image";
 export const imageSizeClasses = ["be-image-small", "be-image-medium", "be-image-large"];
 
 export function isImageBlock(node: Node | null | undefined): boolean {
-    return !!node && node.nodeType === Node.ELEMENT_NODE && (node as Element).classList.contains(imageBlockClass);
+    return !!node && node instanceof Element && node.classList.contains(imageBlockClass);
 }
 
 /** A paragraph of its own for `image`, marked as an image block. */

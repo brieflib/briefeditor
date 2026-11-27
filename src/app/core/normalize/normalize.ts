@@ -22,7 +22,7 @@ import {
     getElement,
     getPreviousLine,
     getRootElement, isImageBlock,
-    isOnlySelfClose, removeCurrentEmptyBlock, removePreviousImageBlock
+    isOnlySelfClose, removeCurrentEmptyBlock, removePrecedingElement, removePreviousImageBlock
 } from "@/core/shared/element-util";
 import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
 import {
@@ -228,6 +228,7 @@ export class Normalizer {
 
         const firstLine = getPreviousLine(contentEditable, lastLine);
         if (firstLine && isSchemaContain(firstLine, [Display.List]) && !isOnlySelfClose(lastLine)) {
+            removePrecedingElement(contentEditable, cursorPosition);
             return mergeItems(contentEditable, firstLine, lastLine, cursorPosition);
         }
     }
@@ -251,6 +252,7 @@ export class Normalizer {
             return cursorPosition;
         }
 
+        removePrecedingElement(this.contentEditable, cursorPosition);
         return this.mergeBlocks(cursorPosition);
     }
 }

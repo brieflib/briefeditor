@@ -108,11 +108,6 @@ export function normalizeMergeNew(contentEditable: HTMLElement,
                                   firstBlock: Node,
                                   lastBlock: Node,
                                   cursorPosition: CursorPosition): CollapsedLeaves {
-    const lastChild = firstBlock.lastChild;
-    if (lastChild && isSchemaContain(lastChild, [Display.SelfClose])) {
-        lastChild.remove();
-    }
-
     // Inside the fragment the chain stops at the fragment, so it holds only the first block and its wrappers
     const firstBlockLeaf = toLeafWithParents(contentEditable, firstBlock);
     const firstBlockParents = firstBlockLeaf.getParents();

@@ -223,7 +223,7 @@ describe("Merge previous element", () => {
             </ul>
         `);
 
-        expectCursor(cursorPosition, getFirstChild(wrapper, "ul li em"), 6);
+        expectCursor(cursorPosition, third, "".length);
     });
 
     test("Cursor is at the start and next element is a list. Should merge two elements", () => {
@@ -423,7 +423,7 @@ describe("Merge previous element", () => {
         expectHtml(wrapper.innerHTML, `
             <h1>first</h1>
             <ol>
-                <li>second
+                <li class="start">second
                     <ol>
                         <li>third</li>
                     </ol>
