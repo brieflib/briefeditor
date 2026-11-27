@@ -3,6 +3,7 @@ import {getCursorOffsetInElement} from "@/core/cursor/util/cursor-util";
 import {getSelectedBlock} from "@/core/selection/selection";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 import {getLine} from "@/core/list/util/list-util";
+import {getElement, hasSelfCloseDescendant} from "@/core/shared/element-util";
 
 export function isCursorAtEndOfBlock(contentEditable: HTMLElement, cursorPosition = getCursorPosition()) {
     if (!isCollapsed(cursorPosition)) {
@@ -44,4 +45,24 @@ export function isCursorIntersectBlocks(contentEditable: HTMLElement, cursorPosi
     }
 
     return getSelectedBlock(contentEditable, cursorPosition).length > 1;
+}
+
+/** Whether the point stands at the very start of its line: no text and no self-close tag before it. */
+export function isAtLineStart(contentEditable: HTMLElement, container: Node, offset: number) {
+    const line = getElement(contentEditable, container as HTMLElement, [Display.Line, Display.List]);
+    if (!line) {
+        return false;
+    }
+
+    const range = new Range();
+    range.setStart(line, 0);
+    // A caret on a self-close tag stands before it, so the tag itself is not before the caret.
+    if (isSchemaContain(container, [Display.SelfClose])) {
+        range.setEndBefore(container);
+    } else {
+        range.setEnd(container, offset);
+    }
+
+    const before = range.cloneContents();
+    return !before.textContent && !hasSelfCloseDescendant(before);
 }

@@ -25,7 +25,7 @@ jest.mock("../../shared/range-util", () => ({
 
 beforeAll(() => {
     const availableClasses = AvailableClasses.getInstance();
-    availableClasses.setClasses(["start", "end", "be-image"]);
+    availableClasses.setClasses(["start", "end", "be-image", "middle"]);
 });
 
 describe("Cursor as a place in the text", () => {
@@ -42,6 +42,32 @@ describe("Cursor as a place in the text", () => {
         const cursorPosition = testCursorPosition(wrapper);
 
         expectCursor(cursorPosition, zero, "".length, first, "".length);
+    });
+
+    test("Should restore the selection onto the block rebuilt in place", () => {
+        const wrapper = createWrapper(`<p>start</p><p class="start">zero</p><p>end</p>`);
+        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "zer".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.Tag, tag: "STRONG"});
+
+        // What a command does: the block is rebuilt, so nothing the anchor was read from is left.
+        (wrapper.childNodes[1] as HTMLElement).outerHTML = `<h1 class="start">ze<strong>r</strong>o</h1>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start strong"), "".length,
+            getFirstChild(wrapper, ".start strong"), "r".length);
+    });
+
+    test("Should restore the selection onto the rebuilt block when the block before it is removed", () => {
+        const wrapper = createWrapper(`<p>zero</p><p class="be-image"><img src="image.png"></p><p class="start">first</p><p>second</p>`);
+        selectRange(getFirstChild(wrapper, ".start"), "f".length, getFirstChild(wrapper, ".start"), "fir".length);
+        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.Tag, tag: "STRONG"});
+
+        wrapper.querySelector(".be-image")?.remove();
+        (wrapper.childNodes[1] as HTMLElement).outerHTML = `<h1 class="start">f<strong>ir</strong>st</h1>`;
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start strong"), "".length,
+            getFirstChild(wrapper, ".start strong"), "ir".length);
     });
 
     test("Should keep the caret on the last br", () => {
@@ -87,19 +113,6 @@ describe("Cursor as a place in the text", () => {
         expectCursor(cursorPosition, br, 0, first, "first".length);
     });
 
-    // A select-all leaves both ends on the editable element rather than on text.
-    test("Should anchor a selection standing on the editable element itself", () => {
-        const wrapper = createWrapper(`<p class="start">zero</p>`);
-        selectRange(wrapper, 0, wrapper, wrapper.childNodes.length);
-        const cursorAnchor = getCursorAnchor(wrapper);
-
-        // With the block it was read on removed, the editor has no text left to find the anchor in.
-        wrapper.querySelector(".start")?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
-        expectCursor(cursorPosition, wrapper, 0);
-    });
-
     test("Should restore the selection onto the block", () => {
         const wrapper = createWrapper(`<p>start</p><p class="start">zero</p><p>end</p>`);
         const zero = getFirstChild(wrapper, ".start");
@@ -117,10 +130,8 @@ describe("Cursor as a place in the text", () => {
     test("Should collapse after what was written when the text changed", () => {
         const wrapper = createWrapper(`<p class="start">zero</p>`);
         selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "ze".length);
-        const cursorAnchor = getCursorAnchor(wrapper);
 
-        wrapper.innerHTML = `<p class="start">zexro</p>`;
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testCursorPosition(wrapper);
 
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "ze".length);
     });
@@ -195,17 +206,6 @@ describe("Cursor as a place in the text", () => {
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zek".length);
     });
 
-    test("Should resolve the anchor when the br the command left the caret on is gone", () => {
-        const wrapper = createWrapper(`<ul><li class="start">zero</li><li><br></li></ul>`);
-        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
-        const cursorAnchor = getCursorAnchor(wrapper);
-
-        wrapper.querySelector("br")?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
-        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
-    });
-
     test("Should keep a caret at the start of a nested item in one place after the list is rebuilt", () => {
         const wrapper = createWrapper(`
             <ul>
@@ -220,7 +220,7 @@ describe("Cursor as a place in the text", () => {
         let second = getFirstChild(wrapper, ".start");
         selectRange(second, "".length, second, "".length);
         const cursorAnchor = getCursorAnchor(wrapper);
-
+        // Change list type
         wrapper.innerHTML = `<ul><li>zero<ol><li>first</li></ol><ul><li class="start">second</li></ul></li></ul>`;
         const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
 
@@ -248,6 +248,17 @@ describe("Cursor as a place in the text", () => {
 });
 
 describe("Cursor anchor after a Backspace", () => {
+    // A select-all leaves both ends on the editable element rather than on text.
+    test("Should anchor a selection standing on the editable element itself", () => {
+        const wrapper = createWrapper(`<p class="start">zero</p>`);
+        selectRange(wrapper, 0, wrapper, wrapper.childNodes.length);
+
+        const cursorPosition = testBackspace(wrapper);
+        expectHtml(wrapper.innerHTML, `<p><br></p>`);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, "p"), 0);
+    });
+
     test("Clear lines", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
         const zero = getFirstChild(wrapper, ".start");
@@ -255,8 +266,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(zero, "".length, first, "first".length);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<p class="start"><br></p>`);
 
+        expectHtml(wrapper.innerHTML, `<p class="start"><br></p>`);
         const br = getFirstChild(wrapper, ".start");
         expectCursor(cursorPosition, br, 0);
     });
@@ -267,8 +278,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(zero, "".length, zero, "zero".length);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<p class="start"><br></p>`);
 
+        expectHtml(wrapper.innerHTML, `<p class="start"><br></p>`);
         const br = getFirstChild(wrapper, ".start");
         expectCursor(cursorPosition, br, 0);
     });
@@ -280,8 +291,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(text, "zero😀".length, text, "zero😀".length);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<p class="start">zerofirst</p>`);
 
+        expectHtml(wrapper.innerHTML, `<p class="start">zerofirst</p>`);
         expectCursor(cursorPosition, text, "zero".length);
     });
 
@@ -292,8 +303,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(f, "f".length, f, "f".length);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br></li></ul>`);
 
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br></li></ul>`);
         const br = getFirstChild(wrapper, ".start");
         expectCursor(cursorPosition, br, 0);
     });
@@ -304,8 +315,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(f, "f".length, f, "f".length);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><em><strong><br></strong></em></li></ul>`);
 
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><em><strong><br></strong></em></li></ul>`);
         const br = getFirstChild(wrapper, ".start strong");
         expectCursor(cursorPosition, br, 0);
     });
@@ -316,8 +327,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(br, 0, br, 0);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul>`);
 
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li></ul>`);
         const zero = getFirstChild(wrapper, "ul li");
         expectCursor(cursorPosition, zero, "zero".length);
     });
@@ -328,8 +339,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(br, 0, br, 0);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br></li></ul>`);
 
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><br></li></ul>`);
         expectCursor(cursorPosition, br, 0);
     });
 
@@ -339,8 +350,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(br, 0, br, 0);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<ul><li>zero<br><br><br></li></ul>`);
 
+        expectHtml(wrapper.innerHTML, `<ul><li>zero<br><br><br></li></ul>`);
         br = getLastChild(wrapper, "ul li");
         expectCursor(cursorPosition, br, 0);
     });
@@ -352,8 +363,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(second, "".length, second, "".length);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">second</li></ul>`);
 
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">second</li></ul>`);
         expectCursor(cursorPosition, second, "".length);
     });
 
@@ -363,8 +374,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(second, "".length, second, "".length);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">second</li></ul>`);
 
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start">second</li></ul>`);
         expectCursor(cursorPosition, second, "".length);
     });
 
@@ -374,8 +385,8 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(second, "".length, second, "".length);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><strong><br><br></strong>second</li></ul>`);
 
+        expectHtml(wrapper.innerHTML, `<ul><li>zero</li><li class="start"><strong><br><br></strong>second</li></ul>`);
         expectCursor(cursorPosition, second, 0);
     });
 
@@ -386,26 +397,41 @@ describe("Cursor anchor after a Backspace", () => {
         selectRange(first, "".length, first, "".length);
 
         const cursorPosition = testBackspace(wrapper);
-        expectHtml(wrapper.innerHTML, `<ul><li class="start">zero<strong>first</strong></li></ul>`);
 
+        expectHtml(wrapper.innerHTML, `<ul><li class="start">zero<strong>first</strong></li></ul>`);
         expectCursor(cursorPosition, first, "".length);
     });
 
-    test("Should leave the caret at the end of the item after the br when Backspace merges two items", () => {
+    test("Should leave the caret at the end of the item when Backspace merges two items and removes br", () => {
         const wrapper = createWrapper(`<ul><li class="start"><br>zero<br></li><li class="end"><strong>first</strong></li></ul>`);
         const first = getFirstChild(wrapper, ".end strong");
         selectRange(first, "".length, first, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+        const cursorPosition = testBackspace(wrapper);
 
-        (getLastChild(wrapper, ".start") as HTMLElement).remove();
-        const start = querySelector(wrapper, ".start");
-        const strong = querySelector(wrapper, ".end strong");
-        start.append(strong);
-        querySelector(wrapper, ".end").remove();
+        expectHtml(wrapper.innerHTML, `<ul><li class="start"><br>zero<strong>first</strong></li></ul>`);
+        expectCursor(cursorPosition, first, "".length);
+    });
 
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+    test("Should leave the caret at the end of the item after the br when Backspace merges two paragraphs", () => {
+        const wrapper = createWrapper(`<p class="start"><br>zero<br></p><p class="end"><strong>first</strong></p>`);
+        const first = getFirstChild(wrapper, ".end strong");
+        selectRange(first, "".length, first, "".length);
 
+        const cursorPosition = testBackspace(wrapper);
+
+        expectHtml(wrapper.innerHTML, `<p class="start"><br>zero<strong>first</strong></p>`);
+        expectCursor(cursorPosition, first, "".length);
+    });
+
+    test("Should leave the caret at the end of the item after the br when Backspace deletes second br", () => {
+        const wrapper = createWrapper(`<p class="start"><br>zero<br><br></p><p class="end"><strong>first</strong></p>`);
+        const first = getFirstChild(wrapper, ".end strong");
+        selectRange(first, "".length, first, "".length);
+
+        const cursorPosition = testBackspace(wrapper);
+
+        expectHtml(wrapper.innerHTML, `<p class="start"><br>zero<br><strong>first</strong></p>`);
         expectCursor(cursorPosition, first, "".length);
     });
 
@@ -415,11 +441,9 @@ describe("Cursor anchor after a Backspace", () => {
         const first = getLastChild(wrapper, ".start");
         selectRange(first, "".length, first, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+        const cursorPosition = testBackspace(wrapper);
 
-        querySelector(wrapper, ".start").innerHTML = `zerofirst`;
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
+        expectHtml(wrapper.innerHTML, `<p class="start">zerofirst</p>`);
         const zeroFirst = getFirstChild(wrapper, ".start");
         expectCursor(cursorPosition, zeroFirst, "zero".length);
     });
@@ -430,11 +454,9 @@ describe("Cursor anchor after a Backspace", () => {
         const first = getLastChild(wrapper, ".start");
         selectRange(first, "".length, first, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+        const cursorPosition = testBackspace(wrapper);
 
-        wrapper.innerHTML = `<p class="start">zerofirst</p><p>second</p>`;
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
+        expectHtml(wrapper.innerHTML, `<p class="start">zerofirst</p><p>second</p>`);
         const text = getLastChild(wrapper, ".start");
         expectCursor(cursorPosition, text, "zero".length);
     });
@@ -443,11 +465,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p class="start">zero<br><br>first</p>`);
         const first = getLastChild(wrapper, ".start");
         selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        wrapper.querySelectorAll(".start br")[1]?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p class="start">zero<br>first</p>`);
         expectCursor(cursorPosition, first, "".length);
     });
 
@@ -455,11 +476,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p class="start">zero<br><br><br><br>first</p>`);
         const thirdBr = wrapper.querySelectorAll(".start br")[2] as HTMLElement;
         selectRange(thirdBr, "".length, thirdBr, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        thirdBr.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p class="start">zero<br><br><br>first</p>`);
         const secondBr = wrapper.querySelectorAll(".start br")[1] as HTMLElement;
         expectCursor(cursorPosition, secondBr, "".length);
     });
@@ -470,10 +490,9 @@ describe("Cursor anchor after a Backspace", () => {
         const second = getLastChild(wrapper, ".start");
         selectRange(second, "".length, second, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-        wrapper.querySelectorAll(".start br")[1]?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p class="start">zero<strong>first<br></strong>second</p>`);
         expectCursor(cursorPosition, getLastChild(wrapper, ".start"), "".length);
     });
 
@@ -482,11 +501,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p class="start">zero<br><br>first<br><br>second</p>`);
         const second = getLastChild(wrapper, ".start");
         selectRange(second, "".length, second, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        wrapper.querySelectorAll(".start br")[3]?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p class="start">zero<br><br>first<br>second</p>`);
         expectCursor(cursorPosition, getLastChild(wrapper, ".start"), "".length);
     });
 
@@ -494,11 +512,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<ul><li class="start"><br></li><li class="end">zero</li></ul>`);
         let zero = getFirstChild(wrapper, ".end");
         selectRange(zero, "".length, zero, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        wrapper.innerHTML = `<ul><li class="start">zero</li></ul>`;
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<ul><li class="start">zero</li></ul>`);
         zero = getFirstChild(wrapper, ".start");
         expectCursor(cursorPosition, zero, "".length);
     });
@@ -508,11 +525,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="middle"><br><br></p><p class="end">first</p><p>second</p>`);
         const first = getFirstChild(wrapper, ".end");
         selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        wrapper.querySelectorAll(".middle br")[1]?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p><p class="middle"><br>first</p><p>second</p>`);
         expectCursor(cursorPosition, first, "".length);
     });
 
@@ -520,11 +536,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="middle"><br>first<br><br></p><p class="end">second</p><p>third</p>`);
         const second = getFirstChild(wrapper, ".end");
         selectRange(second, "".length, second, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        wrapper.querySelectorAll(".middle br")[1]?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p class="start">zero</p><p class="middle"><br>first<br>second</p><p>third</p>`);
         expectCursor(cursorPosition, second, "".length);
     });
 
@@ -532,11 +547,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p class="start"><br><br></p><p class="end">zero</p>`);
         const zero = getFirstChild(wrapper, ".end");
         selectRange(zero, "".length, zero, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        querySelector(wrapper, ".start br").remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p class="start"><br>zero</p>`);
         expectCursor(cursorPosition, zero, "".length);
     });
 
@@ -544,49 +558,21 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p class="start"><br><br><br></p><p class="end">zero</p>`);
         const zero = getFirstChild(wrapper, ".end");
         selectRange(zero, "".length, zero, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        querySelector(wrapper, ".start br").remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p class="start"><br><br>zero</p>`);
         expectCursor(cursorPosition, zero, "".length);
-    });
-
-    test("Should restore the selection onto the block rebuilt in place", () => {
-        const wrapper = createWrapper(`<p>start</p><p class="start">zero</p><p>end</p>`);
-        selectRange(getFirstChild(wrapper, ".start"), "ze".length, getFirstChild(wrapper, ".start"), "zer".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.Tag, tag: "STRONG"});
-
-        // What a command does: the block is rebuilt, so nothing the anchor was read from is left.
-        (wrapper.childNodes[1] as HTMLElement).outerHTML = `<h1 class="start">ze<strong>r</strong>o</h1>`;
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
-        expectCursor(cursorPosition, getFirstChild(wrapper, ".start strong"), "".length,
-            getFirstChild(wrapper, ".start strong"), "r".length);
-    });
-
-    test("Should restore the selection onto the rebuilt block when the block before it is removed", () => {
-        const wrapper = createWrapper(`<p>zero</p><p class="be-image"><img src="image.png"></p><p class="start">first</p><p>second</p>`);
-        selectRange(getFirstChild(wrapper, ".start"), "f".length, getFirstChild(wrapper, ".start"), "fir".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), {action: Action.Tag, tag: "STRONG"});
-
-        wrapper.querySelector(".be-image")?.remove();
-        (wrapper.childNodes[1] as HTMLElement).outerHTML = `<h1 class="start">f<strong>ir</strong>st</h1>`;
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
-        expectCursor(cursorPosition, getFirstChild(wrapper, ".start strong"), "".length,
-            getFirstChild(wrapper, ".start strong"), "ir".length);
     });
 
     test("Should keep the offset when Backspace removes an inline image", () => {
         const wrapper = createWrapper(`<p class="start">zero<img src="image.png">first</p>`);
         const text = getLastChild(wrapper, ".start");
         selectRange(text, 0, text, 0);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        querySelector(wrapper, ".start").innerHTML = `zerofirst`;
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p class="start">zerofirst</p>`);
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
     });
 
@@ -596,11 +582,9 @@ describe("Cursor anchor after a Backspace", () => {
         const first = getFirstChild(wrapper, ".start");
         selectRange(first, "".length, first, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+        const cursorPosition = testBackspace(wrapper);
 
-        wrapper.querySelector(".be-image")?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p class="start">first</p>`);
         expectCursor(cursorPosition, first, 0);
     });
 
@@ -609,11 +593,9 @@ describe("Cursor anchor after a Backspace", () => {
         const second = getFirstChild(wrapper, ".start");
         selectRange(second, "".length, second, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+        const cursorPosition = testBackspace(wrapper);
 
-        wrapper.querySelector(".be-image")?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p>first</p><p class="start">second</p>`);
         expectCursor(cursorPosition, second, "".length);
     });
 
@@ -624,11 +606,9 @@ describe("Cursor anchor after a Backspace", () => {
         const li = querySelector(wrapper, ".start");
         selectRange(li, 2, li, 2);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
+        const cursorPosition = testBackspace(wrapper);
 
-        querySelector(wrapper, ".start br").remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
-
+        expectHtml(wrapper.innerHTML, `<ol><li>zero</li><li class="start">first<ol><li>second</li></ol></li></ol>`);
         expectCursor(cursorPosition, first, "first".length);
     });
 
@@ -637,12 +617,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p class="start">zero</p><p class="end">first</p>`);
         const first = getFirstChild(wrapper, ".end");
         selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        (wrapper.querySelector(".start") as HTMLElement).append(first);
-        wrapper.querySelector(".end")?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p class="start">zerofirst</p>`);
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
     });
 
@@ -651,26 +629,22 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<ul><li class="start">zero<ul><li class="end">first</li></ul></li></ul>`);
         const first = getFirstChild(wrapper, ".end");
         selectRange(first, "".length, first, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        (wrapper.querySelector(".start") as HTMLElement).append(first);
-        wrapper.querySelector(".start ul")?.remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<ul><li class="start">zerofirst</li></ul>`);
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
     });
 
     // An empty text holds nothing to remove; Backspace steps over it to the emoji before.
     test("Should step over an empty text to the emoji Backspace removes", () => {
         const wrapper = createWrapper(`<p><strong class="start">zero😀</strong>first</p>`);
-        (wrapper.querySelector(".start") as HTMLElement).append(document.createTextNode(""));
         const first = getLastChild(wrapper, "p");
         selectRange(first, "".length, first, "".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-        (getFirstChild(wrapper, ".start") as Text).data = "zero";
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p><strong class="start">zero</strong>first</p>`);
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
     });
 
@@ -679,11 +653,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p>zero<strong class="start">first</strong>second</p>`);
         const second = getLastChild(wrapper, "p");
         selectRange(second, "".length, second, "".length);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        getFirstChild(wrapper, ".start").textContent = "firs";
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p>zero<strong class="start">firs</strong>second</p>`);
         expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "firs".length);
     });
 
@@ -693,23 +666,33 @@ describe("Cursor anchor after a Backspace", () => {
         const text = getLastChild(wrapper, "li");
         selectRange(text, "f".length, text, "f".length);
 
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
-        (text as Text).remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<ul><li><strong class="start">zero</strong></li><li>second</li></ul>`);
         const zero = getFirstChild(wrapper, ".start");
         expectCursor(cursorPosition, zero, "zero".length);
+    });
+
+    test("Should keep the caret on the br when Backspace empties the text after a strong", () => {
+        const wrapper = createWrapper(`<ul><li><strong class="start">zero<br><br></strong>f</li><li>second</li></ul>`);
+        const text = getLastChild(wrapper, "li");
+        selectRange(text, "f".length, text, "f".length);
+
+        const cursorPosition = testBackspace(wrapper);
+
+        expectHtml(wrapper.innerHTML, `<ul><li><strong class="start">zero<br></strong></li><li>second</li></ul>`);
+        const zero = getLastChild(wrapper, ".start");
+        expectCursor(cursorPosition, zero, 0);
     });
 
     test("Should go before empty block", () => {
         const wrapper = createWrapper(`<p>zero</p><p class="start">first</p><p class="end"><br></p>`);
         const br = getFirstChild(wrapper, ".end");
         selectRange(br, 0, br, 0);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        querySelector(wrapper, ".end").remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p class="start">first</p>`);
         const first = getFirstChild(wrapper, ".start")
         expectCursor(cursorPosition, first, "first".length);
     });
@@ -718,11 +701,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p>zero</p><p class="start">first</p><p class="end"><br></p><p>third</p>`);
         const br = getFirstChild(wrapper, ".end");
         selectRange(br, 0, br, 0);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        querySelector(wrapper, ".end").remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p class="start">first</p><p>third</p>`);
         const first = getFirstChild(wrapper, ".start")
         expectCursor(cursorPosition, first, "first".length);
     });
@@ -731,11 +713,10 @@ describe("Cursor anchor after a Backspace", () => {
         const wrapper = createWrapper(`<p>zero</p><p class="start">first</p><p class="end"><br></p><p><br></p>`);
         const br = getFirstChild(wrapper, ".end");
         selectRange(br, 0, br, 0);
-        const cursorAnchor = getCursorAnchor(wrapper, getCursorPosition(), keydown("Backspace"));
 
-        querySelector(wrapper, ".end").remove();
-        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+        const cursorPosition = testBackspace(wrapper);
 
+        expectHtml(wrapper.innerHTML, `<p>zero</p><p class="start">first</p><p><br></p>`);
         const first = getFirstChild(wrapper, ".start")
         expectCursor(cursorPosition, first, "first".length);
     });
@@ -1028,6 +1009,18 @@ describe("Cursor anchor after a Delete", () => {
 });
 
 describe("Deletes range end from a caret on a br", () => {
+    test("Should resolve the anchor when the br the command left the caret on is gone", () => {
+        const wrapper = createWrapper(`<ul><li class="start">zero</li><li><br></li></ul>`);
+        selectRange(getFirstChild(wrapper, ".start"), "zero".length, getFirstChild(wrapper, ".start"), "zero".length);
+
+        const cursorAnchor = getCursorAnchor(wrapper);
+
+        wrapper.querySelector("br")?.remove();
+        const cursorPosition = resolveCursorAnchor(wrapper, cursorAnchor);
+
+        expectCursor(cursorPosition, getFirstChild(wrapper, ".start"), "zero".length);
+    });
+
     // The offset counts from the list, so it lands on the end of the text above, one step before the caret's br.
     test("Should end at the start of the nested line after an empty item below text", () => {
         const wrapper = createWrapper(`

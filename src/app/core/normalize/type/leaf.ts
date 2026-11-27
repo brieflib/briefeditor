@@ -47,6 +47,16 @@ export class Leaf {
 
         return !!line.textContent || line.querySelectorAll("br").length > 1;
     }
+
+    /** Whether the leaf node itself holds content, before it is placed back into the DOM. */
+    public hasNodeContent() {
+        const node = this.getNode();
+        if (node instanceof Text) {
+            return !!node.data;
+        }
+
+        return isSchemaContain(node, [Display.SelfClose, Display.Cell]);
+    }
 }
 
 export interface LeafGroup {

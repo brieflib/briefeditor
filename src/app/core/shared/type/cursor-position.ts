@@ -1,8 +1,9 @@
 import {getRange} from "@/core/shared/range-util";
-import {getFirstText, getLastText} from "@/core/shared/element-util";
+import {getElement, getFirstText, getLastNode, getLastText} from "@/core/shared/element-util";
 import {getSelectedBlocks} from "@/core/selection/selection";
 import {anchorCursorOnLeaf, collapseLeaves, getLeafNodes, setLeafParents} from "@/core/normalize/util/normalize-util";
 import {getSelectedLeaves} from "@/core/selection/util/selection-util";
+import {Display, isSchemaContain} from "@/core/normalize/type/schema";
 
 export interface CursorPosition {
     readonly startContainer: Node,
@@ -51,6 +52,28 @@ export function getCursorPositionFrom(startContainer: Node, startOffset: number,
         ...cursorPosition,
         range: getRangeFromCursorPosition(cursorPosition)
     };
+}
+
+/** Moves a collapsed cursor standing on an element before a nested list onto the leaf before that list. */
+export function whenCursorSpansElements(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const container = cursorPosition.startContainer;
+    if (!isCollapsed(cursorPosition) || !(container instanceof HTMLElement)) {
+        return cursorPosition;
+    }
+
+    const line = getElement(contentEditable, container, [Display.Line, Display.List]);
+    const child = container.childNodes[cursorPosition.startOffset];
+    if (!line || !child || !isSchemaContain(child, [Display.ListWrapper])) {
+        return cursorPosition;
+    }
+
+    const previous = getLastNode(child.previousSibling);
+    if (!previous) {
+        return cursorPosition;
+    }
+
+    const offset = previous instanceof Text ? previous.data.length : 0;
+    return getCursorPositionFrom(previous, offset, previous, offset);
 }
 
 /**

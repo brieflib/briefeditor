@@ -7,8 +7,7 @@ import {
     getBlockElement,
     hasSelfCloseDescendant,
     imageBlockClass,
-    imageSizeClasses,
-    isOnlySelfClose
+    imageSizeClasses
 } from "@/core/shared/element-util";
 import {Carrier} from "@/core/carrier/carrier";
 import {Attributes} from "@/core/command/type/command";
@@ -104,11 +103,16 @@ export function normalizeReplaceBlockNew(contentEditable: Node,
  * Rebuilds a detached fragment into the schema, moving the leaves of `lastBlock` into `firstBlock`. Both blocks
  * must stand in `toNormalize`.
  */
-export function normalizeMergeNew(contentEditable: Node,
+export function normalizeMergeNew(contentEditable: HTMLElement,
                                   toNormalize: DocumentFragment,
                                   firstBlock: Node,
                                   lastBlock: Node,
                                   cursorPosition: CursorPosition): CollapsedLeaves {
+    const lastChild = firstBlock.lastChild;
+    if (lastChild && isSchemaContain(lastChild, [Display.SelfClose])) {
+        lastChild.remove();
+    }
+
     // Inside the fragment the chain stops at the fragment, so it holds only the first block and its wrappers
     const firstBlockLeaf = toLeafWithParents(contentEditable, firstBlock);
     const firstBlockParents = firstBlockLeaf.getParents();
@@ -125,8 +129,17 @@ export function normalizeMergeNew(contentEditable: Node,
         .map(leaf => removeSelfCloseInlines(leaf))
         .map(leaf => removeConsecutiveDuplicates(leaf));
 
+    return addPlaceholderIfEmpty(leaves, cursorPosition);
+}
+
+/**
+ * Adds a placeholder br when no rebuilt leaf holds content; otherwise collapses the leaves with the existing
+ * cursor position.
+ */
+function addPlaceholderIfEmpty(leaves: Leaf[], cursorPosition: CursorPosition): CollapsedLeaves {
     const leaf = leaves.at(0);
-    if (leaf && !leaf.hasContent()) {
+    // The merged result has nothing to render, so add a placeholder br.
+    if (leaf && leaves.every(item => !item.hasNodeContent())) {
         const br = addPlaceholderBr(leaf);
         return collapseLeavesNew(leaves, getCursorPositionFrom(br, 0, br, 0));
     }
@@ -138,15 +151,19 @@ export function normalizeMergeNew(contentEditable: Node,
  * Puts a br in place of `leaf`, inside it when the leaf itself stands for a block, and returns it.
  */
 function addPlaceholderBr(leaf: Leaf) {
-    const br = document.createElement("br");
-    if (leaf.getNode() instanceof Text) {
-        // The br takes the text's place, so every inline tag above it stays its parent
+    const node = leaf.getNode();
+    if (node instanceof Text) {
+        const br = document.createElement("br");
         leaf.replaceNode(br);
-    } else {
-        // The leaf is the block itself, so the br becomes the block's child
-        leaf.addParent(br);
+        return br;
     }
 
+    if (isSchemaContain(node, [Display.SelfClose])) {
+        return node as HTMLElement;
+    }
+
+    const br = document.createElement("br");
+    leaf.addParent(br);
     return br;
 }
 
@@ -499,6 +516,15 @@ function backspaceCharacterNew(leaves: Leaf[], cursorPosition: CursorPosition) {
 
     if (cursorPosition.startOffset > 0) {
         const offset = removeCharacterBefore(text, cursorPosition.startOffset);
+        // Text is cleared - move cursor to the previous node.
+        if (!text.data && leaf.hasContent()) {
+            const previousNode = leaves[leafIndex - 1]?.getNode();
+            if (previousNode) {
+                const previousOffset = previousNode instanceof Text ? previousNode.data.length : 0;
+                return getCursorPositionFrom(previousNode, previousOffset, previousNode, previousOffset);
+            }
+        }
+        
         return getCursorPositionFrom(text, offset, text, offset);
     }
 
@@ -1325,3 +1351,4 @@ function removeAttributes(element: HTMLElement) {
         element.className = kept.join(" ");
     }
 }
+

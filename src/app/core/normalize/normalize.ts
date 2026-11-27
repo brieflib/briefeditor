@@ -17,7 +17,13 @@ import {
     sortLeafParents,
     wrapInTagNew
 } from "@/core/normalize/util/normalize-util";
-import {getElement, getPreviousLine, getRootElement} from "@/core/shared/element-util";
+import {
+    ensureEditorContent,
+    getElement,
+    getPreviousLine,
+    getRootElement, isImageBlock,
+    isOnlySelfClose, removeCurrentEmptyBlock, removePreviousImageBlock
+} from "@/core/shared/element-util";
 import {getCursorAnchor, resolveCursorAnchor} from "@/core/cursor/util/cursor-util";
 import {
     CursorPosition,
@@ -28,7 +34,7 @@ import {
     getSelectedTexts,
     insertNode,
     isCollapsed,
-    isCursorPositionEqual,
+    isCursorPositionEqual, whenCursorSpansElements,
     wrapCursorPosition,
     wrapWithNeighbours
 } from "@/core/shared/type/cursor-position";
@@ -37,8 +43,8 @@ import {getNextListWrapper, getPreviousListWrapper} from "@/core/list/util/list-
 import {Attributes} from "@/core/command/type/command";
 import {Carrier} from "@/core/carrier/carrier";
 import {Display, isSchemaContain} from "@/core/normalize/type/schema";
-import {isCursorAtStartOfBlock} from "@/core/cursor/cursor";
-import {mergeItems} from "@/core/list/list";
+import {isAtLineStart, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
+import {isInSameListWrapper, mergeItems} from "@/core/list/list";
 
 export class Normalizer {
     private readonly contentEditable: HTMLElement;
@@ -137,21 +143,20 @@ export class Normalizer {
 
     /** Merges `lastBlock` into `firstBlock`, rebuilding every root from the one before the first block's root to the one after the last block's. */
     public mergeBlocks(cursorPosition = getCursorPosition()): CursorPosition | undefined {
-        const firstRoot = getRootElement(this.contentEditable, cursorPosition.startContainer);
+        let firstRoot = getRootElement(this.contentEditable, cursorPosition.startContainer);
         const lastRoot = getRootElement(this.contentEditable, cursorPosition.endContainer);
+
+        const isBoundaryBackspace = isCollapsed(cursorPosition) && isCursorAtStartOfBlock(this.contentEditable, cursorPosition);
+        if (isBoundaryBackspace && lastRoot.previousElementSibling) {
+            firstRoot = lastRoot.previousElementSibling as HTMLElement;
+        }
         const wrappedCursorPosition = wrapWithNeighbours(firstRoot, lastRoot);
         if (!wrappedCursorPosition) {
             return cursorPosition;
         }
 
-        const firstBlock = getElement(this.contentEditable, cursorPosition.startContainer, [Display.FirstLevel, Display.List]);
-        const lastBlock = getElement(this.contentEditable, cursorPosition.endContainer, [Display.FirstLevel, Display.List]);
-        if (!firstBlock || !lastBlock) {
-            return cursorPosition;
-        }
-
         const fragment = extractContents(wrappedCursorPosition);
-        const normalized = normalizeMergeNew(this.contentEditable, fragment, firstBlock, lastBlock, cursorPosition);
+        const normalized = normalizeMergeNew(this.contentEditable, fragment, firstRoot, lastRoot, cursorPosition);
         insertNode(wrappedCursorPosition, normalized.node);
 
         return getNormalizedCursorPosition(normalized);
@@ -172,17 +177,26 @@ export class Normalizer {
         return getNormalizedCursorPosition(normalized);
     }
 
+    public backspaceEnsureEditorContent(cursorPosition = getCursorPosition()) {
+        return ensureEditorContent(this.contentEditable, this.backspace(cursorPosition));
+    }
+
     /**
      * Deletes the character before the cursor, merging the block into the one before it at a block boundary. A
      * selection spanning whole blocks is replaced by one empty block holding a br.
      */
-    public backspace(cursorPosition = getCursorPosition()): CursorPosition | undefined {
-        if (isCollapsed(cursorPosition) && isCursorAtStartOfBlock(this.contentEditable, cursorPosition)) {
-            const lastLine = getElement(this.contentEditable, cursorPosition.startContainer, [Display.List]);
-            const firstLine = getPreviousLine(this.contentEditable, lastLine);
-            if (firstLine && lastLine && isSchemaContain(firstLine, [Display.List])) {
-                mergeItems(this.contentEditable, firstLine, lastLine);
-                return cursorPosition;
+    private backspace(cursorPosition = getCursorPosition()): CursorPosition | undefined {
+        cursorPosition = whenCursorSpansElements(this.contentEditable, cursorPosition);
+
+        if (isCollapsed(cursorPosition) && isAtLineStart(this.contentEditable, cursorPosition.startContainer, cursorPosition.startOffset)) {
+            const listCursor = this.mergePreviousListItem(this.contentEditable, cursorPosition);
+            if (listCursor) {
+                return listCursor;
+            }
+
+            const blockCursor = this.backspaceBlock(cursorPosition);
+            if (blockCursor) {
+                return blockCursor;
             }
         }
 
@@ -202,6 +216,42 @@ export class Normalizer {
         insertNode(involved, normalized.node);
 
         return getNormalizedCursorPosition(normalized);
+    }
+
+    /** Merges the list item at the caret into the item before it when Backspace stands at the item's start. */
+    private mergePreviousListItem(contentEditable: HTMLElement,
+                                  cursorPosition: CursorPosition): CursorPosition | undefined {
+        const lastLine = getElement(contentEditable, cursorPosition.endContainer, [Display.List]);
+        if (!lastLine) {
+            return;
+        }
+
+        const firstLine = getPreviousLine(contentEditable, lastLine);
+        if (firstLine && isSchemaContain(firstLine, [Display.List]) && !isOnlySelfClose(lastLine)) {
+            return mergeItems(contentEditable, firstLine, lastLine, cursorPosition);
+        }
+    }
+
+    /**
+     * Handles Backspace at the start of a non-list block: removes an empty block or the image block before it,
+     * otherwise merges the block into the one above.
+     */
+    private backspaceBlock(cursorPosition: CursorPosition): CursorPosition | undefined {
+        const lastLine = getElement(this.contentEditable, cursorPosition.endContainer, [Display.List]);
+        if (lastLine) {
+            return;
+        }
+
+        const emptyBlockCursor = removeCurrentEmptyBlock(this.contentEditable, cursorPosition);
+        if (emptyBlockCursor) {
+            return emptyBlockCursor;
+        }
+
+        if (removePreviousImageBlock(this.contentEditable, cursorPosition)) {
+            return cursorPosition;
+        }
+
+        return this.mergeBlocks(cursorPosition);
     }
 }
 

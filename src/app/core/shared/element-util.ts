@@ -10,6 +10,53 @@ import {getFirstListWrapper} from "@/core/list/util/list-util";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
 import {readSplitPoint} from "@/core/list/list";
 
+/** Restores the editor's empty paragraph when an edit removed every block. */
+export function ensureEditorContent(contentEditable: HTMLElement,
+                             cursorPosition: CursorPosition | undefined): CursorPosition | undefined {
+    if (contentEditable.firstElementChild) {
+        return cursorPosition;
+    }
+
+    const paragraph = document.createElement("p");
+    const br = document.createElement("br");
+    paragraph.appendChild(br);
+    contentEditable.appendChild(paragraph);
+
+    return getCursorPositionFrom(br, 0, br, 0);
+}
+
+/** Removes the current block when it holds only self-close content, returning the cursor on the block before it. */
+export function removeCurrentEmptyBlock(contentEditable: HTMLElement,
+                                 cursorPosition: CursorPosition): CursorPosition | undefined {
+    const currentRoot = getRootElement(contentEditable, cursorPosition.endContainer);
+    if (!isOnlySelfClose(currentRoot)) {
+        return;
+    }
+
+    const previousRoot = currentRoot.previousElementSibling as HTMLElement | null;
+    if (!previousRoot) {
+        return;
+    }
+
+    const lastText = getLastText(previousRoot);
+    const offset = lastText instanceof Text ? lastText.data.length : 0;
+    currentRoot.remove();
+
+    return getCursorPositionFrom(lastText, offset, lastText, offset);
+}
+
+/** Removes the image block immediately before the cursor's block, if any. */
+export function removePreviousImageBlock(contentEditable: HTMLElement, cursorPosition: CursorPosition) {
+    const currentRoot = getRootElement(contentEditable, cursorPosition.endContainer);
+    const previousRoot = currentRoot.previousElementSibling as HTMLElement | null;
+    if (!previousRoot || !isImageBlock(previousRoot)) {
+        return false;
+    }
+
+    previousRoot.remove();
+    return true;
+}
+
 export function getChildFragment(child: Element) {
     const fragment = new DocumentFragment();
     for (const node of Array.from(child.childNodes)) {

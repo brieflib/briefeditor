@@ -12,6 +12,7 @@ export class ListClass {
     listContent!: DocumentFragment;
     selected!: boolean;
     attributes!: [string, string][];
+    wrapperAttributes!: [string, string][];
 }
 
 /**
@@ -67,6 +68,9 @@ export function convertList(lists: ListClass[]): DocumentFragment {
         if (wrappers[list.nestedLevel]?.nodeName !== list.listWrapper) {
             wrappers.length = list.nestedLevel;
             const wrapper = document.createElement(list.listWrapper);
+            for (const [name, value] of list.wrapperAttributes) {
+                wrapper.setAttribute(name, value);
+            }
             const parent = wrappers[list.nestedLevel - 1]?.lastElementChild ?? fragment;
             parent.appendChild(wrapper);
             wrappers.push(wrapper);
@@ -149,10 +153,9 @@ function isWithoutContent(list: ListClass): boolean {
 
 function parseListWrapper(wrapper: HTMLElement, level: number, result: ListClass[], cursorPosition: CursorPosition,
                           isClone: boolean) {
-    const wrapperType = toWrapperType(wrapper);
     for (const child of Array.from(wrapper.children) as HTMLElement[]) {
         if (isList(child)) {
-            parseListItem(child, wrapperType, level, result, cursorPosition, isClone);
+            parseListItem(child, wrapper, level, result, cursorPosition, isClone);
         } else if (isSchemaContain(child, [Display.ListWrapper])) {
             parseListWrapper(child, level + 1, result, cursorPosition, isClone);
         }
@@ -160,13 +163,13 @@ function parseListWrapper(wrapper: HTMLElement, level: number, result: ListClass
 }
 
 /** Reads an item's own line, then walks into any lists nested in it, each a level deeper. */
-function parseListItem(item: HTMLElement, wrapperType: ListWrapper, level: number, result: ListClass[],
+function parseListItem(item: HTMLElement, wrapper: HTMLElement, level: number, result: ListClass[],
                        cursorPosition: CursorPosition, isClone: boolean) {
     const listClass = new ListClass();
     listClass.nestedLevel = level;
-    listClass.listWrapper = wrapperType;
-    listClass.attributes = Array.from(item.attributes)
-        .map(attribute => [attribute.name, attribute.value] as [string, string]);
+    listClass.listWrapper = toWrapperType(wrapper);
+    listClass.attributes = getAttributes(item);
+    listClass.wrapperAttributes = getAttributes(wrapper);
     // Read before the line is moved out, since the cursor's nodes leave the item with it
     listClass.selected = isLineSelected(item, cursorPosition);
     listClass.listContent = getChildFragment(item, isClone);
@@ -177,6 +180,12 @@ function parseListItem(item: HTMLElement, wrapperType: ListWrapper, level: numbe
             parseListWrapper(child, level + 1, result, cursorPosition, isClone);
         }
     }
+}
+
+/** Copies `element`'s attributes into name/value pairs that outlive the DOM node. */
+function getAttributes(element: Element): [string, string][] {
+    return Array.from(element.attributes)
+        .map(attribute => [attribute.name, attribute.value] as [string, string]);
 }
 
 function isList(element: HTMLElement): boolean {

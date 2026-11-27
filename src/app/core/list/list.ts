@@ -8,7 +8,7 @@ import {
     getPreviousListWrapper,
     isListEmpty
 } from "@/core/list/util/list-util";
-import {getBlockElement, getElement, getFirstText, getRootElement, imageSelector} from "@/core/shared/element-util";
+import {getBlockElement, getFirstText, getRootElement, imageSelector} from "@/core/shared/element-util";
 import {newLine} from "@/core/keyboard/util/keyboard-util";
 import {isCursorAtEndOfBlock, isCursorAtStartOfBlock} from "@/core/cursor/cursor";
 import {
@@ -19,6 +19,7 @@ import {
     splitAtCursor
 } from "@/core/shared/type/cursor-position";
 import {convertList, ListClass, minusLevel, normalizeLists, parseList, plusLevel} from "@/core/list/type/list-class";
+import {Normalizer} from "@/core/normalize/normalize";
 
 /** A list nests five wrappers deep at most: one for the item's own level, one per level above it. */
 const deepestNestedLevel = 6;
@@ -214,19 +215,21 @@ export function rebuildList(root: HTMLElement, lists: ListClass[], cursorPositio
  */
 export function mergeItems(contentEditable: HTMLElement,
                            firstLine: HTMLElement,
-                           lastLine: HTMLElement) {
-    firstLine.append(...Array.from(lastLine.childNodes).filter(node => !isSchemaContain(node, [Display.ListWrapper])));
-    //firstLine.normalize();
-
+                           lastLine: HTMLElement,
+                           cursorPosition = getCursorPosition()) {
     const firstBlock = getBlockElement(contentEditable, firstLine);
     const lastBlock = getBlockElement(contentEditable, lastLine);
-    const isSameRun = isInSameListRun(firstBlock, lastBlock);
 
-    // const firstLists = parseList(firstBlock);
-    // const lastLists = parseList(lastBlock);
+    if (isInSameListWrapper(firstBlock, lastBlock)) {
+        const lastChild = firstLine.lastChild;
+        if (lastChild instanceof Node && isSchemaContain(lastChild, [Display.SelfClose])) {
+            lastChild.remove();
+        }
+        firstLine.append(...Array.from(lastLine.childNodes).filter(node => !isSchemaContain(node, [Display.ListWrapper])));
+    }
 
-    const firstLists = parseList(firstBlock, getCursorPosition(), false);
-    const lastLists = isSameRun ? firstLists : parseList(lastBlock, getCursorPosition(), false);
+    const firstLists = parseList(firstBlock);
+    const lastLists = parseList(lastBlock);
 
     const firstIndex = firstLists.findIndex(list => list.selected);
     const lastIndex = lastLists.findIndex(list => list.selected);
@@ -235,10 +238,11 @@ export function mergeItems(contentEditable: HTMLElement,
     const normalized = normalizeLists(merged);
     const listWrappers = convertList(normalized);
     appendBeforeAndDelete(lastBlock, listWrappers);
+    return new Normalizer(contentEditable).normalize(cursorPosition);
 }
 
 /** Whether `last` is one of the list wrappers in the run that `first` belongs to. */
-function isInSameListRun(first: HTMLElement, last: HTMLElement) {
+export function isInSameListWrapper(first: HTMLElement, last: HTMLElement) {
     let current: HTMLElement | null = first;
     while (current && current !== last) {
         current = getNextListWrapper(current);
@@ -366,6 +370,7 @@ function newList(current: ListClass, listContent: DocumentFragment): ListClass {
     list.nestedLevel = current.nestedLevel;
     list.listWrapper = current.listWrapper;
     list.attributes = current.attributes;
+    list.wrapperAttributes = current.wrapperAttributes;
     list.listContent = listContent;
 
     return list;

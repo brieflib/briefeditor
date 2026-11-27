@@ -107,7 +107,7 @@ describe("Convert ListClass to DOM", () => {
         const normalized = normalizeLists(parseList(ulWrapper));
         const listWrapper = convertList(normalized).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
-            <ul>
+            <ul class="start">
                 <li>zero
                     <ul>
                         <li>second</li>
@@ -175,7 +175,7 @@ describe("Convert ListClass to DOM", () => {
 
         const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
-            <ul>
+            <ul class="start">
                 <li>zero
                     <ol>
                         <li><strong>first </strong>second
@@ -206,7 +206,7 @@ describe("Convert ListClass to DOM", () => {
 
         const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
-            <ol>
+            <ol class="start">
                 <li>first
                     <ol>
                         <li>second</li>
@@ -239,7 +239,7 @@ describe("Convert ListClass to DOM", () => {
 
         const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
-            <ul>
+            <ul class="start">
                 <li>zero
                     <ol>
                         <li>first
@@ -277,7 +277,7 @@ describe("Convert ListClass to DOM", () => {
 
         const listWrapper = convertList(lists).firstElementChild as HTMLElement;
         expectHtml(listWrapper.outerHTML, `
-            <ul>
+            <ul class="start">
                 <li>zero
                     <ul>
                         <li>first

@@ -72,7 +72,7 @@ export function testCursorPosition(wrapper: HTMLElement, cursorPosition = getCur
 }
 
 export function testBackspace(wrapper: HTMLElement, cursorPosition = getCursorPosition()) {
-    return new Normalizer(wrapper).backspace(cursorPosition);
+    return new Normalizer(wrapper).backspaceEnsureEditorContent(cursorPosition);
 }
 
 
